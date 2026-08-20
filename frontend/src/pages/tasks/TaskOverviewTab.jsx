@@ -78,13 +78,18 @@ const SimpleTimeTracker = ({
   isBlocked,
   blockerPausedAt,
   blockerHistory,
+  totalTrackedTime = 0,
   mode = "active",
 }) => {
   const [elapsed, setElapsed] = useState(0);
   const [blockedMs, setBlockedMs] = useState(0);
 
   useEffect(() => {
-    if (!startTime) return;
+    if (!startTime) {
+      setElapsed(0);
+      setBlockedMs(0);
+      return;
+    }
 
     const calculateTime = () => {
       const start = new Date(startTime).getTime();
@@ -157,7 +162,31 @@ const SimpleTimeTracker = ({
     savedPausedMs,
   ]);
 
-  if (!startTime) {
+  const formatTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+  };
+
+  const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
+
+  if (mode === "blocker") {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
+        {formatTime(blockedMs)}
+      </span>
+    );
+  }
+
+  if (!startTime && status !== "In Progress") {
+    if (totalTrackedTime > 0) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-500/5 dark:text-slate-300 dark:border-slate-500/20">
+          {formatTime(lifetimeSecs)}
+        </span>
+      );
+    }
     if (!status || status.toLowerCase() === "pending") {
       return (
         <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
@@ -167,21 +196,6 @@ const SimpleTimeTracker = ({
     }
     return (
       <span className="text-slate-455 dark:text-slate-500 font-normal">—</span>
-    );
-  }
-
-  const formatTime = (secs) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
-  };
-
-  if (mode === "blocker") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
-        {formatTime(blockedMs)}
-      </span>
     );
   }
 
@@ -196,11 +210,13 @@ const SimpleTimeTracker = ({
             ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
             : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20";
 
+  const totalActiveSecs = status === "In Progress" ? (lifetimeSecs + elapsed) : (lifetimeSecs > 0 ? lifetimeSecs : elapsed);
+
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs ${colorClasses}`}
     >
-      {formatTime(elapsed)}
+      {formatTime(totalActiveSecs)}
     </span>
   );
 };
@@ -215,12 +231,17 @@ const TimeTrackerBox = ({
   isBlocked,
   blockerPausedAt,
   blockerHistory,
+  totalTrackedTime = 0,
 }) => {
   const [elapsed, setElapsed] = useState(0);
   const [blockedMs, setBlockedMs] = useState(0);
 
   useEffect(() => {
-    if (!startTime) return;
+    if (!startTime) {
+      setElapsed(0);
+      setBlockedMs(0);
+      return;
+    }
 
     const calculateTime = () => {
       const start = new Date(startTime).getTime();
@@ -293,11 +314,27 @@ const TimeTrackerBox = ({
     savedPausedMs,
   ]);
 
-  if (!startTime) {
+  const formatTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+  };
+
+  const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
+
+  if (!startTime && status !== "In Progress") {
     if (!status || status.toLowerCase() === "pending") {
       return (
         <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
-          Not started
+          {totalTrackedTime > 0 ? `00:00:00` : "Not started"}
+        </span>
+      );
+    }
+    if (status === "On Hold") {
+      return (
+        <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
+          00:00:00
         </span>
       );
     }
@@ -306,14 +343,7 @@ const TimeTrackerBox = ({
     );
   }
 
-  const formatTime = (secs) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
-  };
-
-  const totalStr = formatTime(elapsed + blockedMs);
+  const totalStr = formatTime(lifetimeSecs + elapsed + blockedMs);
 
   return (
     <div className="flex flex-col w-[125px] text-[11px] font-extrabold tracking-wide mx-auto">
@@ -4149,6 +4179,7 @@ const TaskOverviewTab = ({
                               isBlocked={task.isBlocked}
                               blockerPausedAt={task.blockerPausedAt}
                               blockerHistory={task.blockerHistory}
+                              totalTrackedTime={task.totalTrackedTime}
                             />
                           </td>
                         )}
@@ -4164,6 +4195,7 @@ const TaskOverviewTab = ({
                               isBlocked={task.isBlocked}
                               blockerPausedAt={task.blockerPausedAt}
                               blockerHistory={task.blockerHistory}
+                              totalTrackedTime={task.totalTrackedTime}
                             />
                           </td>
                         )}
@@ -4178,6 +4210,7 @@ const TaskOverviewTab = ({
                               isBlocked={task.isBlocked}
                               blockerPausedAt={task.blockerPausedAt}
                               blockerHistory={task.blockerHistory}
+                              totalTrackedTime={task.totalTrackedTime}
                             />
                           </td>
                         )}

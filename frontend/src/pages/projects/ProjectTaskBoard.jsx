@@ -322,12 +322,16 @@ const TimeTracker = React.memo(({
   autoPaused,
   status,
   savedPausedMs = 0,
+  totalTrackedTime = 0,
   variant = "default",
 }) => {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    if (!startTime) return;
+    if (!startTime) {
+      setElapsed(0);
+      return;
+    }
 
     const calculateElapsed = () => {
       const start = new Date(startTime).getTime();
@@ -369,7 +373,21 @@ const TimeTracker = React.memo(({
     }
   }, [startTime, endTime, pausedAt, autoPaused, status, savedPausedMs]);
 
+  const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
+  const totalDisplaySecs = status === "In Progress" ? (lifetimeSecs + elapsed) : (lifetimeSecs > 0 ? lifetimeSecs : elapsed);
+
   if (!startTime && status !== "In Progress") {
+    if (totalTrackedTime > 0) {
+      const h = Math.floor(lifetimeSecs / 3600);
+      const m = Math.floor((lifetimeSecs % 3600) / 60);
+      const s = lifetimeSecs % 60;
+      const str = `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+      return (
+        <span className="text-slate-700 dark:text-slate-300 font-bold text-xs block text-center w-full">
+          {str}
+        </span>
+      );
+    }
     if (!status || status.toLowerCase() === "pending") {
       return (
         <span className="text-slate-405 dark:text-slate-500 font-semibold text-xs block text-center w-full">
@@ -387,9 +405,9 @@ const TimeTracker = React.memo(({
       </div>
     );
 
-  const hours = Math.floor(elapsed / 3600);
-  const minutes = Math.floor((elapsed % 3600) / 60);
-  const seconds = elapsed % 60;
+  const hours = Math.floor(totalDisplaySecs / 3600);
+  const minutes = Math.floor((totalDisplaySecs % 3600) / 60);
+  const seconds = totalDisplaySecs % 60;
 
   const timeString = `${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
 
@@ -6079,6 +6097,9 @@ const ProjectTaskBoard = ({
                                                             }
                                                             savedPausedMs={
                                                               task.totalPausedMs
+                                                            }
+                                                            totalTrackedTime={
+                                                              task.totalTrackedTime
                                                             }
                                                             status={task.status}
                                                           />

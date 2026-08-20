@@ -41,6 +41,7 @@ import { getClientIconComponent } from "../../utils/clientHelpers";
 import { calculateBusinessMs } from "../../utils/businessHours";
 import CorrectionModal from "../../components/CorrectionModal";
 import RejectionModal from "../../components/RejectionModal";
+import StatusHistoryTable from "../../components/common/StatusHistoryTable";
 
 const isSameDate = (d1, d2) => {
   if (!d1 || !d2) return false;
@@ -69,13 +70,18 @@ const TimeTracker = ({
   isBlocked,
   blockerPausedAt,
   blockerHistory,
+  totalTrackedTime = 0,
   fullWidth = false,
 }) => {
   const [elapsed, setElapsed] = useState(0);
   const [blockedMs, setBlockedMs] = useState(0);
 
   useEffect(() => {
-    if (!startTime) return;
+    if (!startTime) {
+      setElapsed(0);
+      setBlockedMs(0);
+      return;
+    }
 
     const calculateTime = () => {
       const start = new Date(startTime).getTime();
@@ -148,11 +154,27 @@ const TimeTracker = ({
     blockerHistory,
   ]);
 
+  const formatTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+  };
+
+  const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
+
   if (!startTime && status !== "In Progress") {
     if (!status || status.toLowerCase() === "pending") {
       return (
         <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
-          Not started
+          {totalTrackedTime > 0 ? `00:00:00` : "Not started"}
+        </span>
+      );
+    }
+    if (status === "On Hold") {
+      return (
+        <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
+          00:00:00
         </span>
       );
     }
@@ -170,16 +192,9 @@ const TimeTracker = ({
       </div>
     );
 
-  const formatTime = (secs) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
-  };
-
   const activeStr = formatTime(elapsed);
   const blockedStr = formatTime(blockedMs);
-  const totalStr = formatTime(elapsed + blockedMs);
+  const totalStr = formatTime(lifetimeSecs + elapsed + blockedMs);
 
   return (
     <div
@@ -215,12 +230,17 @@ const SingleTimeDisplay = React.memo(
     isBlocked,
     blockerPausedAt,
     blockerHistory,
+    totalTrackedTime = 0,
   }) => {
     const [elapsed, setElapsed] = useState(0);
     const [blockedMs, setBlockedMs] = useState(0);
 
     useEffect(() => {
-      if (!startTime) return;
+      if (!startTime) {
+        setElapsed(0);
+        setBlockedMs(0);
+        return;
+      }
 
       const calculateTime = () => {
         const start = new Date(startTime).getTime();
@@ -294,28 +314,6 @@ const SingleTimeDisplay = React.memo(
       savedPausedMs,
     ]);
 
-    if (!startTime && status !== "In Progress") {
-      if (!status || status.toLowerCase() === "pending") {
-        return (
-          <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
-            Not started
-          </span>
-        );
-      }
-      return (
-        <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
-          —
-        </span>
-      );
-    }
-    if (!startTime && status === "In Progress") {
-      return (
-        <span className="text-[10px] font-bold text-blue-500 animate-pulse">
-          Starting...
-        </span>
-      );
-    }
-
     const formatTime = (secs) => {
       const h = Math.floor(secs / 3600);
       const m = Math.floor((secs % 3600) / 60);
@@ -323,7 +321,38 @@ const SingleTimeDisplay = React.memo(
       return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
     };
 
+    const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
+
     if (mode === "active") {
+      if (!startTime && status !== "In Progress") {
+        if (totalTrackedTime > 0) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded border font-bold text-[10px] bg-slate-50 dark:bg-slate-500/5 border-slate-200 dark:border-slate-500/20 text-slate-700 dark:text-slate-300">
+              {formatTime(lifetimeSecs)}
+            </span>
+          );
+        }
+        if (!status || status.toLowerCase() === "pending") {
+          return (
+            <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
+              Not started
+            </span>
+          );
+        }
+        return (
+          <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
+            —
+          </span>
+        );
+      }
+      if (!startTime && status === "In Progress") {
+        return (
+          <span className="text-[10px] font-bold text-blue-500 animate-pulse">
+            Starting...
+          </span>
+        );
+      }
+
       const colorClasses =
         status === "In Progress"
           ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-[#3b82f6]/30 text-blue-600 dark:text-[#3b82f6]"
@@ -335,11 +364,21 @@ const SingleTimeDisplay = React.memo(
                 ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/50 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                 : "bg-slate-50 dark:bg-slate-500/5 border-slate-200 dark:border-slate-500/20 text-slate-500 dark:text-slate-400";
 
+      const totalActiveSecs = status === "In Progress" ? (lifetimeSecs + elapsed) : (lifetimeSecs > 0 ? lifetimeSecs : elapsed);
+
       return (
         <span
           className={`inline-flex items-center gap-1 px-2 py-1 rounded border font-bold text-[10px] ${colorClasses}`}
         >
-          {formatTime(elapsed)}
+          {formatTime(totalActiveSecs)}
+        </span>
+      );
+    }
+
+    if (!startTime && status !== "In Progress") {
+      return (
+        <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
+          —
         </span>
       );
     }
@@ -3412,6 +3451,7 @@ const MyTasksTab = ({
                                   isBlocked={task.isBlocked}
                                   blockerPausedAt={task.blockerPausedAt}
                                   blockerHistory={task.blockerHistory}
+                                  totalTrackedTime={task.totalTrackedTime}
                                 />
                               </td>
                             )}
@@ -3432,6 +3472,7 @@ const MyTasksTab = ({
                                   isBlocked={task.isBlocked}
                                   blockerPausedAt={task.blockerPausedAt}
                                   blockerHistory={task.blockerHistory}
+                                  totalTrackedTime={task.totalTrackedTime}
                                 />
                               </td>
                             )}
@@ -3451,6 +3492,7 @@ const MyTasksTab = ({
                                   isBlocked={task.isBlocked}
                                   blockerPausedAt={task.blockerPausedAt}
                                   blockerHistory={task.blockerHistory}
+                                  totalTrackedTime={task.totalTrackedTime}
                                 />
                               </td>
                             )}
@@ -4169,6 +4211,9 @@ const MyTasksTab = ({
                     )}
                   </div>
                 </div>
+
+                {/* Status & Time Tracking History */}
+                <StatusHistoryTable task={selectedTask} />
 
                 {/* Correction History Display */}
                 {selectedTask.correctionHistory &&

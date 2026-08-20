@@ -97,16 +97,61 @@ export const calculateTaskProductivityForDate = (
   selectedDate = new Date(),
   officeHours = { startHour: 9, endHour: 19 },
 ) => {
-  if (!task || !task.actualStartTime) return 0;
-
-  const taskStart = new Date(task.actualStartTime).getTime();
-  if (isNaN(taskStart)) return 0;
+  if (!task) return 0;
 
   const selDateObj = selectedDate
     ? typeof selectedDate === "string"
       ? parseISO(selectedDate)
       : new Date(selectedDate)
     : new Date();
+
+  // 0. If statusHistory is recorded, use exact recorded In Progress sessions for this date
+  if (task.statusHistory && Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
+    const selDateStr = selDateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    let historyDuration = 0;
+    task.statusHistory.forEach((h) => {
+      if (h.status === "In Progress") {
+        let entryDate = h.date;
+        if (!entryDate && h.startTime) {
+          entryDate = new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        }
+        if (entryDate === selDateStr) {
+          historyDuration += (h.duration || 0);
+        }
+      }
+    });
+
+    const isToday = isSameDay(selDateObj, new Date());
+    if (isToday && (task.status === "In Progress" || task.status === "IN_PROGRESS")) {
+      const liveSessionStart = task.actualStartTime ? new Date(task.actualStartTime).getTime() : 0;
+      if (liveSessionStart > 0) {
+        const nowMs = Date.now();
+        let liveWorked = Math.max(0, nowMs - liveSessionStart);
+        if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
+          task.blockerHistory.forEach((b) => {
+            if (b.pausedAt) {
+              const p = new Date(b.pausedAt).getTime();
+              const r = b.resumedAt ? new Date(b.resumedAt).getTime() : nowMs;
+              if (r >= p && p >= liveSessionStart) {
+                liveWorked -= Math.max(0, r - p);
+              }
+            }
+          });
+        }
+        return Math.max(0, historyDuration + liveWorked);
+      }
+    }
+
+    if (historyDuration > 0 || (task.statusHistory.length > 0 && !task.actualStartTime)) {
+      return historyDuration;
+    }
+  }
+
+  if (!task.actualStartTime) return 0;
+
+  const taskStart = new Date(task.actualStartTime).getTime();
+  if (isNaN(taskStart)) return 0;
+
   const startHour = officeHours?.startHour ?? 9;
   const endHour = officeHours?.endHour ?? 19;
 

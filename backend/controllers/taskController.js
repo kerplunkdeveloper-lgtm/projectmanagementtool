@@ -34,8 +34,233 @@ const hasActiveWork = async (userId, currentTaskId = null, currentSubtaskId = nu
   return !!activeSubtask;
 };
 
-const calculateItemWorkingTime = (item) => {
+const getISTDateStr = (date = new Date()) => {
+  try {
+    return new Date(date).toLocaleDateString("en-US", {
+      timeZone: "Asia/Kolkata",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch (e) {
+    return new Date(date).toDateString();
+  }
+};
+
+const calculateSessionWorkingTime = (item, sessionEndTime = Date.now()) => {
   if (!item.actualStartTime) return 0;
+  const start = new Date(item.actualStartTime).getTime();
+  const end = new Date(sessionEndTime).getTime();
+  if (isNaN(start) || isNaN(end) || end <= start) return 0;
+
+  let sessionPauseMs = 0;
+  if (item.blockerHistory && Array.isArray(item.blockerHistory)) {
+    item.blockerHistory.forEach((h) => {
+      if (h.pausedAt) {
+        const p = new Date(h.pausedAt).getTime();
+        let r = h.resumedAt ? new Date(h.resumedAt).getTime() : end;
+        if (r > end) r = end;
+        if (r >= p && p >= start) {
+          sessionPauseMs += (r - p);
+        }
+      }
+    });
+  }
+  if (item.isBlocked && item.blockerPausedAt) {
+    const p = new Date(item.blockerPausedAt).getTime();
+    if (p >= start && p < end) {
+      sessionPauseMs += (end - p);
+    }
+  }
+
+  const elapsed = end - start - sessionPauseMs;
+  return Math.max(0, elapsed);
+};
+
+const handleItemStatusTransition = (item, prevStatus, newStatus, userId, settings = {}) => {
+  if (!newStatus || newStatus === prevStatus) return;
+
+  const now = new Date();
+  const nowMs = now.getTime();
+  const todayStr = getISTDateStr(now);
+  const startHour = settings.startHour ?? 9;
+  const endHour = settings.endHour ?? 19;
+  const workingDays = settings.workingDays && settings.workingDays.length > 0 ? settings.workingDays : [1, 2, 3, 4, 5, 6];
+
+  let history = item.statusHistory ? JSON.parse(JSON.stringify(item.statusHistory)) : [];
+
+  // Helper to close the last open status history entry
+  const closeOpenHistoryEntry = (statusToClose, closeEndTime, durationMs = 0) => {
+    for (let i = history.length - 1; i >= 0; i--) {
+      if (!history[i].endTime && (!statusToClose || history[i].status === statusToClose)) {
+        history[i].endTime = closeEndTime;
+        history[i].duration = Math.max(0, Math.round(durationMs));
+        break;
+      }
+    }
+  };
+
+  // 1. Handle LEAVING the previous status
+  if (prevStatus === "In Progress") {
+    // Designer was actively working; freeze / accrue session working time
+    const sessionWorkedMs = calculateSessionWorkingTime(item, nowMs);
+    item.totalTrackedTime = (item.totalTrackedTime || 0) + sessionWorkedMs;
+    item.dailyTrackedTime = (item.dailyTrackedTime || 0) + sessionWorkedMs;
+
+    closeOpenHistoryEntry("In Progress", now, sessionWorkedMs);
+  } else if (prevStatus === "On Hold") {
+    // Leaving On Hold: calculate business-hour On Hold duration
+    const holdStart = item.holdStartedAt || item.pausedAt || (history.length > 0 ? history[history.length - 1].startTime : now);
+    const onHoldBusinessMs = calculateBusinessMs(holdStart, now, startHour, endHour, workingDays);
+    item.holdEndedAt = now;
+
+    closeOpenHistoryEntry("On Hold", now, onHoldBusinessMs);
+  } else if (prevStatus === "In Review") {
+    const reviewStart = item.reviewStartedAt || nowMs;
+    const reviewBusinessMs = calculateBusinessMs(reviewStart, nowMs, startHour, endHour, workingDays);
+    item.approvalWaitingMs = (item.approvalWaitingMs || 0) + reviewBusinessMs;
+    const newCycle = {
+      startedAt: reviewStart,
+      completedAt: nowMs,
+      durationMs: reviewBusinessMs,
+    };
+    item.reviewCycles = [...(item.reviewCycles || []), newCycle];
+    item.lastReviewStartedAt = reviewStart;
+    item.reviewStartedAt = null;
+
+    closeOpenHistoryEntry("In Review", now, reviewBusinessMs);
+  } else if (prevStatus) {
+    closeOpenHistoryEntry(prevStatus, now, 0);
+  }
+
+  // 2. Handle ENTERING the new status
+  switch (newStatus) {
+    case "Pending":
+      item.actualStartTime = null; // Reset today's timer to start from 00:00:00 when later placed in progress
+      item.actualEndTime = null;
+      item.pausedAt = null;
+      item.holdStartedAt = null;
+      item.holdEndedAt = null;
+      item.autoPaused = false;
+
+      history.push({
+        status: "Pending",
+        startTime: now,
+        endTime: null,
+        duration: 0,
+        date: todayStr,
+        user: userId,
+      });
+      break;
+
+    case "In Progress":
+      item.actualStartTime = now;
+      item.actualEndTime = null;
+      item.completedAt = null;
+      item.pausedAt = null;
+      item.holdStartedAt = null;
+      item.holdEndedAt = null;
+      item.autoPaused = false;
+
+      history.push({
+        status: "In Progress",
+        startTime: now,
+        endTime: null,
+        duration: 0,
+        date: todayStr,
+        user: userId,
+      });
+      break;
+
+    case "On Hold":
+      item.pausedAt = now;
+      item.holdStartedAt = now;
+      item.holdEndedAt = null;
+      item.autoPaused = false;
+
+      history.push({
+        status: "On Hold",
+        startTime: now,
+        endTime: null,
+        duration: 0,
+        date: todayStr,
+        user: userId,
+      });
+      break;
+
+    case "In Review":
+      item.reviewStartedAt = nowMs;
+      item.lastReviewStartedAt = nowMs;
+      if (!item.actualEndTime) {
+        item.actualEndTime = nowMs;
+      }
+      item.pausedAt = now;
+
+      history.push({
+        status: "In Review",
+        startTime: now,
+        endTime: null,
+        duration: 0,
+        date: todayStr,
+        user: userId,
+      });
+      break;
+
+    case "Completed":
+      item.completedAt = now;
+      if (!item.actualEndTime) {
+        item.actualEndTime = nowMs;
+      }
+      item.pausedAt = null;
+      item.holdStartedAt = null;
+
+      history.push({
+        status: "Completed",
+        startTime: now,
+        endTime: now,
+        duration: 0,
+        date: todayStr,
+        user: userId,
+      });
+      break;
+
+    case "Rejected":
+      item.completedAt = now;
+      if (!item.actualEndTime) {
+        item.actualEndTime = nowMs;
+      }
+      item.pausedAt = null;
+      item.holdStartedAt = null;
+
+      history.push({
+        status: "Rejected",
+        startTime: now,
+        endTime: now,
+        duration: 0,
+        date: todayStr,
+        user: userId,
+      });
+      break;
+
+    case "Correction":
+      item.pausedAt = now;
+
+      history.push({
+        status: "Correction",
+        startTime: now,
+        endTime: null,
+        duration: 0,
+        date: todayStr,
+        user: userId,
+      });
+      break;
+  }
+
+  item.statusHistory = history;
+};
+
+const calculateItemWorkingTime = (item) => {
+  if (!item.actualStartTime) return item.totalTrackedTime || 0;
   const start = new Date(item.actualStartTime).getTime();
   let end = Date.now();
   if (item.actualEndTime) {
@@ -69,7 +294,7 @@ const calculateItemWorkingTime = (item) => {
   }
 
   const elapsed = end - start - (item.totalPausedMs || 0) - totalPauseMs;
-  return Math.max(0, elapsed);
+  return (item.totalTrackedTime || 0) + Math.max(0, elapsed);
 };
 
 
@@ -181,6 +406,16 @@ exports.getTasks = async (req, res) => {
         select: "name email department profile",
         populate: { path: "profile", select: "profileImage" }
       })
+      .populate({
+        path: "statusHistory.user",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.statusHistory.user",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
       .lean();
 
     res.status(200).json({
@@ -264,6 +499,47 @@ exports.createTask = async (req, res) => {
       }
     }
 
+    const initialStatus = req.body.status || "Pending";
+    const now = new Date();
+    const todayStr = getISTDateStr(now);
+    if (!req.body.statusHistory || req.body.statusHistory.length === 0) {
+      req.body.statusHistory = [
+        {
+          status: initialStatus,
+          startTime: now,
+          endTime: null,
+          duration: 0,
+          date: todayStr,
+          user: req.user._id,
+        }
+      ];
+    }
+    if (initialStatus === "In Progress" && !req.body.actualStartTime) {
+      req.body.actualStartTime = now;
+    }
+
+    if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
+      req.body.subtasks = req.body.subtasks.map(sub => {
+        const subStatus = sub.status || "Pending";
+        if (!sub.statusHistory || sub.statusHistory.length === 0) {
+          sub.statusHistory = [
+            {
+              status: subStatus,
+              startTime: now,
+              endTime: null,
+              duration: 0,
+              date: todayStr,
+              user: sub.assignedTo || req.user._id,
+            }
+          ];
+        }
+        if (subStatus === "In Progress" && !sub.actualStartTime) {
+          sub.actualStartTime = now;
+        }
+        return sub;
+      });
+    }
+
     const task = await Task.create(req.body);
 
     const populatedTask = await Task.findById(task._id)
@@ -322,6 +598,16 @@ exports.createTask = async (req, res) => {
       })
       .populate({
         path: "subtasks.rejectionHistory.rejectedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "statusHistory.user",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.statusHistory.user",
         select: "name email department profile",
         populate: { path: "profile", select: "profileImage" }
       });
@@ -446,387 +732,200 @@ exports.updateTask = async (req, res) => {
 
    
 // .........................................Time tracking logic for parent task...........................................
-if (req.body.status && req.body.status !== previousStatus) {
+    const OfficeSettings = require("../models/OfficeSettings");
+    const officeSettings = (await OfficeSettings.findOne({ key: "global" })) || {
+      startHour: 9,
+      endHour: 19,
+      workingDays: [1, 2, 3, 4, 5, 6],
+    };
 
-   if (req.body.status === "In Progress") {
-      if (task.assignedTo) {
-        const hasActive = await hasActiveWork(
-          task.assignedTo,
-          task._id,
-          null
-        );
+    if (req.body.status && req.body.status !== previousStatus) {
+      if (req.body.status === "In Progress") {
+        if (task.assignedTo) {
+          const hasActive = await hasActiveWork(
+            task.assignedTo,
+            task._id,
+            null
+          );
 
-        if (hasActive) {
-          return res.status(409).json({
-            success: false,
-            message: "You already have one active task or subtask.",
+          if (hasActive) {
+            return res.status(409).json({
+              success: false,
+              message: "You already have one active task or subtask.",
+            });
+          }
+        }
+      }
+
+      if (req.body.status === "On Hold") {
+        const isMOMTask = task.contentType === "MOM" || req.body.contentType === "MOM";
+        if (!task.actualStartTime && !task.totalTrackedTime && !isMOMTask) {
+          return res.status(400).json({
+            message: "Please start the task by setting its status to 'In Progress' first before placing it on hold.",
           });
         }
       }
-   }
 
-  // Handle leaving 'In Review' state
-  const wasInReview = previousStatus === "In Review";
-  const isNowInReview = req.body.status === "In Review";
-  
-  if (wasInReview && !isNowInReview) {
-     const reviewStart = task.reviewStartedAt || Date.now();
-     const durationMs = calculateBusinessMs(reviewStart, Date.now());
-     req.body.approvalWaitingMs = (task.approvalWaitingMs || 0) + durationMs;
-     
-     const newCycle = {
-       startedAt: reviewStart,
-       completedAt: Date.now(),
-       durationMs
-     };
-     req.body.reviewCycles = [...(task.reviewCycles || []), newCycle];
-     req.body.lastReviewStartedAt = reviewStart;
-     req.body.reviewStartedAt = null;
-  }
-
-  switch (req.body.status) {
-
-    case "Pending":
-      req.body.actualStartTime = null;
-      req.body.actualEndTime = null;
-      req.body.pausedAt = null;
-      break;
-
-    case "In Progress":
-      if (!task.actualStartTime) {
-        req.body.actualStartTime = Date.now();
-      }
-      req.body.actualEndTime = null;
-      req.body.completedAt = null;
-
-      if (task.pausedAt) {
-        req.body.totalPausedMs =
-          (task.totalPausedMs || 0) +
-          (Date.now() - new Date(task.pausedAt).getTime());
-        req.body.businessTotalPausedMs =
-          (task.businessTotalPausedMs || 0) +
-          calculateBusinessMs(task.pausedAt, Date.now());
-      } else if (previousStatus === "Pending" && task.actualStartTime) {
-        const pendingDuration = Date.now() - new Date(task.updatedAt).getTime();
-        if (pendingDuration > 0) {
-          req.body.totalPausedMs = (task.totalPausedMs || 0) + pendingDuration;
-          req.body.businessTotalPausedMs =
-            (task.businessTotalPausedMs || 0) +
-            calculateBusinessMs(task.updatedAt, Date.now());
+      if (req.body.status === "In Review") {
+        if (!task.actualStartTime && !task.totalTrackedTime) {
+          return res.status(400).json({
+            message: "Please start the task by setting its status to 'In Progress' first before submitting it for review.",
+          });
         }
       }
 
-      if (previousStatus === "Correction") {
-        const currentHist = task.correctionHistory ? JSON.parse(JSON.stringify(task.correctionHistory)) : [];
-        if (currentHist.length > 0) {
-          currentHist[currentHist.length - 1].resumedAt = new Date();
-          req.body.correctionHistory = currentHist;
+      if (req.body.status === "Correction") {
+        const nextRev = (task.revisions || 0) + 1;
+        req.body.revisions = nextRev;
+        const corrReason = req.body.correctionReason || req.body.reason || "Corrections requested";
+        const corrEntry = {
+          revision: nextRev,
+          reason: corrReason,
+          requestedBy: req.user._id,
+          requestedAt: new Date(),
+        };
+        req.body.correctionHistory = [...(task.correctionHistory || []), corrEntry];
+        const corrFeedback = {
+          type: "Correction",
+          text: corrReason,
+          addedBy: req.user._id,
+          addedAt: new Date(),
+        };
+        req.body.feedbacks = [...(task.feedbacks || []), corrFeedback];
+      }
+
+      if (req.body.status === "Rejected") {
+        const rejReason = req.body.rejectionReason || req.body.reason || "Task rejected";
+        const rejEntry = {
+          reason: rejReason,
+          rejectedBy: req.user._id,
+          rejectedAt: new Date(),
+        };
+        if (req.body.rejectionHistory && Array.isArray(req.body.rejectionHistory)) {
+          req.body.rejectionHistory = req.body.rejectionHistory.map((item) => ({
+            ...item,
+            rejectedBy: item.rejectedBy || req.user._id,
+            rejectedAt: item.rejectedAt || new Date(),
+          }));
+        } else {
+          req.body.rejectionHistory = [...(task.rejectionHistory || []), rejEntry];
         }
+        const rejFeedback = {
+          type: "Rejected",
+          text: rejReason,
+          addedBy: req.user._id,
+          addedAt: new Date(),
+        };
+        req.body.feedbacks = [...(task.feedbacks || []), rejFeedback];
       }
 
-      req.body.pausedAt = null;
-      break;
+      handleItemStatusTransition(task, previousStatus, req.body.status, req.user._id, officeSettings);
 
-    case "Completed":
-      if (task.pausedAt) {
-        req.body.totalPausedMs =
-          (task.totalPausedMs || 0) +
-          (Date.now() - new Date(task.pausedAt).getTime());
-        req.body.businessTotalPausedMs =
-          (task.businessTotalPausedMs || 0) +
-          calculateBusinessMs(task.pausedAt, Date.now());
-      }
-      req.body.completedAt = Date.now();
-      req.body.pausedAt = null;
-      break;
-
-    case "On Hold":
-      const isMOMTask = task.contentType === "MOM" || req.body.contentType === "MOM";
-      if (!task.actualStartTime && !isMOMTask) {
-        return res.status(400).json({
-          message: "Please start the task by setting its status to 'In Progress' first before placing it on hold.",
-        });
-      }
-      req.body.autoPaused = false;
-      if (!task.pausedAt) {
-        req.body.pausedAt = Date.now();
-      }
-      break;
-
-    case "Correction":
-      const nextRev = (task.revisions || 0) + 1;
-      req.body.revisions = nextRev;
-      if (!task.pausedAt) {
-        req.body.pausedAt = Date.now();
-      }
-      const corrReason = req.body.correctionReason || req.body.reason || "Corrections requested";
-      const corrEntry = {
-        revision: nextRev,
-        reason: corrReason,
-        requestedBy: req.user._id,
-        requestedAt: new Date(),
-      };
-      req.body.correctionHistory = [...(task.correctionHistory || []), corrEntry];
-      const corrFeedback = {
-        type: "Correction",
-        text: corrReason,
-        addedBy: req.user._id,
-        addedAt: new Date(),
-      };
-      req.body.feedbacks = [...(task.feedbacks || []), corrFeedback];
-      break;
-
-    case "Rejected":
-      if (!task.actualEndTime) {
-        req.body.actualEndTime = Date.now();
-      }
-      req.body.completedAt = Date.now();
-      req.body.pausedAt = null;
-
-      const rejReason = req.body.rejectionReason || req.body.reason || "Task rejected";
-      const rejEntry = {
-        reason: rejReason,
-        rejectedBy: req.user._id,
-        rejectedAt: new Date(),
-      };
-      if (req.body.rejectionHistory && Array.isArray(req.body.rejectionHistory)) {
-        req.body.rejectionHistory = req.body.rejectionHistory.map((item) => ({
-          ...item,
-          rejectedBy: item.rejectedBy || req.user._id,
-          rejectedAt: item.rejectedAt || new Date(),
-        }));
-      } else {
-        req.body.rejectionHistory = [...(task.rejectionHistory || []), rejEntry];
-      }
-      const rejFeedback = {
-        type: "Rejected",
-        text: rejReason,
-        addedBy: req.user._id,
-        addedAt: new Date(),
-      };
-      req.body.feedbacks = [...(task.feedbacks || []), rejFeedback];
-      break;
-
-    case "In Review":
-      if (!task.actualStartTime) {
-        return res.status(400).json({
-          message: "Please start the task by setting its status to 'In Progress' first before submitting it for review.",
-        });
-      }
-      if (!task.pausedAt) {
-        req.body.pausedAt = Date.now();
-      }
-     if (!task.reviewStartedAt || !wasInReview) {
-  const nowMs = Date.now();
-
-  req.body.reviewStartedAt = nowMs;
-  req.body.lastReviewStartedAt = nowMs;
-
-  // Designer work ends when task enters In Review
-  if (!task.actualEndTime) {
-    req.body.actualEndTime = nowMs;
-  }
-}
-      break;
-  }
-}
-    // .........................................Time tracking logic for subtasks...........................................    
-   // .........................................Time tracking logic for subtasks...........................................
-
-
-
-for (const sub of req.body.subtasks || []) {
-
-  const prevSub = previousSubtasks.find(
-    (p) => p._id?.toString() === sub._id?.toString()
-  );
-
-  if (
-    prevSub &&
-    sub.status === "In Progress" &&
-    prevSub.status !== "In Progress" &&
-    sub.assignedTo
-  ) {
-
-    const hasActive = await hasActiveWork(
-      sub.assignedTo,
-      null,
-      sub._id
-    );
-
-    if (hasActive) {
-      return res.status(409).json({
-        success: false,
-        message: "You already have one active task or subtask.",
-      });
+      req.body.statusHistory = task.statusHistory;
+      req.body.totalTrackedTime = task.totalTrackedTime;
+      req.body.dailyTrackedTime = task.dailyTrackedTime;
+      req.body.actualStartTime = task.actualStartTime;
+      req.body.actualEndTime = task.actualEndTime;
+      req.body.holdStartedAt = task.holdStartedAt;
+      req.body.holdEndedAt = task.holdEndedAt;
+      req.body.pausedAt = task.pausedAt;
+      req.body.autoPaused = task.autoPaused;
+      req.body.reviewStartedAt = task.reviewStartedAt;
+      req.body.lastReviewStartedAt = task.lastReviewStartedAt;
+      req.body.approvalWaitingMs = task.approvalWaitingMs;
+      req.body.reviewCycles = task.reviewCycles;
+      req.body.completedAt = task.completedAt;
     }
-  }
-}
 
+    // .........................................Time tracking logic for subtasks...........................................
+    if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
+      for (const sub of req.body.subtasks) {
+        const prevSub = previousSubtasks.find(
+          (p) => p._id?.toString() === sub._id?.toString()
+        );
 
+        if (
+          prevSub &&
+          sub.status === "In Progress" &&
+          prevSub.status !== "In Progress" &&
+          sub.assignedTo
+        ) {
+          const hasActive = await hasActiveWork(
+            sub.assignedTo,
+            null,
+            sub._id
+          );
 
-
-if (req.body.subtasks) {
-  req.body.subtasks = req.body.subtasks.map((sub) => {
-
-    const prevSub = previousSubtasks.find(
-      (p) => p._id && sub._id && p._id.toString() === sub._id.toString()
-    );
-
-    if (prevSub && sub.status && sub.status !== prevSub.status) {
-
-      // Handle leaving 'In Review' state for subtask
-      const wasSubInReview = prevSub.status === "In Review";
-      const isSubNowInReview = sub.status === "In Review";
-      
-      if (wasSubInReview && !isSubNowInReview) {
-         const reviewStart = prevSub.reviewStartedAt || Date.now();
-         const durationMs = calculateBusinessMs(reviewStart, Date.now());
-         sub.approvalWaitingMs = (prevSub.approvalWaitingMs || 0) + durationMs;
-         
-         const newCycle = {
-           startedAt: reviewStart,
-           completedAt: Date.now(),
-           durationMs
-         };
-         sub.reviewCycles = [...(prevSub.reviewCycles || []), newCycle];
-         sub.lastReviewStartedAt = reviewStart;
-         sub.reviewStartedAt = null;
-      }
-
-      switch (sub.status) {
-
-        case "Pending":
-          sub.actualStartTime = null;
-          sub.actualEndTime = null;
-          sub.pausedAt = null;
-          break;
-
-        case "In Progress":
-          if (!prevSub.actualStartTime && !sub.actualStartTime) {
-            sub.actualStartTime = Date.now();
-          }
-          sub.actualEndTime = null;
-          sub.completedAt = null;
-
-          if (prevSub.pausedAt) {
-            sub.totalPausedMs =
-              (prevSub.totalPausedMs || 0) +
-              (Date.now() - new Date(prevSub.pausedAt).getTime());
-            sub.businessTotalPausedMs =
-              (prevSub.businessTotalPausedMs || 0) +
-              calculateBusinessMs(prevSub.pausedAt, Date.now());
-          } else if (prevSub.status === "Pending" && prevSub.actualStartTime) {
-            const pendingDuration = Date.now() - new Date(task.updatedAt).getTime();
-            if (pendingDuration > 0) {
-              sub.totalPausedMs = (prevSub.totalPausedMs || 0) + pendingDuration;
-              sub.businessTotalPausedMs =
-                (prevSub.businessTotalPausedMs || 0) +
-                calculateBusinessMs(task.updatedAt, Date.now());
-            }
-          }
-
-          if (prevSub.status === "Correction") {
-            const currentSubHist = prevSub.correctionHistory ? JSON.parse(JSON.stringify(prevSub.correctionHistory)) : [];
-            if (currentSubHist.length > 0) {
-              currentSubHist[currentSubHist.length - 1].resumedAt = new Date();
-              sub.correctionHistory = currentSubHist;
-            }
-          }
-
-          sub.pausedAt = null;
-          sub.autoPaused = false;
-          break;
-
-        case "Completed":
-          if (prevSub.pausedAt) {
-            sub.totalPausedMs =
-              (prevSub.totalPausedMs || 0) +
-              (Date.now() - new Date(prevSub.pausedAt).getTime());
-            sub.businessTotalPausedMs =
-              (prevSub.businessTotalPausedMs || 0) +
-              calculateBusinessMs(prevSub.pausedAt, Date.now());
-          }
-          sub.completedAt = Date.now();
-          sub.pausedAt = null;
-          break;
-
-        case "On Hold":
-          const isSubMOM = (sub && sub.contentType === "MOM") || (prevSub && prevSub.contentType === "MOM") || task.contentType === "MOM";
-          if (!prevSub.actualStartTime && !sub.actualStartTime && !isSubMOM) {
-            return res.status(400).json({
-              message: "Please start the subtask by setting its status to 'In Progress' first before placing it on hold.",
+          if (hasActive) {
+            return res.status(409).json({
+              success: false,
+              message: "You already have one active task or subtask.",
             });
           }
-          sub.autoPaused = false;
-          if (!prevSub.pausedAt) {
-            sub.pausedAt = Date.now();
-          }
-          break;
+        }
+      }
 
-        case "Correction":
-          const nextSubRev = (prevSub.revisions || 0) + 1;
-          sub.revisions = nextSubRev;
-          if (!prevSub.pausedAt) {
-            sub.pausedAt = Date.now();
-          }
-          const subCorrReason = sub.correctionReason || sub.reason || "Corrections requested";
-          sub.correctionHistory = [
-            ...(prevSub.correctionHistory || []),
-            {
-              revision: nextSubRev,
-              reason: subCorrReason,
-              requestedBy: req.user._id,
-              requestedAt: new Date(),
-            }
-          ];
-          break;
+      req.body.subtasks = req.body.subtasks.map((sub) => {
+        const prevSub = previousSubtasks.find(
+          (p) => p._id && sub._id && p._id.toString() === sub._id.toString()
+        );
 
-        case "Rejected":
-          if (!prevSub.actualEndTime && !sub.actualEndTime) {
-            sub.actualEndTime = Date.now();
+        if (prevSub && sub.status && sub.status !== prevSub.status) {
+          const isSubMOM = (sub && sub.contentType === "MOM") || (prevSub && prevSub.contentType === "MOM") || task.contentType === "MOM";
+          if (sub.status === "On Hold" && !prevSub.actualStartTime && !prevSub.totalTrackedTime && !isSubMOM) {
+            // subtask on hold check
           }
-          sub.completedAt = Date.now();
-          sub.pausedAt = null;
 
-          const subRejReason = sub.rejectionReason || sub.reason || "Subtask rejected";
-          if (!sub.rejectionHistory) {
-            sub.rejectionHistory = [
-              ...(prevSub.rejectionHistory || []),
+          if (sub.status === "Correction") {
+            const nextSubRev = (prevSub.revisions || 0) + 1;
+            sub.revisions = nextSubRev;
+            const subCorrReason = sub.correctionReason || sub.reason || "Corrections requested";
+            sub.correctionHistory = [
+              ...(prevSub.correctionHistory || []),
               {
-                reason: subRejReason,
-                rejectedBy: req.user._id,
-                rejectedAt: new Date(),
+                revision: nextSubRev,
+                reason: subCorrReason,
+                requestedBy: req.user._id,
+                requestedAt: new Date(),
               }
             ];
           }
-          break;
 
-        case "In Review":
-          if (!prevSub.actualStartTime && !sub.actualStartTime) {
-            return res.status(400).json({
-              message: "Please start the subtask by setting its status to 'In Progress' first before submitting it for review.",
-            });
-          }
-          if (!prevSub.pausedAt) {
-            sub.pausedAt = Date.now();
-          }
-          if (!prevSub.reviewStartedAt || !wasSubInReview) {
-            const nowMs = Date.now();
-            sub.reviewStartedAt = nowMs;
-            sub.lastReviewStartedAt = nowMs;
-
-            if (!prevSub.actualEndTime) {
-              sub.actualEndTime = nowMs;
+          if (sub.status === "Rejected") {
+            const subRejReason = sub.rejectionReason || sub.reason || "Subtask rejected";
+            if (!sub.rejectionHistory) {
+              sub.rejectionHistory = [
+                ...(prevSub.rejectionHistory || []),
+                {
+                  reason: subRejReason,
+                  rejectedBy: req.user._id,
+                  rejectedAt: new Date(),
+                }
+              ];
             }
           }
-          break;
-      }
-    }
 
-    return sub;
-  });
-}
+          handleItemStatusTransition(prevSub, prevSub.status, sub.status, req.user._id, officeSettings);
+
+          sub.statusHistory = prevSub.statusHistory;
+          sub.totalTrackedTime = prevSub.totalTrackedTime;
+          sub.dailyTrackedTime = prevSub.dailyTrackedTime;
+          sub.actualStartTime = prevSub.actualStartTime;
+          sub.actualEndTime = prevSub.actualEndTime;
+          sub.holdStartedAt = prevSub.holdStartedAt;
+          sub.holdEndedAt = prevSub.holdEndedAt;
+          sub.pausedAt = prevSub.pausedAt;
+          sub.autoPaused = prevSub.autoPaused;
+          sub.reviewStartedAt = prevSub.reviewStartedAt;
+          sub.lastReviewStartedAt = prevSub.lastReviewStartedAt;
+          sub.approvalWaitingMs = prevSub.approvalWaitingMs;
+          sub.reviewCycles = prevSub.reviewCycles;
+          sub.completedAt = prevSub.completedAt;
+        }
+
+        return sub;
+      });
+    }
 
     const effectiveStart = req.body.startDate !== undefined ? req.body.startDate : task.startDate;
     const effectiveEnd = req.body.dueDate !== undefined ? req.body.dueDate : task.dueDate;
@@ -906,6 +1005,16 @@ if (req.body.subtasks) {
       })
       .populate({
         path: "subtasks.rejectionHistory.rejectedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "statusHistory.user",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.statusHistory.user",
         select: "name email department profile",
         populate: { path: "profile", select: "profileImage" }
       });

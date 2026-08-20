@@ -35,18 +35,67 @@ async function checkAndAutoPauseTasks(io) {
       if (pauseTime > now) {
         pauseTime = new Date(now);
       }
+      const pauseTimeMs = pauseTime.getTime();
 
       // 1. Parent tasks with status "In Progress"
       const activeTasks = await Task.find({
         $or: [
-          { status: "In Progress", autoPaused: { $ne: true } },
+          { status: "In Progress" },
           { status: "On Hold", autoPaused: true }
         ]
       });
 
       for (let task of activeTasks) {
+        if (task.status === "In Progress") {
+          // Calculate session working time
+          let sessionWorkedMs = 0;
+          if (task.actualStartTime) {
+            const sStart = new Date(task.actualStartTime).getTime();
+            if (pauseTimeMs > sStart) {
+              let sessionPauses = 0;
+              if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
+                task.blockerHistory.forEach(h => {
+                  if (h.pausedAt) {
+                    const p = new Date(h.pausedAt).getTime();
+                    let r = h.resumedAt ? new Date(h.resumedAt).getTime() : pauseTimeMs;
+                    if (r > pauseTimeMs) r = pauseTimeMs;
+                    if (r >= p && p >= sStart) sessionPauses += (r - p);
+                  }
+                });
+              }
+              sessionWorkedMs = Math.max(0, pauseTimeMs - sStart - sessionPauses);
+            }
+          }
+
+          task.totalTrackedTime = (task.totalTrackedTime || 0) + sessionWorkedMs;
+          task.dailyTrackedTime = (task.dailyTrackedTime || 0) + sessionWorkedMs;
+
+          let history = task.statusHistory ? JSON.parse(JSON.stringify(task.statusHistory)) : [];
+          // Close open In Progress entry
+          for (let i = history.length - 1; i >= 0; i--) {
+            if (!history[i].endTime && history[i].status === "In Progress") {
+              history[i].endTime = pauseTime;
+              history[i].duration = Math.max(0, Math.round(sessionWorkedMs));
+              break;
+            }
+          }
+
+          // Add On Hold entry
+          history.push({
+            status: "On Hold",
+            startTime: pauseTime,
+            endTime: null,
+            duration: 0,
+            date: dateStr,
+            user: task.assignedTo,
+            comment: "Auto-paused at EOD",
+          });
+          task.statusHistory = history;
+        }
+
         task.status = "On Hold";
         task.pausedAt = task.pausedAt || pauseTime;
+        task.holdStartedAt = task.holdStartedAt || pauseTime;
         task.autoPaused = true;
         await task.save();
         
@@ -59,7 +108,7 @@ async function checkAndAutoPauseTasks(io) {
       // 2. Subtasks in progress
       const tasksWithActiveSubtasks = await Task.find({
         $or: [
-          { "subtasks.status": "In Progress", "subtasks.autoPaused": { $ne: true } },
+          { "subtasks.status": "In Progress" },
           { "subtasks.status": "On Hold", "subtasks.autoPaused": true }
         ]
       });
@@ -67,66 +116,58 @@ async function checkAndAutoPauseTasks(io) {
       for (let task of tasksWithActiveSubtasks) {
         let updated = false;
         task.subtasks = task.subtasks.map(sub => {
-          if ((sub.status === "In Progress" && !sub.autoPaused) || (sub.status === "On Hold" && sub.autoPaused)) {
+          if (sub.status === "In Progress") {
+            let sessionWorkedMs = 0;
+            if (sub.actualStartTime) {
+              const sStart = new Date(sub.actualStartTime).getTime();
+              if (pauseTimeMs > sStart) {
+                let sessionPauses = 0;
+                if (sub.blockerHistory && Array.isArray(sub.blockerHistory)) {
+                  sub.blockerHistory.forEach(h => {
+                    if (h.pausedAt) {
+                      const p = new Date(h.pausedAt).getTime();
+                      let r = h.resumedAt ? new Date(h.resumedAt).getTime() : pauseTimeMs;
+                      if (r > pauseTimeMs) r = pauseTimeMs;
+                      if (r >= p && p >= sStart) sessionPauses += (r - p);
+                    }
+                  });
+                }
+                sessionWorkedMs = Math.max(0, pauseTimeMs - sStart - sessionPauses);
+              }
+            }
+
+            sub.totalTrackedTime = (sub.totalTrackedTime || 0) + sessionWorkedMs;
+            sub.dailyTrackedTime = (sub.dailyTrackedTime || 0) + sessionWorkedMs;
+
+            let history = sub.statusHistory ? JSON.parse(JSON.stringify(sub.statusHistory)) : [];
+            for (let i = history.length - 1; i >= 0; i--) {
+              if (!history[i].endTime && history[i].status === "In Progress") {
+                history[i].endTime = pauseTime;
+                history[i].duration = Math.max(0, Math.round(sessionWorkedMs));
+                break;
+              }
+            }
+
+            history.push({
+              status: "On Hold",
+              startTime: pauseTime,
+              endTime: null,
+              duration: 0,
+              date: dateStr,
+              user: sub.assignedTo,
+              comment: "Auto-paused at EOD",
+            });
+            sub.statusHistory = history;
+
             sub.status = "On Hold";
             sub.pausedAt = sub.pausedAt || pauseTime;
+            sub.holdStartedAt = sub.holdStartedAt || pauseTime;
             sub.autoPaused = true;
             updated = true;
             console.log(`Auto-paused subtask (moved to On Hold): "${sub.title}" in task "${task.title}"`);
-          }
-          return sub;
-        });
-
-        if (updated) {
-          await task.save();
-          if (io) {
-            io.emit("task_updated", { taskId: task._id });
-          }
-        }
-      }
-    } else {
-      // INSIDE OFFICE HOURS -> Move autoPaused tasks/subtasks from On Hold to Pending
-      const tasksToMoveToPending = await Task.find({ autoPaused: true });
-
-      for (let task of tasksToMoveToPending) {
-        if (task.status === "In Progress" || task.status === "On Hold") {
-          if (task.pausedAt) {
-            const pauseDurationMs = now.getTime() - new Date(task.pausedAt).getTime();
-            if (pauseDurationMs > 0) {
-              task.totalPausedMs = (task.totalPausedMs || 0) + pauseDurationMs;
-              task.businessTotalPausedMs = (task.businessTotalPausedMs || 0) + calculateBusinessMs(task.pausedAt, now, startHour, endHour, workingDays);
-            }
-          }
-          task.status = "Pending";
-          task.autoPaused = false;
-          task.pausedAt = null;
-          await task.save();
-
-          console.log(`Auto-paused task moved to Pending: "${task.title}" at office hours start`);
-          if (io) {
-            io.emit("task_updated", { taskId: task._id });
-          }
-        }
-      }
-
-      // Subtasks move from On Hold to Pending
-      const tasksWithSubtasksToMove = await Task.find({ "subtasks.autoPaused": true });
-      for (let task of tasksWithSubtasksToMove) {
-        let updated = false;
-        task.subtasks = task.subtasks.map(sub => {
-          if (sub.autoPaused) {
-            if (sub.pausedAt) {
-              const pauseDurationMs = now.getTime() - new Date(sub.pausedAt).getTime();
-              if (pauseDurationMs > 0) {
-                sub.totalPausedMs = (sub.totalPausedMs || 0) + pauseDurationMs;
-                sub.businessTotalPausedMs = (sub.businessTotalPausedMs || 0) + calculateBusinessMs(sub.pausedAt, now, startHour, endHour, workingDays);
-              }
-            }
-            sub.status = "Pending";
-            sub.autoPaused = false;
-            sub.pausedAt = null;
-            updated = true;
-            console.log(`Auto-paused subtask moved to Pending: "${sub.title}" in task "${task.title}"`);
+          } else if (sub.status === "On Hold" && sub.autoPaused) {
+            sub.pausedAt = sub.pausedAt || pauseTime;
+            sub.holdStartedAt = sub.holdStartedAt || pauseTime;
           }
           return sub;
         });
