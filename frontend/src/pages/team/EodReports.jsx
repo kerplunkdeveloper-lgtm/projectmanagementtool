@@ -31,8 +31,6 @@ import {
   FiFilter,
   FiCheck,
   FiLayers,
-  FiChevronLeft,
-  FiChevronRight,
 } from "react-icons/fi";
 
 // Helper: get priority badge colors based on priority value
@@ -242,37 +240,6 @@ const mapTaskStatusToEodStatus = (status) => {
   return status || "Pending";
 };
 
-// Helper: Parse duration string (e.g. "1h 20m 30s", "45m", "10s") to milliseconds
-const parseTimeToMs = (timeStr) => {
-  if (!timeStr) return 0;
-  const hoursMatch = timeStr.match(/(\d+)\s*h/i);
-  const minsMatch = timeStr.match(/(\d+)\s*m/i);
-  const secsMatch = timeStr.match(/(\d+)\s*s/i);
-
-  let totalMs = 0;
-  if (hoursMatch) totalMs += parseInt(hoursMatch[1], 10) * 3600 * 1000;
-  if (minsMatch) totalMs += parseInt(minsMatch[1], 10) * 60 * 1000;
-  if (secsMatch) totalMs += parseInt(secsMatch[1], 10) * 1000;
-  return totalMs;
-};
-
-const getTaskTimeMs = (task, allTasks = [], selDateObj, officeHours) => {
-  if (!task) return 0;
-  const originalTask = allTasks.find(
-    (at) => at._id === (task.taskId?._id || task.taskId || task.id || task._id),
-  );
-  const target = originalTask || task;
-  if (selDateObj && officeHours) {
-    const ms = calculateTaskProductivityForDate(
-      target,
-      selDateObj,
-      officeHours,
-    );
-    if (ms > 0) return ms;
-  }
-  return parseTimeToMs(task.time);
-};
-
 // Helper: Priority sorting order (In Progress = 1, On Hold = 2, In Review = 3, Pending = 4, Completed = 5)
 const getStatusPriority = (status) => {
   const s = (status || "Pending").toUpperCase();
@@ -421,8 +388,7 @@ const EodReports = () => {
 
   // State fields
   const [tasksState, setTasksState] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
   const [daySummary, setDaySummary] = useState({
     toolsIssues: "None",
     clientCalls: "",
@@ -1077,57 +1043,44 @@ const EodReports = () => {
     return `${actionWord} ${clientPart}${titlePart}`;
   });
 
-  // Filter out Completed tasks with 0s logged time
-  const visibleTasks = React.useMemo(() => {
-    const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+  const completedTasks = React.useMemo(
+    () => tasksState.filter((t) => t.statusAtEod === "Completed" && t.time && t.time !== "0s"),
+    [tasksState],
+  );
 
-    return tasksState.filter((t) => {
-      const isCompleted = (t.statusAtEod || "").toUpperCase() === "COMPLETED";
-      if (isCompleted) {
-        const timeMs = getTaskTimeMs(t, allTasks, selDateObj, officeHours);
-        return timeMs > 0;
-      }
-      return true;
-    });
-  }, [tasksState, allTasks, selectedDate, officeHours]);
+  const todayProductivityTasks = React.useMemo(
+    () =>
+      tasksState
+        .filter((t) => t.statusAtEod !== "Completed")
+        .sort(
+          (a, b) =>
+            getStatusPriority(a.statusAtEod) - getStatusPriority(b.statusAtEod),
+        ),
+    [tasksState],
+  );
 
   const filteredTasks = React.useMemo(() => {
-    let list = [...visibleTasks];
-    const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+    let list = [...tasksState];
 
-    return list.sort((a, b) => {
-      const priorityA = getStatusPriority(a.statusAtEod);
-      const priorityB = getStatusPriority(b.statusAtEod);
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(
+        (t) =>
+          (t.title && t.title.toLowerCase().includes(q)) ||
+          (t.code && t.code.toLowerCase().includes(q)) ||
+          (t.client && t.client.toLowerCase().includes(q)) ||
+          (t.project && t.project.toLowerCase().includes(q)) ||
+          (t.assignedByName && t.assignedByName.toLowerCase().includes(q)) ||
+          (t.statusAtEod && t.statusAtEod.toLowerCase().includes(q)) ||
+          (t.priority && t.priority.toLowerCase().includes(q)),
+      );
+    }
 
-      const isCompletedA = (a.statusAtEod || "").toUpperCase() === "COMPLETED";
-      const isCompletedB = (b.statusAtEod || "").toUpperCase() === "COMPLETED";
-
-      // If both are Completed, sort tasks with higher logged time first
-      if (isCompletedA && isCompletedB) {
-        const timeA = getTaskTimeMs(a, allTasks, selDateObj, officeHours);
-        const timeB = getTaskTimeMs(b, allTasks, selDateObj, officeHours);
-        if (timeA !== timeB) return timeB - timeA;
-        return 0;
-      }
-
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-
-      return 0;
-    });
-  }, [visibleTasks, allTasks, selectedDate, officeHours]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedDate]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
-
-  const paginatedTasks = React.useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredTasks.slice(startIndex, startIndex + pageSize);
-  }, [filteredTasks, currentPage, pageSize]);
+    return list.sort(
+      (a, b) =>
+        getStatusPriority(a.statusAtEod) - getStatusPriority(b.statusAtEod),
+    );
+  }, [tasksState, searchTerm]);
 
   if (tasksLoading || reportLoading || projectsLoading) {
     return (
@@ -1172,7 +1125,7 @@ const EodReports = () => {
       </div>
 
       {/* Task Table Section */}
-      {visibleTasks.length === 0 ? (
+      {tasksState.length === 0 ? (
         <div className="mt-8 theme-bg-card border border-dashed theme-border rounded-2xl p-12 text-center flex flex-col items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 border theme-border">
             <FiCheckCircle size={22} />
@@ -1189,7 +1142,40 @@ const EodReports = () => {
           </p>
         </div>
       ) : (
-        <div className="mt-5">
+        <div className="mt-5 space-y-4">
+          {/* Controls Bar: Task Count & Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-2.5 rounded-2xl border theme-border shadow-2xs">
+            <div className="flex items-center gap-2 px-1">
+              <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
+                All Tasks
+              </h2>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                {tasksState.length}
+              </span>
+            </div>
+
+            {/* Search Box */}
+            <div className="relative min-w-[240px]">
+             
+              <input
+                type="text"
+                placeholder="Search tasks, codes, clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-xl pl-8 pr-8 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all font-medium"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  <FiX size={13} />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Table Container */}
           <div className="bg-white dark:bg-[#0f172a] shadow-xs rounded-2xl border border-slate-200/90 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto custom-scrollbar">
@@ -1207,22 +1193,22 @@ const EodReports = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-150 dark:divide-slate-800/80 text-xs">
-                  {paginatedTasks.length === 0 ? (
+                  {filteredTasks.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center gap-2">
-                          <FiCheckCircle className="text-slate-400" size={24} />
+                          <FiSearch className="text-slate-400" size={24} />
                           <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                            No tasks found
+                            No matching tasks found
                           </p>
                           <p className="text-[11px] text-slate-400">
-                            No tasks available for this date
+                            Try adjusting your search query or tab filter
                           </p>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    paginatedTasks.map((task, idx) => {
+                    filteredTasks.map((task, idx) => {
                       const assignerUser = users.find(
                         (u) => u._id === task.reviewedBy,
                       );
@@ -1241,9 +1227,6 @@ const EodReports = () => {
                         "IN_REVIEW",
                       ].includes(task.statusAtEod);
 
-                      const globalRowIdx =
-                        (currentPage - 1) * pageSize + idx + 1;
-
                       return (
                         <tr
                           key={task.id || task.taskId || idx}
@@ -1260,8 +1243,8 @@ const EodReports = () => {
                           {/* 1. Code */}
                           <td className="px-4 py-3 whitespace-nowrap align-middle">
                             <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 w-5 text-center">
-                                {globalRowIdx}
+                              <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 w-4 text-center">
+                                {idx + 1}
                               </span>
                               {task.code ? (
                                 <span
@@ -1436,110 +1419,6 @@ const EodReports = () => {
                 </tbody>
               </table>
             </div>
-
-            {/* Pagination Controls */}
-            {filteredTasks.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-[#0f172a] border-t border-slate-200 dark:border-slate-800 text-xs">
-                {/* Left info & Page size selector */}
-                <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 font-medium">
-                  <span>
-                    Showing{" "}
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {(currentPage - 1) * pageSize + 1}
-                    </span>{" "}
-                    to{" "}
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {Math.min(currentPage * pageSize, filteredTasks.length)}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {filteredTasks.length}
-                    </span>{" "}
-                    tasks
-                  </span>
-
-                  <div className="flex items-center gap-1.5 ml-2 border-l border-slate-200 dark:border-slate-800 pl-3">
-                    <span className="text-[11px]">Rows:</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => {
-                        setPageSize(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-700 dark:text-slate-300 outline-none cursor-pointer font-bold"
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Right page navigation buttons */}
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold flex items-center gap-1 cursor-pointer"
-                  >
-                    <FiChevronLeft size={14} />
-                    <span>Prev</span>
-                  </button>
-
-                  {/* Page Numbers */}
-                  <div className="flex items-center gap-1 px-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter((p) => {
-                        if (totalPages <= 5) return true;
-                        return (
-                          Math.abs(p - currentPage) <= 1 ||
-                          p === 1 ||
-                          p === totalPages
-                        );
-                      })
-                      .map((p, idx, arr) => {
-                        const prev = arr[idx - 1];
-                        const isEllipsis = prev && p - prev > 1;
-
-                        return (
-                          <React.Fragment key={p}>
-                            {isEllipsis && (
-                              <span className="px-1 text-slate-400 select-none">
-                                ...
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => setCurrentPage(p)}
-                              className={`w-7 h-7 rounded-lg text-xs font-bold transition flex items-center justify-center cursor-pointer ${
-                                currentPage === p
-                                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs"
-                                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-                              }`}
-                            >
-                              {p}
-                            </button>
-                          </React.Fragment>
-                        );
-                      })}
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={currentPage === totalPages}
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition font-semibold flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>Next</span>
-                    <FiChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
