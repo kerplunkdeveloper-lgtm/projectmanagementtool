@@ -132,6 +132,18 @@ export const calculateTaskProductivityForDate = (
   // Guard: Never generate artificial productivity for a future date
   if (dayWorkStart > Date.now()) return 0;
 
+  // Calculate subtasks productivity if any
+  let subtasksDuration = 0;
+  if (task.subtasks && Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+    task.subtasks.forEach((sub) => {
+      subtasksDuration += calculateTaskProductivityForDate(
+        sub,
+        selectedDate,
+        officeHours,
+      );
+    });
+  }
+
   // 0. PRIMARY PATH: Use statusHistory for accurate per-day tracking
   if (
     task.statusHistory &&
@@ -211,7 +223,7 @@ export const calculateTaskProductivityForDate = (
             }
           });
         }
-        return Math.max(0, historyDuration + Math.max(0, liveWorked));
+        return Math.max(0, historyDuration + Math.max(0, liveWorked)) + subtasksDuration;
       }
     }
 
@@ -219,11 +231,11 @@ export const calculateTaskProductivityForDate = (
       historyDuration > 0 ||
       (task.statusHistory.length > 0 && !task.actualStartTime)
     ) {
-      return historyDuration;
+      return historyDuration + subtasksDuration;
     }
   }
 
-  if (!task.actualStartTime) return 0;
+  if (!task.actualStartTime) return subtasksDuration;
 
   // FALLBACK PATH: No usable statusHistory — estimate from actualStartTime
   const taskStart = new Date(task.actualStartTime).getTime();
@@ -367,7 +379,7 @@ export const calculateTaskProductivityForDate = (
     }
   }
 
-  return Math.max(0, daySpan - dayPausedMs);
+  return Math.max(0, daySpan - dayPausedMs) + subtasksDuration;
 };
 
 const LiveProductivityCell = React.memo(
@@ -406,7 +418,7 @@ const LiveProductivityCell = React.memo(
 
     useEffect(() => {
       setLiveMs(calculateTotalLogged());
-      if (isSelectedDateToday && (hasInProgress || hasInReview)) {
+      if (isSelectedDateToday && hasInProgress) {
         const interval = setInterval(() => {
           setLiveMs(calculateTotalLogged());
         }, 1000);
@@ -417,7 +429,6 @@ const LiveProductivityCell = React.memo(
       selectedDate,
       isSelectedDateToday,
       hasInProgress,
-      hasInReview,
       calculateTotalLogged,
     ]);
 
@@ -443,20 +454,6 @@ const LiveProductivityCell = React.memo(
             title="Running"
           />
           <span className="text-emerald-700 dark:text-emerald-300 font-black text-[12px] whitespace-nowrap">
-            {formatLoggedDuration(liveMs, true)}
-          </span>
-        </div>
-      );
-    }
-
-    if (isSelectedDateToday && hasInReview) {
-      return (
-        <div className="flex items-center justify-center gap-1 whitespace-nowrap">
-          <span
-            className="w-2 h-2 rounded-full bg-amber-500 animate-ping shrink-0"
-            title="In Review"
-          />
-          <span className="text-amber-700 dark:text-amber-300 font-black text-[12px] whitespace-nowrap">
             {formatLoggedDuration(liveMs, true)}
           </span>
         </div>
@@ -1613,12 +1610,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const blockerTypesSet = new Set();
 
       myTasks.forEach((t) => {
-        if (t.actualStartTime) {
-          const taskLoggedMs = calculateTaskProductivityForDate(
-            t,
-            selectedDate,
-            officeHours,
-          );
+        const taskLoggedMs = calculateTaskProductivityForDate(
+          t,
+          selectedDate,
+          officeHours,
+        );
+        if (taskLoggedMs > 0) {
           totalLoggedMs += taskLoggedMs;
           totalBusinessLoggedMs += taskLoggedMs;
           inProgressLoggedMs += taskLoggedMs;

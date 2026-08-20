@@ -192,7 +192,14 @@ const TimeTracker = ({
       </div>
     );
 
-  const activeStr = formatTime(elapsed);
+  const activeSecs =
+    status === "In Progress"
+      ? lifetimeSecs + elapsed
+      : lifetimeSecs > 0
+        ? lifetimeSecs
+        : elapsed;
+
+  const activeStr = formatTime(activeSecs);
   const blockedStr = formatTime(blockedMs);
   const totalStr = formatTime(lifetimeSecs + elapsed + blockedMs);
 

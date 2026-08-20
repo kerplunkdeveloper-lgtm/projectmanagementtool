@@ -413,16 +413,17 @@ const EodReports = () => {
   useEffect(() => {
     const fetchOfficeHours = async () => {
       try {
-        const res = await axiosInstance.get("/office-hours");
-        if (res.data) {
+        const res = await axiosInstance.get("/settings/office-hours");
+        const settings = res.data?.data || res.data;
+        if (settings) {
           setOfficeHours({
-            startHour: res.data.startHour,
-            endHour: res.data.endHour,
-            workingDays: res.data.workingDays,
+            startHour: settings.startHour ?? 9,
+            endHour: settings.endHour ?? 19,
+            workingDays: settings.workingDays || [1, 2, 3, 4, 5, 6],
           });
         }
       } catch (err) {
-        console.error("Error fetching office hours", err);
+        console.error("Error fetching office hours in EOD reports:", err);
       }
     };
     fetchOfficeHours();
@@ -481,36 +482,36 @@ const EodReports = () => {
 
       if (isActivelyRunningNow) return true;
 
-      // 3. For tasks in "In Review" or "Completed" status:
-      // If the task was put in review / completed on a date BEFORE selectedDate,
-      // and loggedMsToday === 0, it belongs to that previous date and NOT selectedDate.
-      const isInReviewOrCompleted = [
+      // 3. For tasks in "Completed" status:
+      // If completed with 0 productivity on selectedDate, NEVER show in EOD for this date
+      if (task.status === "Completed") {
+        if (loggedMsToday <= 0) return false;
+      }
+
+      // 4. For tasks in "In Review" status:
+      const isInReview = [
         "In Review",
         "In-Review",
         "IN_REVIEW",
-        "Completed",
       ].includes(task.status);
 
-      if (isInReviewOrCompleted) {
-        const reviewOrCompDate = getLocalDateStr(
-          task.status === "Completed"
-            ? task.completedAt || task.actualEndTime || task.updatedAt
-            : task.reviewStartedAt ||
-                task.lastReviewStartedAt ||
-                task.updatedAt,
+      if (isInReview) {
+        const reviewDate = getLocalDateStr(
+          task.reviewStartedAt ||
+            task.lastReviewStartedAt ||
+            task.updatedAt,
         );
 
-        if (reviewOrCompDate && reviewOrCompDate < selectedDate) {
+        if (reviewDate && reviewDate < selectedDate && loggedMsToday <= 0) {
           return false;
         }
       }
 
-      // 4. Date matching for new / pending / active tasks for selectedDate
+      // 5. Date matching for new / pending / active tasks for selectedDate
       if (getLocalDateStr(task.startDate) === selectedDate) return true;
       if (getLocalDateStr(task.dueDate) === selectedDate) return true;
       if (getLocalDateStr(task.createdAt) === selectedDate) return true;
       if (getLocalDateStr(task.actualStartTime) === selectedDate) return true;
-      if (getLocalDateStr(task.completedAt) === selectedDate) return true;
       if (
         (task.reviewStartedAt || task.lastReviewStartedAt) &&
         getLocalDateStr(task.reviewStartedAt || task.lastReviewStartedAt) ===
@@ -1044,7 +1045,7 @@ const EodReports = () => {
   });
 
   const completedTasks = React.useMemo(
-    () => tasksState.filter((t) => t.statusAtEod === "Completed" && t.time && t.time !== "0s"),
+    () => tasksState.filter((t) => t.statusAtEod === "Completed"),
     [tasksState],
   );
 
@@ -1060,7 +1061,26 @@ const EodReports = () => {
   );
 
   const filteredTasks = React.useMemo(() => {
-    let list = [...tasksState];
+    const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+    let list = tasksState.filter((t) => {
+      if (t.statusAtEod === "Completed") {
+        const correspondingTask = (allTasks || []).find(
+          (at) => at._id === (t.taskId?._id || t.taskId || t.id || t._id),
+        );
+        const target = correspondingTask || t;
+        const loggedMs = calculateTaskProductivityForDate(
+          target,
+          selDateObj,
+          officeHours,
+        );
+        const timeStr = t.time || "";
+        const isZeroTime =
+          loggedMs <= 0 &&
+          (!timeStr || timeStr === "0s" || timeStr === "0m" || timeStr === "0");
+        if (isZeroTime) return false;
+      }
+      return true;
+    });
 
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
@@ -1080,7 +1100,7 @@ const EodReports = () => {
       (a, b) =>
         getStatusPriority(a.statusAtEod) - getStatusPriority(b.statusAtEod),
     );
-  }, [tasksState, searchTerm]);
+  }, [tasksState, searchTerm, allTasks, selectedDate, officeHours]);
 
   if (tasksLoading || reportLoading || projectsLoading) {
     return (
@@ -1150,7 +1170,7 @@ const EodReports = () => {
                 All Tasks
               </h2>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                {tasksState.length}
+                {filteredTasks.length}
               </span>
             </div>
 
