@@ -47,10 +47,10 @@ const ChatPage = lazyWithRetry(() => import("../pages/chat/ChatPage.jsx"));
 const Portfolio = lazyWithRetry(() => import("../pages/admin/portfolio/Portfolio.jsx"));
 const Workload = lazyWithRetry(() => import("../pages/workload/Workload.jsx"));
 const Stickynotes = lazyWithRetry(() => import("../pages/admin/Stickynotes.jsx"));
-const ContentCalcendor = lazyWithRetry(() => import("../pages/contentcalendor/ContentCalcendor.jsx"));
 const MomClientReport = lazyWithRetry(() => import("../pages/admin/MomClientReport.jsx"));
 const SocialAccounts = lazyWithRetry(() => import("../pages/socialAccounts/SocialAccounts.jsx"));
 const ClientCalls = lazyWithRetry(() => import("../pages/client-calls/ClientCalls.jsx"));
+const SMtasks = lazyWithRetry(() => import("../pages/smTasks/SMtasks.jsx"));
 
 // Background preload core route bundles for zero-delay sidebar navigation
 export const preloadAllRoutes = () => {
@@ -68,7 +68,6 @@ export const preloadAllRoutes = () => {
     () => import("../pages/admin/Stickynotes.jsx"),
     () => import("../pages/socialAccounts/SocialAccounts.jsx"),
     () => import("../pages/client-calls/ClientCalls.jsx"),
-    () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
     () => import("../pages/admin/MomClientReport.jsx"),
     () => import("../pages/chat/ChatPage.jsx"),
     () => import("../pages/workload/Workload.jsx"),
@@ -122,11 +121,6 @@ const AppRoutes = () => {
         <Route
           index
           element={<Dashboardmain />}
-        />
-
-         <Route
-          path="contentcalender"
-          element={<ProtectedRoute requiredPermission="manage_clients"><ContentCalcendor /></ProtectedRoute>}
         />
 
         <Route
@@ -214,6 +208,10 @@ const AppRoutes = () => {
           path="client-calls"
           element={<ClientCalls />}
         />
+        <Route
+          path="sm-tasks"
+          element={<SMtasks />}
+        />
 
 
         
@@ -240,11 +238,6 @@ const AppRoutes = () => {
         <Route
           path="stickynotes"
           element={<Stickynotes />}
-        />
-
-        <Route
-          path="contentcalender"
-          element={<ProtectedRoute requiredPermission="manage_clients"><ContentCalcendor /></ProtectedRoute>}
         />
 
         <Route
@@ -322,6 +315,10 @@ const AppRoutes = () => {
           path="client-calls"
           element={<ClientCalls />}
         />
+        <Route
+          path="sm-tasks"
+          element={<SMtasks />}
+        />
 
 
 
@@ -349,11 +346,6 @@ const AppRoutes = () => {
         <Route
           path="stickynotes"
           element={<Stickynotes />}
-        />
-
-        <Route
-          path="contentcalender"
-          element={<ProtectedRoute requiredPermission="manage_clients"><ContentCalcendor /></ProtectedRoute>}
         />
 
         <Route
@@ -417,6 +409,10 @@ const AppRoutes = () => {
         <Route
           path="client-calls"
           element={<ClientCalls />}
+        />
+        <Route
+          path="sm-tasks"
+          element={<SMtasks />}
         />
 
         <Route

@@ -213,30 +213,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         return false;
       }
 
-      // Show ContentCalender ONLY for Social Media Manager department, Managing Partner, and Operation Manager
-      if (
-        item.name === "ContentCalender" ||
-        item.name === "Content Calendar" ||
-        item.path?.includes("contentcalender")
-      ) {
-        const deptLower = (currentUser?.department || "").toLowerCase();
-        const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-        const isSocialMedia = deptLower.includes("social media");
-        const isManagingPartner =
-          roleLower === "admin" ||
-          deptLower.includes("managing partner") ||
-          roleLower.includes("managing partner");
-        const isOperationManager =
-          roleLower === "operationmanager" ||
-          deptLower.includes("operation manager") ||
-          roleLower.includes("operation manager");
-
-        if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
-          return false;
-        }
-      }
-
       // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
       if (
         item.name === "SM Creditionals" ||
@@ -267,6 +243,20 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
         const deptLower = (currentUser?.department || "").toLowerCase();
         
+        const isSocialMediaManager = deptLower.includes("social media manager");
+
+        if (!isSocialMediaManager) {
+          return false;
+        }
+      }
+
+      // Show SM Tasks ONLY for Social Media Manager department
+      if (
+        item.name === "SM Tasks" ||
+        item.name === "SM tasks" ||
+        item.path?.includes("sm-tasks")
+      ) {
+        const deptLower = (currentUser?.department || "").toLowerCase();
         const isSocialMediaManager = deptLower.includes("social media manager");
 
         if (!isSocialMediaManager) {
