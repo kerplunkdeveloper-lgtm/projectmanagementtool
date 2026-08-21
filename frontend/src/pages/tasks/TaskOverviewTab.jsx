@@ -213,16 +213,6 @@ const checkTaskProductivityAndDate = (
       999,
     );
 
-    const currDay = new Date(startOfMonth);
-    while (currDay <= endOfMonth && currDay <= now) {
-      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
-        return true;
-      }
-      currDay.setDate(currDay.getDate() + 1);
-    }
-
-    if (task.status === "In Progress" && !task.actualEndTime) return true;
-
     const isDateInMonth = (d) => {
       if (!d) return false;
       const date = new Date(d);
@@ -248,6 +238,16 @@ const checkTaskProductivityAndDate = (
           isDateInMonth(sub.createdAt),
       );
       if (subInMonth) return true;
+    }
+
+    if (task.status === "In Progress" && !task.actualEndTime) return true;
+
+    const currDay = new Date(startOfMonth);
+    while (currDay <= endOfMonth && currDay <= now) {
+      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
+        return true;
+      }
+      currDay.setDate(currDay.getDate() + 1);
     }
 
     return false;
@@ -1458,7 +1458,7 @@ const TaskOverviewTab = ({
   const getTaskDisplayId = (task) => {
     if (!task || !task._id) return "";
     const projId = task.project?._id || task.project;
-    const projectObj = projects.find((p) => p._id === projId);
+    const projectObj = projId ? projectsMap.get(String(projId)) : null;
     const projChar = (projectObj?.name || task.project?.name || "P")
       .charAt(0)
       .toUpperCase();
@@ -1996,6 +1996,14 @@ const TaskOverviewTab = ({
     }
   };
 
+  const projectsMap = React.useMemo(() => {
+    const map = new Map();
+    (projects || []).forEach((p) => {
+      if (p && p._id) map.set(String(p._id), p);
+    });
+    return map;
+  }, [projects]);
+
   const filteredOverviewTasks = React.useMemo(() => {
     return tasks
       .filter((task) => {
@@ -2004,7 +2012,7 @@ const TaskOverviewTab = ({
         const creatorId = task.createdBy?._id || task.createdBy;
 
         const projId = task.project?._id || task.project;
-        const projectObj = projects.find((p) => p._id === projId);
+        const projectObj = projId ? projectsMap.get(String(projId)) : null;
 
         if (!isAdminOrManager) {
           const isCreator = creatorId === currentUserId;
@@ -3574,7 +3582,7 @@ const TaskOverviewTab = ({
                           currentUser,
                           "w-6 h-6 text-[8px]",
                         )}
-                        <span className="font-bold text-[10px] text-slate-700 dark:text-slate-300">
+                        <span className="font-bold text-[10px] text-slate-700 dark:text-slate-800">
                           {currentUser?.name || "You"}
                         </span>
                       </div>
@@ -3610,7 +3618,7 @@ const TaskOverviewTab = ({
                             "w-6 h-6 text-[8px]",
                           )}
                           <div className="flex flex-col text-left leading-none min-w-0 pr-1">
-                            <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-100 truncate">
+                            <span className="font-extrabold text-[11px] text-slate-800 dark:text-white truncate">
                               {currentUser?.name || "You"}
                             </span>
                             <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 truncate mt-0.5">
@@ -3731,9 +3739,7 @@ const TaskOverviewTab = ({
                     const isInProgress = task.status === "In Progress";
 
                     const projId = task.project?._id || task.project;
-                    const projectObj = (projects || []).find(
-                      (p) => p._id === projId,
-                    );
+                    const projectObj = projId ? projectsMap.get(String(projId)) : null;
                     const clientRaw = task.project?.client?.companyName
                       ? task.project.client
                       : projectObj?.client || task.project?.client;
@@ -3789,7 +3795,7 @@ const TaskOverviewTab = ({
                                     e.target.blur();
                                   }
                                 }}
-                                className={`outline-none text-[12px] font-extrabold text-slate-800 dark:text-slate-100 min-w-[50px] max-w-[300px] truncate block ${
+                                className={`outline-none text-[12px] font-extrabold text-slate-800 dark:text-slate-900 min-w-[50px] max-w-[300px] truncate block ${
                                   isCompleted
                                     ? "line-through decoration-[#10b981] decoration-2 text-slate-400 dark:text-slate-500"
                                     : ""
@@ -3943,7 +3949,7 @@ const TaskOverviewTab = ({
                                     handleTaskFieldChange(task._id, updates);
                                   }
                                 }}
-                                className={`badge-select ${
+                                className={`badge-select !text-[12px] ${
                                   task.contentType === "VIDEO"
                                     ? "badge-type-video"
                                     : task.contentType === "IMAGE"

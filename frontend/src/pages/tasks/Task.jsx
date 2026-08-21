@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { FiCheckSquare, FiBriefcase } from "react-icons/fi";
@@ -6,9 +6,17 @@ import {
   useGetTasksQuery,
   useGetProjectsQuery,
 } from "../../features/api/apiSlice";
-import TaskOverviewTab from "./TaskOverviewTab";
-import MyTasksTab from "./MyTasksTab";
 import { getUsers } from "../../features/users/userSlice";
+
+const TaskOverviewTab = lazy(() => import("./TaskOverviewTab"));
+const MyTasksTab = lazy(() => import("./MyTasksTab"));
+
+const TabLoadingFallback = () => (
+  <div className="flex items-center justify-center p-12 space-x-2">
+    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Loading tasks...</span>
+  </div>
+);
 
 const Task = () => {
   const { user } = useSelector((state) => state.auth);
@@ -146,31 +154,33 @@ const Task = () => {
         </div>
       )}
 
-      {/* SEPARATE COMPONENT TAB RENDER */}
-      {activeTab === "Task Overview" ? (
-        <TaskOverviewTab
-          tasks={tasks}
-          projects={projects}
-          currentUserId={currentUserId}
-          user={user}
-          dateFilter={dateFilter}
-          setDateFilter={setDateFilter}
-          showDateDropdown={showDateDropdown}
-          setShowDateDropdown={setShowDateDropdown}
-          dateDropdownRef={dateDropdownRef}
-          onFilteredCountChange={setFilteredOverviewCount}
-        />
-      ) : (
-        <MyTasksTab
-          tasks={tasks}
-          projects={projects}
-          currentUserId={currentUserId}
-          user={user}
-          loading={loading}
-          dateFilter={dateFilter}
-          setDateFilter={setDateFilter}
-        />
-      )}
+      {/* SEPARATE COMPONENT TAB RENDER WITH SUSPENSE */}
+      <Suspense fallback={<TabLoadingFallback />}>
+        {activeTab === "Task Overview" ? (
+          <TaskOverviewTab
+            tasks={tasks}
+            projects={projects}
+            currentUserId={currentUserId}
+            user={user}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter}
+            showDateDropdown={showDateDropdown}
+            setShowDateDropdown={setShowDateDropdown}
+            dateDropdownRef={dateDropdownRef}
+            onFilteredCountChange={setFilteredOverviewCount}
+          />
+        ) : (
+          <MyTasksTab
+            tasks={tasks}
+            projects={projects}
+            currentUserId={currentUserId}
+            user={user}
+            loading={loading}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };

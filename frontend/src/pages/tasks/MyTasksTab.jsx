@@ -220,16 +220,6 @@ const checkTaskProductivityAndDate = (
     endOfWeek.setDate(endOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    const currDay = new Date(startOfWeek);
-    while (currDay <= endOfWeek && currDay <= now) {
-      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
-        return true;
-      }
-      currDay.setDate(currDay.getDate() + 1);
-    }
-
-    if (task.status === "In Progress" && !task.actualEndTime) return true;
-
     const isDateInWeek = (d) => {
       if (!d) return false;
       const date = new Date(d);
@@ -255,6 +245,16 @@ const checkTaskProductivityAndDate = (
       if (subInWeek) return true;
     }
 
+    if (task.status === "In Progress" && !task.actualEndTime) return true;
+
+    const currDay = new Date(startOfWeek);
+    while (currDay <= endOfWeek && currDay <= now) {
+      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
+        return true;
+      }
+      currDay.setDate(currDay.getDate() + 1);
+    }
+
     return false;
   }
 
@@ -278,16 +278,6 @@ const checkTaskProductivityAndDate = (
       999,
     );
 
-    const currDay = new Date(startOfMonth);
-    while (currDay <= endOfMonth && currDay <= now) {
-      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
-        return true;
-      }
-      currDay.setDate(currDay.getDate() + 1);
-    }
-
-    if (task.status === "In Progress" && !task.actualEndTime) return true;
-
     const isDateInMonth = (d) => {
       if (!d) return false;
       const date = new Date(d);
@@ -308,9 +298,19 @@ const checkTaskProductivityAndDate = (
         (sub) =>
           isDateInMonth(sub.startDate) ||
           isDateInMonth(sub.dueDate) ||
-          isDateInMonth(sub.createdAt)
+          isDateInMonth(sub.createdAt),
       );
       if (subInMonth) return true;
+    }
+
+    if (task.status === "In Progress" && !task.actualEndTime) return true;
+
+    const currDay = new Date(startOfMonth);
+    while (currDay <= endOfMonth && currDay <= now) {
+      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
+        return true;
+      }
+      currDay.setDate(currDay.getDate() + 1);
     }
 
     return false;
@@ -960,6 +960,307 @@ const MomFeedbackInput = ({ task, onSave }) => {
   );
 };
 
+const DEFAULT_OFFICE_HOURS = { startHour: 9, endHour: 19 };
+
+const formatMsToHMS = (ms) => {
+  if (!ms || ms <= 0) return "0s";
+  const totalSecs = Math.floor(ms / 1000);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  if (h > 0) return `${h}h ${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
+  if (m > 0) return `${m}m ${s.toString().padStart(2, "0")}s`;
+  return `${s}s`;
+};
+
+const getTaskYesterdayAndTodayStats = (task, officeHours = DEFAULT_OFFICE_HOURS) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+
+  const todayWorkMs = calculateTaskProductivityForDate(task, today, officeHours);
+  const yesterdayWorkMs = calculateTaskProductivityForDate(task, yesterday, officeHours);
+
+  let todayBlockerMs = 0;
+  let yesterdayBlockerMs = 0;
+
+  const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const yesterdayStr = yesterday.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+  if (Array.isArray(task.blockerHistory)) {
+    task.blockerHistory.forEach((b) => {
+      if (!b.pausedAt) return;
+      const pDate = new Date(b.pausedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      const pMs = new Date(b.pausedAt).getTime();
+      const rMs = b.resumedAt ? new Date(b.resumedAt).getTime() : Date.now();
+      const duration = Math.max(0, rMs - pMs);
+
+      if (pDate === todayStr) {
+        todayBlockerMs += duration;
+      } else if (pDate === yesterdayStr) {
+        yesterdayBlockerMs += duration;
+      }
+    });
+  }
+
+  if (task.isBlocked && task.blockerPausedAt) {
+    const pDate = new Date(task.blockerPausedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    const duration = Math.max(0, Date.now() - new Date(task.blockerPausedAt).getTime());
+    if (pDate === todayStr) {
+      todayBlockerMs += duration;
+    } else if (pDate === yesterdayStr) {
+      yesterdayBlockerMs += duration;
+    }
+  }
+
+  return {
+    todayWorkMs,
+    yesterdayWorkMs,
+    todayBlockerMs,
+    yesterdayBlockerMs,
+  };
+};
+
+const WorkTimeCell = React.memo(({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
+  const [liveElapsed, setLiveElapsed] = useState(0);
+  const isActive = task.status === "In Progress" && !task.autoPaused;
+
+  useEffect(() => {
+    if (!isActive) {
+      setLiveElapsed(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLiveElapsed((prev) => prev + 1000);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  const { yesterdayWorkMs, todayWorkMs } = React.useMemo(
+    () => getTaskYesterdayAndTodayStats(task, officeHours),
+    [task, officeHours]
+  );
+
+  const currentTodayWork = todayWorkMs + liveElapsed;
+
+  return (
+    <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[11px] space-y-1.5 min-w-[135px]">
+      {yesterdayWorkMs > 0 && (
+        <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
+          <span className="font-semibold">Yesterday</span>
+          <span className="font-bold text-slate-800 dark:text-white">{formatMsToHMS(yesterdayWorkMs)}</span>
+        </div>
+      )}
+      <div className="flex justify-between items-center">
+        <span className="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+          Today
+          {isActive && (
+            <span className="px-1.5 py-0.2 text-[8px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 rounded-full animate-pulse">
+              • Live
+            </span>
+          )}
+        </span>
+        <span className={`font-black ${currentTodayWork > 0 || isActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400"}`}>
+          {formatMsToHMS(currentTodayWork)}
+        </span>
+      </div>
+    </div>
+  );
+});
+
+const BlockerTimeCell = React.memo(({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
+  const [liveBlockerElapsed, setLiveBlockerElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!task.isBlocked) {
+      setLiveBlockerElapsed(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLiveBlockerElapsed((prev) => prev + 1000);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [task.isBlocked]);
+
+  const { yesterdayBlockerMs, todayBlockerMs } = React.useMemo(
+    () => getTaskYesterdayAndTodayStats(task, officeHours),
+    [task, officeHours]
+  );
+
+  const currentTodayBlocker = todayBlockerMs + liveBlockerElapsed;
+
+  return (
+    <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[11px] space-y-1.5 min-w-[135px]">
+      {yesterdayBlockerMs > 0 && (
+        <div className="flex justify-between items-center text-slate-600 dark:text-slate-900">
+          <span className="font-semibold">Yesterday</span>
+          <span className="font-bold text-slate-800 dark:text-white">{formatMsToHMS(yesterdayBlockerMs)}</span>
+        </div>
+      )}
+      <div className="flex justify-between items-center">
+        <span className="font-semibold text-slate-600 dark:text-slate-900 flex items-center gap-1">
+          Today
+          {task.isBlocked && (
+            <span className="px-1.5 py-0.2 text-[8px] font-black bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400 rounded-full animate-pulse">
+              • Live
+            </span>
+          )}
+        </span>
+        <span className={`font-black ${currentTodayBlocker > 0 || task.isBlocked ? "text-orange-600 dark:text-orange-400" : "text-slate-600 dark:text-slate-400"}`}>
+          {formatMsToHMS(currentTodayBlocker)}
+        </span>
+      </div>
+    </div>
+  );
+});
+
+const TodayTrackerCell = React.memo(({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
+  const [liveElapsed, setLiveElapsed] = useState(0);
+  const isActive = task.status === "In Progress" && !task.autoPaused;
+
+  useEffect(() => {
+    if (!isActive && !task.isBlocked) {
+      setLiveElapsed(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setLiveElapsed((prev) => prev + 1000);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isActive, task.isBlocked]);
+
+  const { todayWorkMs, todayBlockerMs } = React.useMemo(
+    () => getTaskYesterdayAndTodayStats(task, officeHours),
+    [task, officeHours]
+  );
+
+  const activeToday = todayWorkMs + (isActive ? liveElapsed : 0);
+  const blockedToday = todayBlockerMs + (task.isBlocked ? liveElapsed : 0);
+
+  if (task.status === "Completed") {
+    return (
+      <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl p-2 text-[11px] text-center min-w-[135px]">
+        <span className="text-emerald-700 dark:text-emerald-300 font-extrabold block text-[10px]">Total Today</span>
+        <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-[12px]">{formatMsToHMS(activeToday || todayWorkMs)}</span>
+      </div>
+    );
+  }
+
+  if (!task.actualStartTime && activeToday === 0 && (!task.status || task.status === "Pending")) {
+    return (
+      <div className="text-center text-slate-400 dark:text-slate-400 font-bold text-[11px]">
+        Not started
+      </div>
+    );
+  }
+
+  if (activeToday === 0 && blockedToday === 0) {
+    return (
+      <div className="text-center text-slate-400 dark:text-slate-400 font-bold text-[11px]">
+        --
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[10px] space-y-1 min-w-[135px]">
+      <div className="flex justify-between items-center text-emerald-700 dark:text-emerald-300 font-extrabold">
+        <span>Active</span>
+        <span>{formatMsToHMS(activeToday)}</span>
+      </div>
+      {blockedToday > 0 && (
+        <div className="flex justify-between items-center text-orange-700 dark:text-orange-300 font-extrabold">
+          <span>Blocked</span>
+          <span>{formatMsToHMS(blockedToday)}</span>
+        </div>
+      )}
+      <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-white/10 font-extrabold text-slate-800 dark:text-slate-200">
+        <span className="text-slate-700 dark:text-slate-300 font-extrabold">Total Today</span>
+        <span className="text-slate-900 dark:text-slate-200 font-black">{formatMsToHMS(activeToday)}</span>
+      </div>
+    </div>
+  );
+});
+
+const SaasTableSummaryBar = React.memo(({ tasks, officeHours = DEFAULT_OFFICE_HOURS }) => {
+  const counts = React.useMemo(() => {
+    const total = tasks.length;
+    let inProgress = 0;
+    let onHold = 0;
+    let inReview = 0;
+    let completed = 0;
+    let totalTodayWork = 0;
+    let totalTodayBlocker = 0;
+
+    tasks.forEach((t) => {
+      const s = (t.status || "").toLowerCase();
+      if (s.includes("progress")) inProgress++;
+      else if (s.includes("hold")) onHold++;
+      else if (s.includes("review")) inReview++;
+      else if (s === "completed" || s.includes("done")) completed++;
+
+      const stats = getTaskYesterdayAndTodayStats(t, officeHours);
+      totalTodayWork += stats.todayWorkMs;
+      totalTodayBlocker += stats.todayBlockerMs;
+    });
+
+    return {
+      total,
+      inProgress,
+      onHold,
+      inReview,
+      completed,
+      totalTodayWork,
+      totalTodayBlocker,
+    };
+  }, [tasks, officeHours]);
+
+  return (
+    <div className="mt-4 sidebar-bg  rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+      {/* Left side: Status counters */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2 font-black text-slate-800 dark:text-slate-900 pr-4">
+          <BiFile size={18} className="text-blue-600 dark:text-blue-400" />
+          <span>Total Tasks</span>
+          <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400 ml-1">{counts.total}</span>
+        </div>
+        <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+          <span>In Progress:</span>
+          <span className="text-slate-900 dark:text-white font-black">{counts.inProgress}</span>
+        </div>
+        <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+          <span>On Hold:</span>
+          <span className="text-slate-900 dark:text-white font-black">{counts.onHold}</span>
+        </div>
+        <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
+          <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+          <span>In Review:</span>
+          <span className="text-slate-900 dark:text-white font-black">{counts.inReview}</span>
+        </div>
+        <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          <span>Completed:</span>
+          <span className="text-slate-900 dark:text-white font-black">{counts.completed}</span>
+        </div>
+      </div>
+
+      {/* Right side: Today totals */}
+      <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 pt-3 md:pt-0 md:pl-6 w-full md:w-auto justify-between md:justify-end">
+        <div>
+          <div className="text-[10px] font-bold text-slate-400">Today's Work (All Tasks)</div>
+          <div className="text-base font-black text-emerald-600 dark:text-emerald-400">{formatMsToHMS(counts.totalTodayWork)}</div>
+        </div>
+        <div>
+          <div className="text-[10px] font-bold text-slate-400">Today's Blocker (All Tasks)</div>
+          <div className="text-base font-black text-orange-600 dark:text-orange-400">{formatMsToHMS(counts.totalTodayBlocker)}</div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 const COLUMN_OPTIONS = [
   { key: "id", label: "ID" },
   { key: "priority", label: "Priority" },
@@ -969,9 +1270,9 @@ const COLUMN_OPTIONS = [
   { key: "status", label: "Status" },
   { key: "feedbackMom", label: "Feedback MOM" },
   { key: "blocker", label: "Blocker" },
-  { key: "activeTime", label: "Inprogress time taken" },
-  { key: "blockerTime", label: "Blocker time" },
-  { key: "timeTracker", label: "Time tracker" },
+  { key: "activeTime", label: "Work Time" },
+  { key: "blockerTime", label: "Blocker Time" },
+  { key: "timeTracker", label: "Today Tracker" },
   { key: "revision", label: "Revision" },
   { key: "startDate", label: "Start Date" },
   { key: "endDate", label: "Due Date" },
@@ -993,6 +1294,7 @@ const MyTasksTab = ({
 }) => {
   const authUsers = useSelector((state) => state.auth?.users);
   const users = authUsers || [];
+  const officeHours = React.useMemo(() => ({ startHour: 9, endHour: 19 }), []);
 
   const [updateTaskTrigger] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
@@ -1218,6 +1520,14 @@ const MyTasksTab = ({
     searchTerm,
   ]);
 
+  const projectsMap = React.useMemo(() => {
+    const map = new Map();
+    (projects || []).forEach((p) => {
+      if (p && p._id) map.set(String(p._id), p);
+    });
+    return map;
+  }, [projects]);
+
   // Filter tasks based on "My Tasks" (assigned to current user)
   const activeTasksList = React.useMemo(() => {
     return tasks.filter((task) => {
@@ -1235,7 +1545,7 @@ const MyTasksTab = ({
       const matchesProject =
         projectFilter === "All" || taskProjectId === projectFilter;
 
-      const projectObj = projects.find((p) => p._id === taskProjectId);
+      const projectObj = taskProjectId ? projectsMap.get(String(taskProjectId)) : null;
       const clientObj = task.project?.client?.companyName
         ? task.project.client
         : projectObj?.client || task.project?.client;
@@ -1929,7 +2239,7 @@ const MyTasksTab = ({
   const getStatusStyle = (status, isBlocked) => {
     if (isBlocked) {
       return {
-        bg: "!bg-orange-50/90 !text-orange-700 !border-orange-200 dark:!bg-orange-950/40 dark:!text-orange-400 dark:!border-orange-900/40",
+        bg: "!bg-orange-50 !text-orange-700 !border-orange-200/80 dark:!bg-orange-500/10 dark:!text-orange-400 dark:!border-orange-500/20 rounded-full font-bold",
         dot: "bg-orange-500",
         icon: FiAlertCircle,
       };
@@ -1937,43 +2247,43 @@ const MyTasksTab = ({
     switch (status) {
       case "Completed":
         return {
-          bg: "!bg-emerald-50 !text-emerald-700 !border-emerald-200 dark:!bg-emerald-500/20 dark:!text-emerald-300 dark:!border-emerald-500/40",
+          bg: "!bg-emerald-50 !text-emerald-700 !border-emerald-200/80 dark:!bg-emerald-500/10 dark:!text-emerald-400 dark:!border-emerald-500/20 rounded-full font-bold",
           dot: "bg-emerald-500",
           icon: FiCheckSquare,
         };
       case "In Progress":
         return {
-          bg: "!bg-blue-400 !text-white !border-blue-200 dark:!bg-blue-400 dark:!text-white dark:!border-blue-800/60",
+          bg: "!bg-blue-50 !text-blue-700 !border-blue-200/80 dark:!bg-blue-500/10 dark:!text-blue-400 dark:!border-blue-500/20 rounded-full font-bold",
           dot: "bg-blue-500",
           icon: FiClock,
         };
       case "On Hold":
         return {
-          bg: "!bg-amber-50 !text-amber-700 !border-amber-200 dark:!bg-amber-500/20 dark:!text-amber-300 dark:!border-amber-500/40",
+          bg: "!bg-amber-50 !text-amber-700 !border-amber-200/80 dark:!bg-amber-500/10 dark:!text-amber-400 dark:!border-amber-500/20 rounded-full font-bold",
           dot: "bg-amber-500",
           icon: FiAlertCircle,
         };
       case "In Review":
         return {
-          bg: "!bg-yellow-100/90 !text-yellow-900 !border-yellow-300 dark:!bg-yellow-950/60 dark:!text-yellow-200 dark:!border-yellow-800/60 font-extrabold",
-          dot: "bg-yellow-500",
+          bg: "!bg-amber-50 !text-amber-800 !border-amber-200/80 dark:!bg-amber-500/10 dark:!text-amber-300 dark:!border-amber-500/20 rounded-full font-bold",
+          dot: "bg-amber-500",
           icon: FiClock,
         };
       case "Correction":
         return {
-          bg: "!bg-orange-100 !text-orange-800 !border-orange-300 dark:!bg-orange-500/20 dark:!text-orange-300 dark:!border-orange-500/40",
+          bg: "!bg-orange-50 !text-orange-700 !border-orange-200/80 dark:!bg-orange-500/10 dark:!text-orange-400 dark:!border-orange-500/20 rounded-full font-bold",
           dot: "bg-orange-500",
           icon: FiAlertCircle,
         };
       case "Rejected":
         return {
-          bg: "!bg-red-400 !text-black !border-rose-200 dark:!bg-rose-500/20 dark:!text-rose-355 dark:!border-rose-500/40",
+          bg: "!bg-rose-50 !text-rose-700 !border-rose-200/80 dark:!bg-rose-500/10 dark:!text-rose-400 dark:!border-rose-500/20 rounded-full font-bold",
           dot: "bg-rose-500",
           icon: FiAlertCircle,
         };
       default:
         return {
-          bg: "!bg-gray-50 !text-slate-600 dark:!bg-slate-300 dark:!text-slate-50 ",
+          bg: "!bg-slate-50 !text-slate-700 !border-slate-200/80 dark:!bg-slate-500/10 dark:!text-slate-300 dark:!border-slate-500/20 rounded-full font-bold",
           dot: "bg-slate-400",
           icon: FiClock,
         };
@@ -1998,7 +2308,7 @@ const MyTasksTab = ({
   const getTaskDisplayId = (task) => {
     if (!task || !task._id) return "";
     const projId = task.project?._id || task.project;
-    const projectObj = projects.find((p) => p._id === projId);
+    const projectObj = projId ? projectsMap.get(String(projId)) : null;
     const projChar = (projectObj?.name || task.project?.name || "P")
       .charAt(0)
       .toUpperCase();
@@ -2075,23 +2385,23 @@ const MyTasksTab = ({
   };
 
   const uniqueProjects = React.useMemo(() => {
-    const projectsMap = {};
+    const mapObj = {};
     activeTasksList.forEach((t) => {
       if (t.project) {
         const pId = t.project._id || t.project;
-        const projObj = projects.find((p) => p._id === pId);
+        const projObj = pId ? projectsMap.get(String(pId)) : null;
         const pName = projObj?.name || t.project.name || "Internal";
-        projectsMap[pId] = pName;
+        mapObj[pId] = pName;
       }
     });
-    return Object.entries(projectsMap).map(([id, name]) => ({ id, name }));
-  }, [activeTasksList, projects]);
+    return Object.entries(mapObj).map(([id, name]) => ({ id, name }));
+  }, [activeTasksList, projectsMap]);
 
   const uniqueClients = React.useMemo(() => {
     const clientsMap = {};
     activeTasksList.forEach((t) => {
       const projId = t.project?._id || t.project;
-      const projectObj = projects.find((p) => p._id === projId);
+      const projectObj = projId ? projectsMap.get(String(projId)) : null;
       const client = t.project?.client?.companyName
         ? t.project.client
         : projectObj?.client || t.project?.client;
@@ -2343,30 +2653,6 @@ const MyTasksTab = ({
               <FiX size={11} />
             </button>
           )}
-        </div>
-
-        {/* Center: View Toggle */}
-        <div className="flex bg-slate-100/80 dark:bg-black/40 p-0.5 rounded-xl shrink-0 items-center justify-center">
-          <button
-            onClick={() => setViewType("list")}
-            className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer ${
-              viewType === "list"
-                ? "bg-white dark:bg-[#11131e] text-blue-600 dark:text-[#3b82f6] shadow-xs border border-slate-200/60 dark:border-white/10"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            <FiList size={12} /> List
-          </button>
-          <button
-            onClick={() => setViewType("kanban")}
-            className={`flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-extrabold transition-all cursor-pointer ${
-              viewType === "kanban"
-                ? "bg-white dark:bg-[#11131e] text-blue-600 dark:text-[#3b82f6] shadow-xs border border-slate-200/60 dark:border-white/10"
-                : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-            }`}
-          >
-            <FiGrid size={12} /> Kanban
-          </button>
         </div>
 
         {/* Right: Individual Filter Dropdowns & Export Button */}
@@ -3003,9 +3289,7 @@ const MyTasksTab = ({
                                 {(() => {
                                   const projId =
                                     task.project?._id || task.project;
-                                  const projectObj = projects.find(
-                                    (p) => p._id === projId,
-                                  );
+                                  const projectObj = projId ? projectsMap.get(String(projId)) : null;
                                   return (
                                     projectObj?.name ||
                                     task.project?.name ||
@@ -3016,9 +3300,7 @@ const MyTasksTab = ({
                               {(() => {
                                 const projId =
                                   task.project?._id || task.project;
-                                const projectObj = projects.find(
-                                  (p) => p._id === projId,
-                                );
+                                const projectObj = projId ? projectsMap.get(String(projId)) : null;
                                 const client = task.project?.client?.companyName
                                   ? task.project.client
                                   : projectObj?.client || task.project?.client;
@@ -3064,7 +3346,7 @@ const MyTasksTab = ({
         <div className="space-y-4">
           <div className="bg-white dark:bg-[#0f111a] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200 dark:border-slate-800/80 transition-all">
             <div className="overflow-x-auto max-h-[calc(100vh-220px)] w-full scrollbar-thin">
-              <table className="w-full min-w-[1300px] text-left  table-auto ">
+              <table className="w-full min-w-full text-left table-auto">
                 <thead>
                   <tr className="sticky top-0 z-20  text-center bg-slate-50 dark:bg-[#11131e] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[12px] font-medium border-b border-slate-200 dark:border-slate-200 shadow-sm">
                     {!hiddenColumns.id && (
@@ -3190,7 +3472,7 @@ const MyTasksTab = ({
                         label="Assigned By"
                         colWidths={colWidths}
                         handleMouseDown={handleMouseDown}
-                        defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent w-60"
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 whitespace-nowrap"
                       />
                     )}
                     {!hiddenColumns.approvalTime && (
@@ -3208,7 +3490,7 @@ const MyTasksTab = ({
                         label="Content Copy"
                         colWidths={colWidths}
                         handleMouseDown={handleMouseDown}
-                        defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
                       />
                     )}
                     {!hiddenColumns.createdTime && (
@@ -3338,9 +3620,7 @@ const MyTasksTab = ({
                                 {(() => {
                                   const projId =
                                     task.project?._id || task.project;
-                                  const projectObj = projects.find(
-                                    (p) => p._id === projId,
-                                  );
+                                  const projectObj = projId ? projectsMap.get(String(projId)) : null;
                                   const client = task.project?.client
                                     ?.companyName
                                     ? task.project.client
@@ -3401,23 +3681,23 @@ const MyTasksTab = ({
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {task.isBlocked ? (
-                                  <div className="px-2.5 py-1 text-[11px] sm:text-[9.5px] font-black rounded-full border border-orange-200 dark:border-orange-500/30 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
+                                  <div className="px-3 py-1.5 text-[11px] font-bold rounded-full border border-orange-200/80 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-2xs">
                                     <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
                                     Paused - Blocked
                                   </div>
                                 ) : task.status === "Completed" ? (
-                                  <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-200 dark:bg-emerald-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
+                                  <div className="px-3 py-1.5 text-[11px] font-bold rounded-full border border-emerald-200/80 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center gap-1.5 shadow-2xs">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                     Completed
                                   </div>
                                 ) : task.status === "In Review" ? (
-                                  <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-yellow-800 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 bg-yellow-200 dark:bg-yellow-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                                  <div className="px-3 py-1.5 text-[11px] font-bold rounded-full border border-amber-200/80 dark:border-amber-500/20 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center gap-1.5 shadow-2xs">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                     In Review
                                   </div>
                                 ) : task.status === "Correction" ? (
                                   <div className="flex flex-col gap-1 items-center">
-                                    <div className="px-2.5 py-1 text-[11px] sm:text-[9.5px] font-extrabold rounded-md border border-orange-300 dark:border-orange-500/30 text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-sm">
+                                    <div className="px-3 py-1 text-[11px] font-bold rounded-full border border-orange-200/80 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-2xs">
                                       <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
                                       Corrections Required
                                     </div>
@@ -3429,13 +3709,13 @@ const MyTasksTab = ({
                                           "In Progress",
                                         )
                                       }
-                                      className="px-2.5 py-0.5 text-[9px] font-extrabold bg-orange-600 hover:bg-orange-700 text-white rounded shadow transition-all cursor-pointer"
+                                      className="px-2.5 py-0.5 text-[9px] font-extrabold bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-2xs transition-all cursor-pointer"
                                     >
                                       Resume Work
                                     </button>
                                   </div>
                                 ) : task.status === "Rejected" ? (
-                                  <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 bg-rose-200 dark:bg-rose-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
+                                  <div className="px-3 py-1.5 text-[11px] font-bold rounded-full border border-rose-200/80 dark:border-rose-500/20 text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center gap-1.5 shadow-2xs">
                                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                     Rejected
                                   </div>
@@ -3646,65 +3926,33 @@ const MyTasksTab = ({
                               </td>
                             )}
 
-                            {/* Inprogress Time Taken Column */}
+                            {/* Work Time Column */}
                             {!hiddenColumns.activeTime && (
                               <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap text-center"
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <SingleTimeDisplay
-                                  mode="active"
-                                  startTime={task.actualStartTime}
-                                  endTime={task.actualEndTime}
-                                  pausedAt={task.pausedAt}
-                                  savedPausedMs={task.totalPausedMs}
-                                  status={task.status}
-                                  isBlocked={task.isBlocked}
-                                  blockerPausedAt={task.blockerPausedAt}
-                                  blockerHistory={task.blockerHistory}
-                                  totalTrackedTime={task.totalTrackedTime}
-                                />
+                                <WorkTimeCell task={task} />
                               </td>
                             )}
 
                             {/* Blocker Time Column */}
                             {!hiddenColumns.blockerTime && (
                               <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <SingleTimeDisplay
-                                  mode="blocker"
-                                  startTime={task.actualStartTime}
-                                  endTime={task.actualEndTime}
-                                  pausedAt={task.pausedAt}
-                                  savedPausedMs={task.totalPausedMs}
-                                  status={task.status}
-                                  isBlocked={task.isBlocked}
-                                  blockerPausedAt={task.blockerPausedAt}
-                                  blockerHistory={task.blockerHistory}
-                                  totalTrackedTime={task.totalTrackedTime}
-                                />
+                                <BlockerTimeCell task={task} />
                               </td>
                             )}
 
-                            {/* Timer Column */}
+                            {/* Today Tracker Column */}
                             {!hiddenColumns.timeTracker && (
                               <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <TimeTracker
-                                  startTime={task.actualStartTime}
-                                  endTime={task.actualEndTime}
-                                  pausedAt={task.pausedAt}
-                                  savedPausedMs={task.totalPausedMs}
-                                  status={task.status}
-                                  isBlocked={task.isBlocked}
-                                  blockerPausedAt={task.blockerPausedAt}
-                                  blockerHistory={task.blockerHistory}
-                                  totalTrackedTime={task.totalTrackedTime}
-                                />
+                                <TodayTrackerCell task={task} />
                               </td>
                             )}
 
@@ -3754,7 +4002,7 @@ const MyTasksTab = ({
 
                             {/* Assigned By */}
                             {!hiddenColumns.assignedBy && (
-                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-44 text-left">
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 text-left">
                                 <div className="flex items-center gap-2">
                                   <div className="relative shrink-0">
                                     {(() => {
@@ -3979,7 +4227,7 @@ const MyTasksTab = ({
 
             {/* Enhanced Pagination Controls */}
             {totalItems > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 bg-slate-50/90 dark:bg-[#11131e] border-t border-slate-200/80 dark:border-white/5 text-xs font-bold">
+              <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 sidebar-bg  text-xs font-bold">
                 {/* Left: Items per page selector & Total Items info */}
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
@@ -4088,6 +4336,7 @@ const MyTasksTab = ({
               </div>
             )}
           </div>
+          <SaasTableSummaryBar tasks={filteredTasks} />
         </div>
       )}
 
@@ -4392,9 +4641,7 @@ const MyTasksTab = ({
                         {(() => {
                           const projId =
                             selectedTask.project?._id || selectedTask.project;
-                          const projectObj = projects.find(
-                            (p) => p._id === projId,
-                          );
+                          const projectObj = projId ? projectsMap.get(String(projId)) : null;
                           const client =
                             projectObj?.client || selectedTask.project?.client;
                           if (client) {
