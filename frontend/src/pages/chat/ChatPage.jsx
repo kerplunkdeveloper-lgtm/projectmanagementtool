@@ -557,11 +557,12 @@ const ChatPage = () => {
     }
   }, [searchParams, joinCallRoom]);
 
-  // Mark chat as read
+  // Auto-mark notifications and chat as read when active chat is open
   useEffect(() => {
     if (activeChat) {
+      dispatch(setActiveChatId(activeChat));
       dispatch(markChatAsRead(activeChat));
-      // Mark corresponding database notifications as read to clear the sidebar badge
+
       if (notifications && notifications.length > 0) {
         notifications.forEach((n) => {
           if (
@@ -1371,23 +1372,64 @@ const ChatPage = () => {
     return msg.text;
   };
 
+  const formatRelativeTime = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - d) / 1000);
+
+    if (diffInSeconds < 60) return "Just now";
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}d`;
+
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  };
+
   const sortedDMs = filteredUsers
     ? [...filteredUsers].sort((a, b) => {
+        const unreadA = unreadCounts[a._id] || 0;
+        const unreadB = unreadCounts[b._id] || 0;
+
+        // 1. Unread chats at the very top
+        if (unreadA > 0 && unreadB === 0) return -1;
+        if (unreadB > 0 && unreadA === 0) return 1;
+
+        // 2. Latest message timestamp (newest first)
         const msgA = lastMessages[a._id];
         const msgB = lastMessages[b._id];
         const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
         const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
-        return timeB - timeA;
+
+        if (timeA !== timeB) return timeB - timeA;
+
+        return a.name.localeCompare(b.name);
       })
     : [];
 
   const sortedRooms = rooms
     ? [...rooms].sort((a, b) => {
+        const unreadA = unreadCounts[a._id] || 0;
+        const unreadB = unreadCounts[b._id] || 0;
+
+        // 1. Unread group chats at the very top
+        if (unreadA > 0 && unreadB === 0) return -1;
+        if (unreadB > 0 && unreadA === 0) return 1;
+
+        // 2. Latest message timestamp (newest first)
         const msgA = lastMessages[a._id];
         const msgB = lastMessages[b._id];
         const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
         const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
-        return timeB - timeA;
+
+        if (timeA !== timeB) return timeB - timeA;
+
+        return a.name.localeCompare(b.name);
       })
     : [];
 
@@ -1442,13 +1484,15 @@ const ChatPage = () => {
               <button
                 onClick={() => {
                   setActiveChat("group");
+                  dispatch(setActiveChatId("group"));
+                  dispatch(markChatAsRead("group"));
                   setShowChatWindowMobile(true);
                 }}
                 className={`chat-sidebar-item transition-all ${
                   activeChat === "group"
                     ? "chat-sidebar-item-active"
                     : unreadCounts["group"] > 0
-                      ? "bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500 shadow-sm"
+                      ? "bg-rose-50/90 dark:bg-rose-950/50 border-l-4 border-l-rose-500 shadow-md"
                       : ""
                 }`}
               >
@@ -1467,23 +1511,34 @@ const ChatPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span
-                      className={`item-title truncate ${unreadCounts["group"] > 0 ? "font-black text-rose-700 dark:text-rose-300" : ""}`}
+                      className={`item-title truncate ${
+                        unreadCounts["group"] > 0
+                          ? "font-black text-rose-700 dark:text-rose-300"
+                          : ""
+                      }`}
                     >
                       Kerplunk Group
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {unreadCounts["group"] > 0 && (
+                      {unreadCounts["group"] > 0 ? (
                         <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                          {unreadCounts["group"]}
+                          {unreadCounts["group"]} unread
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                          {lastMessages["group"]
+                            ? formatRelativeTime(lastMessages["group"].createdAt)
+                            : "Global"}
                         </span>
                       )}
-                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                        Global
-                      </span>
                     </div>
                   </div>
                   <p
-                    className={`item-subtitle truncate mt-0.5 ${unreadCounts["group"] > 0 ? "font-extrabold text-rose-600 dark:text-rose-400" : ""}`}
+                    className={`item-subtitle truncate mt-0.5 ${
+                      unreadCounts["group"] > 0
+                        ? "font-extrabold text-rose-600 dark:text-rose-400"
+                        : ""
+                    }`}
                   >
                     {unreadCounts["group"] > 0 && "💬 "}
                     {lastMessages["group"]
@@ -1520,19 +1575,23 @@ const ChatPage = () => {
                 </div>
               ) : (
                 sortedRooms.map((r) => {
-                  const hasUnread = unreadCounts[r._id] > 0;
+                  const unread = unreadCounts[r._id] || 0;
+                  const hasUnread = unread > 0;
+                  const lastMsg = lastMessages[r._id];
                   return (
                     <button
                       key={r._id}
                       onClick={() => {
                         setActiveChat(r._id);
+                        dispatch(setActiveChatId(r._id));
+                        dispatch(markChatAsRead(r._id));
                         setShowChatWindowMobile(true);
                       }}
                       className={`chat-sidebar-item transition-all ${
                         activeChat === r._id
                           ? "chat-sidebar-item-active"
                           : hasUnread
-                            ? "bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500 shadow-sm"
+                            ? "bg-rose-50/90 dark:bg-rose-950/50 border-l-4 border-l-rose-500 shadow-md"
                             : ""
                       }`}
                     >
@@ -1551,27 +1610,38 @@ const ChatPage = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span
-                            className={`item-title truncate ${hasUnread ? "font-black text-rose-700 dark:text-rose-300" : ""}`}
+                            className={`item-title truncate ${
+                              hasUnread
+                                ? "font-black text-rose-700 dark:text-rose-300"
+                                : ""
+                            }`}
                           >
                             {r.name}
                           </span>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            {hasUnread && (
+                            {hasUnread ? (
                               <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                                {unreadCounts[r._id]}
+                                {unread} unread
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                                {lastMsg
+                                  ? formatRelativeTime(lastMsg.createdAt)
+                                  : `${r.members.length} members`}
                               </span>
                             )}
-                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
-                              {r.members.length} members
-                            </span>
                           </div>
                         </div>
                         <p
-                          className={`item-subtitle truncate mt-0.5 ${hasUnread ? "font-extrabold text-rose-600 dark:text-rose-400" : ""}`}
+                          className={`item-subtitle truncate mt-0.5 ${
+                            hasUnread
+                              ? "font-extrabold text-rose-600 dark:text-rose-400"
+                              : ""
+                          }`}
                         >
                           {hasUnread && "💬 "}
-                          {lastMessages[r._id]
-                            ? formatLastMessageText(lastMessages[r._id])
+                          {lastMsg
+                            ? formatLastMessageText(lastMsg)
                             : r.description || "No description"}
                         </p>
                       </div>
@@ -1628,19 +1698,23 @@ const ChatPage = () => {
               </p>
             ) : (
               sortedDMs.map((u) => {
-                const hasUnread = unreadCounts[u._id] > 0;
+                const unread = unreadCounts[u._id] || 0;
+                const hasUnread = unread > 0;
+                const lastMsg = lastMessages[u._id];
                 return (
                   <div
                     key={u._id}
                     onClick={() => {
                       setActiveChat(u._id);
+                      dispatch(setActiveChatId(u._id));
+                      dispatch(markChatAsRead(u._id));
                       setShowChatWindowMobile(true);
                     }}
                     className={`chat-sidebar-item group relative flex items-center gap-3 cursor-pointer select-none transition-all ${
                       activeChat === u._id
                         ? "chat-sidebar-item-active"
                         : hasUnread
-                          ? "bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500 shadow-sm"
+                          ? "bg-rose-50/90 dark:bg-rose-950/50 border-l-4 border-l-rose-500 shadow-md"
                           : ""
                     }`}
                   >
@@ -1687,22 +1761,40 @@ const ChatPage = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 justify-between">
                         <span
-                          className={`item-title truncate ${hasUnread ? "font-black text-rose-700 dark:text-rose-300" : ""}`}
+                          className={`item-title truncate ${
+                            hasUnread
+                              ? "font-black text-rose-700 dark:text-rose-300"
+                              : ""
+                          }`}
                         >
                           {u.name}
                         </span>
-                        {hasUnread && (
-                          <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                            {unreadCounts[u._id]}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {hasUnread ? (
+                            <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
+                              {unread} unread
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                              {lastMsg
+                                ? formatRelativeTime(lastMsg.createdAt)
+                                : u.role === "team"
+                                  ? u.department || "Team"
+                                  : displayRole(u.role)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <p
-                        className={`item-subtitle truncate mt-0.5 ${hasUnread ? "font-extrabold text-rose-600 dark:text-rose-400" : ""}`}
+                        className={`item-subtitle truncate mt-0.5 ${
+                          hasUnread
+                            ? "font-extrabold text-rose-600 dark:text-rose-400"
+                            : ""
+                        }`}
                       >
                         {hasUnread && "💬 "}
-                        {lastMessages[u._id]
-                          ? formatLastMessageText(lastMessages[u._id])
+                        {lastMsg
+                          ? formatLastMessageText(lastMsg)
                           : u.role === "team"
                             ? u.department || "Team"
                             : displayRole(u.role)}
