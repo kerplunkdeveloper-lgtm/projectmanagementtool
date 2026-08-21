@@ -531,8 +531,14 @@ const LiveProductivityCell = React.memo(
 
     if (isSelectedDateToday && hasInProgress) {
       return (
-        <div className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 font-black text-[11.5px] whitespace-nowrap shadow-2xs">
-          <span>{formatLoggedDuration(liveMs, true)}</span>
+        <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+          <span
+            className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0"
+            title="Running"
+          />
+          <span className="text-emerald-700 dark:text-emerald-300 font-black text-[12px] whitespace-nowrap">
+            {formatLoggedDuration(liveMs, true)}
+          </span>
         </div>
       );
     }
@@ -3443,16 +3449,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {/* Header */}
           <div className="px-4 py-3 min-h-[58px] border-b border-slate-200 dark:border-slate-800  flex flex-wrap items-center justify-between gap-2.5">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-wide uppercase truncate">
-                  Team Performance & Today's Productivity
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-extrabold border border-indigo-200 dark:border-indigo-800/60 shrink-0">
-                  {targetDept || "Graphic Designer"}
-                </span>
-              </div>
-              <span className="text-[10.5px] font-bold text-slate-400 dark:text-slate-500 tracking-wide truncate block mt-0.5">
-                {targetDept || "Graphic Designer"} Department • Today's Assigned, Carry Forward & Actual Work Tracker
+              <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-wide uppercase truncate">
+                Team Performance & Today's Productivity
+              </h3>
+              <span className="text-[10.5px] font-bold text-slate-400 dark:text-slate-500 tracking-wide truncate block">
+                Today's Assigned, Carry Forward & Actual Work Tracker
               </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap shrink-0">
