@@ -65,6 +65,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiMail, FiInfo, FiEye } from "react-icons/fi";
 import grouplogo from "../../assets/grouplogo.png";
 import notificationSound from "../../assets/notification.mp3";
+import { playDirectMessageSound, playGroupMessageSound } from "../../utils/sound";
 
 const formatDateSeparator = (dateStr) => {
   if (!dateStr) return "";
@@ -629,14 +630,6 @@ const ChatPage = () => {
     socketRef.current.on("connect", performJoin);
 
     const showNewMessageToast = (msg) => {
-      try {
-        const audio = new Audio(notificationSound);
-        audio
-          .play()
-          .catch((err) => console.log("Audio play blocked by browser:", err));
-      } catch (err) {
-        console.log("Error playing audio:", err);
-      }
 
       toast.custom(
         (t) => (
@@ -711,11 +704,11 @@ const ChatPage = () => {
           currentUserId,
         }),
       );
-      if (
-        msg.sender?._id !== currentUserId &&
-        activeChatRef.current !== msg.sender?._id
-      ) {
-        showNewMessageToast(msg);
+      if (msg.sender?._id !== currentUserId) {
+        playDirectMessageSound();
+        if (activeChatRef.current !== msg.sender?._id) {
+          showNewMessageToast(msg);
+        }
       }
     });
 
@@ -726,11 +719,11 @@ const ChatPage = () => {
           currentUserId,
         }),
       );
-      if (
-        msg.sender?._id !== currentUserId &&
-        activeChatRef.current !== msg.chatRoom
-      ) {
-        showNewMessageToast(msg);
+      if (msg.sender?._id !== currentUserId) {
+        playGroupMessageSound();
+        if (activeChatRef.current !== msg.chatRoom) {
+          showNewMessageToast(msg);
+        }
       }
     });
 

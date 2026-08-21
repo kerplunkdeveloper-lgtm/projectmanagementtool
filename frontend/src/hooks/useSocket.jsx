@@ -9,80 +9,8 @@ import { incrementUnreadCount } from "../features/chat/chatSlice";
 import toast from "react-hot-toast";
 import { FiBell, FiX } from "react-icons/fi";
 
-// Global interaction listener to unlock AudioContext on first user click/tap/keypress
-let audioContextUnlocked = false;
-const unlockAudioContext = () => {
-  if (audioContextUnlocked) return;
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") {
-      audioCtx.resume().then(() => {
-        audioContextUnlocked = true;
-        cleanupUnlockListeners();
-      });
-    } else {
-      audioContextUnlocked = true;
-      cleanupUnlockListeners();
-    }
-  } catch (e) {
-    console.error("Failed to unlock audio context:", e);
-  }
-};
+import { playNotificationSound } from "../utils/sound";
 
-const cleanupUnlockListeners = () => {
-  if (typeof window !== "undefined") {
-    window.removeEventListener("click", unlockAudioContext);
-    window.removeEventListener("keydown", unlockAudioContext);
-    window.removeEventListener("touchstart", unlockAudioContext);
-  }
-};
-
-if (typeof window !== "undefined") {
-  window.addEventListener("click", unlockAudioContext);
-  window.addEventListener("keydown", unlockAudioContext);
-  window.addEventListener("touchstart", unlockAudioContext);
-}
-
-const playNotificationSound = () => {
-  const soundEnabledSetting = localStorage.getItem("soundEnabled");
-  if (soundEnabledSetting === "false") {
-    return;
-  }
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    // Explicitly resume if suspended
-    if (audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
-
-    const playTone = (time, freq, duration, vol) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, time);
-
-      gain.gain.setValueAtTime(0, time);
-      gain.gain.linearRampToValueAtTime(vol, time + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-
-      osc.start(time);
-      osc.stop(time + duration);
-    };
-
-    const now = audioCtx.currentTime;
-    // Premium major triad crystal bell chime (C6, E6, G6)
-    playTone(now, 1046.5, 0.6, 0.08); // C6
-    playTone(now + 0.05, 1318.51, 0.8, 0.06); // E6
-    playTone(now + 0.1, 1567.98, 1.0, 0.05); // G6
-  } catch (err) {
-    console.error("Audio Context playback failed:", err);
-  }
-};
 
 let titleFlashInterval = null;
 let originalTitle =
