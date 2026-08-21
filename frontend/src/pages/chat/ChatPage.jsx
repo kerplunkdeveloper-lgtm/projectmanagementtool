@@ -1428,338 +1428,291 @@ const ChatPage = () => {
         </div>
 
         {/* DIRECTORY LIST */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 scrollbar-thin">
-          {/* TAB SWITCHER: ALL GROUPS vs DIRECT CHATS */}
-          <div className="flex items-center p-1.5 bg-slate-100 dark:bg-[#0f172a] rounded-xl mb-3 border border-slate-200 dark:border-slate-800 shrink-0">
-            <button
-              type="button"
-              onClick={() => setSidebarTab("groups")}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
-                sidebarTab === "groups"
-                  ? "text-white shadow-md font-black"
-                  : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-              }`}
-              style={
-                sidebarTab === "groups"
-                  ? { backgroundColor: "var(--accent-color)", color: "#ffffff" }
-                  : {}
-              }
-            >
-              <FiUsers size={13} />
-              <span>All Groups</span>
-              {groupUnreadTotal > 0 && (
-                <span className="relative flex items-center justify-center shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                  <span className="relative inline-flex items-center justify-center bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-md min-w-[18px]">
-                    {groupUnreadTotal}
-                  </span>
-                </span>
-              )}
-            </button>
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 scrollbar-thin">
+          {/* GROUPS SECTION */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                <FiUsers size={12} /> Groups
+              </span>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setSidebarTab("direct")}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
-                sidebarTab === "direct"
-                  ? "text-white shadow-md font-black"
-                  : "text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-              }`}
-              style={
-                sidebarTab === "direct"
-                  ? { backgroundColor: "var(--accent-color)", color: "#ffffff" }
-                  : {}
-              }
-            >
-              <FiUser size={13} />
-              <span>Direct Chats</span>
-              {directUnreadTotal > 0 && (
-                <span className="relative flex items-center justify-center shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                  <span className="relative inline-flex items-center justify-center bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-md min-w-[18px]">
-                    {directUnreadTotal}
-                  </span>
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* GROUPS TAB CONTENT */}
-          {sidebarTab === "groups" && (
-            <div className="space-y-3 animate-fade-in">
-              {/* Global Group Chat */}
-              <div>
-                <button
-                  onClick={() => {
-                    setActiveChat("group");
-                    setShowChatWindowMobile(true);
+            {/* Global Group Chat */}
+            <div>
+              <button
+                onClick={() => {
+                  setActiveChat("group");
+                  setShowChatWindowMobile(true);
+                }}
+                className={`chat-sidebar-item transition-all ${
+                  activeChat === "group"
+                    ? "chat-sidebar-item-active"
+                    : unreadCounts["group"] > 0
+                      ? "bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500 shadow-sm"
+                      : ""
+                }`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 text-white shadow-sm relative`}
+                  style={{
+                    backgroundColor: "var(--accent-color)",
+                    color: "#ffffff",
                   }}
-                  className={`chat-sidebar-item transition-all ${
-                    activeChat === "group"
-                      ? "chat-sidebar-item-active"
-                      : unreadCounts["group"] > 0
-                        ? "bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500 shadow-sm"
-                        : ""
-                  }`}
                 >
-                  <div
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 text-white shadow-sm relative`}
-                    style={{
-                      backgroundColor: "var(--accent-color)",
-                      color: "#ffffff",
-                    }}
-                  >
-                    <img src={grouplogo} alt="" />
-                    {unreadCounts["group"] > 0 && (
-                      <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 animate-bounce" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`item-title truncate ${unreadCounts["group"] > 0 ? "font-black text-rose-700 dark:text-rose-300" : ""}`}
-                      >
-                        Kerplunk Group
-                      </span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {unreadCounts["group"] > 0 && (
-                          <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                            {unreadCounts["group"]}
-                          </span>
-                        )}
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                          Global
-                        </span>
-                      </div>
-                    </div>
-                    <p
-                      className={`item-subtitle truncate mt-0.5 ${unreadCounts["group"] > 0 ? "font-extrabold text-rose-600 dark:text-rose-400" : ""}`}
+                  <img src={grouplogo} alt="" />
+                  {unreadCounts["group"] > 0 && (
+                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 animate-bounce" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`item-title truncate ${unreadCounts["group"] > 0 ? "font-black text-rose-700 dark:text-rose-300" : ""}`}
                     >
-                      {unreadCounts["group"] > 0 && "💬 "}
-                      {lastMessages["group"]
-                        ? formatLastMessageText(lastMessages["group"])
-                        : "All developers and admins"}
-                    </p>
+                      Kerplunk Group
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {unreadCounts["group"] > 0 && (
+                        <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
+                          {unreadCounts["group"]}
+                        </span>
+                      )}
+                      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        Global
+                      </span>
+                    </div>
                   </div>
+                  <p
+                    className={`item-subtitle truncate mt-0.5 ${unreadCounts["group"] > 0 ? "font-extrabold text-rose-600 dark:text-rose-400" : ""}`}
+                  >
+                    {unreadCounts["group"] > 0 && "💬 "}
+                    {lastMessages["group"]
+                      ? formatLastMessageText(lastMessages["group"])
+                      : "All developers and admins"}
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* CUSTOM GROUP CHATS */}
+            <div className="pt-2 border-t theme-border">
+              <div className="flex items-center justify-between px-2 mb-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Custom Groups
+                </span>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="text-[10px] font-extrabold hover:underline flex items-center gap-1 cursor-pointer"
+                  style={{ color: "var(--accent-color)" }}
+                >
+                  <FiPlus size={11} /> Create
                 </button>
               </div>
 
-              {/* CUSTOM GROUP CHATS */}
-              <div className="pt-2 border-t theme-border">
-                <div className="flex items-center justify-between px-2 mb-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Custom Groups
-                  </span>
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="text-[10px] font-extrabold hover:underline flex items-center gap-1 cursor-pointer"
-                    style={{ color: "var(--accent-color)" }}
-                  >
-                    <FiPlus size={11} /> Create
-                  </button>
+              {sortedRooms.length === 0 ? (
+                <div className="text-center py-6 px-3 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed theme-border">
+                  <p className="text-[11px] font-bold theme-text-secondary">
+                    No Custom Groups
+                  </p>
+                  <p className="text-[9px] theme-text-secondary opacity-70 mt-0.5">
+                    Create a group to chat with select team members
+                  </p>
                 </div>
-
-                {sortedRooms.length === 0 ? (
-                  <div className="text-center py-6 px-3 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed theme-border">
-                    <p className="text-[11px] font-bold theme-text-secondary">
-                      No Custom Groups
-                    </p>
-                    <p className="text-[9px] theme-text-secondary opacity-70 mt-0.5">
-                      Create a group to chat with select team members
-                    </p>
-                  </div>
-                ) : (
-                  sortedRooms.map((r) => {
-                    const hasUnread = unreadCounts[r._id] > 0;
-                    return (
-                      <button
-                        key={r._id}
-                        onClick={() => {
-                          setActiveChat(r._id);
-                          setShowChatWindowMobile(true);
-                        }}
-                        className={`chat-sidebar-item transition-all ${
-                          activeChat === r._id
-                            ? "chat-sidebar-item-active"
-                            : hasUnread
-                              ? "bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500 shadow-sm"
-                              : ""
-                        }`}
-                      >
-                        <div
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 text-white shadow-sm relative`}
-                          style={{
-                            backgroundColor: "var(--accent-color)",
-                            color: "#ffffff",
-                          }}
-                        >
-                          <FiUsers size={16} />
-                          {hasUnread && (
-                            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 animate-bounce" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span
-                              className={`item-title truncate ${hasUnread ? "font-black text-rose-700 dark:text-rose-300" : ""}`}
-                            >
-                              {r.name}
-                            </span>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              {hasUnread && (
-                                <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                                  {unreadCounts[r._id]}
-                                </span>
-                              )}
-                              <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
-                                {r.members.length} members
-                              </span>
-                            </div>
-                          </div>
-                          <p
-                            className={`item-subtitle truncate mt-0.5 ${hasUnread ? "font-extrabold text-rose-600 dark:text-rose-400" : ""}`}
-                          >
-                            {hasUnread && "💬 "}
-                            {lastMessages[r._id]
-                              ? formatLastMessageText(lastMessages[r._id])
-                              : r.description || "No description"}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* DIRECT CHATS TAB CONTENT */}
-          {sidebarTab === "direct" && (
-            <div className="space-y-3 animate-fade-in">
-              {/* Department Filters */}
-              <div className="px-1 mb-1">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none snap-x">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDept("All")}
-                    className={`dept-filter-tab snap-start ${
-                      selectedDept === "All"
-                        ? "dept-filter-tab-active"
-                        : "dept-filter-tab-inactive"
-                    }`}
-                  >
-                    All
-                  </button>
-                  {departments.map((dept) => (
-                    <button
-                      key={dept}
-                      type="button"
-                      onClick={() => setSelectedDept(dept)}
-                      className={`dept-filter-tab snap-start ${
-                        selectedDept === dept
-                          ? "dept-filter-tab-active"
-                          : "dept-filter-tab-inactive"
-                      }`}
-                    >
-                      {dept}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Direct Message User List */}
-              {sortedDMs.length === 0 ? (
-                <p className="text-[10px] theme-text-secondary text-center py-6 font-semibold">
-                  No team members found
-                </p>
               ) : (
-                sortedDMs.map((u) => {
-                  const hasUnread = unreadCounts[u._id] > 0;
+                sortedRooms.map((r) => {
+                  const hasUnread = unreadCounts[r._id] > 0;
                   return (
-                    <div
-                      key={u._id}
+                    <button
+                      key={r._id}
                       onClick={() => {
-                        setActiveChat(u._id);
+                        setActiveChat(r._id);
                         setShowChatWindowMobile(true);
                       }}
-                      className={`chat-sidebar-item group relative flex items-center gap-3 cursor-pointer select-none transition-all ${
-                        activeChat === u._id
+                      className={`chat-sidebar-item transition-all ${
+                        activeChat === r._id
                           ? "chat-sidebar-item-active"
                           : hasUnread
                             ? "bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500 shadow-sm"
                             : ""
                       }`}
                     >
-                      <div className="relative shrink-0">
-                        {u.profile?.profileImage?.url ? (
-                          <img
-                            src={u.profile.profileImage.url}
-                            alt="profile"
-                            className={`w-10 h-10 rounded-2xl object-cover border ${
-                              activeChat === u._id
-                                ? "border-blue-600/30 dark:border-[#3b82f6]/30"
-                                : "theme-border"
-                            }`}
-                          />
-                        ) : (
-                          <div
-                            className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${
-                              activeChat === u._id
-                                ? "bg-blue-600/10 border-blue-600/20 text-blue-600 dark:bg-[#3b82f6]/10 dark:border-[#3b82f6]/20 dark:text-[#3b82f6] font-bold"
-                                : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"
-                            }`}
-                          >
-                            {u.name.charAt(0)}
-                          </div>
-                        )}
-                        <span
-                          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 shadow-sm transition-colors duration-300 ${
-                            onlineUsers.includes(u._id)
-                              ? "bg-emerald-500"
-                              : "bg-slate-400 dark:bg-slate-600"
-                          } ${
-                            activeChat === u._id
-                              ? "border-blue-500 dark:border-slate-900"
-                              : "border-white dark:border-slate-900"
-                          }`}
-                          title={
-                            onlineUsers.includes(u._id) ? "Online" : "Offline"
-                          }
-                        />
+                      <div
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 text-white shadow-sm relative`}
+                        style={{
+                          backgroundColor: "var(--accent-color)",
+                          color: "#ffffff",
+                        }}
+                      >
+                        <FiUsers size={16} />
                         {hasUnread && (
                           <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 animate-bounce" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 justify-between">
+                        <div className="flex items-center justify-between">
                           <span
                             className={`item-title truncate ${hasUnread ? "font-black text-rose-700 dark:text-rose-300" : ""}`}
                           >
-                            {u.name}
+                            {r.name}
                           </span>
-                          {hasUnread && (
-                            <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                              {unreadCounts[u._id]}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {hasUnread && (
+                              <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
+                                {unreadCounts[r._id]}
+                              </span>
+                            )}
+                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                              {r.members.length} members
                             </span>
-                          )}
+                          </div>
                         </div>
                         <p
                           className={`item-subtitle truncate mt-0.5 ${hasUnread ? "font-extrabold text-rose-600 dark:text-rose-400" : ""}`}
                         >
                           {hasUnread && "💬 "}
-                          {lastMessages[u._id]
-                            ? formatLastMessageText(lastMessages[u._id])
-                            : u.role === "team"
-                              ? u.department || "Team"
-                              : displayRole(u.role)}
+                          {lastMessages[r._id]
+                            ? formatLastMessageText(lastMessages[r._id])
+                            : r.description || "No description"}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   );
                 })
               )}
             </div>
-          )}
+          </div>
+
+          {/* DIRECT CHATS SECTION */}
+          <div className="pt-3 border-t theme-border space-y-3">
+            <div className="flex items-center justify-between px-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                <FiUser size={12} /> Direct Messages
+              </span>
+            </div>
+
+            {/* Department Filters */}
+            <div className="px-1 mb-1">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none snap-x">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDept("All")}
+                  className={`dept-filter-tab snap-start ${
+                    selectedDept === "All"
+                      ? "dept-filter-tab-active"
+                      : "dept-filter-tab-inactive"
+                  }`}
+                >
+                  All
+                </button>
+                {departments.map((dept) => (
+                  <button
+                    key={dept}
+                    type="button"
+                    onClick={() => setSelectedDept(dept)}
+                    className={`dept-filter-tab snap-start ${
+                      selectedDept === dept
+                        ? "dept-filter-tab-active"
+                        : "dept-filter-tab-inactive"
+                    }`}
+                  >
+                    {dept}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Direct Message User List */}
+            {sortedDMs.length === 0 ? (
+              <p className="text-[10px] theme-text-secondary text-center py-6 font-semibold">
+                No team members found
+              </p>
+            ) : (
+              sortedDMs.map((u) => {
+                const hasUnread = unreadCounts[u._id] > 0;
+                return (
+                  <div
+                    key={u._id}
+                    onClick={() => {
+                      setActiveChat(u._id);
+                      setShowChatWindowMobile(true);
+                    }}
+                    className={`chat-sidebar-item group relative flex items-center gap-3 cursor-pointer select-none transition-all ${
+                      activeChat === u._id
+                        ? "chat-sidebar-item-active"
+                        : hasUnread
+                          ? "bg-rose-50/80 dark:bg-rose-950/40 border-l-4 border-l-rose-500 shadow-sm"
+                          : ""
+                    }`}
+                  >
+                    <div className="relative shrink-0">
+                      {u.profile?.profileImage?.url ? (
+                        <img
+                          src={u.profile.profileImage.url}
+                          alt="profile"
+                          className={`w-10 h-10 rounded-2xl object-cover border ${
+                            activeChat === u._id
+                              ? "border-blue-600/30 dark:border-[#3b82f6]/30"
+                              : "theme-border"
+                          }`}
+                        />
+                      ) : (
+                        <div
+                          className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${
+                            activeChat === u._id
+                              ? "bg-blue-600/10 border-blue-600/20 text-blue-600 dark:bg-[#3b82f6]/10 dark:border-[#3b82f6]/20 dark:text-[#3b82f6] font-bold"
+                              : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"
+                          }`}
+                        >
+                          {u.name.charAt(0)}
+                        </div>
+                      )}
+                      <span
+                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 shadow-sm transition-colors duration-300 ${
+                          onlineUsers.includes(u._id)
+                            ? "bg-emerald-500"
+                            : "bg-slate-400 dark:bg-slate-600"
+                        } ${
+                          activeChat === u._id
+                            ? "border-blue-500 dark:border-slate-900"
+                            : "border-white dark:border-slate-900"
+                        }`}
+                        title={
+                          onlineUsers.includes(u._id) ? "Online" : "Offline"
+                        }
+                      />
+                      {hasUnread && (
+                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 animate-bounce" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 justify-between">
+                        <span
+                          className={`item-title truncate ${hasUnread ? "font-black text-rose-700 dark:text-rose-300" : ""}`}
+                        >
+                          {u.name}
+                        </span>
+                        {hasUnread && (
+                          <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
+                            {unreadCounts[u._id]}
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        className={`item-subtitle truncate mt-0.5 ${hasUnread ? "font-extrabold text-rose-600 dark:text-rose-400" : ""}`}
+                      >
+                        {hasUnread && "💬 "}
+                        {lastMessages[u._id]
+                          ? formatLastMessageText(lastMessages[u._id])
+                          : u.role === "team"
+                            ? u.department || "Team"
+                            : displayRole(u.role)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
 
