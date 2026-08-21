@@ -240,7 +240,7 @@ const checkTaskProductivityAndDate = (
         (sub) =>
           isDateInWeek(sub.startDate) ||
           isDateInWeek(sub.dueDate) ||
-          isDateInWeek(sub.createdAt)
+          isDateInWeek(sub.createdAt),
       );
       if (subInWeek) return true;
     }
@@ -281,7 +281,9 @@ const checkTaskProductivityAndDate = (
     const isDateInMonth = (d) => {
       if (!d) return false;
       const date = new Date(d);
-      return !isNaN(date.getTime()) && date >= startOfMonth && date <= endOfMonth;
+      return (
+        !isNaN(date.getTime()) && date >= startOfMonth && date <= endOfMonth
+      );
     };
 
     if (
@@ -359,7 +361,8 @@ const TimeTracker = ({
         end = Date.now();
       }
 
-      let totalPauseMs = 0;
+      let sessionPauseMs = 0;
+      let lifetimeBlockerMs = 0;
       if (blockerHistory && blockerHistory.length > 0) {
         blockerHistory.forEach((item) => {
           if (item.pausedAt) {
@@ -369,7 +372,12 @@ const TimeTracker = ({
               : Date.now();
             if (r > end) r = end;
             if (r >= p) {
-              totalPauseMs += r - p;
+              lifetimeBlockerMs += r - p;
+              const oStart = Math.max(p, start);
+              const oEnd = Math.min(r, end);
+              if (oEnd > oStart) {
+                sessionPauseMs += oEnd - oStart;
+              }
             }
           }
         });
@@ -378,14 +386,18 @@ const TimeTracker = ({
       if (isBlocked && blockerPausedAt) {
         const pauseStart = new Date(blockerPausedAt).getTime();
         if (pauseStart < end) {
-          totalPauseMs += end - pauseStart;
+          lifetimeBlockerMs += end - pauseStart;
+          const oStart = Math.max(pauseStart, start);
+          if (end > oStart) {
+            sessionPauseMs += end - oStart;
+          }
         }
       }
 
-      const totalElapsedMs = end - start - (savedPausedMs || 0) - totalPauseMs;
+      const totalElapsedMs = end - start - (savedPausedMs || 0) - sessionPauseMs;
       return {
         active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
-        blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
+        blocked: Math.max(0, Math.floor(lifetimeBlockerMs / 1000)),
       };
     };
 
@@ -426,20 +438,21 @@ const TimeTracker = ({
     if (!status || status.toLowerCase() === "pending") {
       return (
         <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
-          {totalTrackedTime > 0 ? `00:00:00` : "Not started"}
+          {totalTrackedTime > 0 ? formatTime(lifetimeSecs) : "Not started"}
         </span>
       );
     }
     if (status === "On Hold") {
+      const holdSecs = lifetimeSecs > 0 ? lifetimeSecs : elapsed;
       return (
         <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
-          00:00:00
+          {holdSecs > 0 ? formatTime(holdSecs) : "00:00:00"}
         </span>
       );
     }
     return (
       <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
-        —
+        {totalTrackedTime > 0 ? formatTime(lifetimeSecs) : "—"}
       </span>
     );
   }
@@ -466,12 +479,12 @@ const TimeTracker = ({
     <div
       className={`flex flex-col gap-1 ${fullWidth ? "w-full" : "w-[120px]"} text-[9px] font-bold tracking-wide`}
     >
-      <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400">
+      <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-500/10 border border-blue-200/50 dark:border-blue-500/20 px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400">
         <span>Active:</span>
         <span>{activeStr}</span>
       </div>
       {(blockedMs > 0 || isBlocked) && (
-        <div className="flex justify-between items-center bg-orange-50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 px-1.5 py-0.5 rounded text-orange-700 dark:text-orange-400">
+        <div className="flex justify-between items-center bg-red-50 dark:bg-red-500/10 border border-red-200/50 dark:border-red-500/20 px-1.5 py-0.5 rounded text-red-600 dark:text-red-400">
           <span>Blocked:</span>
           <span>{blockedStr}</span>
         </div>
@@ -525,7 +538,8 @@ const SingleTimeDisplay = React.memo(
           end = Date.now();
         }
 
-        let totalPauseMs = 0;
+        let sessionPauseMs = 0;
+        let lifetimeBlockerMs = 0;
         if (blockerHistory && blockerHistory.length > 0) {
           blockerHistory.forEach((item) => {
             if (item.pausedAt) {
@@ -535,7 +549,12 @@ const SingleTimeDisplay = React.memo(
                 : Date.now();
               if (r > end) r = end;
               if (r >= p) {
-                totalPauseMs += r - p;
+                lifetimeBlockerMs += r - p;
+                const oStart = Math.max(p, start);
+                const oEnd = Math.min(r, end);
+                if (oEnd > oStart) {
+                  sessionPauseMs += oEnd - oStart;
+                }
               }
             }
           });
@@ -544,15 +563,19 @@ const SingleTimeDisplay = React.memo(
         if (isBlocked && blockerPausedAt) {
           const pauseStart = new Date(blockerPausedAt).getTime();
           if (pauseStart < end) {
-            totalPauseMs += end - pauseStart;
+            lifetimeBlockerMs += end - pauseStart;
+            const oStart = Math.max(pauseStart, start);
+            if (end > oStart) {
+              sessionPauseMs += end - oStart;
+            }
           }
         }
 
         const totalElapsedMs =
-          end - start - (savedPausedMs || 0) - totalPauseMs;
+          end - start - (savedPausedMs || 0) - sessionPauseMs;
         return {
           active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
-          blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
+          blocked: Math.max(0, Math.floor(lifetimeBlockerMs / 1000)),
         };
       };
 
@@ -623,9 +646,9 @@ const SingleTimeDisplay = React.memo(
         status === "In Progress"
           ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-[#3b82f6]/30 text-blue-600 dark:text-[#3b82f6]"
           : status === "In Review"
-            ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
+            ? "bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/30 text-orange-600 dark:text-orange-400"
             : status === "On Hold"
-              ? "bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/30 text-violet-600 dark:text-violet-400"
+              ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400"
               : status === "Completed"
                 ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/50 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                 : "bg-slate-50 dark:bg-slate-500/5 border-slate-200 dark:border-slate-500/20 text-slate-500 dark:text-slate-400";
@@ -655,7 +678,7 @@ const SingleTimeDisplay = React.memo(
     }
 
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-orange-50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 font-bold text-[10px]">
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 dark:bg-red-500/10 border border-red-200/50 dark:border-red-500/20 text-red-600 dark:text-red-400 font-bold text-[10px]">
         {formatTime(blockedMs)}
       </span>
     );
@@ -788,12 +811,12 @@ const ApprovalTimeDisplay = React.memo(
           <div
             className={`self-start flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide ${
               isInReview
-                ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/25 shadow-sm"
+                ? "bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/25 shadow-sm"
                 : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/25 shadow-sm"
             }`}
           >
             {isInReview ? (
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0" />
             ) : (
               <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
             )}
@@ -968,31 +991,69 @@ const formatMsToHMS = (ms) => {
   const h = Math.floor(totalSecs / 3600);
   const m = Math.floor((totalSecs % 3600) / 60);
   const s = totalSecs % 60;
-  if (h > 0) return `${h}h ${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
+  if (h > 0)
+    return `${h}h ${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
   if (m > 0) return `${m}m ${s.toString().padStart(2, "0")}s`;
   return `${s}s`;
 };
 
-const getTaskYesterdayAndTodayStats = (task, officeHours = DEFAULT_OFFICE_HOURS) => {
-  const now = new Date();
+const getTaskYesterdayAndTodayStats = (
+  task,
+  officeHours = DEFAULT_OFFICE_HOURS,
+  nowTick = Date.now(),
+) => {
+  const now = new Date(nowTick);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const yesterday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - 1,
+  );
 
-  const todayWorkMs = calculateTaskProductivityForDate(task, today, officeHours);
-  const yesterdayWorkMs = calculateTaskProductivityForDate(task, yesterday, officeHours);
+  const todayWorkMs = calculateTaskProductivityForDate(
+    task,
+    today,
+    officeHours,
+  );
+  const yesterdayWorkMs = calculateTaskProductivityForDate(
+    task,
+    yesterday,
+    officeHours,
+  );
 
   let todayBlockerMs = 0;
   let yesterdayBlockerMs = 0;
 
-  const todayStr = today.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-  const yesterdayStr = yesterday.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const todayStr = today.toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
+  const yesterdayStr = yesterday.toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
+
+  const isPausedState = [
+    "On Hold",
+    "Completed",
+    "In Review",
+    "Rejected",
+  ].includes(task.status);
+  const taskPauseEnd =
+    task.pausedAt ||
+    task.holdStartedAt ||
+    task.completedAt ||
+    task.actualEndTime;
 
   if (Array.isArray(task.blockerHistory)) {
     task.blockerHistory.forEach((b) => {
       if (!b.pausedAt) return;
-      const pDate = new Date(b.pausedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      const pDate = new Date(b.pausedAt).toLocaleDateString("en-CA", {
+        timeZone: "Asia/Kolkata",
+      });
       const pMs = new Date(b.pausedAt).getTime();
-      const rMs = b.resumedAt ? new Date(b.resumedAt).getTime() : Date.now();
+      let rMs = b.resumedAt ? new Date(b.resumedAt).getTime() : nowTick;
+      if (isPausedState && taskPauseEnd && !b.resumedAt) {
+        rMs = Math.min(rMs, new Date(taskPauseEnd).getTime());
+      }
       const duration = Math.max(0, rMs - pMs);
 
       if (pDate === todayStr) {
@@ -1004,8 +1065,17 @@ const getTaskYesterdayAndTodayStats = (task, officeHours = DEFAULT_OFFICE_HOURS)
   }
 
   if (task.isBlocked && task.blockerPausedAt) {
-    const pDate = new Date(task.blockerPausedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-    const duration = Math.max(0, Date.now() - new Date(task.blockerPausedAt).getTime());
+    const pDate = new Date(task.blockerPausedAt).toLocaleDateString("en-CA", {
+      timeZone: "Asia/Kolkata",
+    });
+    let endMs = nowTick;
+    if (isPausedState && taskPauseEnd) {
+      endMs = new Date(taskPauseEnd).getTime();
+    }
+    const duration = Math.max(
+      0,
+      endMs - new Date(task.blockerPausedAt).getTime(),
+    );
     if (pDate === todayStr) {
       todayBlockerMs += duration;
     } else if (pDate === yesterdayStr) {
@@ -1021,245 +1091,336 @@ const getTaskYesterdayAndTodayStats = (task, officeHours = DEFAULT_OFFICE_HOURS)
   };
 };
 
-const WorkTimeCell = React.memo(({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
-  const [liveElapsed, setLiveElapsed] = useState(0);
-  const isActive = task.status === "In Progress" && !task.autoPaused;
+const WorkTimeCell = React.memo(
+  ({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
+    const [nowTick, setNowTick] = useState(Date.now());
+    const isActive = task.status === "In Progress" && !task.autoPaused && !task.isBlocked;
 
-  useEffect(() => {
-    if (!isActive) {
-      setLiveElapsed(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setLiveElapsed((prev) => prev + 1000);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isActive]);
+    useEffect(() => {
+      if (!isActive) return;
+      const interval = setInterval(() => {
+        setNowTick(Date.now());
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [isActive]);
 
-  const { yesterdayWorkMs, todayWorkMs } = React.useMemo(
-    () => getTaskYesterdayAndTodayStats(task, officeHours),
-    [task, officeHours]
-  );
+    const { yesterdayWorkMs, todayWorkMs } = React.useMemo(
+      () => getTaskYesterdayAndTodayStats(task, officeHours, nowTick),
+      [task, officeHours, nowTick],
+    );
 
-  const currentTodayWork = todayWorkMs + liveElapsed;
-
-  return (
-    <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[11px] space-y-1.5 min-w-[135px]">
-      {yesterdayWorkMs > 0 && (
-        <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-          <span className="font-semibold">Yesterday</span>
-          <span className="font-bold text-slate-800 dark:text-white">{formatMsToHMS(yesterdayWorkMs)}</span>
-        </div>
-      )}
-      <div className="flex justify-between items-center">
-        <span className="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
-          Today
-          {isActive && (
-            <span className="px-1.5 py-0.2 text-[8px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 rounded-full animate-pulse">
-              • Live
+    return (
+      <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[11px] space-y-1.5 min-w-[135px]">
+        {yesterdayWorkMs > 0 && (
+          <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
+            <span className="font-semibold">Yesterday</span>
+            <span className="font-bold text-slate-800 dark:text-white">
+              {formatMsToHMS(yesterdayWorkMs)}
             </span>
-          )}
-        </span>
-        <span className={`font-black ${currentTodayWork > 0 || isActive ? "text-emerald-600 dark:text-emerald-400" : "text-slate-600 dark:text-slate-400"}`}>
-          {formatMsToHMS(currentTodayWork)}
-        </span>
-      </div>
-    </div>
-  );
-});
-
-const BlockerTimeCell = React.memo(({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
-  const [liveBlockerElapsed, setLiveBlockerElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!task.isBlocked) {
-      setLiveBlockerElapsed(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setLiveBlockerElapsed((prev) => prev + 1000);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [task.isBlocked]);
-
-  const { yesterdayBlockerMs, todayBlockerMs } = React.useMemo(
-    () => getTaskYesterdayAndTodayStats(task, officeHours),
-    [task, officeHours]
-  );
-
-  const currentTodayBlocker = todayBlockerMs + liveBlockerElapsed;
-
-  return (
-    <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[11px] space-y-1.5 min-w-[135px]">
-      {yesterdayBlockerMs > 0 && (
-        <div className="flex justify-between items-center text-slate-600 dark:text-slate-900">
-          <span className="font-semibold">Yesterday</span>
-          <span className="font-bold text-slate-800 dark:text-white">{formatMsToHMS(yesterdayBlockerMs)}</span>
+          </div>
+        )}
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+            Today
+            {isActive && (
+              <span className="px-1.5 py-0.2 text-[8px] font-black bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 rounded-full animate-pulse">
+                • Live
+              </span>
+            )}
+          </span>
+          <span
+            className={`font-black ${todayWorkMs > 0 || isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400"}`}
+          >
+            {formatMsToHMS(todayWorkMs)}
+          </span>
         </div>
-      )}
-      <div className="flex justify-between items-center">
-        <span className="font-semibold text-slate-600 dark:text-slate-900 flex items-center gap-1">
-          Today
-          {task.isBlocked && (
-            <span className="px-1.5 py-0.2 text-[8px] font-black bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400 rounded-full animate-pulse">
-              • Live
+      </div>
+    );
+  },
+);
+
+const BlockerTimeCell = React.memo(
+  ({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
+    const [nowTick, setNowTick] = useState(Date.now());
+    const isBlockerActive = task.isBlocked && task.status === "In Progress";
+
+    useEffect(() => {
+      if (!isBlockerActive) return;
+      const interval = setInterval(() => {
+        setNowTick(Date.now());
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [isBlockerActive]);
+
+    const { yesterdayBlockerMs, todayBlockerMs } = React.useMemo(
+      () => getTaskYesterdayAndTodayStats(task, officeHours, nowTick),
+      [task, officeHours, nowTick],
+    );
+
+    return (
+      <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[11px] space-y-1.5 min-w-[135px]">
+        {yesterdayBlockerMs > 0 && (
+          <div className="flex justify-between items-center text-slate-600 dark:text-slate-900">
+            <span className="font-semibold">Yesterday</span>
+            <span className="font-bold text-slate-800 dark:text-white">
+              {formatMsToHMS(yesterdayBlockerMs)}
             </span>
-          )}
-        </span>
-        <span className={`font-black ${currentTodayBlocker > 0 || task.isBlocked ? "text-orange-600 dark:text-orange-400" : "text-slate-600 dark:text-slate-400"}`}>
-          {formatMsToHMS(currentTodayBlocker)}
-        </span>
+          </div>
+        )}
+        <div className="flex justify-between items-center">
+          <span className="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
+            Today
+            {isBlockerActive && (
+              <span className="px-1.5 py-0.2 text-[8px] font-black bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 rounded-full animate-pulse">
+                • Live
+              </span>
+            )}
+          </span>
+          <span
+            className={`font-black ${todayBlockerMs > 0 || isBlockerActive ? "text-red-600 dark:text-red-400" : "text-slate-600 dark:text-slate-400"}`}
+          >
+            {formatMsToHMS(todayBlockerMs)}
+          </span>
+        </div>
       </div>
-    </div>
-  );
-});
+    );
+  },
+);
 
-const TodayTrackerCell = React.memo(({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
-  const [liveElapsed, setLiveElapsed] = useState(0);
-  const isActive = task.status === "In Progress" && !task.autoPaused;
+const TodayTrackerCell = React.memo(
+  ({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
+    const [nowTick, setNowTick] = useState(Date.now());
+    const isActive = task.status === "In Progress" && !task.autoPaused && !task.isBlocked;
+    const isBlockerActive = task.isBlocked && task.status === "In Progress";
 
-  useEffect(() => {
-    if (!isActive && !task.isBlocked) {
-      setLiveElapsed(0);
-      return;
+    useEffect(() => {
+      if (!isActive && !isBlockerActive) return;
+      const interval = setInterval(() => {
+        setNowTick(Date.now());
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [isActive, isBlockerActive]);
+
+    const { todayWorkMs, todayBlockerMs } = React.useMemo(
+      () => getTaskYesterdayAndTodayStats(task, officeHours, nowTick),
+      [task, officeHours, nowTick],
+    );
+
+    const activeToday = todayWorkMs;
+    const blockedToday = todayBlockerMs;
+
+    if (task.status === "Completed") {
+      return (
+        <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl p-2 text-[11px] text-center min-w-[135px]">
+          <span className="text-emerald-700 dark:text-emerald-300 font-extrabold block text-[10px]">
+            Total Today
+          </span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-[12px]">
+            {formatMsToHMS(activeToday)}
+          </span>
+        </div>
+      );
     }
-    const interval = setInterval(() => {
-      setLiveElapsed((prev) => prev + 1000);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isActive, task.isBlocked]);
 
-  const { todayWorkMs, todayBlockerMs } = React.useMemo(
-    () => getTaskYesterdayAndTodayStats(task, officeHours),
-    [task, officeHours]
-  );
+    if (
+      !task.actualStartTime &&
+      activeToday === 0 &&
+      (!task.status || task.status === "Pending")
+    ) {
+      return (
+        <div className="text-center text-slate-400 dark:text-slate-400 font-bold text-[11px]">
+          Not started
+        </div>
+      );
+    }
 
-  const activeToday = todayWorkMs + (isActive ? liveElapsed : 0);
-  const blockedToday = todayBlockerMs + (task.isBlocked ? liveElapsed : 0);
+    if (activeToday === 0 && blockedToday === 0) {
+      return (
+        <div className="text-center text-slate-400 dark:text-slate-400 font-bold text-[11px]">
+          --
+        </div>
+      );
+    }
 
-  if (task.status === "Completed") {
     return (
-      <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl p-2 text-[11px] text-center min-w-[135px]">
-        <span className="text-emerald-700 dark:text-emerald-300 font-extrabold block text-[10px]">Total Today</span>
-        <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-[12px]">{formatMsToHMS(activeToday || todayWorkMs)}</span>
+      <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[10px] space-y-1 min-w-[135px]">
+        <div className="flex justify-between items-center text-blue-600 dark:text-blue-400 font-extrabold">
+          <span>Active</span>
+          <span>{formatMsToHMS(activeToday)}</span>
+        </div>
+        {blockedToday > 0 && (
+          <div className="flex justify-between items-center text-red-600 dark:text-red-400 font-extrabold">
+            <span>Blocked</span>
+            <span>{formatMsToHMS(blockedToday)}</span>
+          </div>
+        )}
+        <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-white/10 font-extrabold text-slate-800 dark:text-slate-200">
+          <span className="text-slate-700 dark:text-slate-300 font-extrabold">
+            Total Today
+          </span>
+          <span className="text-slate-900 dark:text-slate-200 font-black">
+            {formatMsToHMS(activeToday + blockedToday)}
+          </span>
+        </div>
       </div>
     );
-  }
+  },
+);
 
-  if (!task.actualStartTime && activeToday === 0 && (!task.status || task.status === "Pending")) {
+const SaasTableSummaryBar = React.memo(
+  ({ tasks, officeHours = DEFAULT_OFFICE_HOURS }) => {
+    const [nowTick, setNowTick] = useState(Date.now());
+
+    const hasRunningTask = React.useMemo(() => {
+      const checkTask = (t) => {
+        if (t.status === "In Progress" && !t.autoPaused) return true;
+        if (Array.isArray(t.subtasks)) return t.subtasks.some(checkTask);
+        return false;
+      };
+      return (tasks || []).some(checkTask);
+    }, [tasks]);
+
+    const hasBlockedTask = React.useMemo(() => {
+      const checkTask = (t) => {
+        if (t.isBlocked) return true;
+        if (Array.isArray(t.subtasks)) return t.subtasks.some(checkTask);
+        return false;
+      };
+      return (tasks || []).some(checkTask);
+    }, [tasks]);
+
+    useEffect(() => {
+      if (!hasRunningTask && !hasBlockedTask) return;
+      const interval = setInterval(() => {
+        setNowTick(Date.now());
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [hasRunningTask, hasBlockedTask]);
+
+    const counts = React.useMemo(() => {
+      const total = tasks.length;
+      let inProgress = 0;
+      let onHold = 0;
+      let inReview = 0;
+      let completed = 0;
+      let inProgressTodayWork = 0;
+      let totalTodayWork = 0;
+      let totalTodayBlocker = 0;
+
+      tasks.forEach((t) => {
+        const s = (t.status || "").toLowerCase();
+        const isInProgress = s.includes("progress");
+
+        if (isInProgress) inProgress++;
+        else if (s.includes("hold")) onHold++;
+        else if (s.includes("review")) inReview++;
+        else if (s === "completed" || s.includes("done")) completed++;
+
+        const stats = getTaskYesterdayAndTodayStats(t, officeHours);
+        if (isInProgress) {
+          inProgressTodayWork += stats.todayWorkMs;
+        }
+        totalTodayWork += stats.todayWorkMs;
+        totalTodayBlocker += stats.todayBlockerMs;
+      });
+
+      return {
+        total,
+        inProgress,
+        onHold,
+        inReview,
+        completed,
+        inProgressTodayWork,
+        totalTodayWork,
+        totalTodayBlocker,
+        totalTimeTracker: totalTodayWork + totalTodayBlocker,
+      };
+    }, [tasks, officeHours, nowTick]);
+
     return (
-      <div className="text-center text-slate-400 dark:text-slate-400 font-bold text-[11px]">
-        Not started
+      <div className="mt-4 sidebar-bg  rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+        {/* Left side: Status counters */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2 font-black text-slate-800 dark:text-slate-900 pr-4">
+            <BiFile size={18} className="text-blue-600 dark:text-blue-400" />
+            <span>Total Tasks</span>
+            <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400 ml-1">
+              {counts.total}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+            <span>In Progress:</span>
+            <span className="text-slate-900 dark:text-white font-black">
+              {counts.inProgress}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            <span>On Hold:</span>
+            <span className="text-slate-900 dark:text-white font-black">
+              {counts.onHold}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+            <span>In Review:</span>
+            <span className="text-slate-900 dark:text-white font-black">
+              {counts.inReview}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <span>Completed:</span>
+            <span className="text-slate-900 dark:text-white font-black">
+              {counts.completed}
+            </span>
+          </div>
+        </div>
+
+        {/* Right side: Today totals */}
+        <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 pt-3 md:pt-0 md:pl-6 w-full md:w-auto justify-between md:justify-end flex-wrap">
+          <div>
+            <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+              Today's Work (All Tasks)
+              {hasRunningTask && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"
+                  title="Live Running"
+                />
+              )}
+            </div>
+            <div className="text-base font-black text-blue-600 dark:text-blue-400">
+              {formatMsToHMS(counts.totalTodayWork)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+              Today's Blocker (All Tasks)
+              {hasBlockedTask && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"
+                  title="Blocker Active"
+                />
+              )}
+            </div>
+            <div className="text-base font-black text-red-600 dark:text-red-400">
+              {formatMsToHMS(counts.totalTodayBlocker)}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+              Total Time Tracker (All Tasks)
+            </div>
+            <div className="text-base font-black text-indigo-600 dark:text-indigo-400">
+              {formatMsToHMS(counts.totalTimeTracker)}
+            </div>
+          </div>
+        </div>
       </div>
     );
-  }
-
-  if (activeToday === 0 && blockedToday === 0) {
-    return (
-      <div className="text-center text-slate-400 dark:text-slate-400 font-bold text-[11px]">
-        --
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[10px] space-y-1 min-w-[135px]">
-      <div className="flex justify-between items-center text-emerald-700 dark:text-emerald-300 font-extrabold">
-        <span>Active</span>
-        <span>{formatMsToHMS(activeToday)}</span>
-      </div>
-      {blockedToday > 0 && (
-        <div className="flex justify-between items-center text-orange-700 dark:text-orange-300 font-extrabold">
-          <span>Blocked</span>
-          <span>{formatMsToHMS(blockedToday)}</span>
-        </div>
-      )}
-      <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-white/10 font-extrabold text-slate-800 dark:text-slate-200">
-        <span className="text-slate-700 dark:text-slate-300 font-extrabold">Total Today</span>
-        <span className="text-slate-900 dark:text-slate-200 font-black">{formatMsToHMS(activeToday + blockedToday)}</span>
-      </div>
-    </div>
-  );
-});
-
-const SaasTableSummaryBar = React.memo(({ tasks, officeHours = DEFAULT_OFFICE_HOURS }) => {
-  const counts = React.useMemo(() => {
-    const total = tasks.length;
-    let inProgress = 0;
-    let onHold = 0;
-    let inReview = 0;
-    let completed = 0;
-    let totalTodayWork = 0;
-    let totalTodayBlocker = 0;
-
-    tasks.forEach((t) => {
-      const s = (t.status || "").toLowerCase();
-      if (s.includes("progress")) inProgress++;
-      else if (s.includes("hold")) onHold++;
-      else if (s.includes("review")) inReview++;
-      else if (s === "completed" || s.includes("done")) completed++;
-
-      const stats = getTaskYesterdayAndTodayStats(t, officeHours);
-      totalTodayWork += stats.todayWorkMs;
-      totalTodayBlocker += stats.todayBlockerMs;
-    });
-
-    return {
-      total,
-      inProgress,
-      onHold,
-      inReview,
-      completed,
-      totalTodayWork,
-      totalTodayBlocker,
-    };
-  }, [tasks, officeHours]);
-
-  return (
-    <div className="mt-4 sidebar-bg  rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-      {/* Left side: Status counters */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2 font-black text-slate-800 dark:text-slate-900 pr-4">
-          <BiFile size={18} className="text-blue-600 dark:text-blue-400" />
-          <span>Total Tasks</span>
-          <span className="text-sm font-extrabold text-blue-600 dark:text-blue-400 ml-1">{counts.total}</span>
-        </div>
-        <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-          <span>In Progress:</span>
-          <span className="text-slate-900 dark:text-white font-black">{counts.inProgress}</span>
-        </div>
-        <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-          <span>On Hold:</span>
-          <span className="text-slate-900 dark:text-white font-black">{counts.onHold}</span>
-        </div>
-        <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
-          <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-          <span>In Review:</span>
-          <span className="text-slate-900 dark:text-white font-black">{counts.inReview}</span>
-        </div>
-        <div className="flex items-center gap-1.5 font-extrabold text-slate-600 dark:text-slate-300">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          <span>Completed:</span>
-          <span className="text-slate-900 dark:text-white font-black">{counts.completed}</span>
-        </div>
-      </div>
-
-      {/* Right side: Today totals */}
-      <div className="flex items-center gap-6 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-800 pt-3 md:pt-0 md:pl-6 w-full md:w-auto justify-between md:justify-end">
-        <div>
-          <div className="text-[10px] font-bold text-slate-400">Today's Work (All Tasks)</div>
-          <div className="text-base font-black text-emerald-600 dark:text-emerald-400">{formatMsToHMS(counts.totalTodayWork)}</div>
-        </div>
-        <div>
-          <div className="text-[10px] font-bold text-slate-400">Today's Blocker (All Tasks)</div>
-          <div className="text-base font-black text-orange-600 dark:text-orange-400">{formatMsToHMS(counts.totalTodayBlocker)}</div>
-        </div>
-      </div>
-    </div>
-  );
-});
+  },
+);
 
 const COLUMN_OPTIONS = [
   { key: "id", label: "ID" },
@@ -1545,7 +1706,9 @@ const MyTasksTab = ({
       const matchesProject =
         projectFilter === "All" || taskProjectId === projectFilter;
 
-      const projectObj = taskProjectId ? projectsMap.get(String(taskProjectId)) : null;
+      const projectObj = taskProjectId
+        ? projectsMap.get(String(taskProjectId))
+        : null;
       const clientObj = task.project?.client?.companyName
         ? task.project.client
         : projectObj?.client || task.project?.client;
@@ -1807,7 +1970,11 @@ const MyTasksTab = ({
 
     if (sanitizedFields.status && sanitizedFields.status === "In Review") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime) {
+      if (
+        currentTaskObj &&
+        !currentTaskObj.actualStartTime &&
+        !currentTaskObj.totalTrackedTime
+      ) {
         showStartInProgressWarning("review");
         return;
       }
@@ -1823,7 +1990,12 @@ const MyTasksTab = ({
 
     if (sanitizedFields.status === "On Hold") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime && currentTaskObj.contentType !== "MOM") {
+      if (
+        currentTaskObj &&
+        !currentTaskObj.actualStartTime &&
+        !currentTaskObj.totalTrackedTime &&
+        currentTaskObj.contentType !== "MOM"
+      ) {
         showStartInProgressWarning("hold");
         return;
       }
@@ -2053,7 +2225,11 @@ const MyTasksTab = ({
 
     if (newStatus && newStatus === "In Review") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime) {
+      if (
+        currentTaskObj &&
+        !currentTaskObj.actualStartTime &&
+        !currentTaskObj.totalTrackedTime
+      ) {
         showStartInProgressWarning("review");
         return;
       }
@@ -2065,7 +2241,12 @@ const MyTasksTab = ({
 
     if (newStatus === "On Hold") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime && currentTaskObj.contentType !== "MOM") {
+      if (
+        currentTaskObj &&
+        !currentTaskObj.actualStartTime &&
+        !currentTaskObj.totalTrackedTime &&
+        currentTaskObj.contentType !== "MOM"
+      ) {
         showStartInProgressWarning("hold");
         return;
       }
@@ -2265,8 +2446,8 @@ const MyTasksTab = ({
         };
       case "In Review":
         return {
-          bg: "!bg-amber-50 !text-amber-800 !border-amber-200/80 dark:!bg-amber-500/10 dark:!text-amber-300 dark:!border-amber-500/20 rounded-full font-bold",
-          dot: "bg-amber-500",
+          bg: "!bg-orange-50 !text-orange-700 !border-orange-200/80 dark:!bg-orange-500/10 dark:!text-orange-400 dark:!border-orange-500/20 rounded-full font-bold",
+          dot: "bg-orange-500",
           icon: FiClock,
         };
       case "Correction":
@@ -2488,11 +2669,13 @@ const MyTasksTab = ({
     };
 
     const computeTaskTimes = (task) => {
+      const baseTracked = task.totalTrackedTime || 0;
       if (!task.actualStartTime) {
+        const baseSecs = Math.floor(baseTracked / 1000);
         return {
-          activeStr: "Not started",
+          activeStr: baseTracked > 0 ? formatSecs(baseSecs) : "Not started",
           blockerStr: "0m 0s",
-          totalStr: "0m 0s",
+          totalStr: baseTracked > 0 ? formatSecs(baseSecs) : "0m 0s",
         };
       }
       const start = new Date(task.actualStartTime).getTime();
@@ -2508,7 +2691,8 @@ const MyTasksTab = ({
         end = Date.now();
       }
 
-      let totalPauseMs = 0;
+      let sessionPauseMs = 0;
+      let lifetimeBlockerMs = 0;
       if (task.blockerHistory && task.blockerHistory.length > 0) {
         task.blockerHistory.forEach((item) => {
           if (item.pausedAt) {
@@ -2517,20 +2701,33 @@ const MyTasksTab = ({
               ? new Date(item.resumedAt).getTime()
               : Date.now();
             if (r > end) r = end;
-            if (r >= p) totalPauseMs += r - p;
+            if (r >= p) {
+              lifetimeBlockerMs += r - p;
+              const oStart = Math.max(p, start);
+              const oEnd = Math.min(r, end);
+              if (oEnd > oStart) {
+                sessionPauseMs += oEnd - oStart;
+              }
+            }
           }
         });
       }
 
       if (task.isBlocked && task.blockerPausedAt) {
         const pauseStart = new Date(task.blockerPausedAt).getTime();
-        if (pauseStart < end) totalPauseMs += end - pauseStart;
+        if (pauseStart < end) {
+          lifetimeBlockerMs += end - pauseStart;
+          const oStart = Math.max(pauseStart, start);
+          if (end > oStart) {
+            sessionPauseMs += end - oStart;
+          }
+        }
       }
 
-      const totalElapsedMs =
-        end - start - (task.totalPausedMs || 0) - totalPauseMs;
+      const sessionElapsedMs = Math.max(0, end - start - (task.totalPausedMs || 0) - sessionPauseMs);
+      const totalElapsedMs = baseTracked + sessionElapsedMs;
       const activeSecs = Math.max(0, Math.floor(totalElapsedMs / 1000));
-      const blockedSecs = Math.max(0, Math.floor(totalPauseMs / 1000));
+      const blockedSecs = Math.max(0, Math.floor(lifetimeBlockerMs / 1000));
 
       return {
         activeStr: formatSecs(activeSecs),
@@ -3289,7 +3486,9 @@ const MyTasksTab = ({
                                 {(() => {
                                   const projId =
                                     task.project?._id || task.project;
-                                  const projectObj = projId ? projectsMap.get(String(projId)) : null;
+                                  const projectObj = projId
+                                    ? projectsMap.get(String(projId))
+                                    : null;
                                   return (
                                     projectObj?.name ||
                                     task.project?.name ||
@@ -3300,7 +3499,9 @@ const MyTasksTab = ({
                               {(() => {
                                 const projId =
                                   task.project?._id || task.project;
-                                const projectObj = projId ? projectsMap.get(String(projId)) : null;
+                                const projectObj = projId
+                                  ? projectsMap.get(String(projId))
+                                  : null;
                                 const client = task.project?.client?.companyName
                                   ? task.project.client
                                   : projectObj?.client || task.project?.client;
@@ -3620,7 +3821,9 @@ const MyTasksTab = ({
                                 {(() => {
                                   const projId =
                                     task.project?._id || task.project;
-                                  const projectObj = projId ? projectsMap.get(String(projId)) : null;
+                                  const projectObj = projId
+                                    ? projectsMap.get(String(projId))
+                                    : null;
                                   const client = task.project?.client
                                     ?.companyName
                                     ? task.project.client
@@ -4231,7 +4434,9 @@ const MyTasksTab = ({
                 {/* Left: Items per page selector & Total Items info */}
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <span className="text-[11px] font-semibold">Rows per page:</span>
+                    <span className="text-[11px] font-semibold">
+                      Rows per page:
+                    </span>
                     <select
                       value={itemsPerPage}
                       onChange={(e) => {
@@ -4249,7 +4454,9 @@ const MyTasksTab = ({
                   <span className="text-slate-500 dark:text-slate-400 text-[11.5px]">
                     Showing{" "}
                     <span className="text-slate-800 dark:text-slate-100 font-extrabold">
-                      {totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+                      {totalItems > 0
+                        ? (currentPage - 1) * itemsPerPage + 1
+                        : 0}
                     </span>{" "}
                     to{" "}
                     <span className="text-slate-800 dark:text-slate-100 font-extrabold">
@@ -4343,7 +4550,10 @@ const MyTasksTab = ({
       {/* SUBMIT FOR REVIEW CONFIRMATION MODAL */}
       <AnimatePresence>
         {reviewModalData && (
-          <div key="review-modal-wrapper" className="fixed inset-0 z-[99999] flex items-center justify-center p-4 backdrop-blur-md">
+          <div
+            key="review-modal-wrapper"
+            className="fixed inset-0 z-[99999] flex items-center justify-center p-4 backdrop-blur-md"
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4394,7 +4604,10 @@ const MyTasksTab = ({
       {/* BLOCKER ADD MODAL */}
       <AnimatePresence>
         {blockerModalTask && (
-          <div key="blocker-modal-wrapper" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            key="blocker-modal-wrapper"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -4641,7 +4854,9 @@ const MyTasksTab = ({
                         {(() => {
                           const projId =
                             selectedTask.project?._id || selectedTask.project;
-                          const projectObj = projId ? projectsMap.get(String(projId)) : null;
+                          const projectObj = projId
+                            ? projectsMap.get(String(projId))
+                            : null;
                           const client =
                             projectObj?.client || selectedTask.project?.client;
                           if (client) {

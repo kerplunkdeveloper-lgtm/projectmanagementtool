@@ -79,7 +79,7 @@ const ResumePausedTasksPopup = () => {
         ? t.assignedTo.some((u) => (u?._id || u) === currentUserId)
         : (t.assignedTo?._id || t.assignedTo) === currentUserId;
 
-      if (isAssignee && t.status === "On Hold") {
+      if (isAssignee && t.status === "On Hold" && t.autoPaused) {
         onHoldItems.push({
           task: t,
           target: t,
@@ -94,7 +94,7 @@ const ResumePausedTasksPopup = () => {
           ? sub.assignedTo.some((u) => (u?._id || u) === currentUserId)
           : (sub.assignedTo?._id || sub.assignedTo) === currentUserId;
 
-        if (isSubAssignee && sub.status === "On Hold") {
+        if (isSubAssignee && sub.status === "On Hold" && sub.autoPaused) {
           onHoldItems.push({
             task: t,
             target: sub,

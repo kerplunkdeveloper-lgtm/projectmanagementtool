@@ -59,9 +59,16 @@ async function checkAndAutoPauseTasks(io) {
                     const p = new Date(h.pausedAt).getTime();
                     let r = h.resumedAt ? new Date(h.resumedAt).getTime() : pauseTimeMs;
                     if (r > pauseTimeMs) r = pauseTimeMs;
-                    if (r >= p && p >= sStart) sessionPauses += (r - p);
+                    const oStart = Math.max(p, sStart);
+                    const oEnd = Math.min(r, pauseTimeMs);
+                    if (oEnd > oStart) sessionPauses += (oEnd - oStart);
                   }
                 });
+              }
+              if (task.isBlocked && task.blockerPausedAt) {
+                const p = new Date(task.blockerPausedAt).getTime();
+                const oStart = Math.max(p, sStart);
+                if (pauseTimeMs > oStart) sessionPauses += (pauseTimeMs - oStart);
               }
               sessionWorkedMs = Math.max(0, pauseTimeMs - sStart - sessionPauses);
             }
@@ -128,9 +135,16 @@ async function checkAndAutoPauseTasks(io) {
                       const p = new Date(h.pausedAt).getTime();
                       let r = h.resumedAt ? new Date(h.resumedAt).getTime() : pauseTimeMs;
                       if (r > pauseTimeMs) r = pauseTimeMs;
-                      if (r >= p && p >= sStart) sessionPauses += (r - p);
+                      const oStart = Math.max(p, sStart);
+                      const oEnd = Math.min(r, pauseTimeMs);
+                      if (oEnd > oStart) sessionPauses += (oEnd - oStart);
                     }
                   });
+                }
+                if (sub.isBlocked && sub.blockerPausedAt) {
+                  const p = new Date(sub.blockerPausedAt).getTime();
+                  const oStart = Math.max(p, sStart);
+                  if (pauseTimeMs > oStart) sessionPauses += (pauseTimeMs - oStart);
                 }
                 sessionWorkedMs = Math.max(0, pauseTimeMs - sStart - sessionPauses);
               }

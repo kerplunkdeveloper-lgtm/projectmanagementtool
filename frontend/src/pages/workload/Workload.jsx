@@ -207,11 +207,20 @@ const calculateTaskProductivityForDate = (
             if (b.pausedAt) {
               const p = new Date(b.pausedAt).getTime();
               const r = b.resumedAt ? new Date(b.resumedAt).getTime() : nowMs;
-              if (r >= p && p >= liveSessionStart) {
-                liveWorked -= Math.max(0, r - p);
+              const oStart = Math.max(p, liveSessionStart);
+              const oEnd = Math.min(r, nowMs);
+              if (oEnd > oStart) {
+                liveWorked -= (oEnd - oStart);
               }
             }
           });
+        }
+        if (task.isBlocked && task.blockerPausedAt) {
+          const p = new Date(task.blockerPausedAt).getTime();
+          const oStart = Math.max(p, liveSessionStart);
+          if (nowMs > oStart) {
+            liveWorked -= (nowMs - oStart);
+          }
         }
         return Math.max(0, historyDuration + Math.max(0, liveWorked)) + subtasksDuration;
       }

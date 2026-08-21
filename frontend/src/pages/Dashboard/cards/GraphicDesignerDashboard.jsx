@@ -204,9 +204,10 @@ export const calculateTaskProductivityForDate = (
         // ✅ FIX Bug 1: Open entry (endTime=null, duration=0) on a PAST date
         // or an autoPaused entry — cap contribution at that day's EOD / pausedAt
         const entryStartMs = new Date(h.startTime).getTime();
+        const pauseTime = task.pausedAt || task.holdStartedAt;
         const capEnd =
-          task.autoPaused && task.pausedAt
-            ? Math.min(new Date(task.pausedAt).getTime(), dayWorkEnd)
+          pauseTime
+            ? Math.min(new Date(pauseTime).getTime(), dayWorkEnd)
             : dayWorkEnd;
         historyDuration += Math.max(
           0,
@@ -235,25 +236,49 @@ export const calculateTaskProductivityForDate = (
             if (b.pausedAt) {
               const p = new Date(b.pausedAt).getTime();
               const r = b.resumedAt ? new Date(b.resumedAt).getTime() : nowMs;
-              if (r >= p && p >= liveSessionStart) {
-                liveWorked -= Math.max(0, r - p);
+              const oStart = Math.max(p, liveSessionStart);
+              const oEnd = Math.min(r, nowMs);
+              if (oEnd > oStart) {
+                liveWorked -= (oEnd - oStart);
               }
             }
           });
         }
-        return Math.max(0, historyDuration + Math.max(0, liveWorked)) + subtasksDuration;
+        if (task.isBlocked && task.blockerPausedAt) {
+          const p = new Date(task.blockerPausedAt).getTime();
+          const oStart = Math.max(p, liveSessionStart);
+          if (nowMs > oStart) {
+            liveWorked -= (nowMs - oStart);
+          }
+        }
+        const effectiveHistoryDuration = Math.max(
+          historyDuration,
+          task.dailyTrackedTime || 0
+        );
+        return Math.max(0, effectiveHistoryDuration + Math.max(0, liveWorked)) + subtasksDuration;
       }
     }
 
+    const finalHistoryDuration = Math.max(
+      historyDuration,
+      isSelectedToday ? task.dailyTrackedTime || 0 : 0,
+    );
     if (
-      historyDuration > 0 ||
+      finalHistoryDuration > 0 ||
       (task.statusHistory.length > 0 && !task.actualStartTime)
     ) {
-      return historyDuration + subtasksDuration;
+      return finalHistoryDuration + subtasksDuration;
     }
   }
 
-  if (!task.actualStartTime) return subtasksDuration;
+  if (!task.actualStartTime) {
+    const selDateStr = selDateObj.toLocaleDateString("en-CA", {
+      timeZone: "Asia/Kolkata",
+    });
+    const isSelectedToday = isSameDay(selDateObj, new Date());
+    const baseTracked = isSelectedToday ? (task.dailyTrackedTime || 0) : (task.totalTrackedTime || 0);
+    return baseTracked + subtasksDuration;
+  }
 
   // FALLBACK PATH: No usable statusHistory — estimate from actualStartTime
   const taskStart = new Date(task.actualStartTime).getTime();

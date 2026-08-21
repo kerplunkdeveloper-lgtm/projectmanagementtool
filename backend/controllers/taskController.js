@@ -60,16 +60,19 @@ const calculateSessionWorkingTime = (item, sessionEndTime = Date.now()) => {
         const p = new Date(h.pausedAt).getTime();
         let r = h.resumedAt ? new Date(h.resumedAt).getTime() : end;
         if (r > end) r = end;
-        if (r >= p && p >= start) {
-          sessionPauseMs += (r - p);
+        const oStart = Math.max(p, start);
+        const oEnd = Math.min(r, end);
+        if (oEnd > oStart) {
+          sessionPauseMs += (oEnd - oStart);
         }
       }
     });
   }
   if (item.isBlocked && item.blockerPausedAt) {
     const p = new Date(item.blockerPausedAt).getTime();
-    if (p >= start && p < end) {
-      sessionPauseMs += (end - p);
+    const oStart = Math.max(p, start);
+    if (end > oStart) {
+      sessionPauseMs += (end - oStart);
     }
   }
 
@@ -108,6 +111,18 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
     item.dailyTrackedTime = (item.dailyTrackedTime || 0) + sessionWorkedMs;
 
     closeOpenHistoryEntry("In Progress", now, sessionWorkedMs);
+
+    // If item was blocked while In Progress, record open blocker segment into blockerHistory
+    if (item.isBlocked && item.blockerPausedAt) {
+      const bStart = new Date(item.blockerPausedAt).getTime();
+      if (nowMs > bStart) {
+        if (!item.blockerHistory) item.blockerHistory = [];
+        item.blockerHistory.push({
+          pausedAt: item.blockerPausedAt,
+          resumedAt: now,
+        });
+      }
+    }
   } else if (prevStatus === "On Hold") {
     // Leaving On Hold: calculate business-hour On Hold duration
     const holdStart = item.holdStartedAt || item.pausedAt || (history.length > 0 ? history[history.length - 1].startTime : now);
@@ -154,17 +169,19 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
       break;
 
     case "In Progress": {
-      // ✅ FIX Bug 1: Reset dailyTrackedTime when starting on a new day
-      // If the last session was on a previous day (or no session yet), zero out daily counter
+      const currentDateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
       const lastSessionDateStr = item.actualStartTime
         ? new Date(item.actualStartTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
         : null;
-      const currentDateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-      if (!lastSessionDateStr || lastSessionDateStr !== currentDateStr) {
-        // New day → start fresh daily counter
+      const hasHistoryToday = Array.isArray(item.statusHistory) && item.statusHistory.some((h) => {
+        const d = h.date || (h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null);
+        return d === currentDateStr;
+      });
+      if (!hasHistoryToday && (!lastSessionDateStr || lastSessionDateStr !== currentDateStr)) {
+        // New day & no session today → start fresh daily counter
         item.dailyTrackedTime = 0;
       }
-      // If same day resume (e.g., blocker resolved), dailyTrackedTime continues accumulating — correct!
+      // If same day resume (e.g. On Hold -> In Progress), dailyTrackedTime continues accumulating — correct!
 
       item.actualStartTime = now;
       item.actualEndTime = null;
@@ -173,6 +190,11 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
       item.holdStartedAt = null;
       item.holdEndedAt = null;
       item.autoPaused = false;
+
+      // If still blocked, realign blockerPausedAt to match new actualStartTime
+      if (item.isBlocked) {
+        item.blockerPausedAt = now;
+      }
 
       history.push({
         status: "In Progress",

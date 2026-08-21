@@ -309,7 +309,8 @@ const SimpleTimeTracker = ({
         end = Date.now();
       }
 
-      let totalPauseMs = 0;
+      let sessionPauseMs = 0;
+      let lifetimeBlockerMs = 0;
       if (blockerHistory && blockerHistory.length > 0) {
         blockerHistory.forEach((item) => {
           if (item.pausedAt) {
@@ -319,7 +320,12 @@ const SimpleTimeTracker = ({
               : Date.now();
             if (r > end) r = end;
             if (r >= p) {
-              totalPauseMs += r - p;
+              lifetimeBlockerMs += r - p;
+              const oStart = Math.max(p, start);
+              const oEnd = Math.min(r, end);
+              if (oEnd > oStart) {
+                sessionPauseMs += oEnd - oStart;
+              }
             }
           }
         });
@@ -328,14 +334,18 @@ const SimpleTimeTracker = ({
       if (isBlocked && blockerPausedAt) {
         const pauseStart = new Date(blockerPausedAt).getTime();
         if (pauseStart < end) {
-          totalPauseMs += end - pauseStart;
+          lifetimeBlockerMs += end - pauseStart;
+          const oStart = Math.max(pauseStart, start);
+          if (end > oStart) {
+            sessionPauseMs += end - oStart;
+          }
         }
       }
 
-      const totalElapsedMs = end - start - (savedPausedMs || 0) - totalPauseMs;
+      const totalElapsedMs = end - start - (savedPausedMs || 0) - sessionPauseMs;
       return {
         active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
-        blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
+        blocked: Math.max(0, Math.floor(lifetimeBlockerMs / 1000)),
       };
     };
 
@@ -466,7 +476,8 @@ const TimeTrackerBox = ({
         end = Date.now();
       }
 
-      let totalPauseMs = 0;
+      let sessionPauseMs = 0;
+      let lifetimeBlockerMs = 0;
       if (blockerHistory && blockerHistory.length > 0) {
         blockerHistory.forEach((item) => {
           if (item.pausedAt) {
@@ -476,7 +487,12 @@ const TimeTrackerBox = ({
               : Date.now();
             if (r > end) r = end;
             if (r >= p) {
-              totalPauseMs += r - p;
+              lifetimeBlockerMs += r - p;
+              const oStart = Math.max(p, start);
+              const oEnd = Math.min(r, end);
+              if (oEnd > oStart) {
+                sessionPauseMs += oEnd - oStart;
+              }
             }
           }
         });
@@ -485,14 +501,18 @@ const TimeTrackerBox = ({
       if (isBlocked && blockerPausedAt) {
         const pauseStart = new Date(blockerPausedAt).getTime();
         if (pauseStart < end) {
-          totalPauseMs += end - pauseStart;
+          lifetimeBlockerMs += end - pauseStart;
+          const oStart = Math.max(pauseStart, start);
+          if (end > oStart) {
+            sessionPauseMs += end - oStart;
+          }
         }
       }
 
-      const totalElapsedMs = end - start - (savedPausedMs || 0) - totalPauseMs;
+      const totalElapsedMs = end - start - (savedPausedMs || 0) - sessionPauseMs;
       return {
         active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
-        blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
+        blocked: Math.max(0, Math.floor(lifetimeBlockerMs / 1000)),
       };
     };
 
@@ -2317,11 +2337,13 @@ const TaskOverviewTab = ({
     };
 
     const computeTaskTimes = (task) => {
+      const baseTracked = task.totalTrackedTime || 0;
       if (!task.actualStartTime) {
+        const baseSecs = Math.floor(baseTracked / 1000);
         return {
-          activeStr: "Not started",
+          activeStr: baseTracked > 0 ? formatSecs(baseSecs) : "Not started",
           blockerStr: "0m 0s",
-          totalStr: "0m 0s",
+          totalStr: baseTracked > 0 ? formatSecs(baseSecs) : "0m 0s",
         };
       }
       const start = new Date(task.actualStartTime).getTime();
@@ -2337,7 +2359,8 @@ const TaskOverviewTab = ({
         end = Date.now();
       }
 
-      let totalPauseMs = 0;
+      let sessionPauseMs = 0;
+      let lifetimeBlockerMs = 0;
       if (task.blockerHistory && task.blockerHistory.length > 0) {
         task.blockerHistory.forEach((item) => {
           if (item.pausedAt) {
@@ -2346,20 +2369,33 @@ const TaskOverviewTab = ({
               ? new Date(item.resumedAt).getTime()
               : Date.now();
             if (r > end) r = end;
-            if (r >= p) totalPauseMs += r - p;
+            if (r >= p) {
+              lifetimeBlockerMs += r - p;
+              const oStart = Math.max(p, start);
+              const oEnd = Math.min(r, end);
+              if (oEnd > oStart) {
+                sessionPauseMs += oEnd - oStart;
+              }
+            }
           }
         });
       }
 
       if (task.isBlocked && task.blockerPausedAt) {
         const pauseStart = new Date(task.blockerPausedAt).getTime();
-        if (pauseStart < end) totalPauseMs += end - pauseStart;
+        if (pauseStart < end) {
+          lifetimeBlockerMs += end - pauseStart;
+          const oStart = Math.max(pauseStart, start);
+          if (end > oStart) {
+            sessionPauseMs += end - oStart;
+          }
+        }
       }
 
-      const totalElapsedMs =
-        end - start - (task.totalPausedMs || 0) - totalPauseMs;
+      const sessionElapsedMs = Math.max(0, end - start - (task.totalPausedMs || 0) - sessionPauseMs);
+      const totalElapsedMs = baseTracked + sessionElapsedMs;
       const activeSecs = Math.max(0, Math.floor(totalElapsedMs / 1000));
-      const blockedSecs = Math.max(0, Math.floor(totalPauseMs / 1000));
+      const blockedSecs = Math.max(0, Math.floor(lifetimeBlockerMs / 1000));
 
       return {
         activeStr: formatSecs(activeSecs),
