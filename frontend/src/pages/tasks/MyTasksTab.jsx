@@ -63,6 +63,9 @@ const isSameDate = (d1, d2) => {
   }
 };
 
+const isStatusInProgress = (s) =>
+  (s || "").trim().toUpperCase().replace(/[-_]/g, " ") === "IN PROGRESS";
+
 const checkTaskProductivityAndDate = (
   task,
   dateFilter,
@@ -91,7 +94,7 @@ const checkTaskProductivityAndDate = (
 
     // 2. Actively running In Progress today
     if (
-      task.status === "In Progress" &&
+      isStatusInProgress(task.status) &&
       !task.actualEndTime &&
       !task.autoPaused
     ) {
@@ -105,7 +108,7 @@ const checkTaskProductivityAndDate = (
           h.date || getLocalDateStr(h.startTime) || getLocalDateStr(h.endTime);
         return (
           entryDate === todayStr &&
-          (h.duration > 0 || h.endTime || h.status === "In Progress")
+          (h.duration > 0 || h.endTime || isStatusInProgress(h.status))
         );
       });
       if (hasTodayWork) return true;
@@ -117,7 +120,7 @@ const checkTaskProductivityAndDate = (
         const subMs = calculateTaskProductivityForDate(sub, now, officeHours);
         if (subMs > 0) return true;
         if (
-          sub.status === "In Progress" &&
+          isStatusInProgress(sub.status) &&
           !sub.actualEndTime &&
           !sub.autoPaused
         )
@@ -344,17 +347,19 @@ const TimeTracker = ({
       return;
     }
 
+    const statusUpper = (status || "").trim().toUpperCase().replace(/[-_]/g, " ");
+
     const calculateTime = () => {
       const start = new Date(startTime).getTime();
       let end;
 
       if (endTime) {
         end = new Date(endTime).getTime();
-      } else if (status === "In Progress" && autoPaused) {
+      } else if (statusUpper === "IN PROGRESS" && autoPaused) {
         end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
       } else if (
         pausedAt &&
-        ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
+        ["ON HOLD", "REJECTED", "IN REVIEW", "CORRECTION"].includes(statusUpper)
       ) {
         end = new Date(pausedAt).getTime();
       } else {
@@ -394,7 +399,8 @@ const TimeTracker = ({
         }
       }
 
-      const totalElapsedMs = end - start - (savedPausedMs || 0) - sessionPauseMs;
+      const totalElapsedMs =
+        end - start - (savedPausedMs || 0) - sessionPauseMs;
       return {
         active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
         blocked: Math.max(0, Math.floor(lifetimeBlockerMs / 1000)),
@@ -409,7 +415,7 @@ const TimeTracker = ({
 
     update();
 
-    if (status === "In Progress" && !autoPaused && !endTime) {
+    if (statusUpper === "IN PROGRESS" && !autoPaused && !endTime) {
       const interval = setInterval(update, 1000);
       return () => clearInterval(interval);
     }
@@ -1094,7 +1100,9 @@ const getTaskYesterdayAndTodayStats = (
 const WorkTimeCell = React.memo(
   ({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
     const [nowTick, setNowTick] = useState(Date.now());
-    const isActive = task.status === "In Progress" && !task.autoPaused && !task.isBlocked;
+    const statusUpper = (task?.status || "").trim().toUpperCase().replace(/[-_]/g, " ");
+    const isActive =
+      statusUpper === "IN PROGRESS" && !task?.autoPaused && !task?.isBlocked;
 
     useEffect(() => {
       if (!isActive) return;
@@ -1104,21 +1112,13 @@ const WorkTimeCell = React.memo(
       return () => clearInterval(interval);
     }, [isActive]);
 
-    const { yesterdayWorkMs, todayWorkMs } = React.useMemo(
+    const { todayWorkMs } = React.useMemo(
       () => getTaskYesterdayAndTodayStats(task, officeHours, nowTick),
       [task, officeHours, nowTick],
     );
 
     return (
       <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[11px] space-y-1.5 min-w-[135px]">
-        {yesterdayWorkMs > 0 && (
-          <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-            <span className="font-semibold">Yesterday</span>
-            <span className="font-bold text-slate-800 dark:text-white">
-              {formatMsToHMS(yesterdayWorkMs)}
-            </span>
-          </div>
-        )}
         <div className="flex justify-between items-center">
           <span className="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
             Today
@@ -1142,7 +1142,8 @@ const WorkTimeCell = React.memo(
 const BlockerTimeCell = React.memo(
   ({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
     const [nowTick, setNowTick] = useState(Date.now());
-    const isBlockerActive = task.isBlocked && task.status === "In Progress";
+    const statusUpper = (task?.status || "").trim().toUpperCase().replace(/[-_]/g, " ");
+    const isBlockerActive = task?.isBlocked && statusUpper === "IN PROGRESS";
 
     useEffect(() => {
       if (!isBlockerActive) return;
@@ -1152,21 +1153,13 @@ const BlockerTimeCell = React.memo(
       return () => clearInterval(interval);
     }, [isBlockerActive]);
 
-    const { yesterdayBlockerMs, todayBlockerMs } = React.useMemo(
+    const { todayBlockerMs } = React.useMemo(
       () => getTaskYesterdayAndTodayStats(task, officeHours, nowTick),
       [task, officeHours, nowTick],
     );
 
     return (
       <div className="bg-slate-50/90 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-xl p-2 text-[11px] space-y-1.5 min-w-[135px]">
-        {yesterdayBlockerMs > 0 && (
-          <div className="flex justify-between items-center text-slate-600 dark:text-slate-900">
-            <span className="font-semibold">Yesterday</span>
-            <span className="font-bold text-slate-800 dark:text-white">
-              {formatMsToHMS(yesterdayBlockerMs)}
-            </span>
-          </div>
-        )}
         <div className="flex justify-between items-center">
           <span className="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
             Today
@@ -1190,8 +1183,10 @@ const BlockerTimeCell = React.memo(
 const TodayTrackerCell = React.memo(
   ({ task, officeHours = DEFAULT_OFFICE_HOURS }) => {
     const [nowTick, setNowTick] = useState(Date.now());
-    const isActive = task.status === "In Progress" && !task.autoPaused && !task.isBlocked;
-    const isBlockerActive = task.isBlocked && task.status === "In Progress";
+    const statusUpper = (task?.status || "").trim().toUpperCase().replace(/[-_]/g, " ");
+    const isActive =
+      statusUpper === "IN PROGRESS" && !task?.autoPaused && !task?.isBlocked;
+    const isBlockerActive = task?.isBlocked && statusUpper === "IN PROGRESS";
 
     useEffect(() => {
       if (!isActive && !isBlockerActive) return;
@@ -2724,7 +2719,10 @@ const MyTasksTab = ({
         }
       }
 
-      const sessionElapsedMs = Math.max(0, end - start - (task.totalPausedMs || 0) - sessionPauseMs);
+      const sessionElapsedMs = Math.max(
+        0,
+        end - start - (task.totalPausedMs || 0) - sessionPauseMs,
+      );
       const totalElapsedMs = baseTracked + sessionElapsedMs;
       const activeSecs = Math.max(0, Math.floor(totalElapsedMs / 1000));
       const blockedSecs = Math.max(0, Math.floor(lifetimeBlockerMs / 1000));

@@ -153,6 +153,7 @@ const stickyNoteRoutes = require("./routes/stickyNoteRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const socialAccountRoutes = require("./routes/socialAccountRoutes");
 const clientCallRoutes = require("./routes/clientCallRoutes");
+const smTaskRoutes = require("./routes/smTaskRoutes");
 
 app.get("/", (req, res) => {
   res.send("demo testing api da ithu :) ");
@@ -193,6 +194,7 @@ app.use('/api/business-projects', businessProjectRoutes);
 app.use('/api/overheads', overheadRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/sm-tasks', smTaskRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/goals', goalRoutes);

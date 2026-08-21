@@ -106,6 +106,9 @@ export const getTaskAssignmentDate = (task) => {
   );
 };
 
+export const isStatusInProgress = (s) =>
+  (s || "").trim().toUpperCase().replace(/[-_]/g, " ") === "IN PROGRESS";
+
 /**
  * Single source of truth to calculate actual worked time for a task
  * belonging to a specific calendar date (selectedDate).
@@ -152,7 +155,11 @@ export const calculateTaskProductivityForDate = (
 
   // Calculate subtasks productivity if any
   let subtasksDuration = 0;
-  if (task.subtasks && Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+  if (
+    task.subtasks &&
+    Array.isArray(task.subtasks) &&
+    task.subtasks.length > 0
+  ) {
     task.subtasks.forEach((sub) => {
       subtasksDuration += calculateTaskProductivityForDate(
         sub,
@@ -175,7 +182,7 @@ export const calculateTaskProductivityForDate = (
     let historyDuration = 0;
 
     task.statusHistory.forEach((h) => {
-      if (h.status !== "In Progress") return;
+      if (!isStatusInProgress(h.status)) return;
 
       let entryDate = h.date;
       if (!entryDate && h.startTime) {
@@ -196,7 +203,7 @@ export const calculateTaskProductivityForDate = (
         );
       } else if (
         isSelectedToday &&
-        task.status === "In Progress" &&
+        isStatusInProgress(task.status) &&
         !task.autoPaused
       ) {
         // Open entry on TODAY, still running — handled by live section below, skip here
@@ -205,10 +212,9 @@ export const calculateTaskProductivityForDate = (
         // or an autoPaused entry — cap contribution at that day's EOD / pausedAt
         const entryStartMs = new Date(h.startTime).getTime();
         const pauseTime = task.pausedAt || task.holdStartedAt;
-        const capEnd =
-          pauseTime
-            ? Math.min(new Date(pauseTime).getTime(), dayWorkEnd)
-            : dayWorkEnd;
+        const capEnd = pauseTime
+          ? Math.min(new Date(pauseTime).getTime(), dayWorkEnd)
+          : dayWorkEnd;
         historyDuration += Math.max(
           0,
           Math.min(capEnd, dayWorkEnd) - Math.max(entryStartMs, dayWorkStart),
@@ -216,19 +222,34 @@ export const calculateTaskProductivityForDate = (
       }
     });
 
-    // ✅ FIX Bug 3: Live session guard — actualStartTime must be from TODAY (IST date)
-    if (isSelectedToday && task.status === "In Progress" && !task.autoPaused) {
-      const liveSessionStart = task.actualStartTime
+    // ✅ FIX Bug 3: Live session guard — fallback to statusHistory open entry or updatedAt if actualStartTime is missing
+    if (isSelectedToday && isStatusInProgress(task.status) && !task.autoPaused) {
+      let liveSessionStart = task.actualStartTime
         ? new Date(task.actualStartTime).getTime()
         : 0;
-      const liveSessionDateStr = task.actualStartTime
-        ? new Date(task.actualStartTime).toLocaleDateString("en-CA", {
+
+      if (isNaN(liveSessionStart) || liveSessionStart <= 0) {
+        const openEntry = [...task.statusHistory].reverse().find(
+          (h) => isStatusInProgress(h.status) && !h.endTime
+        );
+        if (openEntry && openEntry.startTime) {
+          liveSessionStart = new Date(openEntry.startTime).getTime();
+        }
+      }
+      if (isNaN(liveSessionStart) || liveSessionStart <= 0) {
+        if (task.updatedAt) {
+          liveSessionStart = new Date(task.updatedAt).getTime();
+        }
+      }
+
+      const liveSessionDateStr = liveSessionStart > 0
+        ? new Date(liveSessionStart).toLocaleDateString("en-CA", {
             timeZone: "Asia/Kolkata",
           })
         : null;
 
-      // Only add live elapsed time if actualStartTime is actually from today
-      if (liveSessionStart > 0 && liveSessionDateStr === selDateStr) {
+      // Only add live elapsed time if liveSessionStart is valid
+      if (liveSessionStart > 0 && (liveSessionDateStr === selDateStr || isSelectedToday)) {
         const nowMs = Date.now();
         let liveWorked = Math.max(0, nowMs - liveSessionStart);
         if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
@@ -239,7 +260,7 @@ export const calculateTaskProductivityForDate = (
               const oStart = Math.max(p, liveSessionStart);
               const oEnd = Math.min(r, nowMs);
               if (oEnd > oStart) {
-                liveWorked -= (oEnd - oStart);
+                liveWorked -= oEnd - oStart;
               }
             }
           });
@@ -248,14 +269,17 @@ export const calculateTaskProductivityForDate = (
           const p = new Date(task.blockerPausedAt).getTime();
           const oStart = Math.max(p, liveSessionStart);
           if (nowMs > oStart) {
-            liveWorked -= (nowMs - oStart);
+            liveWorked -= nowMs - oStart;
           }
         }
         const effectiveHistoryDuration = Math.max(
           historyDuration,
-          task.dailyTrackedTime || 0
+          task.dailyTrackedTime || 0,
         );
-        return Math.max(0, effectiveHistoryDuration + Math.max(0, liveWorked)) + subtasksDuration;
+        return (
+          Math.max(0, effectiveHistoryDuration + Math.max(0, liveWorked)) +
+          subtasksDuration
+        );
       }
     }
 
@@ -276,7 +300,9 @@ export const calculateTaskProductivityForDate = (
       timeZone: "Asia/Kolkata",
     });
     const isSelectedToday = isSameDay(selDateObj, new Date());
-    const baseTracked = isSelectedToday ? (task.dailyTrackedTime || 0) : (task.totalTrackedTime || 0);
+    const baseTracked = isSelectedToday
+      ? task.dailyTrackedTime || 0
+      : task.totalTrackedTime || 0;
     return baseTracked + subtasksDuration;
   }
 
@@ -4900,7 +4926,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                               ) {
                                                 d.setHours(17, 30, 0, 0);
                                               }
-                                              return format(d, "MMM dd, h:mm a");
+                                              return format(
+                                                d,
+                                                "MMM dd, h:mm a",
+                                              );
                                             } catch (e) {
                                               return "—";
                                             }

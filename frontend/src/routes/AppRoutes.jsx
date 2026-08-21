@@ -50,7 +50,7 @@ const Stickynotes = lazyWithRetry(() => import("../pages/admin/Stickynotes.jsx")
 const MomClientReport = lazyWithRetry(() => import("../pages/admin/MomClientReport.jsx"));
 const SocialAccounts = lazyWithRetry(() => import("../pages/socialAccounts/SocialAccounts.jsx"));
 const ClientCalls = lazyWithRetry(() => import("../pages/client-calls/ClientCalls.jsx"));
-const SMtasks = lazyWithRetry(() => import("../pages/smTasks/SMtasks.jsx"));
+import SMtasks from "../pages/smTasks/SMtasks.jsx";
 
 // Background preload core route bundles for zero-delay sidebar navigation
 export const preloadAllRoutes = () => {

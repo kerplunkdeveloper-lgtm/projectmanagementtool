@@ -15,7 +15,7 @@ const SMtasks = () => {
     },
     {
       id: "content-calendar",
-      label: "SM Content Calender",
+      label: "SM Content Calendar",
       icon: FiCalendar,
     },
   ];
@@ -52,7 +52,7 @@ const SMtasks = () => {
       </div>
 
       {/* TAB CONTENT */}
-      <div className="bg-white dark:bg-[#121c31] rounded-2xl border border-slate-200/80 dark:border-white/10 p-6 shadow-sm min-h-[300px]">
+      <div className=" min-h-[300px]">
         <AnimatePresence mode="wait">
           {activeTab === "post-tasks" && (
             <motion.div
