@@ -41,6 +41,12 @@ import {
   calculateTaskProductivityForDate,
   getTaskAssignmentDate,
 } from "../Dashboard/cards/GraphicDesignerDashboard";
+import {
+  getTodayProductivityMs,
+  getTotalTrackedMs,
+  formatHMS,
+  formatShortDuration,
+} from "../../utils/taskTimerUtils";
 
 const isSameDate = (d1, d2) => {
   if (!d1 || !d2) return false;
@@ -270,6 +276,7 @@ const getStatusWithEmoji = (status) => {
 };
 
 const SimpleTimeTracker = ({
+  task,
   startTime,
   endTime,
   status,
@@ -282,131 +289,57 @@ const SimpleTimeTracker = ({
   totalTrackedTime = 0,
   mode = "active",
 }) => {
-  const [elapsed, setElapsed] = useState(0);
-  const [blockedMs, setBlockedMs] = useState(0);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (!startTime) {
-      setElapsed(0);
-      setBlockedMs(0);
-      return;
-    }
-
-    const calculateTime = () => {
-      const start = new Date(startTime).getTime();
-      let end;
-
-      if (endTime) {
-        end = new Date(endTime).getTime();
-      } else if (status === "In Progress" && autoPaused) {
-        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
-      } else if (
-        pausedAt &&
-        ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
-      ) {
-        end = new Date(pausedAt).getTime();
-      } else {
-        end = Date.now();
-      }
-
-      let sessionPauseMs = 0;
-      let lifetimeBlockerMs = 0;
-      if (blockerHistory && blockerHistory.length > 0) {
-        blockerHistory.forEach((item) => {
-          if (item.pausedAt) {
-            const p = new Date(item.pausedAt).getTime();
-            let r = item.resumedAt
-              ? new Date(item.resumedAt).getTime()
-              : Date.now();
-            if (r > end) r = end;
-            if (r >= p) {
-              lifetimeBlockerMs += r - p;
-              const oStart = Math.max(p, start);
-              const oEnd = Math.min(r, end);
-              if (oEnd > oStart) {
-                sessionPauseMs += oEnd - oStart;
-              }
-            }
-          }
-        });
-      }
-
-      if (isBlocked && blockerPausedAt) {
-        const pauseStart = new Date(blockerPausedAt).getTime();
-        if (pauseStart < end) {
-          lifetimeBlockerMs += end - pauseStart;
-          const oStart = Math.max(pauseStart, start);
-          if (end > oStart) {
-            sessionPauseMs += end - oStart;
-          }
-        }
-      }
-
-      const totalElapsedMs = end - start - (savedPausedMs || 0) - sessionPauseMs;
-      return {
-        active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
-        blocked: Math.max(0, Math.floor(lifetimeBlockerMs / 1000)),
-      };
-    };
-
-    const update = () => {
-      const { active, blocked } = calculateTime();
-      setElapsed(active);
-      setBlockedMs(blocked);
-    };
-
-    update();
-
     if (status === "In Progress" && !autoPaused && !endTime) {
-      const interval = setInterval(update, 1000);
+      const interval = setInterval(() => setNow(Date.now()), 1000);
       return () => clearInterval(interval);
     }
-  }, [
-    startTime,
-    endTime,
+  }, [status, autoPaused, endTime]);
+
+  const taskObj = task || {
+    status,
+    actualStartTime: startTime,
+    actualEndTime: endTime,
     pausedAt,
     autoPaused,
-    status,
+    totalPausedMs: savedPausedMs,
     isBlocked,
     blockerPausedAt,
     blockerHistory,
-    savedPausedMs,
-  ]);
-
-  const formatTime = (secs) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+    totalTrackedTime,
   };
 
-  const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
-
   if (mode === "blocker") {
+    let blockerMs = 0;
+    if (blockerHistory && blockerHistory.length > 0) {
+      blockerHistory.forEach((b) => {
+        if (b.pausedAt) {
+          const p = new Date(b.pausedAt).getTime();
+          const r = b.resumedAt ? new Date(b.resumedAt).getTime() : now;
+          if (r >= p) blockerMs += r - p;
+        }
+      });
+    }
+    if (isBlocked && blockerPausedAt) {
+      const p = new Date(blockerPausedAt).getTime();
+      if (now > p) blockerMs += now - p;
+    }
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
-        {formatTime(blockedMs)}
+        {formatShortDuration(blockerMs)}
       </span>
     );
   }
 
-  if (!startTime && status !== "In Progress") {
-    if (totalTrackedTime > 0) {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-500/5 dark:text-slate-300 dark:border-slate-500/20">
-          {formatTime(lifetimeSecs)}
-        </span>
-      );
-    }
-    if (!status || status.toLowerCase() === "pending") {
-      return (
-        <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
-          Not started
-        </span>
-      );
-    }
+  const totalMs = getTotalTrackedMs(taskObj, now);
+
+  if (status === "Not Started" || (!startTime && totalMs === 0)) {
     return (
-      <span className="text-slate-455 dark:text-slate-500 font-normal">—</span>
+      <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
+        Not started
+      </span>
     );
   }
 
@@ -421,23 +354,17 @@ const SimpleTimeTracker = ({
             ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
             : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20";
 
-  const totalActiveSecs =
-    status === "In Progress"
-      ? lifetimeSecs + elapsed
-      : lifetimeSecs > 0
-        ? lifetimeSecs
-        : elapsed;
-
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs ${colorClasses}`}
     >
-      {formatTime(totalActiveSecs)}
+      {formatShortDuration(totalMs)}
     </span>
   );
 };
 
 const TimeTrackerBox = ({
+  task,
   startTime,
   endTime,
   status,
@@ -449,140 +376,43 @@ const TimeTrackerBox = ({
   blockerHistory,
   totalTrackedTime = 0,
 }) => {
-  const [elapsed, setElapsed] = useState(0);
-  const [blockedMs, setBlockedMs] = useState(0);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (!startTime) {
-      setElapsed(0);
-      setBlockedMs(0);
-      return;
-    }
-
-    const calculateTime = () => {
-      const start = new Date(startTime).getTime();
-      let end;
-
-      if (endTime) {
-        end = new Date(endTime).getTime();
-      } else if (status === "In Progress" && autoPaused) {
-        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
-      } else if (
-        pausedAt &&
-        ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
-      ) {
-        end = new Date(pausedAt).getTime();
-      } else {
-        end = Date.now();
-      }
-
-      let sessionPauseMs = 0;
-      let lifetimeBlockerMs = 0;
-      if (blockerHistory && blockerHistory.length > 0) {
-        blockerHistory.forEach((item) => {
-          if (item.pausedAt) {
-            const p = new Date(item.pausedAt).getTime();
-            let r = item.resumedAt
-              ? new Date(item.resumedAt).getTime()
-              : Date.now();
-            if (r > end) r = end;
-            if (r >= p) {
-              lifetimeBlockerMs += r - p;
-              const oStart = Math.max(p, start);
-              const oEnd = Math.min(r, end);
-              if (oEnd > oStart) {
-                sessionPauseMs += oEnd - oStart;
-              }
-            }
-          }
-        });
-      }
-
-      if (isBlocked && blockerPausedAt) {
-        const pauseStart = new Date(blockerPausedAt).getTime();
-        if (pauseStart < end) {
-          lifetimeBlockerMs += end - pauseStart;
-          const oStart = Math.max(pauseStart, start);
-          if (end > oStart) {
-            sessionPauseMs += end - oStart;
-          }
-        }
-      }
-
-      const totalElapsedMs = end - start - (savedPausedMs || 0) - sessionPauseMs;
-      return {
-        active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
-        blocked: Math.max(0, Math.floor(lifetimeBlockerMs / 1000)),
-      };
-    };
-
-    const update = () => {
-      const { active, blocked } = calculateTime();
-      setElapsed(active);
-      setBlockedMs(blocked);
-    };
-
-    update();
-
     if (status === "In Progress" && !autoPaused && !endTime) {
-      const interval = setInterval(update, 1000);
+      const interval = setInterval(() => setNow(Date.now()), 1000);
       return () => clearInterval(interval);
     }
-  }, [
-    startTime,
-    endTime,
+  }, [status, autoPaused, endTime]);
+
+  const taskObj = task || {
+    status,
+    actualStartTime: startTime,
+    actualEndTime: endTime,
     pausedAt,
     autoPaused,
-    status,
+    totalPausedMs: savedPausedMs,
     isBlocked,
     blockerPausedAt,
     blockerHistory,
-    savedPausedMs,
-  ]);
-
-  const formatTime = (secs) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+    totalTrackedTime,
   };
 
-  const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
+  const totalMs = getTotalTrackedMs(taskObj, now);
 
-  if (!startTime && status !== "In Progress") {
-    if (!status || status.toLowerCase() === "pending") {
-      return (
-        <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
-          {totalTrackedTime > 0 ? `00:00:00` : "Not started"}
-        </span>
-      );
-    }
-    if (status === "On Hold") {
-      return (
-        <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
-          00:00:00
-        </span>
-      );
-    }
+  if (status === "Not Started" || (!startTime && totalMs === 0)) {
     return (
-      <span className="text-slate-455 dark:text-slate-500 font-normal">—</span>
+      <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
+        Not started
+      </span>
     );
   }
-
-  const activeSecs =
-    status === "In Progress"
-      ? lifetimeSecs + elapsed
-      : lifetimeSecs > 0
-        ? lifetimeSecs
-        : elapsed;
-
-  const totalStr = formatTime(activeSecs + blockedMs);
 
   return (
     <div className="flex flex-col w-[125px] text-[11px] font-extrabold tracking-wide mx-auto">
       <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-600/50 px-2 py-1 rounded-lg text-slate-800 dark:text-slate-100 shadow-2xs">
         <span>Total:</span>
-        <span>{totalStr}</span>
+        <span>{formatShortDuration(totalMs)}</span>
       </div>
     </div>
   );

@@ -47,11 +47,13 @@ const getISTDateStr = (date = new Date()) => {
   }
 };
 
-const calculateSessionWorkingTime = (item, sessionEndTime = Date.now()) => {
+const calculateSessionWorkingTime = (item, sessionEndTime = Date.now(), startHour = 9, endHour = 19, workingDays = [1, 2, 3, 4, 5, 6]) => {
   if (!item.actualStartTime) return 0;
   const start = new Date(item.actualStartTime).getTime();
   const end = new Date(sessionEndTime).getTime();
   if (isNaN(start) || isNaN(end) || end <= start) return 0;
+
+  const rawBusinessMs = calculateBusinessMs(start, end, startHour, endHour, workingDays);
 
   let sessionPauseMs = 0;
   if (item.blockerHistory && Array.isArray(item.blockerHistory)) {
@@ -76,8 +78,7 @@ const calculateSessionWorkingTime = (item, sessionEndTime = Date.now()) => {
     }
   }
 
-  const elapsed = end - start - sessionPauseMs;
-  return Math.max(0, elapsed);
+  return Math.max(0, rawBusinessMs - sessionPauseMs);
 };
 
 const handleItemStatusTransition = (item, prevStatus, newStatus, userId, settings = {}) => {
@@ -86,6 +87,7 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
   const now = new Date();
   const nowMs = now.getTime();
   const todayStr = getISTDateStr(now);
+  const currentDateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   const startHour = settings.startHour ?? 9;
   const endHour = settings.endHour ?? 19;
   const workingDays = settings.workingDays && settings.workingDays.length > 0 ? settings.workingDays : [1, 2, 3, 4, 5, 6];
@@ -106,9 +108,16 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
   // 1. Handle LEAVING the previous status
   if (prevStatus === "In Progress") {
     // Designer was actively working; freeze / accrue session working time
-    const sessionWorkedMs = calculateSessionWorkingTime(item, nowMs);
+    const sessionWorkedMs = calculateSessionWorkingTime(item, nowMs, startHour, endHour, workingDays);
     item.totalTrackedTime = (item.totalTrackedTime || 0) + sessionWorkedMs;
-    item.dailyTrackedTime = (item.dailyTrackedTime || 0) + sessionWorkedMs;
+
+    const sessionDateStr = item.actualStartTime
+      ? new Date(item.actualStartTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
+      : currentDateStr;
+
+    if (sessionDateStr === currentDateStr) {
+      item.dailyTrackedTime = (item.dailyTrackedTime || 0) + sessionWorkedMs;
+    }
 
     closeOpenHistoryEntry("In Progress", now, sessionWorkedMs);
 

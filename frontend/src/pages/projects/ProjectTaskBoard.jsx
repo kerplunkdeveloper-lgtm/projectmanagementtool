@@ -41,6 +41,7 @@ import {
   FiLoader,
   FiLock,
 } from "react-icons/fi";
+import { getTotalTrackedMs, formatShortDuration } from "../../utils/taskTimerUtils";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
 
@@ -320,6 +321,7 @@ const StrictModeDroppable = ({ children, ...props }) => {
 
 const TimeTracker = React.memo(
   ({
+    task,
     startTime,
     endTime,
     pausedAt,
@@ -329,159 +331,50 @@ const TimeTracker = React.memo(
     totalTrackedTime = 0,
     variant = "default",
   }) => {
-    const [elapsed, setElapsed] = useState(0);
+    const [now, setNow] = useState(Date.now());
 
     useEffect(() => {
-      if (!startTime) {
-        setElapsed(0);
-        return;
-      }
-
-      const calculateElapsed = () => {
-        const start = new Date(startTime).getTime();
-        let end;
-
-        if (endTime) {
-          // Task is completed — use the locked end time
-          end = new Date(endTime).getTime();
-        } else if (status === "In Progress" && autoPaused) {
-          // Task is auto-paused by office hours — freeze at pausedAt
-          end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
-        } else if (
-          pausedAt &&
-          ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
-        ) {
-          // Task is paused — freeze at pausedAt
-          end = new Date(pausedAt).getTime();
-        } else {
-          // Task is actively running
-          end = Date.now();
-        }
-
-        // Subtract all accumulated paused/review time
-        const elapsedMs = end - start - (savedPausedMs || 0);
-
-        return Math.max(0, Math.floor(elapsedMs / 1000));
-      };
-
-      setElapsed(calculateElapsed());
-
-      // Only tick when actively running (In Progress and NOT autoPaused)
       if (status === "In Progress" && !autoPaused && !endTime) {
-        const interval = setInterval(() => {
-          setElapsed(calculateElapsed());
-        }, 1000);
+        const interval = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(interval);
       }
-    }, [startTime, endTime, pausedAt, autoPaused, status, savedPausedMs]);
+    }, [status, autoPaused, endTime]);
 
-    const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
-    const totalDisplaySecs =
-      status === "In Progress"
-        ? lifetimeSecs + elapsed
-        : lifetimeSecs > 0
-          ? lifetimeSecs
-          : elapsed;
+    const taskObj = task || {
+      status,
+      actualStartTime: startTime,
+      actualEndTime: endTime,
+      pausedAt,
+      autoPaused,
+      totalPausedMs: savedPausedMs,
+      totalTrackedTime,
+    };
 
-    if (!startTime && status !== "In Progress") {
-      if (totalTrackedTime > 0) {
-        const h = Math.floor(lifetimeSecs / 3600);
-        const m = Math.floor((lifetimeSecs % 3600) / 60);
-        const s = lifetimeSecs % 60;
-        const str = `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
-        return (
-          <span className="text-slate-700 dark:text-slate-300 font-bold text-xs block text-center w-full">
-            {str}
-          </span>
-        );
-      }
-      if (!status || status.toLowerCase() === "pending") {
-        return (
-          <span className="text-slate-405 dark:text-slate-500 font-semibold text-xs block text-center w-full">
-            Not started
-          </span>
-        );
-      }
-      return null;
+    const totalMs = getTotalTrackedMs(taskObj, now);
+
+    if (status === "Not Started" || (!startTime && totalMs === 0)) {
+      return (
+        <span className="text-slate-405 dark:text-slate-500 font-semibold text-xs block text-center w-full">
+          Not started
+        </span>
+      );
     }
-    if (!startTime && status === "In Progress")
+
+    if (!startTime && status === "In Progress") {
       return (
         <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm w-full">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
           Starting...
         </div>
       );
-
-    const hours = Math.floor(totalDisplaySecs / 3600);
-    const minutes = Math.floor((totalDisplaySecs % 3600) / 60);
-    const seconds = totalDisplaySecs % 60;
-
-    const timeString = `${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
-
-    if (variant === "premium") {
-      return (
-        <div className="flex flex-col">
-          <div className="flex items-baseline gap-1 text-slate-800 dark:text-white">
-            {hours > 0 && (
-              <>
-                <span className="text-3xl font-black tracking-tight">
-                  {hours}
-                </span>
-                <span className="text-xs font-bold text-slate-400 mr-1">h</span>
-              </>
-            )}
-            <span className="text-3xl font-black tracking-tight">
-              {minutes}
-            </span>
-            <span className="text-xs font-bold text-slate-400 mr-1">m</span>
-            <span className="text-xl font-bold text-slate-400">{seconds}s</span>
-          </div>
-          {status === "In Progress" && autoPaused && (
-            <div className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400">
-              Office Closed (Auto Paused)
-            </div>
-          )}
-        </div>
-      );
     }
 
-    const isAutoPaused = status === "In Progress" && autoPaused;
-
     return (
-      <div
-        className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
-          isAutoPaused
-            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
-            : status === "In Progress" && !endTime
-              ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
-              : status === "In Review"
-                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
-                : status === "On Hold"
-                  ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30 shadow-sm"
-                  : status === "Completed"
-                    ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm"
-                    : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20 shadow-xs"
-        }`}
-      >
-        {isAutoPaused ? (
-          <>
-            <FiClock size={10} className="text-amber-500" />
-            <span>Auto Paused ({timeString})</span>
-          </>
-        ) : status === "In Progress" && !endTime ? (
-          <>
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
-            {timeString}
-          </>
-        ) : (
-          <>
-            <FiClock size={10} />
-            {timeString}
-          </>
-        )}
-      </div>
+      <span className="font-mono text-xs font-bold tracking-tight text-center block w-full">
+        {formatShortDuration(totalMs)}
+      </span>
     );
-  },
+  }
 );
 
 // Task Title Input Component for autosaving inline without cursor jump
@@ -7481,6 +7374,7 @@ const ProjectTaskBoard = ({
                                                               {!hiddenColumns.totalHours && (
                                                                 <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                                   <TimeTracker
+                                                                    task={task}
                                                                     startTime={
                                                                       sub.actualStartTime
                                                                     }

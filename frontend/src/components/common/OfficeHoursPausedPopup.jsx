@@ -76,26 +76,22 @@ const OfficeHoursPausedPopup = () => {
   useEffect(() => {
     if (!tasks || tasks.length === 0 || !currentUserId) return;
 
-    // Find any task assigned to current user that was auto-paused
+    // Find any task assigned to current user that was auto-paused at EOD
     const autoPausedTask = tasks.find((t) => {
-      if (t.status === "On Hold" || t.status === "Pending") return false;
-
       const isAssignee = Array.isArray(t.assignedTo)
         ? t.assignedTo.some((u) => (u?._id || u) === currentUserId)
         : (t.assignedTo?._id || t.assignedTo) === currentUserId;
       const hasAutoPausedSubtask = t.subtasks?.some((sub) => {
-        if (sub.status === "On Hold" || sub.status === "Pending") return false;
         const subAssignee = Array.isArray(sub.assignedTo)
           ? sub.assignedTo.some((u) => (u?._id || u) === currentUserId)
           : (sub.assignedTo?._id || sub.assignedTo) === currentUserId;
         return subAssignee && sub.autoPaused;
       });
-      return isAssignee && (t.autoPaused || hasAutoPausedSubtask);
+      return (isAssignee && t.autoPaused) || hasAutoPausedSubtask;
     });
 
     if (autoPausedTask) {
       const subtask = autoPausedTask.subtasks?.find((sub) => {
-        if (sub.status === "On Hold" || sub.status === "Pending") return false;
         const subAssignee = Array.isArray(sub.assignedTo)
           ? sub.assignedTo.some((u) => (u?._id || u) === currentUserId)
           : (sub.assignedTo?._id || sub.assignedTo) === currentUserId;

@@ -38,12 +38,7 @@ async function checkAndAutoPauseTasks(io) {
       const pauseTimeMs = pauseTime.getTime();
 
       // 1. Parent tasks with status "In Progress"
-      const activeTasks = await Task.find({
-        $or: [
-          { status: "In Progress" },
-          { status: "On Hold", autoPaused: true }
-        ]
-      });
+      const activeTasks = await Task.find({ status: "In Progress" });
 
       for (let task of activeTasks) {
         if (task.status === "In Progress") {
@@ -113,12 +108,7 @@ async function checkAndAutoPauseTasks(io) {
       }
 
       // 2. Subtasks in progress
-      const tasksWithActiveSubtasks = await Task.find({
-        $or: [
-          { "subtasks.status": "In Progress" },
-          { "subtasks.status": "On Hold", "subtasks.autoPaused": true }
-        ]
-      });
+      const tasksWithActiveSubtasks = await Task.find({ "subtasks.status": "In Progress" });
 
       for (let task of tasksWithActiveSubtasks) {
         let updated = false;
