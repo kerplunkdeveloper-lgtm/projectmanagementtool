@@ -803,7 +803,7 @@ const Workload = () => {
       {/* RESOURCE DETAILS SIDE DRAWER */}
       <AnimatePresence>
         {selectedUserId && selectedUser && (
-          <div className="fixed inset-0 z-[200] flex justify-end">
+          <div key={`resource-drawer-${selectedUserId}`} className="fixed inset-0 z-[200] flex justify-end">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}

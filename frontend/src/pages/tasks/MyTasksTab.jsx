@@ -1497,7 +1497,7 @@ const MyTasksTab = ({
 
     if (sanitizedFields.status && sanitizedFields.status === "In Review") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime) {
+      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime) {
         showStartInProgressWarning("review");
         return;
       }
@@ -1513,7 +1513,7 @@ const MyTasksTab = ({
 
     if (sanitizedFields.status === "On Hold") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime) {
+      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime && currentTaskObj.contentType !== "MOM") {
         showStartInProgressWarning("hold");
         return;
       }
@@ -1743,7 +1743,7 @@ const MyTasksTab = ({
 
     if (newStatus && newStatus === "In Review") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime) {
+      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime) {
         showStartInProgressWarning("review");
         return;
       }
@@ -1755,7 +1755,7 @@ const MyTasksTab = ({
 
     if (newStatus === "On Hold") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime) {
+      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime && currentTaskObj.contentType !== "MOM") {
         showStartInProgressWarning("hold");
         return;
       }
@@ -4094,7 +4094,7 @@ const MyTasksTab = ({
       {/* SUBMIT FOR REVIEW CONFIRMATION MODAL */}
       <AnimatePresence>
         {reviewModalData && (
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 backdrop-blur-md">
+          <div key="review-modal-wrapper" className="fixed inset-0 z-[99999] flex items-center justify-center p-4 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4145,7 +4145,7 @@ const MyTasksTab = ({
       {/* BLOCKER ADD MODAL */}
       <AnimatePresence>
         {blockerModalTask && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div key="blocker-modal-wrapper" className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -4154,104 +4154,102 @@ const MyTasksTab = ({
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
             />
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="relative bg-white dark:bg-[#0f111a] border border-slate-200 dark:border-slate-800 max-w-md w-full rounded-3xl p-6 shadow-2xl space-y-5 overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white dark:bg-[#11131f] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 z-10 text-left"
             >
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500">
-                    <FiAlertCircle size={16} />
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                    <FiAlertCircle size={18} />
                   </div>
-                  <span className="text-sm font-black text-slate-805 dark:text-white uppercase tracking-wider">
-                    Add Blocker / Pause Task
-                  </span>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-white">
+                      Pause Task & Add Blocker
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                      Task: {blockerModalTask.title}
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={() => setBlockerModalTask(null)}
-                  className="text-slate-400 hover:text-slate-605"
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 >
                   <FiX size={18} />
                 </button>
               </div>
 
-              <div className="space-y-4 text-xs font-semibold">
-                <div className="space-y-1 text-left">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    Blocker Type
-                  </label>
-                  <select
-                    value={blockerType}
-                    onChange={(e) => setBlockerType(e.target.value)}
-                    className="w-full px-3 py-2 text-xs font-bold rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-250 dark:border-white/10 outline-none focus:border-rose-500 text-slate-800 dark:text-slate-200 cursor-pointer"
-                  >
-                    <option value="Client Call">📞 Client Call</option>
-                    <option value="Feedback Pending">
-                      ⌛ Feedback Pending
-                    </option>
-                    <option value="Internet / Server down">
-                      🌐 Internet / Server down
-                    </option>
-                    <option value="Asset Pending">📁 Asset Pending</option>
-                    <option value="Revision Work">✍️ Revision Work</option>
-                    <option value="Personal Break / Shift End">
-                      ☕ Personal Break / Shift End
-                    </option>
-                    <option value="Meeting / Discussion">
-                      👥 Meeting / Discussion
-                    </option>
-                  </select>
-                </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                      Blocker Category
+                    </label>
+                    <select
+                      value={blockerType}
+                      onChange={(e) => setBlockerType(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-rose-500 text-slate-800 dark:text-slate-200 cursor-pointer"
+                    >
+                      <option value="Client Call">Client Call</option>
+                      <option value="Client Feedback Waiting">
+                        Client Feedback Waiting
+                      </option>
+                      <option value="Server/Technical Issue">
+                        Server/Technical Issue
+                      </option>
+                      <option value="Asset/Content Pending">
+                        Asset/Content Pending
+                      </option>
+                      <option value="Internal Query">Internal Query</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
 
-                <div className="space-y-1 text-left">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    Blocker Priority
-                  </label>
-                  <div className="flex gap-2.5">
-                    {["Normal", "Urgent"].map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setBlockerPriority(p)}
-                        className={`flex-1 py-2 rounded-xl border text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer ${blockerPriority === p ? "bg-rose-500 border-rose-500 text-white shadow-md shadow-rose-500/20" : "bg-slate-50 border-slate-200 dark:bg-white/5 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-rose-500/40"}`}
-                      >
-                        {p}
-                      </button>
-                    ))}
+                  <div>
+                    <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                      Priority Level
+                    </label>
+                    <select
+                      value={blockerPriority}
+                      onChange={(e) => setBlockerPriority(e.target.value)}
+                      className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-rose-500 text-slate-800 dark:text-slate-200 cursor-pointer"
+                    >
+                      <option value="Normal">Normal</option>
+                      <option value="Urgent">Urgent Block</option>
+                    </select>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-left">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    Expected Block Duration
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Expected Pause Duration
                   </label>
                   <select
                     value={blockerExpectedTime}
                     onChange={(e) => setBlockerExpectedTime(e.target.value)}
-                    className="w-full px-3 py-2 text-xs font-bold rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-250 dark:border-white/10 outline-none focus:border-rose-500 text-slate-800 dark:text-slate-200 cursor-pointer"
+                    className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-rose-500 text-slate-800 dark:text-slate-200 cursor-pointer"
                   >
                     <option value="15 mins">15 mins</option>
                     <option value="30 mins">30 mins</option>
                     <option value="1 hour">1 hour</option>
                     <option value="2-4 hours">2-4 hours</option>
-                    <option value="End of Day">End of Day</option>
-                    <option value="Next Day">Next Day</option>
-                    <option value="Indefinite / Unsure">
-                      Indefinite / Unsure
-                    </option>
+                    <option value="Full Day">Full Day</option>
+                    <option value="Indefinite">Indefinite</option>
                   </select>
                 </div>
 
-                <div className="space-y-1 text-left">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    Detailed Reason
+                <div>
+                  <label className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Detailed Reason / Note
                   </label>
                   <textarea
                     value={blockerDescription}
                     onChange={(e) => setBlockerDescription(e.target.value)}
                     placeholder="Provide specific details about why the task is blocked..."
                     rows={3}
-                    className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-250 dark:border-white/10 outline-none focus:border-rose-500 text-slate-800 dark:text-slate-200 placeholder-slate-400"
+                    className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-rose-500 text-slate-800 dark:text-slate-200 placeholder-slate-400"
                   />
                 </div>
               </div>
@@ -4274,6 +4272,47 @@ const MyTasksTab = ({
           </div>
         )}
       </AnimatePresence>
+
+      {/* CORRECTION MODAL */}
+      <CorrectionModal
+        isOpen={!!correctionModalData}
+        onClose={() => setCorrectionModalData(null)}
+        onSubmit={async (reason) => {
+          if (!correctionModalData) return;
+          try {
+            await updateTaskTrigger({
+              id: correctionModalData.taskId,
+              taskData: { status: "Correction", correctionReason: reason },
+            }).unwrap();
+            toast.success("Task sent for Correction");
+          } catch (err) {
+            toast.error("Failed to send task for correction");
+          }
+          setCorrectionModalData(null);
+        }}
+        task={correctionModalData?.taskObj}
+      />
+
+      {/* REJECTION MODAL */}
+      <RejectionModal
+        isOpen={!!rejectionModalData}
+        onClose={() => setRejectionModalData(null)}
+        onSubmit={async (reason) => {
+          if (!rejectionModalData) return;
+          try {
+            await updateTaskTrigger({
+              id: rejectionModalData.taskId,
+              taskData: { status: "Rejected", rejectionReason: reason },
+            }).unwrap();
+            toast.success("Task marked as Rejected");
+          } catch (err) {
+            toast.error("Failed to reject task");
+          }
+          setRejectionModalData(null);
+        }}
+        task={rejectionModalData?.taskObj}
+      />
+
       {/* OFF-CANVAS WORKSPACE PREVIEW DRAWER */}
       <AnimatePresence>
         {selectedTask && (
@@ -4747,45 +4786,6 @@ const MyTasksTab = ({
             </motion.div>
           </div>
         )}
-        {/* CORRECTION MODAL */}
-        <CorrectionModal
-          isOpen={!!correctionModalData}
-          onClose={() => setCorrectionModalData(null)}
-          onSubmit={async (reason) => {
-            if (!correctionModalData) return;
-            try {
-              await updateTaskTrigger({
-                id: correctionModalData.taskId,
-                taskData: { status: "Correction", correctionReason: reason },
-              }).unwrap();
-              toast.success("Task sent for Correction");
-            } catch (err) {
-              toast.error("Failed to send task for correction");
-            }
-            setCorrectionModalData(null);
-          }}
-          task={correctionModalData?.taskObj}
-        />
-
-        {/* REJECTION MODAL */}
-        <RejectionModal
-          isOpen={!!rejectionModalData}
-          onClose={() => setRejectionModalData(null)}
-          onSubmit={async (reason) => {
-            if (!rejectionModalData) return;
-            try {
-              await updateTaskTrigger({
-                id: rejectionModalData.taskId,
-                taskData: { status: "Rejected", rejectionReason: reason },
-              }).unwrap();
-              toast.success("Task marked as Rejected");
-            } catch (err) {
-              toast.error("Failed to reject task");
-            }
-            setRejectionModalData(null);
-          }}
-          task={rejectionModalData?.taskObj}
-        />
       </AnimatePresence>
     </>
   );

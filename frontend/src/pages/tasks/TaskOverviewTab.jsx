@@ -1568,7 +1568,7 @@ const TaskOverviewTab = ({
 
     if (sanitizedFields.status === "In Review") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime) {
+      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime) {
         showStartInProgressWarning("review");
         return;
       }
@@ -1580,7 +1580,7 @@ const TaskOverviewTab = ({
 
     if (sanitizedFields.status === "On Hold") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime) {
+      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime && currentTaskObj.contentType !== "MOM") {
         showStartInProgressWarning("hold");
         return;
       }
@@ -4760,7 +4760,7 @@ const TaskOverviewTab = ({
         )}
 
         {taskToDelete && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div key="delete-task-modal-wrapper" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -4799,46 +4799,47 @@ const TaskOverviewTab = ({
             </motion.div>
           </div>
         )}
-        {/* CORRECTION MODAL */}
-        <CorrectionModal
-          isOpen={!!correctionModalData}
-          onClose={() => setCorrectionModalData(null)}
-          onSubmit={async (reason) => {
-            if (!correctionModalData) return;
-            try {
-              await updateTaskTrigger({
-                id: correctionModalData.taskId,
-                taskData: { status: "Correction", correctionReason: reason },
-              }).unwrap();
-              toast.success("Task sent for Correction");
-            } catch (err) {
-              toast.error("Failed to send task for correction");
-            }
-            setCorrectionModalData(null);
-          }}
-          task={correctionModalData?.taskObj}
-        />
-
-        {/* REJECTION MODAL */}
-        <RejectionModal
-          isOpen={!!rejectionModalData}
-          onClose={() => setRejectionModalData(null)}
-          onSubmit={async (reason) => {
-            if (!rejectionModalData) return;
-            try {
-              await updateTaskTrigger({
-                id: rejectionModalData.taskId,
-                taskData: { status: "Rejected", rejectionReason: reason },
-              }).unwrap();
-              toast.success("Task marked as Rejected");
-            } catch (err) {
-              toast.error("Failed to reject task");
-            }
-            setRejectionModalData(null);
-          }}
-          task={rejectionModalData?.taskObj}
-        />
       </AnimatePresence>
+
+      {/* CORRECTION MODAL */}
+      <CorrectionModal
+        isOpen={!!correctionModalData}
+        onClose={() => setCorrectionModalData(null)}
+        onSubmit={async (reason) => {
+          if (!correctionModalData) return;
+          try {
+            await updateTaskTrigger({
+              id: correctionModalData.taskId,
+              taskData: { status: "Correction", correctionReason: reason },
+            }).unwrap();
+            toast.success("Task sent for Correction");
+          } catch (err) {
+            toast.error("Failed to send task for correction");
+          }
+          setCorrectionModalData(null);
+        }}
+        task={correctionModalData?.taskObj}
+      />
+
+      {/* REJECTION MODAL */}
+      <RejectionModal
+        isOpen={!!rejectionModalData}
+        onClose={() => setRejectionModalData(null)}
+        onSubmit={async (reason) => {
+          if (!rejectionModalData) return;
+          try {
+            await updateTaskTrigger({
+              id: rejectionModalData.taskId,
+              taskData: { status: "Rejected", rejectionReason: reason },
+            }).unwrap();
+            toast.success("Task marked as Rejected");
+          } catch (err) {
+            toast.error("Failed to reject task");
+          }
+          setRejectionModalData(null);
+        }}
+        task={rejectionModalData?.taskObj}
+      />
     </>
   );
 };

@@ -155,10 +155,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     (state) => state.designerEodReports || {},
   );
 
+  const fetchedEodRef = React.useRef(false);
   useEffect(() => {
-    if (role === "admin" || role === "operationmanager") {
+    if ((role === "admin" || role === "operationmanager") && !fetchedEodRef.current) {
       if (!eodReports || eodReports.length === 0) dispatch(getEodReports());
       if (!designerEodReports || designerEodReports.length === 0) dispatch(getDesignerEodReports());
+      fetchedEodRef.current = true;
     }
   }, [dispatch, role, eodReports, designerEodReports]);
 
@@ -406,12 +408,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     }
   }, [activePortfolioId, activeProjectId, projects, portfolios]);
 
+  const fetchedMainDataRef = React.useRef(false);
   useEffect(() => {
-    if (!projects || projects.length === 0) dispatch(getProjects());
-    if (!portfolios || portfolios.length === 0) dispatch(getPortfolios());
-    if (!clients || clients.length === 0) dispatch(getClients());
-    if (role === "admin" && (!users || users.length === 0)) {
-      dispatch(getUsers());
+    if (!fetchedMainDataRef.current) {
+      if (!projects || projects.length === 0) dispatch(getProjects());
+      if (!portfolios || portfolios.length === 0) dispatch(getPortfolios());
+      if (!clients || clients.length === 0) dispatch(getClients());
+      if (role === "admin" && (!users || users.length === 0)) {
+        dispatch(getUsers());
+      }
+      fetchedMainDataRef.current = true;
     }
   }, [dispatch, role, projects, portfolios, clients, users]);
 

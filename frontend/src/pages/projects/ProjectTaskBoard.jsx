@@ -2637,7 +2637,7 @@ const ProjectTaskBoard = ({
   const handleTaskFieldChange = async (taskId, fields) => {
     if (fields.status === "In Review") {
       const taskObj = localTasks.find((t) => t._id === taskId);
-      if (taskObj && !taskObj.actualStartTime) {
+      if (taskObj && !taskObj.actualStartTime && !taskObj.totalTrackedTime) {
         showStartInProgressWarning("review");
         return;
       }
@@ -2649,7 +2649,7 @@ const ProjectTaskBoard = ({
 
     if (fields.status === "On Hold") {
       const taskObj = localTasks.find((t) => t._id === taskId);
-      if (taskObj && !taskObj.actualStartTime) {
+      if (taskObj && !taskObj.actualStartTime && !taskObj.totalTrackedTime && taskObj.contentType !== "MOM") {
         showStartInProgressWarning("hold");
         return;
       }
@@ -3075,7 +3075,7 @@ const ProjectTaskBoard = ({
   const handleSubtaskFieldChange = async (task, subtaskId, updatedFields) => {
     if (updatedFields.status === "In Review") {
       const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
-      if (subtaskObj && !subtaskObj.actualStartTime) {
+      if (subtaskObj && !subtaskObj.actualStartTime && !subtaskObj.totalTrackedTime) {
         showStartInProgressWarning("review");
         return;
       }
@@ -3093,7 +3093,7 @@ const ProjectTaskBoard = ({
 
     if (updatedFields.status === "On Hold") {
       const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
-      if (subtaskObj && !subtaskObj.actualStartTime) {
+      if (subtaskObj && !subtaskObj.actualStartTime && !subtaskObj.totalTrackedTime && (subtaskObj.contentType !== "MOM" && task.contentType !== "MOM")) {
         showStartInProgressWarning("hold");
         return;
       }
