@@ -274,6 +274,26 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         }
       }
 
+      // Show Workload ONLY for Admin, Operation Manager, and Social Media Manager department
+      if (item.name === "Workload" || item.path?.includes("workload")) {
+        const deptLower = (currentUser?.department || "").toLowerCase();
+        const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+        const isAdmin =
+          roleLower === "admin" ||
+          deptLower.includes("managing partner") ||
+          roleLower.includes("managing partner");
+        const isOperationManager =
+          roleLower === "operationmanager" ||
+          deptLower.includes("operation manager") ||
+          roleLower.includes("operation manager");
+        const isSocialMedia = deptLower.includes("social media");
+
+        if (!isAdmin && !isOperationManager && !isSocialMedia) {
+          return false;
+        }
+      }
+
       // Hide Chat when admin is impersonating another user
       if (item.name === "Chat" && originalAdminUser) {
         return false;

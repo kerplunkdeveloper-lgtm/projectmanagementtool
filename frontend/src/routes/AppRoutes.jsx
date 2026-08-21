@@ -71,6 +71,7 @@ export const preloadAllRoutes = () => {
     () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
     () => import("../pages/admin/MomClientReport.jsx"),
     () => import("../pages/chat/ChatPage.jsx"),
+    () => import("../pages/workload/Workload.jsx"),
   ];
 
   if (typeof window !== "undefined" && "requestIdleCallback" in window) {
@@ -161,6 +162,11 @@ const AppRoutes = () => {
         <Route
           path="mom-client-report"
           element={<MomClientReport />}
+        />
+
+        <Route
+          path="workload"
+          element={<Workload />}
         />
 
         <Route
@@ -299,6 +305,11 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="workload"
+          element={<Workload />}
+        />
+
+        <Route
           path="notifications"
           element={<Notifications />}
         />
@@ -406,6 +417,11 @@ const AppRoutes = () => {
         <Route
           path="client-calls"
           element={<ClientCalls />}
+        />
+
+        <Route
+          path="workload"
+          element={<Workload />}
         />
       </Route>
      
