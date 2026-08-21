@@ -1176,7 +1176,7 @@ const TodayTrackerCell = React.memo(({ task, officeHours = DEFAULT_OFFICE_HOURS 
       )}
       <div className="flex justify-between items-center pt-1 border-t border-slate-200 dark:border-white/10 font-extrabold text-slate-800 dark:text-slate-200">
         <span className="text-slate-700 dark:text-slate-300 font-extrabold">Total Today</span>
-        <span className="text-slate-900 dark:text-slate-200 font-black">{formatMsToHMS(activeToday)}</span>
+        <span className="text-slate-900 dark:text-slate-200 font-black">{formatMsToHMS(activeToday + blockedToday)}</span>
       </div>
     </div>
   );

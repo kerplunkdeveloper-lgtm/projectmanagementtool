@@ -426,8 +426,48 @@ const LiveProductivityCell = React.memo(
 
     const calculateTotalLogged = useCallback(() => {
       let total = 0;
+      const selDateObj = selectedDate ? new Date(selectedDate) : new Date();
+      const selDateStr = selDateObj.toLocaleDateString("en-CA", {
+        timeZone: "Asia/Kolkata",
+      });
+
       tasks.forEach((t) => {
-        total += calculateTaskProductivityForDate(t, selectedDate, officeHours);
+        let taskTotal = calculateTaskProductivityForDate(
+          t,
+          selectedDate,
+          officeHours,
+        );
+
+        let blockerMs = 0;
+        if (t && Array.isArray(t.blockerHistory)) {
+          t.blockerHistory.forEach((b) => {
+            if (!b.pausedAt) return;
+            const pDate = new Date(b.pausedAt).toLocaleDateString("en-CA", {
+              timeZone: "Asia/Kolkata",
+            });
+            const pMs = new Date(b.pausedAt).getTime();
+            const rMs = b.resumedAt
+              ? new Date(b.resumedAt).getTime()
+              : Date.now();
+            if (pDate === selDateStr) {
+              blockerMs += Math.max(0, rMs - pMs);
+            }
+          });
+        }
+        if (t && t.isBlocked && t.blockerPausedAt) {
+          const pDate = new Date(t.blockerPausedAt).toLocaleDateString(
+            "en-CA",
+            { timeZone: "Asia/Kolkata" },
+          );
+          if (pDate === selDateStr) {
+            blockerMs += Math.max(
+              0,
+              Date.now() - new Date(t.blockerPausedAt).getTime(),
+            );
+          }
+        }
+
+        total += taskTotal + blockerMs;
       });
       return total;
     }, [tasks, selectedDate, officeHours]);
@@ -1630,18 +1670,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const blockerTypesSet = new Set();
 
       myTasks.forEach((t) => {
-        const taskLoggedMs = calculateTaskProductivityForDate(
-          t,
-          selectedDate,
-          officeHours,
-        );
-        if (taskLoggedMs > 0) {
-          totalLoggedMs += taskLoggedMs;
-          totalBusinessLoggedMs += taskLoggedMs;
-          inProgressLoggedMs += taskLoggedMs;
-        }
-
-        // Collect blockers and compute blocker time strictly for selectedDate
+        let taskBlockerMs = 0;
         const selDateObj = selectedDate || new Date();
         const dayStart = startOfDay(selDateObj).getTime();
         const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
@@ -1668,7 +1697,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             const overlapEnd = Math.min(pEnd, nextDayStart);
 
             if (overlapEnd > overlapStart) {
-              totalBlockerMs += overlapEnd - overlapStart;
+              taskBlockerMs += overlapEnd - overlapStart;
               if (item.blockerType) {
                 blockerTypesSet.add(item.blockerType);
               }
@@ -1679,9 +1708,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         if (t.isBlocked && t.blockerPausedAt) {
           const pStart = new Date(t.blockerPausedAt).getTime();
           if (!isNaN(pStart)) {
-            const selDateObj = selectedDate || new Date();
-            const dayStart = startOfDay(selDateObj).getTime();
-            const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
             const pEnd = isSameDay(selDateObj, new Date())
               ? Date.now()
               : nextDayStart;
@@ -1699,13 +1725,28 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 });
 
               if (!alreadyHandled) {
-                totalBlockerMs += overlapEnd - overlapStart;
+                taskBlockerMs += overlapEnd - overlapStart;
                 if (t.blockerType) {
                   blockerTypesSet.add(t.blockerType);
                 }
               }
             }
           }
+        }
+
+        totalBlockerMs += taskBlockerMs;
+
+        const taskLoggedMs = calculateTaskProductivityForDate(
+          t,
+          selectedDate,
+          officeHours,
+        );
+        const taskTotalLoggedWithBlockers = taskLoggedMs + taskBlockerMs;
+
+        if (taskTotalLoggedWithBlockers > 0) {
+          totalLoggedMs += taskTotalLoggedWithBlockers;
+          totalBusinessLoggedMs += taskTotalLoggedWithBlockers;
+          inProgressLoggedMs += taskTotalLoggedWithBlockers;
         }
       });
 

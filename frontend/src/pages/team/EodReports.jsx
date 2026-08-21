@@ -191,7 +191,43 @@ const LiveTimeTracker = ({
   const calculateCurrentMs = React.useCallback(() => {
     const target = originalTask || task;
     if (!target) return 0;
-    return calculateTaskProductivityForDate(target, selDateObj, officeHours);
+    const activeMs = calculateTaskProductivityForDate(
+      target,
+      selDateObj,
+      officeHours,
+    );
+
+    let blockerMs = 0;
+    const selDateStr = selDateObj.toLocaleDateString("en-CA", {
+      timeZone: "Asia/Kolkata",
+    });
+    if (Array.isArray(target.blockerHistory)) {
+      target.blockerHistory.forEach((b) => {
+        if (!b.pausedAt) return;
+        const pDate = new Date(b.pausedAt).toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kolkata",
+        });
+        const pMs = new Date(b.pausedAt).getTime();
+        const rMs = b.resumedAt ? new Date(b.resumedAt).getTime() : Date.now();
+        if (pDate === selDateStr) {
+          blockerMs += Math.max(0, rMs - pMs);
+        }
+      });
+    }
+    if (target.isBlocked && target.blockerPausedAt) {
+      const pDate = new Date(target.blockerPausedAt).toLocaleDateString(
+        "en-CA",
+        { timeZone: "Asia/Kolkata" },
+      );
+      if (pDate === selDateStr) {
+        blockerMs += Math.max(
+          0,
+          Date.now() - new Date(target.blockerPausedAt).getTime(),
+        );
+      }
+    }
+
+    return activeMs + blockerMs;
   }, [originalTask, task, selDateObj, officeHours]);
 
   const [elapsedStr, setElapsedStr] = React.useState(() => {
@@ -325,6 +361,9 @@ const calculateTotalLoggedTime = (
   officeHours,
 ) => {
   const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+  const selDateStr = selDateObj.toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
   let totalMs = 0;
 
   (tasks || []).forEach((t) => {
@@ -338,8 +377,38 @@ const calculateTotalLoggedTime = (
       selDateObj,
       officeHours,
     );
-    if (msToday > 0) {
-      totalMs += msToday;
+
+    let blockerMs = 0;
+    if (target && Array.isArray(target.blockerHistory)) {
+      target.blockerHistory.forEach((b) => {
+        if (!b.pausedAt) return;
+        const pDate = new Date(b.pausedAt).toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kolkata",
+        });
+        const pMs = new Date(b.pausedAt).getTime();
+        const rMs = b.resumedAt ? new Date(b.resumedAt).getTime() : Date.now();
+        if (pDate === selDateStr) {
+          blockerMs += Math.max(0, rMs - pMs);
+        }
+      });
+    }
+    if (target && target.isBlocked && target.blockerPausedAt) {
+      const pDate = new Date(target.blockerPausedAt).toLocaleDateString(
+        "en-CA",
+        { timeZone: "Asia/Kolkata" },
+      );
+      if (pDate === selDateStr) {
+        blockerMs += Math.max(
+          0,
+          Date.now() - new Date(target.blockerPausedAt).getTime(),
+        );
+      }
+    }
+
+    const taskTotalToday = msToday + blockerMs;
+
+    if (taskTotalToday > 0) {
+      totalMs += taskTotalToday;
     } else {
       const timeStr = t.time || "";
       const hoursMatch = timeStr.match(/(\d+)\s*h/i);
