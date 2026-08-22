@@ -622,14 +622,7 @@ const SMPostTasks = () => {
               <table className="w-full text-left border-collapse text-[11px]">
                 <thead>
                   <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-white/10 text-slate-500 dark:text-slate-400 font-bold text-[10px] uppercase tracking-wider sticky top-0 z-10 backdrop-blur-xs">
-                    <th className="py-3 px-3 w-7">
-                      <input
-                        type="checkbox"
-                        checked={selectedTasks.length > 0 && selectedTasks.length === paginatedTasks.length}
-                        onChange={toggleSelectAll}
-                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      />
-                    </th>
+                    <th className="py-3 px-3 w-7"></th>
                     <th className="py-3 px-2.5">Client</th>
                     <th className="py-3 px-2.5">Task Category</th>
                     <th className="py-3 px-3">Task</th>
@@ -675,14 +668,23 @@ const SMPostTasks = () => {
                             isChecked ? "bg-blue-50/40 dark:bg-blue-900/10" : ""
                           }`}
                         >
-                          {/* Checkbox */}
+                          {/* Completed Shortcut */}
                           <td className="py-2 px-3">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleSelectTask(t._id)}
-                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
+                            <div 
+                              onClick={() => handleStatusChange(t._id, t.status === "Completed" ? "To Do" : "Completed")}
+                              className={`w-6 h-6 rounded-full border-[1.5px] flex items-center justify-center cursor-pointer shadow-sm transition-all duration-200 ${
+                                t.status === "Completed" 
+                                  ? "bg-emerald-500 border-emerald-500 scale-105" 
+                                  : "border-slate-300 dark:border-slate-600 hover:border-emerald-400 dark:hover:border-emerald-500"
+                              }`}
+                              title="Mark as completed"
+                            >
+                              {t.status === "Completed" && (
+                                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
                           </td>
 
                           {/* Client */}

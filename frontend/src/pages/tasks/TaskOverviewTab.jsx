@@ -1418,7 +1418,11 @@ const TaskOverviewTab = ({
 
     if (sanitizedFields.status === "In Review") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime) {
+      if (
+        currentTaskObj &&
+        !currentTaskObj.actualStartTime &&
+        !currentTaskObj.totalTrackedTime
+      ) {
         showStartInProgressWarning("review");
         return;
       }
@@ -1430,7 +1434,12 @@ const TaskOverviewTab = ({
 
     if (sanitizedFields.status === "On Hold") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
-      if (currentTaskObj && !currentTaskObj.actualStartTime && !currentTaskObj.totalTrackedTime && currentTaskObj.contentType !== "MOM") {
+      if (
+        currentTaskObj &&
+        !currentTaskObj.actualStartTime &&
+        !currentTaskObj.totalTrackedTime &&
+        currentTaskObj.contentType !== "MOM"
+      ) {
         showStartInProgressWarning("hold");
         return;
       }
@@ -2222,7 +2231,10 @@ const TaskOverviewTab = ({
         }
       }
 
-      const sessionElapsedMs = Math.max(0, end - start - (task.totalPausedMs || 0) - sessionPauseMs);
+      const sessionElapsedMs = Math.max(
+        0,
+        end - start - (task.totalPausedMs || 0) - sessionPauseMs,
+      );
       const totalElapsedMs = baseTracked + sessionElapsedMs;
       const activeSecs = Math.max(0, Math.floor(totalElapsedMs / 1000));
       const blockedSecs = Math.max(0, Math.floor(lifetimeBlockerMs / 1000));
@@ -3605,7 +3617,9 @@ const TaskOverviewTab = ({
                     const isInProgress = task.status === "In Progress";
 
                     const projId = task.project?._id || task.project;
-                    const projectObj = projId ? projectsMap.get(String(projId)) : null;
+                    const projectObj = projId
+                      ? projectsMap.get(String(projId))
+                      : null;
                     const clientRaw = task.project?.client?.companyName
                       ? task.project.client
                       : projectObj?.client || task.project?.client;
@@ -3641,7 +3655,9 @@ const TaskOverviewTab = ({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleTaskFieldChange(task._id, {
-                                    status: isCompleted ? "Pending" : "Completed",
+                                    status: isCompleted
+                                      ? "Pending"
+                                      : "Completed",
                                   });
                                 }}
                                 className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer shrink-0 transition-all duration-300 ${
@@ -4654,7 +4670,10 @@ const TaskOverviewTab = ({
         )}
 
         {taskToDelete && (
-          <div key="delete-task-modal-wrapper" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div
+            key="delete-task-modal-wrapper"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
