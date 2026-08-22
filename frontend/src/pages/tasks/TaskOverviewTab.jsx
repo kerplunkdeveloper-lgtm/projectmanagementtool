@@ -3699,7 +3699,7 @@ const TaskOverviewTab = ({
                                 }}
                                 className={`outline-none text-[12px] font-extrabold text-slate-800 dark:text-slate-900 min-w-[50px] max-w-[300px] truncate block ${
                                   isCompleted
-                                    ? "line-through decoration-[#10b981] decoration-2 text-slate-400 dark:text-slate-500"
+                                    ? "line-through decoration-[#10b981] decoration-1 text-slate-400 dark:text-slate-500"
                                     : ""
                                 }`}
                                 title="Click to edit task name"
