@@ -1167,8 +1167,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               {totalUnreadChatCount}
                             </span>
                           )}
-                        {(item.name === "MOM Report" ||
-                          item.name === "MOM Client Report") &&
+                        {(item.name === "MOM/ClientCall" ||
+                          item.name === "MOM Client Report" ||
+                          item.name === "MOM Report") &&
                           (newMomCount + (notifications ? notifications.filter(n => !n.isRead && n.type === 'client_call_created').length : 0)) > 0 && (
                             <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-indigo-600 dark:bg-indigo-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
                               {newMomCount + (notifications ? notifications.filter(n => !n.isRead && n.type === 'client_call_created').length : 0)}
