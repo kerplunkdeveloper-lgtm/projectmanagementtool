@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useGetTasksQuery, useGetProjectsQuery } from "../../features/api/apiSlice";
+import { useGetTasksQuery, useGetProjectsQuery, useDeleteTaskMutation } from "../../features/api/apiSlice";
 import { getUsers } from "../../features/users/userSlice";
-import { FiFileText, FiCheckCircle, FiCalendar, FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiFileText, FiCheckCircle, FiCalendar, FiChevronDown, FiChevronLeft, FiChevronRight, FiTrash2 } from "react-icons/fi";
 import ClientBadge from "../../components/common/ClientBadge";
 import ClientCalls from "../client-calls/ClientCalls";
 import axiosInstance from "../../services/axiosInstance";
@@ -122,6 +122,17 @@ const MomClientReport = () => {
     dispatch(getUsers());
   }, [dispatch]);
 
+  const [deleteTask] = useDeleteTaskMutation();
+  const handleDeleteTask = async (taskId) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      try {
+        await deleteTask(taskId).unwrap();
+      } catch (err) {
+        console.error("Failed to delete task:", err);
+      }
+    }
+  };
+
   const { data: tasks = [], isLoading: tasksLoading } = useGetTasksQuery(undefined, {
     skip: !user,
   });
@@ -176,7 +187,7 @@ const MomClientReport = () => {
   };
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    const filtered = tasks.filter((task) => {
       if ((task.contentType || "").toUpperCase() !== "MOM") return false;
 
       const assigneeId = task.assignedTo?._id || task.assignedTo;
@@ -190,16 +201,18 @@ const MomClientReport = () => {
       if (clientFilter && clientId !== clientFilter) return false;
 
       if (dateFilter) {
-        const taskDate = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : null;
+        const taskDate = task.createdAt ? new Date(task.createdAt).toISOString().split('T')[0] : null;
         if (taskDate !== dateFilter) return false;
       }
 
       return true;
     });
+
+    return filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }, [tasks, projects, dateFilter, assigneeFilter, clientFilter]);
 
   const filteredClientCalls = useMemo(() => {
-    return clientCalls.filter(call => {
+    const filtered = clientCalls.filter(call => {
       const assigneeId = call.createdBy?._id || call.createdBy;
       if (assigneeFilter && assigneeId !== assigneeFilter) return false;
 
@@ -207,12 +220,14 @@ const MomClientReport = () => {
       if (clientFilter && clientId !== clientFilter) return false;
 
       if (dateFilter) {
-        const callDate = call.date ? new Date(call.date).toISOString().split('T')[0] : null;
+        const callDate = call.createdAt ? new Date(call.createdAt).toISOString().split('T')[0] : null;
         if (callDate !== dateFilter) return false;
       }
 
       return true;
     });
+
+    return filtered.sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
   }, [clientCalls, dateFilter, assigneeFilter, clientFilter]);
 
   const uniqueClientCallAssignees = useMemo(() => {
@@ -455,21 +470,23 @@ const MomClientReport = () => {
                     <th className="px-3 py-2 text-center whitespace-nowrap">
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Check</span>
                     </th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Assignee</th>
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Client Name</th>
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Task Title</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Created By</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Assignee</th>
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Start Date</th>
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">End Date</th>
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap text-center">Priority</th>
-                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Created Time</th>
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Status</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Created Time</th>
                     <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Feedback MOM</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   {filteredTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-xs">
+                      <td colSpan={12} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-xs">
                         No MOM tasks found for the selected criteria.
                       </td>
                     </tr>
@@ -478,6 +495,10 @@ const MomClientReport = () => {
                       const assigneeId = task.assignedTo?._id || task.assignedTo;
                       const assigneeName = typeof task.assignedTo === "object" ? task.assignedTo?.name : (users?.find(u => (u._id || u.id) === assigneeId)?.name || "Unknown");
                       
+                      const createdById = task.createdBy?._id || task.createdBy;
+                      const createdByName = typeof task.createdBy === "object" ? task.createdBy?.name : (users?.find(u => (u._id || u.id) === createdById)?.name || "Unknown");
+                      const createdByUserObj = typeof task.createdBy === "object" ? task.createdBy : users?.find(u => (u._id || u.id) === createdById);
+
                       const projId = task.project?._id || task.project;
                       const projectObj = projects.find((p) => p._id === projId);
                       const clientObj = task.project?.client?.companyName ? task.project.client : projectObj?.client;
@@ -489,7 +510,7 @@ const MomClientReport = () => {
 
                       return (
                         <tr key={task._id} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/40 transition-colors">
-                          <td className="px-3 py-1.5 text-center whitespace-nowrap">
+                          <td className="px-3 py-3 align-top text-center whitespace-nowrap">
                             <div className="flex items-center justify-center gap-1">
                               <button 
                                 onClick={() => handleToggleCheck(task._id)}
@@ -506,42 +527,64 @@ const MomClientReport = () => {
                               )}
                             </div>
                           </td>
-                          <td className="px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              {renderUserAvatarSmall(assigneeUserObj, "w-5 h-5 text-[8px]")}
-                              <span>{assigneeName}</span>
-                            </div>
-                          </td>
-                          <td className="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          <td className="px-3 py-3 align-top text-xs font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
                             {clientObj ? (
                               <ClientBadge client={clientObj} size="sm" />
                             ) : (
                               <span>{clientName}</span>
                             )}
                           </td>
-                          <td className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 whitespace-nowrap font-medium" title={task.title}>
-                            {task.title}
+                          <td className="px-3 py-3 align-top text-xs text-slate-700 dark:text-slate-300 font-medium min-w-[350px]" title={task.title}>
+                            <div className="line-clamp-3 whitespace-normal break-words">
+                              {task.title}
+                            </div>
                           </td>
-                          <td className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                          <td className="px-3 py-3 align-top text-xs font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              {renderUserAvatarSmall(createdByUserObj, "w-5 h-5 text-[8px]")}
+                              <div className="flex flex-col">
+                                <span>{createdByName}</span>
+                                {createdByUserObj?.department && (
+                                  <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-[10px]">
+                                    {createdByUserObj.department}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 align-top text-xs font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              {renderUserAvatarSmall(assigneeUserObj, "w-5 h-5 text-[8px]")}
+                              <div className="flex flex-col">
+                                <span>{assigneeName}</span>
+                                {assigneeUserObj?.department && (
+                                  <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 leading-[10px]">
+                                    {assigneeUserObj.department}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 align-top text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
                             {task.startDate ? new Date(task.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
                           </td>
-                          <td className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                          <td className="px-3 py-3 align-top text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
                             {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
                           </td>
-                          <td className="px-3 py-1.5 text-[11px] text-center whitespace-nowrap">
+                          <td className="px-3 py-3 align-top text-[11px] text-center whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded ${getPriorityStyle(task.priority)}`}>
                               {task.priority || "Medium"}
                             </span>
                           </td>
-                          <td className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap text-center">
-                            {formatCreatedTime(task.createdAt)}
-                          </td>
-                          <td className="px-3 py-1.5 text-[11px] text-center whitespace-nowrap">
+                          <td className="px-3 py-3 align-top text-[11px] text-center whitespace-nowrap">
                             <span className={`px-1.5 py-0.5 rounded ${getStatusStyle(task.status)} font-bold`}>
                               {task.status || "Pending"}
                             </span>
                           </td>
-                          <td className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap" title={task.feedbackMom || ""}>
+                          <td className="px-3 py-3 align-top text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap text-center">
+                            {formatCreatedTime(task.createdAt)}
+                          </td>
+                          <td className="px-3 py-3 align-top text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap" title={task.feedbackMom || ""}>
                             {task.feedbackMom ? (
                               <span className="font-medium text-slate-700 dark:text-slate-200">
                                 {task.feedbackMom}
@@ -549,6 +592,15 @@ const MomClientReport = () => {
                             ) : (
                               <span className="text-slate-400 italic">—</span>
                             )}
+                          </td>
+                          <td className="px-3 py-3 align-top text-center whitespace-nowrap">
+                            <button
+                              onClick={() => handleDeleteTask(task._id)}
+                              className="text-slate-400 hover:text-rose-500 transition-colors p-1"
+                              title="Delete Task"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
                           </td>
                         </tr>
                       );
