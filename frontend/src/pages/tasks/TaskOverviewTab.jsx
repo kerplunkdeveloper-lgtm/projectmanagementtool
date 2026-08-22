@@ -3636,7 +3636,29 @@ const TaskOverviewTab = ({
                             className="py-1.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-left whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTaskFieldChange(task._id, {
+                                    status: isCompleted ? "Pending" : "Completed",
+                                  });
+                                }}
+                                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center cursor-pointer shrink-0 transition-all duration-300 ${
+                                  isCompleted
+                                    ? "bg-emerald-500 border-emerald-500 shadow-md shadow-emerald-500/40 scale-110"
+                                    : "bg-white border-slate-300 hover:border-emerald-400 dark:bg-slate-800 dark:border-slate-500 hover:shadow-sm"
+                                }`}
+                                title={
+                                  isCompleted
+                                    ? "Mark as Pending"
+                                    : "Mark as Completed"
+                                }
+                              >
+                                {isCompleted && (
+                                  <FiCheck className="text-white w-3.5 h-3.5 stroke-[3]" />
+                                )}
+                              </div>
                               <BiFile
                                 className="text-slate-400 shrink-0"
                                 size={16}
