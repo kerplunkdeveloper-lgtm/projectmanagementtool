@@ -150,6 +150,13 @@ const MomClientReport = () => {
   const [clientCalls, setClientCalls] = useState([]);
   const [clientCallsLoading, setClientCallsLoading] = useState(false);
   const [localCheckedCalls, setLocalCheckedCalls] = useState(new Set());
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const tasksPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [dateFilter, assigneeFilter, clientFilter, activeTab]);
 
   useEffect(() => {
     if (activeTab === "clientcall" && clientCalls.length === 0) {
@@ -317,6 +324,11 @@ const MomClientReport = () => {
 
   const loading = tasksLoading || projectsLoading;
 
+  const indexOfLastTask = currentPage * tasksPerPage;
+  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+  const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
+  const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#020710] overflow-hidden">
       <div className="flex items-center gap-3 px-6 py-3.5 theme-bg-accent shadow-md shrink-0">
@@ -463,6 +475,9 @@ const MomClientReport = () => {
           </div>
         ) : (
           <div className="bg-white dark:bg-[#0f172a] rounded-xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col min-h-0">
+            <div className="flex justify-between items-center px-4 py-3 shrink-0 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">No.of MOM : <span className="text-indigo-600 dark:text-indigo-400">{filteredTasks.length}</span></h3>
+            </div>
             <div className="overflow-x-auto overflow-y-auto flex-1">
               <table className="w-full table-auto text-left border-collapse">
                 <thead className="sticky top-0 z-10">
@@ -484,14 +499,14 @@ const MomClientReport = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                  {filteredTasks.length === 0 ? (
+                  {currentTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-xs">
+                      <td colSpan="12" className="px-3 py-8 text-center text-slate-500 text-[11px] font-medium">
                         No MOM tasks found for the selected criteria.
                       </td>
                     </tr>
                   ) : (
-                    filteredTasks.map((task) => {
+                    currentTasks.map((task) => {
                       const assigneeId = task.assignedTo?._id || task.assignedTo;
                       const assigneeName = typeof task.assignedTo === "object" ? task.assignedTo?.name : (users?.find(u => (u._id || u.id) === assigneeId)?.name || "Unknown");
                       
@@ -609,6 +624,32 @@ const MomClientReport = () => {
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 shrink-0">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  Showing {indexOfFirstTask + 1} to {Math.min(indexOfLastTask, filteredTasks.length)} of {filteredTasks.length} entries
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-2.5 py-1 text-xs font-bold rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-600 dark:text-slate-300"
+                  >
+                    Prev
+                  </button>
+                  <span className="px-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-2.5 py-1 text-xs font-bold rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-slate-600 dark:text-slate-300"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
           </>

@@ -25,7 +25,7 @@ import { getClients } from "../../features/clients/clientslice";
 import { apiSlice, useGetTasksQuery } from "../../features/api/apiSlice";
 import { getEodReports } from "../../features/eodReports/eodReportSlice";
 import { getDesignerEodReports } from "../../features/eodReports/designerEodReportSlice";
-import { markAllChatAsRead } from "../../features/notifications/notificationSlice";
+import { markAllChatAsRead, markAsRead } from "../../features/notifications/notificationSlice";
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import ProjectIcon from "../common/ProjectIcon";
 
@@ -164,14 +164,21 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     }
   }, [dispatch, role, eodReports, designerEodReports]);
 
+  const [lastViewedMom, setLastViewedMom] = useState(() => {
+    try {
+      return parseInt(localStorage.getItem(`lastViewedMom_${currentUser?._id || ''}`) || "0", 10);
+    } catch {
+      return 0;
+    }
+  });
+
   const newMomCount = React.useMemo(() => {
     return (allTasks || []).filter(
       (t) =>
         (t.contentType || "").toUpperCase() === "MOM" &&
-        (t.status || "").toLowerCase() !== "completed" &&
-        (t.status || "").toLowerCase() !== "done",
+        new Date(t.createdAt).getTime() > lastViewedMom
     ).length;
-  }, [allTasks]);
+  }, [allTasks, lastViewedMom]);
 
   const newReportsCount = React.useMemo(() => {
     if (role !== "admin" && role !== "operationmanager") return 0;
@@ -1061,6 +1068,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       if (item.name === "Chat") {
                         dispatch(clearAllUnreadCounts());
                         dispatch(markAllChatAsRead());
+                      }
+                      if (item.name === "MOM/ClientCall" || item.name === "MOM Client Report" || item.name === "MOM Report") {
+                        const now = Date.now();
+                        localStorage.setItem(`lastViewedMom_${currentUser?._id || ''}`, now.toString());
+                        setLastViewedMom(now);
+                        if (notifications) {
+                          notifications.forEach(n => {
+                            if (!n.isRead && n.type === 'client_call_created') {
+                              dispatch(markAsRead(n._id));
+                            }
+                          });
+                        }
                       }
                     }}
                     end={
