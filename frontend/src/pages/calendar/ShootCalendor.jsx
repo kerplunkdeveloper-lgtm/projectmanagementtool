@@ -24,6 +24,8 @@ import {
   FiAlertCircle,
   FiAlertTriangle,
   FiCheck,
+  FiEdit2,
+  FiEye,
 } from "react-icons/fi";
 
 const locales = {
@@ -160,16 +162,56 @@ const CustomEvent = ({ event }) => {
 
   return (
     <div
-      className={`h-full w-full p-2 border rounded-lg flex flex-col justify-between overflow-hidden shadow-sm ${colors}`}
+      className={`h-full w-full p-2 border rounded-lg flex flex-col justify-between overflow-hidden shadow-sm ${colors} group relative`}
     >
+      <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 p-1 rounded-md shadow-sm z-10">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            resource.onView && resource.onView();
+          }}
+          className="text-blue-600 hover:bg-blue-100 p-1 rounded"
+          title="View"
+        >
+          <FiEye size={12} />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            resource.onEdit && resource.onEdit();
+          }}
+          className="text-indigo-600 hover:bg-indigo-100 p-1 rounded"
+          title="Edit"
+        >
+          <FiEdit2 size={12} />
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            resource.onDelete && resource.onDelete();
+          }}
+          className="text-red-600 hover:bg-red-100 p-1 rounded"
+          title="Delete"
+        >
+          <FiTrash2 size={12} />
+        </button>
+      </div>
+
       <div>
-        <div className="text-[10px] font-medium opacity-80 mb-1 flex items-center gap-1">
-          <div
-            className={`w-1.5 h-1.5 rounded-full bg-current ${dotColor}`}
-          ></div>
-          {resource.schedule?.startTime} - {resource.schedule?.endTime}
+        <div className="text-[10px] font-medium opacity-80 mb-1 flex flex-col gap-1">
+          <div className="flex items-center gap-1">
+            <div
+              className={`w-1.5 h-1.5 rounded-full bg-current ${dotColor}`}
+            ></div>
+            {resource.schedule?.startTime} - {resource.schedule?.endTime}
+          </div>
+          <span
+            className={`text-[9px] w-max px-1.5 py-0.5 rounded border ${colors} bg-white/50`}
+          >
+            {resource.status}
+          </span>
         </div>
-        <div className="font-bold text-xs truncate leading-tight mb-1">
+        <div className="font-bold text-xs truncate leading-tight mb-1 pr-14">
           {resource.shootTitle}
         </div>
         <div className="text-[11px] opacity-90 truncate">
@@ -224,6 +266,8 @@ const ShootCalendor = () => {
   const [users, setUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedShoot, setSelectedShoot] = useState(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [viewShoot, setViewShoot] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedClientFilter, setSelectedClientFilter] = useState("");
 
@@ -434,6 +478,29 @@ const ShootCalendor = () => {
     }
   };
 
+  const handleDeleteShoot = async (shoot) => {
+    if (!window.confirm("Are you sure you want to delete this shoot?")) return;
+
+    try {
+      await axiosInstance.delete(`/shoot-calendar/${shoot._id}`);
+      toast.success("Shoot deleted");
+      fetchShoots();
+    } catch (error) {
+      toast.error("Failed to delete shoot");
+      console.error(error);
+    }
+  };
+
+  const openViewOffcanvas = (shoot) => {
+    setViewShoot(shoot);
+    setIsViewOpen(true);
+  };
+
+  const closeViewOffcanvas = () => {
+    setIsViewOpen(false);
+    setViewShoot(null);
+  };
+
   const filteredShoots = shoots.filter((shoot) => {
     // Check if client filter is applied
     if (
@@ -445,13 +512,19 @@ const ShootCalendor = () => {
     }
 
     // Role-based visibility
-    if (currentUser?.role && currentUser.role !== "admin" && currentUser.role !== "operationmanager") {
+    if (
+      currentUser?.role &&
+      currentUser.role !== "admin" &&
+      currentUser.role !== "operationmanager"
+    ) {
       const currentUserId = String(currentUser._id);
-      
-      const isCreator = String(shoot.createdBy?._id || shoot.createdBy) === currentUserId;
-      const isAssigned = String(shoot.assignedTo?._id || shoot.assignedTo) === currentUserId;
+
+      const isCreator =
+        String(shoot.createdBy?._id || shoot.createdBy) === currentUserId;
+      const isAssigned =
+        String(shoot.assignedTo?._id || shoot.assignedTo) === currentUserId;
       const inTeam = shoot.shootTeam?.some(
-        (member) => String(member?._id || member) === currentUserId
+        (member) => String(member?._id || member) === currentUserId,
       );
 
       if (!isCreator && !isAssigned && !inTeam) {
@@ -482,7 +555,12 @@ const ShootCalendor = () => {
       start,
       end,
       allDay: false, // Must be false for time grid rendering
-      resource: shoot,
+      resource: {
+        ...shoot,
+        onEdit: () => openModal(shoot),
+        onDelete: () => handleDeleteShoot(shoot),
+        onView: () => openViewOffcanvas(shoot),
+      },
     };
   });
 
@@ -576,7 +654,7 @@ const ShootCalendor = () => {
     <div className="max-w-8xl mx-auto min-h-[calc(100vh-64px)] flex flex-col pt-6 pb-2">
       <div className="flex justify-between items-center mb-6 px-5 shrink-0">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Shoot Calendar - (working on-going - don't use)</h1>
+          <h1 className="text-xl font-bold text-gray-800">Shoot Calendar </h1>
         </div>
         <div className="flex items-center gap-4">
           <select
@@ -663,7 +741,7 @@ const ShootCalendor = () => {
             min={minTime}
             max={maxTime}
             style={{ height: "100%", border: "none" }}
-            onSelectEvent={(event) => openModal(event.resource)}
+            onSelectEvent={(event) => openViewOffcanvas(event.resource)}
             eventPropGetter={eventStyleGetter}
             components={{
               toolbar: CustomToolbar,
@@ -1108,6 +1186,175 @@ const ShootCalendor = () => {
                   {loading ? "Saving..." : "Save Shoot Details"}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Offcanvas */}
+      {isViewOpen && viewShoot && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/60 backdrop-blur-sm transition-opacity">
+          <div className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl flex flex-col transform transition-transform duration-300 translate-x-0">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <h2 className="text-xl font-bold text-gray-900">Shoot Details</h2>
+              <button
+                onClick={closeViewOffcanvas}
+                className="text-gray-400 hover:text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-full p-2 transition-all"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 flex-1 space-y-6">
+              {/* Status and Title */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-md">
+                    {viewShoot.status}
+                  </span>
+                  <span className="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-bold rounded-md">
+                    {viewShoot.shootType}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                  {viewShoot.shootTitle}
+                </h1>
+                <p className="text-gray-500 text-sm">
+                  Client: {viewShoot.client?.companyName || "Unknown"}
+                </p>
+              </div>
+
+              {/* Schedule */}
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <FiClock className="text-indigo-500" /> Schedule
+                </h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500 text-xs mb-0.5">Date</p>
+                    <p className="font-semibold text-gray-800">
+                      {viewShoot.schedule?.shootDate
+                        ? new Date(
+                            viewShoot.schedule.shootDate,
+                          ).toLocaleDateString()
+                        : "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-xs mb-0.5">Time</p>
+                    <p className="font-semibold text-gray-800">
+                      {viewShoot.schedule?.startTime} -{" "}
+                      {viewShoot.schedule?.endTime}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location & Contact */}
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 bg-gray-100 p-2 rounded-lg text-gray-500">
+                    <FiMapPin size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium mb-0.5">
+                      Location
+                    </p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {viewShoot.location || "TBD"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 bg-gray-100 p-2 rounded-lg text-gray-500">
+                    <FiUser size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium mb-0.5">
+                      Client Contact
+                    </p>
+                    <p className="text-sm font-semibold text-gray-800">
+                      {viewShoot.clientContact?.name || "N/A"}
+                      {viewShoot.clientContact?.phone &&
+                        ` (${viewShoot.clientContact.phone})`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team */}
+              <div>
+                <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">
+                  Team
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500">Assigned To (Lead)</span>
+                    <span className="font-semibold text-gray-800">
+                      {viewShoot.assignedTo?.name || "Unassigned"}
+                    </span>
+                  </div>
+                  {viewShoot.shootTeam?.length > 0 && (
+                    <div className="text-sm">
+                      <span className="text-gray-500 block mb-1">
+                        Shoot Team
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {viewShoot.shootTeam.map((member, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2.5 py-1 bg-gray-100 border border-gray-200 text-gray-700 rounded-full text-xs font-medium"
+                          >
+                            {member.name || member}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Details */}
+              {(viewShoot.description || viewShoot.notes) && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">
+                    Additional Details
+                  </h3>
+                  {viewShoot.description && (
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 font-medium mb-1">
+                        Description
+                      </p>
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 whitespace-pre-wrap">
+                        {viewShoot.description}
+                      </p>
+                    </div>
+                  )}
+                  {viewShoot.notes && (
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium mb-1">
+                        Special Instructions
+                      </p>
+                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100 whitespace-pre-wrap">
+                        {viewShoot.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex gap-3 sticky bottom-0">
+              <button
+                onClick={() => {
+                  closeViewOffcanvas();
+                  openModal(viewShoot);
+                }}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <FiEdit2 size={16} /> Edit Shoot
+              </button>
             </div>
           </div>
         </div>
