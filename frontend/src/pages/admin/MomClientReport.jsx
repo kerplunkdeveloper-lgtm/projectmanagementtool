@@ -144,6 +144,7 @@ const MomClientReport = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [assigneeFilter, setAssigneeFilter] = useState("");
   const [clientFilter, setClientFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [localCheckedTasks, setLocalCheckedTasks] = useState(new Set());
   const [activeTab, setActiveTab] = useState("mom");
 
@@ -156,7 +157,7 @@ const MomClientReport = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [dateFilter, assigneeFilter, clientFilter, activeTab]);
+  }, [dateFilter, assigneeFilter, clientFilter, activeTab, statusFilter]);
 
   useEffect(() => {
     if (activeTab === "clientcall" && clientCalls.length === 0) {
@@ -212,11 +213,18 @@ const MomClientReport = () => {
         if (taskDate !== dateFilter) return false;
       }
 
+      if (statusFilter !== "All") {
+        const s = (task.status || "pending").toLowerCase();
+        const isCompleted = s === "completed" || s === "done";
+        if (statusFilter === "Completed" && !isCompleted) return false;
+        if (statusFilter === "Pending" && isCompleted) return false;
+      }
+
       return true;
     });
 
     return filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-  }, [tasks, projects, dateFilter, assigneeFilter, clientFilter]);
+  }, [tasks, projects, dateFilter, assigneeFilter, clientFilter, statusFilter]);
 
   const filteredClientCalls = useMemo(() => {
     const filtered = clientCalls.filter(call => {
@@ -476,7 +484,21 @@ const MomClientReport = () => {
         ) : (
           <div className="bg-white dark:bg-[#0f172a] rounded-xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col min-h-0">
             <div className="flex justify-between items-center px-4 py-3 shrink-0 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">No.of MOM : <span className="text-indigo-600 dark:text-indigo-400">{filteredTasks.length}</span></h3>
+              <div className="flex space-x-2">
+                {["All", "Pending", "Completed"].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setStatusFilter(tab)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                      statusFilter === tab
+                        ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="overflow-x-auto overflow-y-auto flex-1">
               <table className="w-full table-auto text-left border-collapse">
