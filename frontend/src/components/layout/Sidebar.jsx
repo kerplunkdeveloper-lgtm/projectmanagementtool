@@ -456,7 +456,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       }
       fetchedMainDataRef.current = true;
     }
-  }, [dispatch, role, projects, portfolios, clients, users]);
+  }, [dispatch, role]);
 
   const handleSwitchUser = async (userId) => {
     try {

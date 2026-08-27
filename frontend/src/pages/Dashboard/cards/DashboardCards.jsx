@@ -24,7 +24,7 @@ const DashboardCards = () => {
     if (!clients || clients.length === 0) dispatch(getClients());
     if (!users || users.length === 0) dispatch(getUsers());
     if (!projects || projects.length === 0) dispatch(getProjects());
-  }, [dispatch, clients, users, projects]);
+  }, [dispatch]);
 
   // ============================================
   // CALCULATIONS
