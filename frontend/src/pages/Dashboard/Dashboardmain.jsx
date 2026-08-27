@@ -1468,7 +1468,7 @@ const Dashboardmain = () => {
     ) {
       if (!clients || clients.length === 0) dispatch(getClients());
     }
-  }, [dispatch, user?._id, user?.role]);
+  }, [dispatch, user?._id, user?.role, projects, users, clients]);
 
   useEffect(() => {
     if (clients && clients.length > 0 && !clientId && clients[0]?._id) {
