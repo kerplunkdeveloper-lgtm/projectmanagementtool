@@ -8,7 +8,7 @@ const SubtaskSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Not Started", "In Progress", "Completed", "On Hold", "In Review", "Rejected", "Correction"],
+    enum: ["Pending", "Not Started", "In Progress", "Completed", "On Hold", "In Review", "Rejected", "Correction"],
     default: "Not Started",
   },
   assignedTo: {
@@ -116,7 +116,7 @@ const SubtaskSchema = new mongoose.Schema({
     {
       status: {
         type: String,
-        enum: ["Not Started", "In Progress", "Completed", "On Hold", "In Review", "Rejected", "Correction"],
+        enum: ["Pending", "Not Started", "In Progress", "Completed", "On Hold", "In Review", "Rejected", "Correction"],
         required: true,
       },
       startTime: {
@@ -234,7 +234,7 @@ const TaskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Not Started", "In Progress", "Completed", "On Hold", "Blocked", "In Review", "Rejected", "Correction"],
+      enum: ["Pending", "Not Started", "In Progress", "Completed", "On Hold", "Blocked", "In Review", "Rejected", "Correction"],
       default: "Not Started",
     },
     priority: {
@@ -339,7 +339,7 @@ const TaskSchema = new mongoose.Schema(
       {
         status: {
           type: String,
-          enum: ["Not Started", "In Progress", "Completed", "On Hold", "Blocked", "In Review", "Rejected", "Correction"],
+          enum: ["Pending", "Not Started", "In Progress", "Completed", "On Hold", "Blocked", "In Review", "Rejected", "Correction"],
           required: true,
         },
         startTime: {

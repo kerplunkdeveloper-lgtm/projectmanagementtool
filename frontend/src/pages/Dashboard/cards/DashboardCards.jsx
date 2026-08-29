@@ -1,23 +1,16 @@
 import React, { useEffect } from "react";
 import { FiUsers, FiBriefcase } from "react-icons/fi";
-
 import { useDispatch, useSelector } from "react-redux";
-
 import { motion } from "framer-motion";
-
 import { getClients } from "../../../features/clients/clientslice";
 import { getUsers } from "../../../features/users/userSlice";
 import { getProjects } from "../../../features/projects/projectSlice";
 
 const DashboardCards = () => {
   const dispatch = useDispatch();
-
   const { user } = useSelector((state) => state.auth);
-
   const { clients } = useSelector((state) => state.clients);
-
   const { users } = useSelector((state) => state.users);
-
   const { projects } = useSelector((state) => state.projects);
 
   useEffect(() => {
@@ -44,8 +37,8 @@ const DashboardCards = () => {
     new Set(
       (users || [])
         .map((u) => u.department)
-        .filter((dept) => typeof dept === "string" && dept.trim() !== ""),
-    ),
+        .filter((dept) => typeof dept === "string" && dept.trim() !== "")
+    )
   )
     .filter((d) => {
       const lower = d.toLowerCase();
@@ -57,25 +50,22 @@ const DashboardCards = () => {
     })
     .sort();
 
+  // Vibrant gradients matching the reference image for departments
+  const deptGradients = [
+    "bg-gradient-to-r from-[#4A72FF] to-[#6049FF]", // Blue/Indigo
+    "bg-gradient-to-r from-[#B450FF] to-[#8C3AFF]", // Purple
+    "bg-gradient-to-r from-[#FF4E98] to-[#FF2F69]", // Pink
+    "bg-gradient-to-r from-[#00C2FF] to-[#0070FF]", // Cyan/Blue
+  ];
+
   const deptCards = uniqueDepts.map((dept, idx) => {
     const count = (users || []).filter((u) => u.department === dept).length;
-    const gradients = [
-      "from-blue-400 to-indigo-500",
-      "from-violet-400 to-purple-500",
-      "from-pink-400 to-rose-500",
-      "from-cyan-400 to-blue-500",
-    ];
-    const gradient = gradients[idx % gradients.length];
+    const gradient = deptGradients[idx % deptGradients.length];
     return {
       title: `No.of ${dept}`,
       value: count,
-      icon: FiUsers,
-      gradient: `bg-gradient-to-br ${gradient}`,
-      border: "border-white/30",
-      valueColor: "text-white",
-      glowColor: "rgba(99, 102, 241, 0.4)",
-      subtitleColor: "text-white/80",
-      subtitle: `Total ${dept} members`,
+      gradient: gradient,
+      textColor: "text-slate-900 dark:text-white",
     };
   });
 
@@ -86,98 +76,74 @@ const DashboardCards = () => {
   // CARD DATA
   // ============================================
 
-  const cards = [
-    {
-      title: isAdminOrOpManager
-        ? "No.of Active Clients"
-        : "No.of Assigned Clients",
-      value: activeClientsCount,
-      icon: FiBriefcase,
-      gradient: "bg-gradient-to-br from-amber-300 to-orange-400",
-      border: "border-white/30",
-      valueColor: "text-white",
-      glowColor: "rgba(245, 158, 11, 0.4)",
-      subtitleColor: "text-white/80",
-      subtitle: "Total active client accounts",
-    },
-    ...(isAdminOrOpManager
-      ? [
-          {
-            title: "No.of Inactive Clients",
-            value: inactiveClientsCount,
-            icon: FiBriefcase,
-            gradient: "bg-gradient-to-br from-rose-300 to-red-400",
-            border: "border-white/30",
-            valueColor: "text-white",
-            glowColor: "rgba(239, 68, 68, 0.4)",
-            subtitleColor: "text-white/80",
-            subtitle: "Inactive client accounts",
-          },
-        ]
-      : []),
-    ...(isAdminOrOpManager ? deptCards : []),
-    ...(isAdminOrOpManager
-      ? [
-          {
-            title: "total team Strength",
-            value: teamStrengthCount,
-            icon: FiUsers,
-            gradient: "bg-gradient-to-br from-emerald-300 to-teal-400",
-            border: "border-white/30",
-            valueColor: "text-white",
-            glowColor: "rgba(16, 185, 129, 0.4)",
-            subtitleColor: "text-white/80",
-            subtitle: "Active registered team members",
-          },
-        ]
-      : []),
+  const activeClientCard = {
+    title: isAdminOrOpManager ? "No.of Active Clients" : "No.of Assigned Clients",
+    value: activeClientsCount,
+    gradient: "bg-gradient-to-r from-[#FFC837] to-[#FF8008]", // Golden orange
+    textColor: "text-slate-900 dark:text-white",
+  };
+
+  const inactiveClientCard = {
+    title: "No.of Inactive Clients",
+    value: inactiveClientsCount,
+    gradient: "bg-gradient-to-r from-[#FF8C94] to-[#FF5252]", // Pinkish red
+    textColor: "text-slate-900 dark:text-white",
+  };
+
+  const totalStrengthCard = {
+    title: "Total Team Strength",
+    value: teamStrengthCount,
+    gradient: "bg-gradient-to-r from-[#2AF598] to-[#009EFD]", // Teal/Green
+    textColor: "text-slate-900 dark:text-white",
+  };
+
+  const rightCards = [
+    ...deptCards,
+    ...(isAdminOrOpManager ? [totalStrengthCard] : []),
   ];
 
+  const CardComponent = ({ card, index }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.5,
+        delay: index * 0.05,
+        ease: "easeOut",
+      }}
+      whileHover={{ y: -3, scale: 1.02 }}
+      className={`relative overflow-hidden rounded-full shadow-md hover:shadow-lg transition-all duration-300 ${card.gradient} flex items-center px-5 py-3`}
+    >
+      <div className="flex items-center justify-between w-full z-10">
+        <p className={`text-[10px] md:text-[11px] font-bold uppercase tracking-wider ${card.textColor}`}>
+          {card.title}
+        </p>
+        <h2 className={`text-sm md:text-base font-extrabold ${card.textColor}`}>
+          {card.value}
+        </h2>
+      </div>
+      {/* Subtle overlay for dark mode readability if needed, or glossy effect */}
+      <div className="absolute inset-0 bg-white/10 dark:bg-black/10 pointer-events-none rounded-full" />
+    </motion.div>
+  );
+
   return (
-    <div className="w-full">
-      {/* GRID */}
-      <div
-        className={`grid gap-4 ${
-          cards.length === 1
-            ? "grid-cols-1"
-            : "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4"
-        }`}
-      >
-        {cards.map((card, index) => {
-          const Icon = card.icon;
+    <div className="w-full flex flex-col lg:flex-row gap-4 lg:gap-6">
+      {/* LEFT SIDE: Clients */}
+      <div className="flex flex-col gap-4 w-full lg:w-1/4 xl:w-1/5 shrink-0">
+        <CardComponent card={activeClientCard} index={0} />
+        {isAdminOrOpManager && (
+          <CardComponent card={inactiveClientCard} index={1} />
+        )}
+      </div>
 
-          return (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.5,
-                delay: index * 0.1,
-                ease: "easeOut",
-              }}
-              whileHover={{
-                y: -3,
-                scale: 1.01,
-              }}
-              className={`relative overflow-hidden rounded-full border shadow-md hover:shadow-lg transition-all duration-300 theme-bg-card ${card.gradient} ${card.border} h-[48px] flex items-center`}
-            >
-              <div className="p-3 md:px-6 flex items-center justify-between relative z-10 w-full">
-                <p
-                  className={`text-[9px] md:text-xs uppercase tracking-wider font-medium`}
-                >
-                  {card.title}
-                </p>
-
-                <div className="flex flex-col items-end">
-                  <h2 className={`text-base md:text-sm font-bold`}>
-                    {card.value}
-                  </h2>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+      {/* RIGHT SIDE: Departments & Total Team Strength in a grid */}
+      <div className="flex-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {rightCards.map((card, index) => (
+            <CardComponent key={index} card={card} index={index + 2} />
+          ))}
+        </div>
       </div>
     </div>
   );
