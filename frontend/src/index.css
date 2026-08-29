@@ -585,11 +585,11 @@ select.badge-select option {
 /* Login Page Desktop Split View Override */
 @media (min-width: 768px) {
   #login-image-section {
-    width: 55% !important;
+    width: 40% !important;
     height: 100vh !important;
   }
   #login-form-section {
-    width: 45% !important;
+    width: 60% !important;
     height: 100vh !important;
     margin-top: 0 !important;
     border-radius: 0 !important;
@@ -598,7 +598,7 @@ select.badge-select option {
 
 @media (min-width: 1280px) {
   #login-image-section {
-    width: 67% !important;
+    width: 60% !important;
   }
   #login-form-section {
     width: 40% !important;

@@ -1571,6 +1571,10 @@ const MyTasksTab = ({
         const s = (task.status || "Not Started").toUpperCase();
         return s !== "COMPLETED" && s !== "REJECTED";
       }
+      if (statusFilter === "Not Started") {
+        const s = task.status;
+        return !s || s === "Not Started" || s === "Pending";
+      }
       return task.status === statusFilter;
     });
     const getPriorityRank = (task) => {
@@ -2986,6 +2990,44 @@ const MyTasksTab = ({
           </>
         )}
       </AnimatePresence>
+
+      {/* STATUS TABS */}
+      <div className="px-4 xl:px-6 pb-2">
+        <div className="inline-flex items-center gap-1 p-1 bg-slate-50/80 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-700/60 rounded-full overflow-x-auto custom-scrollbar shadow-sm">
+          {[
+            { name: "All", label: "All status" },
+            { name: "Not Started", label: "Not started" },
+            { name: "In Progress", label: "In-progress" },
+            { name: "On Hold", label: "On-hold" },
+            { name: "In Review", label: "In-review" },
+            { name: "Completed", label: "Completed" },
+          ].map((st) => {
+            const isActive = statusFilter === st.name;
+            return (
+              <button
+                key={st.name}
+                onClick={() => setStatusFilter(st.name)}
+                className={`
+                  relative px-5 py-2 rounded-full text-[12px] font-bold tracking-wide transition-colors whitespace-nowrap shrink-0 z-10
+                  ${isActive 
+                    ? "text-white dark:text-white" 
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  }
+                `}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="statusTabIndicator"
+                    className="absolute inset-0 bg-blue-600 dark:bg-blue-500 rounded-full shadow-md shadow-blue-500/20 -z-10"
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
+                )}
+                <span className="relative z-10">{st.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* TASK LIST CONTAINER */}
       {loading ? (

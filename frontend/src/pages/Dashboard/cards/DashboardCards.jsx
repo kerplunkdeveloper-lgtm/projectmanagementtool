@@ -110,10 +110,9 @@ const DashboardCards = () => {
     textColor: "text-slate-900 dark:text-white",
   };
 
-  const rightCards = [
-    ...deptCards,
-    ...(isAdminOrOpManager ? [totalStrengthCard] : []),
-  ];
+  const rightCards = isAdminOrOpManager
+    ? [...deptCards, totalStrengthCard]
+    : [];
 
   const CardComponent = ({ card, index }) => (
     <motion.div

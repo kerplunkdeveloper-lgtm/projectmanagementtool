@@ -10,8 +10,8 @@ import { useNavigate } from "react-router-dom";
 
 import toast from "react-hot-toast";
 
-import lightlogin from "../../assets/loginnew1.png";
-
+import lightlogin from "../../assets/logol.png";
+import sorted from "../../assets/sorted.png"
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -74,12 +74,15 @@ const Login = () => {
         <img
           src={lightlogin}
           alt="Project Management Background"
-          className="absolute inset-0 w-full h-full object-cover z-0"
+          className="absolute inset-0 w-full h-full  z-0"
         />
         {/* Color Overlay */}
         <div
-          className="absolute inset-0 opacity-45 z-10"
-          style={{ background: "var(--color-brand-gradient, linear-gradient(to right, #1e3a8a, #3b82f6))" }}
+          className="absolute inset-0 opacity-20 z-10"
+          style={{
+            background:
+              "var(--color-brand-gradient, linear-gradient(to right, #1e3a8a, #3b82f6))",
+          }}
         ></div>
       </div>
 
@@ -90,14 +93,10 @@ const Login = () => {
       >
         <div className="w-full max-w-[490px] mx-auto relative z-10">
           <form onSubmit={handleSubmit} className="w-full">
-            <div className="mb-10 md:mb-12 text-center md:text-left">
-              <h2 className="text-3xl md:text-4xl font-black mb-3 text-slate-800 dark:text-white tracking-tight">
-                Welcome Back
-              </h2>
-              <p className="text-[13px] md:text-[15px] font-medium theme-text-secondary">
-                Login to continue managing your projects
-              </p>
+            <div className="flex justify-center md:justify-start mb-10 md:mb-12">
+              <img src={sorted} alt="Sorted Logo" className="w-[180px] md:w-[300px] h-auto object-contain" />
             </div>
+           
 
             {/* EMAIL */}
             <div className="mb-5">
