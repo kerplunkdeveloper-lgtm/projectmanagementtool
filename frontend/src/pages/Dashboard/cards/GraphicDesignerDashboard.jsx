@@ -2886,7 +2886,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         </div>
       </div>
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-3 lg:gap-2 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -3002,23 +3002,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
             iconColor: "text-amber-600 dark:text-amber-400",
             onClick: () => handleMetricClick("Due Today"),
-          },
-          {
-            label: "Team Efficiency",
-            value: `${avgEfficiency}%`,
-            icon: FiTrendingUp,
-            glow: "hover:shadow-[0_4px_20px_rgba(139,92,246,0.15)]",
-            bg: "bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-950 dark:to-purple-900 border border-indigo-200/50 dark:border-indigo-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
-            iconBg:
-              "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
-            iconColor: "text-indigo-600 dark:text-indigo-400",
-            onClick: () => {
-              performanceTableRef.current?.scrollIntoView({
-                behavior: "smooth",
-              });
-            },
           },
         ].map((m, i) => {
           const IconComponent = m.icon;

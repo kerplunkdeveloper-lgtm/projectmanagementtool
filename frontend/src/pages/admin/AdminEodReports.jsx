@@ -107,6 +107,20 @@ const isTaskCompleted = (t) => {
   return s === "completed" || s === "in review" || s === "in-review" || s === "in_review";
 };
 
+const isCarryForwardTask = (task, reportDate) => {
+  if (!task || !reportDate) return false;
+  const assignmentDateStr = task.assignedDate || task.assignedAt || task.startDate || task.createdAt;
+  if (!assignmentDateStr) return false;
+  
+  const assignment = new Date(assignmentDateStr);
+  const report = new Date(reportDate);
+  
+  assignment.setHours(0, 0, 0, 0);
+  report.setHours(0, 0, 0, 0);
+  
+  return assignment < report;
+};
+
 const AdminEodReports = () => {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1607,10 +1621,15 @@ const AdminEodReports = () => {
                                 className="flex items-center gap-1.5 min-w-0"
                               >
                                 <span
-                                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate"
+                                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5"
                                   title={t.title}
                                 >
-                                  {t.title || "-"}
+                                  <span className="truncate">{t.title || "-"}</span>
+                                  {isCarryForwardTask(t, report.date) && (
+                                    <span className="px-1 py-[1px] border border-slate-300 dark:border-slate-600 rounded text-[9px] font-bold text-slate-500 dark:text-slate-400 shrink-0" title="Carry Forward">
+                                      CF
+                                    </span>
+                                  )}
                                 </span>
                                 {t.contentType && (
                                   <span
@@ -2006,8 +2025,13 @@ const AdminEodReports = () => {
                             <div className="flex justify-between items-start gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                               <div>
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                                     {task.title}
+                                    {isCarryForwardTask(task, selectedReport.date) && (
+                                      <span className="px-1 py-[1px] border border-slate-300 dark:border-slate-600 rounded text-[9px] font-bold text-slate-500 dark:text-slate-400 shrink-0" title="Carry Forward">
+                                        CF
+                                      </span>
+                                    )}
                                   </h4>
                                   {task.contentType && (
                                     <span

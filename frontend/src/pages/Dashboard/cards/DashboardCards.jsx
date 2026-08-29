@@ -24,11 +24,11 @@ const DashboardCards = () => {
   // ============================================
 
   const activeClientsCount = (clients || []).filter(
-    (c) => !c.status || c.status === "Active"
+    (c) => !c.status || c.status === "Active",
   ).length;
 
   const inactiveClientsCount = (clients || []).filter(
-    (c) => c.status === "Inactive"
+    (c) => c.status === "Inactive",
   ).length;
 
   const teamStrengthCount = users ? users.length : 0;
@@ -37,8 +37,8 @@ const DashboardCards = () => {
     new Set(
       (users || [])
         .map((u) => u.department)
-        .filter((dept) => typeof dept === "string" && dept.trim() !== "")
-    )
+        .filter((dept) => typeof dept === "string" && dept.trim() !== ""),
+    ),
   )
     .filter((d) => {
       const lower = d.toLowerCase();
@@ -56,6 +56,17 @@ const DashboardCards = () => {
     "bg-gradient-to-r from-[#B450FF] to-[#8C3AFF]", // Purple
     "bg-gradient-to-r from-[#FF4E98] to-[#FF2F69]", // Pink
     "bg-gradient-to-r from-[#00C2FF] to-[#0070FF]", // Cyan/Blue
+    "bg-gradient-to-r from-[#F53844] to-[#42378F]", // Red to Dark Purple
+    "bg-gradient-to-r from-[#11998E] to-[#38EF7D]", // Emerald Green
+    "bg-gradient-to-r from-[#FC4A1A] to-[#F7B733]", // Orange/Yellow
+    "bg-gradient-to-r from-[#8E2DE2] to-[#4A00E0]", // Violet
+    "bg-gradient-to-r from-[#1D976C] to-[#93F9B9]", // Sea Green
+    "bg-gradient-to-r from-[#EB3349] to-[#F45C43]", // Coral Red
+    "bg-gradient-to-r from-[#FF758C] to-[#FF7EB3]", // Rose Pink
+    "bg-gradient-to-r from-[#1E3C72] to-[#2A5298]", // Deep Blue
+    "bg-gradient-to-r from-[#EE0979] to-[#FF6A00]", // Hot Pink to Orange
+    "bg-gradient-to-r from-[#00B4DB] to-[#0083B0]", // Aqua Blue
+    "bg-gradient-to-r from-[#8360C3] to-[#2EBF91]", // Purple to Mint
   ];
 
   const deptCards = uniqueDepts.map((dept, idx) => {
@@ -77,7 +88,9 @@ const DashboardCards = () => {
   // ============================================
 
   const activeClientCard = {
-    title: isAdminOrOpManager ? "No.of Active Clients" : "No.of Assigned Clients",
+    title: isAdminOrOpManager
+      ? "No.of Active Clients"
+      : "No.of Assigned Clients",
     value: activeClientsCount,
     gradient: "bg-gradient-to-r from-[#FFC837] to-[#FF8008]", // Golden orange
     textColor: "text-slate-900 dark:text-white",
@@ -115,7 +128,9 @@ const DashboardCards = () => {
       className={`relative overflow-hidden rounded-full shadow-md hover:shadow-lg transition-all duration-300 ${card.gradient} flex items-center px-5 py-3`}
     >
       <div className="flex items-center justify-between w-full z-10">
-        <p className={`text-[10px] md:text-[11px] font-bold uppercase tracking-wider ${card.textColor}`}>
+        <p
+          className={`text-[10px] md:text-[11px] font-bold uppercase tracking-wider ${card.textColor}`}
+        >
           {card.title}
         </p>
         <h2 className={`text-sm md:text-base font-extrabold ${card.textColor}`}>
