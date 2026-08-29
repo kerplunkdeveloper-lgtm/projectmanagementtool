@@ -182,13 +182,25 @@ export const calculateTaskProductivityForDate = (
     let historyDuration = 0;
 
     task.statusHistory.forEach((h) => {
-      if (!isStatusInProgress(h.status)) return;
+      const isProductiveHold =
+        h.status === "On Hold" &&
+        (h.reason === "Client Call" || h.reason === "Meeting");
+      if (!isStatusInProgress(h.status) && !isProductiveHold) return;
 
       let entryDate = h.date;
-      if (!entryDate && h.startTime) {
-        entryDate = new Date(h.startTime).toLocaleDateString("en-CA", {
-          timeZone: "Asia/Kolkata",
-        });
+      if (entryDate && entryDate.includes(",")) {
+        try {
+          entryDate = new Date(entryDate).toLocaleDateString("en-CA", {
+            timeZone: "Asia/Kolkata",
+          });
+        } catch (e) {}
+      }
+      if (!entryDate || entryDate.includes(",")) {
+        entryDate = h.startTime
+          ? new Date(h.startTime).toLocaleDateString("en-CA", {
+              timeZone: "Asia/Kolkata",
+            })
+          : null;
       }
       if (entryDate !== selDateStr) return;
 
@@ -203,7 +215,8 @@ export const calculateTaskProductivityForDate = (
         );
       } else if (
         isSelectedToday &&
-        isStatusInProgress(task.status) &&
+        (isStatusInProgress(task.status) ||
+          (task.status === "On Hold" && isProductiveHold)) &&
         !task.autoPaused
       ) {
         // Open entry on TODAY, still running — handled by live section below, skip here
@@ -223,41 +236,76 @@ export const calculateTaskProductivityForDate = (
     });
 
     // ✅ FIX Bug 3: Live session guard — fallback to statusHistory open entry or updatedAt if actualStartTime is missing
-    if (isSelectedToday && isStatusInProgress(task.status) && !task.autoPaused) {
-      let liveSessionStart = task.actualStartTime
-        ? new Date(task.actualStartTime).getTime()
-        : 0;
+    const currentIsProductiveHold =
+      task.status === "On Hold" &&
+      task.statusHistory &&
+      task.statusHistory.length > 0 &&
+      (task.statusHistory[task.statusHistory.length - 1].reason ===
+        "Client Call" ||
+        task.statusHistory[task.statusHistory.length - 1].reason === "Meeting");
 
-      if (isNaN(liveSessionStart) || liveSessionStart <= 0) {
-        const openEntry = [...task.statusHistory].reverse().find(
-          (h) => isStatusInProgress(h.status) && !h.endTime
-        );
+    if (
+      isSelectedToday &&
+      (isStatusInProgress(task.status) || currentIsProductiveHold) &&
+      !task.autoPaused
+    ) {
+      let liveSessionStart = 0;
+
+      // 1. Try to find the open entry in status history (most accurate for current chunk)
+      if (task.statusHistory && Array.isArray(task.statusHistory)) {
+        const openEntry = [...task.statusHistory]
+          .reverse()
+          .find(
+            (h) =>
+              (isStatusInProgress(h.status) ||
+                (h.status === "On Hold" &&
+                  (h.reason === "Client Call" || h.reason === "Meeting"))) &&
+              !h.endTime,
+          );
         if (openEntry && openEntry.startTime) {
           liveSessionStart = new Date(openEntry.startTime).getTime();
         }
       }
+
+      // 2. Fallback to actualStartTime or holdStartedAt
+      if (isNaN(liveSessionStart) || liveSessionStart <= 0) {
+        if (isStatusInProgress(task.status) && task.actualStartTime) {
+          liveSessionStart = new Date(task.actualStartTime).getTime();
+        } else if (currentIsProductiveHold && task.holdStartedAt) {
+          liveSessionStart = new Date(task.holdStartedAt).getTime();
+        }
+      }
+      
+      // 3. Fallback to updatedAt
       if (isNaN(liveSessionStart) || liveSessionStart <= 0) {
         if (task.updatedAt) {
           liveSessionStart = new Date(task.updatedAt).getTime();
         }
       }
 
-      const liveSessionDateStr = liveSessionStart > 0
-        ? new Date(liveSessionStart).toLocaleDateString("en-CA", {
-            timeZone: "Asia/Kolkata",
-          })
-        : null;
+      const liveSessionDateStr =
+        liveSessionStart > 0
+          ? new Date(liveSessionStart).toLocaleDateString("en-CA", {
+              timeZone: "Asia/Kolkata",
+            })
+          : null;
 
       // Only add live elapsed time if liveSessionStart is valid
-      if (liveSessionStart > 0 && (liveSessionDateStr === selDateStr || isSelectedToday)) {
-        const nowMs = Date.now();
-        let liveWorked = Math.max(0, nowMs - liveSessionStart);
+      if (
+        liveSessionStart > 0 &&
+        (liveSessionDateStr === selDateStr || isSelectedToday)
+      ) {
+        const nowMs = Math.min(Date.now(), dayWorkEnd);
+        // Ensure we only calculate time that occurred within today's working hours
+        const effectiveLiveStart = Math.max(liveSessionStart, dayWorkStart);
+        let liveWorked = Math.max(0, nowMs - effectiveLiveStart);
+        
         if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
           task.blockerHistory.forEach((b) => {
             if (b.pausedAt) {
               const p = new Date(b.pausedAt).getTime();
               const r = b.resumedAt ? new Date(b.resumedAt).getTime() : nowMs;
-              const oStart = Math.max(p, liveSessionStart);
+              const oStart = Math.max(p, effectiveLiveStart);
               const oEnd = Math.min(r, nowMs);
               if (oEnd > oStart) {
                 liveWorked -= oEnd - oStart;
@@ -267,31 +315,23 @@ export const calculateTaskProductivityForDate = (
         }
         if (task.isBlocked && task.blockerPausedAt) {
           const p = new Date(task.blockerPausedAt).getTime();
-          const oStart = Math.max(p, liveSessionStart);
+          const oStart = Math.max(p, effectiveLiveStart);
           if (nowMs > oStart) {
             liveWorked -= nowMs - oStart;
           }
         }
-        const effectiveHistoryDuration = Math.max(
-          historyDuration,
-          task.dailyTrackedTime || 0,
-        );
         return (
-          Math.max(0, effectiveHistoryDuration + Math.max(0, liveWorked)) +
+          Math.max(0, historyDuration + Math.max(0, liveWorked)) +
           subtasksDuration
         );
       }
     }
 
-    const finalHistoryDuration = Math.max(
-      historyDuration,
-      isSelectedToday ? task.dailyTrackedTime || 0 : 0,
-    );
     if (
-      finalHistoryDuration > 0 ||
+      historyDuration > 0 ||
       (task.statusHistory.length > 0 && !task.actualStartTime)
     ) {
-      return finalHistoryDuration + subtasksDuration;
+      return historyDuration + subtasksDuration;
     }
   }
 
@@ -1023,9 +1063,9 @@ const getSectionConfig = (colName, type) => {
     todayTitle = "Today Completed";
     upcomingTitle = "Upcoming Completed";
   } else if (colLower === "pending") {
-    prevTitle = "Prev Pending";
-    todayTitle = "Today Pending";
-    upcomingTitle = "Upcoming Pending";
+    prevTitle = "Prev Not Started";
+    todayTitle = "Today Not Started";
+    upcomingTitle = "Upcoming Not Started";
   }
 
   if (type === "prev") {
@@ -1536,14 +1576,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   // 4. Board Data
   const boardColumns = [
     "Overall Overdue",
-    "Pending",
+    "Not Started",
     "In Progress",
     "On Hold",
     "IN REVIEW",
     "Completed",
   ];
   const getColumnForTask = (task) => {
-    const status = task.status || "Pending";
+    const status = task.status || "Not Started";
 
     if (boardColumns.includes(status)) return status;
     if (status.toLowerCase().includes("progress")) return "In Progress";
@@ -1553,8 +1593,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     if (status.toLowerCase().includes("reject")) return "Rejected";
     if (status.toLowerCase().includes("approve")) return "Completed";
     if (status.toLowerCase() === "completed") return "Completed";
-    if (status.toLowerCase() === "assigned") return "Pending";
-    return "Pending";
+    if (status.toLowerCase() === "assigned") return "Not Started";
+    return "Not Started";
   };
 
   // Apply board-level filters to designerTasks
@@ -1716,9 +1756,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       let totalOffworkingLoggedMs = 0;
       let inProgressLoggedMs = 0;
       let totalBlockerMs = 0;
+      let totalOnHoldMs = 0;
       let totalApprovalMs = 0;
       let approvalCount = 0;
       const blockerTypesSet = new Set();
+      const holdReasonsSet = new Set();
 
       myTasks.forEach((t) => {
         let taskBlockerMs = 0;
@@ -1726,66 +1768,105 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         const dayStart = startOfDay(selDateObj).getTime();
         const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
 
-        if (t.blockerHistory && Array.isArray(t.blockerHistory)) {
-          t.blockerHistory.forEach((item) => {
-            if (!item.pausedAt) return;
-            const pStart = new Date(item.pausedAt).getTime();
-            if (isNaN(pStart)) return;
-
-            let pEnd = item.resumedAt
-              ? new Date(item.resumedAt).getTime()
-              : item.totalPauseMinutes
-                ? pStart + item.totalPauseMinutes * 60 * 1000
-                : t.pausedAt
-                  ? new Date(t.pausedAt).getTime()
-                  : isSameDay(selDateObj, new Date())
-                    ? Date.now()
-                    : nextDayStart;
-
-            if (isNaN(pEnd) || pEnd <= pStart) return;
-
-            const overlapStart = Math.max(pStart, dayStart);
-            const overlapEnd = Math.min(pEnd, nextDayStart);
-
-            if (overlapEnd > overlapStart) {
-              taskBlockerMs += overlapEnd - overlapStart;
-              if (item.blockerType) {
-                blockerTypesSet.add(item.blockerType);
+        if (Array.isArray(t.statusHistory)) {
+          t.statusHistory.forEach((h) => {
+            if (h.status === "Blocked") {
+              const hDate = new Date(h.startTime || h.date).toLocaleDateString(
+                "en-CA",
+                {
+                  timeZone: "Asia/Kolkata",
+                },
+              );
+              if (
+                hDate ===
+                selDateObj.toLocaleDateString("en-CA", {
+                  timeZone: "Asia/Kolkata",
+                })
+              ) {
+                taskBlockerMs += h.duration || 0;
+                if (h.blockerType) {
+                  blockerTypesSet.add(h.blockerType);
+                }
               }
             }
           });
         }
 
-        if (t.isBlocked && t.blockerPausedAt) {
-          const pStart = new Date(t.blockerPausedAt).getTime();
-          if (!isNaN(pStart)) {
-            const pEnd = isSameDay(selDateObj, new Date())
+        if (t.status === "Blocked" && t.blockedStartedAt) {
+          const hDate = new Date(t.blockedStartedAt).toLocaleDateString(
+            "en-CA",
+            {
+              timeZone: "Asia/Kolkata",
+            },
+          );
+          if (
+            hDate ===
+            selDateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
+          ) {
+            const endMs = isSameDay(selDateObj, new Date())
               ? Date.now()
-              : nextDayStart;
-            const overlapStart = Math.max(pStart, dayStart);
-            const overlapEnd = Math.min(pEnd, nextDayStart);
+              : startOfDay(addDays(selDateObj, 1)).getTime();
+            taskBlockerMs += Math.max(
+              0,
+              endMs - new Date(t.blockedStartedAt).getTime(),
+            );
+          }
+        }
 
-            if (overlapEnd > overlapStart) {
-              const alreadyHandled =
-                t.blockerHistory &&
-                t.blockerHistory.some((h) => {
-                  if (!h.pausedAt) return false;
-                  return (
-                    Math.abs(new Date(h.pausedAt).getTime() - pStart) < 1000
-                  );
-                });
+        totalBlockerMs += taskBlockerMs;
 
-              if (!alreadyHandled) {
-                taskBlockerMs += overlapEnd - overlapStart;
-                if (t.blockerType) {
-                  blockerTypesSet.add(t.blockerType);
+        let taskOnHoldMs = 0;
+        const selDateStr = selDateObj.toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kolkata",
+        });
+
+        if (Array.isArray(t.statusHistory)) {
+          t.statusHistory.forEach((h) => {
+            if (h.status === "On Hold") {
+              const hDate = new Date(h.startTime || h.date).toLocaleDateString(
+                "en-CA",
+                {
+                  timeZone: "Asia/Kolkata",
+                },
+              );
+              if (hDate === selDateStr) {
+                if (h.reason === "Client Call" || h.reason === "Meeting") {
+                  taskBlockerMs += h.duration || 0;
+                  if (h.reason) blockerTypesSet.add(h.reason);
+                } else if (h.reason !== "Another Task") {
+                  taskOnHoldMs += h.duration || 0;
+                  if (h.reason) holdReasonsSet.add(h.reason);
                 }
+              }
+            }
+          });
+        }
+
+        if (t.status === "On Hold" && t.holdStartedAt) {
+          const hDate = new Date(t.holdStartedAt).toLocaleDateString("en-CA", {
+            timeZone: "Asia/Kolkata",
+          });
+          if (hDate === selDateStr) {
+            const endMs = isSameDay(selDateObj, new Date())
+              ? Date.now()
+              : startOfDay(addDays(selDateObj, 1)).getTime();
+            const duration = Math.max(0, endMs - new Date(t.holdStartedAt).getTime());
+            
+            const liveHoldEntry = [...(t.statusHistory || [])].reverse().find(x => x.status === "On Hold");
+            
+            if (liveHoldEntry && (liveHoldEntry.reason === "Client Call" || liveHoldEntry.reason === "Meeting")) {
+              taskBlockerMs += duration;
+              blockerTypesSet.add(liveHoldEntry.reason);
+            } else if (!liveHoldEntry || liveHoldEntry.reason !== "Another Task") {
+              taskOnHoldMs += duration;
+              if (liveHoldEntry && liveHoldEntry.reason) {
+                holdReasonsSet.add(liveHoldEntry.reason);
               }
             }
           }
         }
 
-        totalBlockerMs += taskBlockerMs;
+        totalOnHoldMs += taskOnHoldMs;
 
         const taskLoggedMs = calculateTaskProductivityForDate(
           t,
@@ -1907,7 +1988,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           blockerTypesSet.size > 0
             ? Array.from(blockerTypesSet).join(", ")
             : "none",
+        holdReasons:
+          holdReasonsSet.size > 0
+            ? Array.from(holdReasonsSet).join(", ")
+            : "none",
         blockerTimeMs: totalBlockerMs,
+        onHoldTimeMs: totalOnHoldMs,
         lastSubmitted: lastSubmittedStr,
         // tasksWorkedOn: count of tasks that had productivity > 0 on selectedDate (all tasks, not just today-assigned)
         tasksWorkedOn: myTasks.filter(
@@ -1944,36 +2030,40 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       days.push(subDays(selectedDate, i));
     }
 
-    return days.map((day) => {
-      let totalMs = 0;
-      designers.forEach((designer) => {
-        const designerTasksFromAll = allTasks.filter((t) => {
-          if (!t.assignedTo) return false;
-          const aId =
-            typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
-          if (aId !== designer._id) return false;
-          const s = (t.status || "").toLowerCase();
-          if (s.includes("reject") || s.includes("cancel")) return false;
-          return true;
-        });
+    return {
+      labels: days.map(day => format(day, "d MMM")),
+      datasets: designers.map((designer) => {
+        const data = days.map((day) => {
+          let totalMs = 0;
+          const designerTasksFromAll = allTasks.filter((t) => {
+            if (!t.assignedTo) return false;
+            const aId = typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
+            if (aId !== designer._id) return false;
+            const s = (t.status || "").toLowerCase();
+            if (s.includes("reject") || s.includes("cancel")) return false;
+            return true;
+          });
 
-        designerTasksFromAll.forEach((t) => {
-          totalMs += calculateTaskProductivityForDate(t, day, officeHours);
-        });
-      });
+          designerTasksFromAll.forEach((t) => {
+            totalMs += calculateTaskProductivityForDate(t, day, officeHours);
+          });
 
-      const totalHours = totalMs / (1000 * 60 * 60);
-      return {
-        date: day,
-        label: format(day, "d MMM"), // e.g. "13 Aug"
-        hours: totalHours,
-        formatted: (() => {
+          const totalHours = totalMs / (1000 * 60 * 60);
           const mins = Math.round((totalMs / (1000 * 60)) % 60);
           const hrs = Math.floor(totalMs / (1000 * 60 * 60));
-          return `${hrs}h ${String(mins).padStart(2, "0")}m`;
-        })(),
-      };
-    });
+          
+          return {
+            hours: totalHours,
+            formatted: `${hrs}h ${String(mins).padStart(2, "0")}m`,
+          };
+        });
+
+        return {
+          designer,
+          data,
+        };
+      }),
+    };
   }, [selectedDate, designers, allTasks, officeHours]);
 
   // 6. Client Progress
@@ -2223,10 +2313,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   }, [designerTasksList, selectedDate]);
 
   const activeModalTasksList = useMemo(() => {
-    return modalGroupTab === "assignedToday"
-      ? groupedModalTasks.assignedToday
-      : groupedModalTasks.carriedForward;
-  }, [modalGroupTab, groupedModalTasks]);
+    return designerTasksList;
+  }, [designerTasksList]);
 
   const filteredModalTasks = useMemo(() => {
     const filtered = activeModalTasksList.filter((task) => {
@@ -2395,17 +2483,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         exit={{ opacity: 0, scale: 0.95 }}
         whileHover={{ y: -2 }}
         key={task._id}
-        className="bg-white dark:bg-slate-800/90 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all duration-200 shadow-xs hover:shadow-md relative group backdrop-blur-sm flex flex-col gap-2"
+        className="bg-white dark:bg-slate-800/90 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all duration-200 shadow-xs hover:shadow-md relative group backdrop-blur-sm flex flex-col gap-1.5"
       >
-        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-l-xl opacity-90 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-l-xl opacity-80 group-hover:opacity-100 transition-opacity" />
         {/* Title row: icon + name */}
-        <div className="flex items-start gap-1.5 pl-1.5 min-w-0">
+        <div className="flex items-start gap-1.5 pl-1 min-w-0">
           <FiFileText
-            size={13}
-            className="text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5"
+            size={12}
+            className="text-indigo-500 dark:text-indigo-400 shrink-0 mt-[2px]"
           />
           <p
-            className="text-xs font-bold text-slate-800 dark:text-white leading-snug break-words"
+            className="text-[11.5px] font-bold text-slate-800 dark:text-white leading-tight break-words"
             title={task.title}
           >
             {task.title}
@@ -2547,7 +2635,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
   const doughnutData = {
     labels: [
-      "Pending",
+      "Not Started",
       "In Progress",
       "In Review",
       "Completed",
@@ -2607,49 +2695,51 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     },
   };
 
+  const chartLineColors = [
+    "#a855f7", "#3b82f6", "#10b981", "#f97316", "#eab308", 
+    "#ef4444", "#06b6d4", "#f43f5e", "#6366f1", "#8b5cf6",
+  ];
+
   const lineChartData = {
-    labels: productivityTrendData.map((d) => d.label),
-    datasets: [
-      {
-        label: "Productivity",
-        data: productivityTrendData.map((d) => d.hours),
-        borderColor: "#a855f7", // Purple line matching the mockup
-        borderWidth: 2.5,
-        pointBackgroundColor: "#a855f7",
+    labels: productivityTrendData.labels,
+    datasets: productivityTrendData.datasets.map((ds, i) => {
+      const color = chartLineColors[i % chartLineColors.length];
+      return {
+        label: ds.designer.name,
+        data: ds.data.map(d => d.hours),
+        borderColor: color,
+        borderWidth: 2,
+        pointBackgroundColor: color,
         pointBorderColor: "#ffffff",
         pointBorderWidth: 1.5,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        tension: 0.35, // Smooth curve
-        fill: true,
-        backgroundColor: (context) => {
-          const chart = context.chart;
-          const { ctx, chartArea } = chart;
-          if (!chartArea) return null;
-          const gradient = ctx.createLinearGradient(
-            0,
-            chartArea.top,
-            0,
-            chartArea.bottom,
-          );
-          gradient.addColorStop(0, "rgba(168, 85, 247, 0.25)");
-          gradient.addColorStop(1, "rgba(168, 85, 247, 0.0)");
-          return gradient;
-        },
-      },
-    ],
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.35,
+        fill: false,
+      };
+    }),
   };
 
   const lineChartOptions = {
     plugins: {
       legend: {
-        display: false,
+        display: true,
+        position: 'bottom',
+        labels: {
+          boxWidth: 8,
+          usePointStyle: true,
+          font: { size: 9 },
+          color: isDarkMode ? "#cbd5e1" : "#475569"
+        }
       },
       tooltip: {
         callbacks: {
           label: (context) => {
+            const dsIndex = context.datasetIndex;
             const index = context.dataIndex;
-            return ` Productivity: ${productivityTrendData[index].formatted}`;
+            const ds = productivityTrendData.datasets[dsIndex];
+            const formatted = ds.data[index].formatted;
+            return ` ${ds.designer.name}: ${formatted}`;
           },
         },
       },
@@ -2696,7 +2786,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
   const statusLegendItems = [
     {
-      label: "Pending",
+      label: "Not Started",
       count: metrics.pending,
       percent: getPercentageString(metrics.pending),
       color: "#f97316",
@@ -2834,7 +2924,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("All"),
           },
           {
-            label: "Pending",
+            label: "Not Started",
             value: metrics.pending,
             icon: FiClock,
             glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
@@ -2844,7 +2934,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-white dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
             iconColor: "text-black dark:text-amber-400",
-            onClick: () => handleMetricClick("Pending"),
+            onClick: () => handleMetricClick("Not Started"),
           },
           {
             label: "In Progress",
@@ -2966,60 +3056,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           );
         })}
       </div>
-      {/* Today's Interruptions */}
-      <div ref={performanceTableRef} className="mb-8 relative z-10">
-        <div className="sidebar-bg p-5 rounded-3xl backdrop-blur-md shadow-lg">
-          <div className="flex flex-col md:flex-row md:items-center gap-6">
-            <div className="flex-shrink-0 min-w-[150px] border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 pb-4 md:pb-0 md:pr-6">
-              <h3 className="text-xs font-black tracking-widest text-slate-500 dark:text-slate-400 mb-2 uppercase flex items-center gap-2">
-                <FiAlertCircle className="text-orange-500" size={14} />
-                Interruptions
-              </h3>
-              <span className="text-4xl font-black text-slate-800 dark:text-white block leading-none">
-                {interruptions.total}
-              </span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase mt-1.5 block">
-                Total Blockers Today
-              </span>
-            </div>
 
-            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-blue-400 transition-colors group">
-                <span className="text-2xl font-black text-blue-600 dark:text-blue-400 block group-hover:scale-105 transition-transform origin-left">
-                  {interruptions.counts["Client Calls"]}
-                </span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">
-                  Client Calls
-                </span>
-              </div>
-              <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-rose-400 transition-colors group">
-                <span className="text-2xl font-black text-rose-600 dark:text-rose-400 block group-hover:scale-105 transition-transform origin-left">
-                  {interruptions.counts["Urgent Tasks"]}
-                </span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">
-                  Urgent Tasks
-                </span>
-              </div>
-              <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-purple-400 transition-colors group">
-                <span className="text-2xl font-black text-purple-600 dark:text-purple-400 block group-hover:scale-105 transition-transform origin-left">
-                  {interruptions.counts["Revisions"]}
-                </span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">
-                  Revisions
-                </span>
-              </div>
-              <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-emerald-400 transition-colors group">
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 block group-hover:scale-105 transition-transform origin-left">
-                  {interruptions.counts["Meetings"]}
-                </span>
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">
-                  Meetings
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
       {/* Live Task Board */}
       <div className="relative z-10 space-y-3">
         {/* Header & Controls */}
@@ -3070,23 +3107,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 sidebar-bg px-2.5 py-1 rounded-lg ">
               {boardColumns.length} Columns
             </span>
-            <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl shadow-2xs">
-              <button
-                onClick={() => scrollBoard("left")}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                title="Scroll Left"
-              >
-                <FiChevronLeft size={16} />
-              </button>
-              <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700" />
-              <button
-                onClick={() => scrollBoard("right")}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                title="Scroll Right"
-              >
-                <FiChevronRight size={16} />
-              </button>
-            </div>
           </div>
         </div>
 
@@ -3213,11 +3233,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           </div>
         )}
 
-        {/* Horizontally Scrollable Kanban Columns */}
-        <div
-          ref={boardScrollRef}
-          className="flex gap-4 overflow-x-auto pb-4 pt-1 px-0.5 custom-scrollbar scroll-smooth snap-x snap-mandatory w-full min-h-[400px]"
-        >
+        {/* Kanban Columns (Scrollable on Mobile, Stretched on Desktop) */}
+        <div className="flex flex-nowrap overflow-x-auto gap-4 pb-4 pt-1 px-0.5 custom-scrollbar w-full min-h-[400px]">
           {boardColumns.map((col, i) => {
             let colBg = "bg-slate-50 dark:bg-slate-800/80";
             let boardBg = "bg-slate-50/60 dark:bg-[#0f172a]";
@@ -3294,7 +3311,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               return (
                 <div
                   key={i}
-                  className={`w-[290px] md:w-[310px] min-w-[290px] md:min-w-[310px] shrink-0 snap-start ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
+                  className={`flex-1 min-w-[250px] shrink-0 ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
                 >
                   <div
                     className={`p-3 px-3.5 border-b flex flex-col gap-1.5 rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
@@ -3433,7 +3450,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             return (
               <div
                 key={i}
-                className={`w-[290px] md:w-[310px] min-w-[290px] md:min-w-[310px] shrink-0 snap-start ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
+                className={`flex-1 min-w-[250px] shrink-0 ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
               >
                 <div
                   className={`p-3 px-3.5 border-b flex items-center justify-between rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
@@ -3476,7 +3493,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           <div className="px-4 py-3 min-h-[58px] border-b border-slate-200 dark:border-slate-800  flex flex-wrap items-center justify-between gap-2.5">
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-wide uppercase truncate">
-                Team Performance & Today's Productivity
+                <span className="text-xl bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+                  {targetDept}
+                </span>{" "}
+                - Team Performance & Today's Productivity
               </h3>
               <span className="text-[10.5px] font-bold text-slate-400 dark:text-slate-500 tracking-wide truncate block">
                 Today's Assigned, Carry Forward & Actual Work Tracker
@@ -3504,10 +3524,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   })()}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping shrink-0" />
-                <span className="text-[12px]">Live Tracker</span>
-              </div>
+             
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg sidebar-bg border border-slate-200/60 dark:border-slate-800 text-[9px] font-extrabold text-slate-700 dark:text-slate-300">
                 <FiCalendar
                   className="text-indigo-500 dark:text-indigo-400 shrink-0"
@@ -3532,13 +3549,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     Assigned
                   </th>
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-red-100/80 dark:bg-red-950/60 text-red-700 dark:text-red-300 whitespace-nowrap text-center">
-                    Pending
+                    Not Started
                   </th>
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-violet-100/80 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 whitespace-nowrap text-center">
-                    Inprogress
+                    In-progress
                   </th>
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-fuchsia-100/80 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-300 whitespace-nowrap text-center">
-                    Hold
+                   On-Hold
                   </th>
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-amber-100/80 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 whitespace-nowrap text-center">
                     IN-Review
@@ -3548,20 +3565,18 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   </th>
 
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
-                    Revisions
-                  </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
-                    Blockers
-                  </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
-                    Blocker Timer
+                    Rev
                   </th>
 
+
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
-                    Prod Time
+                    Unproductive Hours
                   </th>
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
-                    Efficiency
+                    Productive Hours
+                  </th>
+                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
+                    Efficieny
                   </th>
 
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-950/60 whitespace-nowrap text-center">
@@ -3685,7 +3700,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* Pending */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-red-500/5 dark:bg-red-950/10">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-slate-200 dark:bg-slate-100">
                         <StatusCellValue
                           todayVal={tp.pending}
                           carryVal={tp.carryForward?.pending || 0}
@@ -3695,7 +3710,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* In Progress */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-violet-500/5 dark:bg-violet-950/10">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-violet-200 dark:bg-violet-400">
                         <StatusCellValue
                           todayVal={tp.inProgress}
                           carryVal={tp.carryForward?.inProgress || 0}
@@ -3706,17 +3721,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* On Hold */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-fuchsia-500/5 dark:bg-fuchsia-950/10">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-orange-200 dark:bg-orange-400">
                         <StatusCellValue
                           todayVal={tp.onHold}
                           carryVal={tp.carryForward?.onHold || 0}
-                          activeTextClass="text-fuchsia-600 dark:text-fuchsia-400"
-                          badgeClass="bg-white dark:bg-slate-955 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-200/50 dark:border-fuchsia-900/60 shadow-3xs"
+                          activeTextClass="text-orange-600 dark:text-orange-400"
+                          badgeClass="bg-white dark:bg-slate-955 text-orange-600 dark:text-orange-400 border-orange-200/50 dark:border-orange-900/60 shadow-3xs"
                         />
                       </td>
 
                       {/* In Review */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-amber-500/5 dark:bg-amber-955/10">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-amber-200 dark:bg-amber-400">
                         <StatusCellValue
                           todayVal={tp.inReview}
                           carryVal={tp.carryForward?.inReview || 0}
@@ -3726,7 +3741,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* Completed */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-emerald-500/5 dark:bg-emerald-950/10">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-emerald-200 dark:bg-emerald-400">
                         <StatusCellValue
                           todayVal={tp.completed}
                           carryVal={tp.carryForward?.completed || 0}
@@ -3752,33 +3767,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </span>
                       </td>
 
-                      {/* Blockers */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center">
-                        {tp.blockers === "none" ? (
-                          <span className="text-slate-400 dark:text-slate-500 font-bold italic text-[10px]">
-                            none
-                          </span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1 justify-center max-w-[110px] mx-auto">
-                            {tp.blockers.split(", ").map((b, bIdx) => (
-                              <span
-                                key={bIdx}
-                                className="px-1.5 py-0.3 text-[8.5px] font-extrabold rounded bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20"
-                              >
-                                {b}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
 
-                      {/* Blocker Timer */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center">
-                        {tp.blockerTimeMs > 0 ? (
+
+                      {/* Unproductive Time */}
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
+                        {tp.onHoldTimeMs > 0 ? (
                           <span className="text-orange-600 dark:text-orange-400 font-black text-[11.5px]">
                             {(() => {
                               const totalMinutes = Math.floor(
-                                tp.blockerTimeMs / (1000 * 60),
+                                tp.onHoldTimeMs / (1000 * 60),
                               );
                               const h = Math.floor(totalMinutes / 60);
                               const m = totalMinutes % 60;
@@ -4051,14 +4048,33 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </span>
                         </td>
 
-                        {/* Blockers */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white" />
 
-                        {/* Blocker Timer */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
-                          <span className="text-[11.5px] font-black text-white">
-                            {blockerFmt}
-                          </span>
+
+                        {/* Unproductive Time */}
+                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white whitespace-nowrap">
+                          {(() => {
+                            const totalMs = teamPerformance.reduce(
+                              (acc, tp) => acc + (tp.onHoldTimeMs || 0),
+                              0,
+                            );
+                            if (totalMs === 0) {
+                              return (
+                                <span className="text-[12px] font-black text-white/70">
+                                  0m
+                                </span>
+                              );
+                            }
+                            const totalMinutes = Math.floor(
+                              totalMs / (1000 * 60),
+                            );
+                            const h = Math.floor(totalMinutes / 60);
+                            const m = totalMinutes % 60;
+                            return (
+                              <span className="text-[12px] font-black">
+                                {h > 0 ? `${h}h ${m}m` : `${m}m`}
+                              </span>
+                            );
+                          })()}
                         </td>
 
                         {/* Productive Time */}
@@ -4196,7 +4212,93 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       </div>
 
       {/* Delayed Projects & Bottlenecks */}
-      <div className="sidebar-bg backdrop-blur-md rounded-2xl  overflow-hidden shadow-sm dark:shadow-xl relative z-10">
+      {(() => {
+        const getChartColors = (count) => {
+          const baseColors = [
+            "rgba(244, 63, 94, 0.8)",
+            "rgba(139, 92, 246, 0.8)",
+            "rgba(245, 158, 11, 0.8)",
+            "rgba(16, 185, 129, 0.8)",
+            "rgba(59, 130, 246, 0.8)",
+            "rgba(217, 70, 239, 0.8)",
+            "rgba(14, 165, 233, 0.8)",
+          ];
+          return Array.from(
+            { length: count },
+            (_, i) => baseColors[i % baseColors.length]
+          );
+        };
+
+        const assigneeCounts = {};
+        const statusCounts = {};
+
+        delayedTasks.forEach((t) => {
+          const a = t.assigneeName || "Unassigned";
+          const s = t.status || "Unknown";
+          assigneeCounts[a] = (assigneeCounts[a] || 0) + 1;
+          statusCounts[s] = (statusCounts[s] || 0) + 1;
+        });
+
+        const assigneeLabels = Object.keys(assigneeCounts);
+        const statusLabels = Object.keys(statusCounts);
+
+        const bottleneckAssigneeData = {
+          labels: assigneeLabels,
+          datasets: [
+            {
+              data: Object.values(assigneeCounts),
+              backgroundColor: getChartColors(assigneeLabels.length).reverse(),
+              borderWidth: 0,
+              hoverOffset: 6,
+            },
+          ],
+        };
+
+        const bottleneckStatusData = {
+          labels: statusLabels,
+          datasets: [
+            {
+              data: Object.values(statusCounts),
+              backgroundColor: getChartColors(statusLabels.length),
+              borderWidth: 0,
+              hoverOffset: 6,
+            },
+          ],
+        };
+
+        const bOptions = {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "right",
+              labels: {
+                color: isDarkMode ? "#cbd5e1" : "#475569",
+                font: { size: 10, weight: "bold" },
+                boxWidth: 10,
+                padding: 10,
+              },
+            },
+            tooltip: {
+              backgroundColor: isDarkMode
+                ? "rgba(15, 23, 42, 0.9)"
+                : "rgba(255, 255, 255, 0.95)",
+              titleColor: isDarkMode ? "#f8fafc" : "#0f172a",
+              bodyColor: isDarkMode ? "#cbd5e1" : "#475569",
+              borderColor: isDarkMode
+                ? "rgba(51, 65, 85, 0.5)"
+                : "rgba(226, 232, 240, 0.8)",
+              borderWidth: 1,
+              padding: 8,
+              boxPadding: 4,
+              usePointStyle: true,
+            },
+          },
+          cutout: "65%",
+        };
+
+        return (
+          <div className="sidebar-bg backdrop-blur-md rounded-2xl  overflow-hidden shadow-sm dark:shadow-xl relative z-10">
         <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50 dark:bg-transparent">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400">
@@ -4262,6 +4364,27 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             </select>
           </div>
         </div>
+
+        {delayedTasks.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 border-b border-slate-100 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/30">
+            <div className="bg-white dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm">
+              <h4 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 text-center">
+                By Assignee
+              </h4>
+              <div className="h-[160px] relative">
+                <Doughnut data={bottleneckAssigneeData} options={bOptions} />
+              </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm">
+              <h4 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 text-center">
+                By Status
+              </h4>
+              <div className="h-[160px] relative">
+                <Doughnut data={bottleneckStatusData} options={bOptions} />
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="p-5 space-y-4 max-h-[420px] overflow-y-auto custom-scrollbar">
           {delayedTasks.length === 0 ? (
@@ -4427,7 +4550,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             })
           )}
         </div>
-      </div>
+          </div>
+        );
+      })()}
       {viewTasksModal.open &&
         createPortal(
           <div className="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-4 md:p-6">
@@ -4487,10 +4612,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 <div className="flex items-center flex-wrap sm:flex-nowrap gap-2 sm:gap-3">
                   {/* Search Input */}
                   <div className="relative flex-1 sm:w-48 min-w-[130px]">
-                    <FiSearch
-                      className="absolute left-2.5 top-2.5 text-slate-400 dark:text-slate-500"
-                      size={13}
-                    />
                     <input
                       type="text"
                       value={taskSearch}
@@ -4517,7 +4638,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       className="px-2.5 py-1.5 text-xs font-extrabold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl text-slate-750 dark:text-white focus:outline-none focus:border-indigo-500 transition-all shadow-sm cursor-pointer"
                     >
                       <option value="all">All Tasks</option>
-                      <option value="pending">Pending</option>
+                      <option value="pending">Not Started</option>
                       <option value="inprogress">In Progress</option>
                       <option value="onhold">On Hold</option>
                       <option value="inreview">In Review</option>
@@ -4545,143 +4666,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
               {/* Modal Body Container */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-slate-50/20 dark:bg-slate-900/10">
-                {/* Task Group Toggle Tabs */}
-                <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 px-3.5 sm:px-5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModalGroupTab("assignedToday");
-                      setTaskTab("all");
-                    }}
-                    className={`py-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
-                      modalGroupTab === "assignedToday"
-                        ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                        : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                    }`}
-                  >
-                    Today's Assigned Batch (
-                    {groupedModalTasks.assignedToday.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setModalGroupTab("carriedForward");
-                      setTaskTab("all");
-                    }}
-                    className={`py-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
-                      modalGroupTab === "carriedForward"
-                        ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                        : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                    }`}
-                  >
-                    Carried Forward Tasks (
-                    {groupedModalTasks.carriedForward.length})
-                  </button>
-                </div>
-                {/* Top Metrics Strip (Swipable on mobile, grid on desktop) */}
-                <div className="flex sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5 p-3.5 sm:p-5 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 overflow-x-auto custom-scrollbar shrink-0 select-none">
-                  {[
-                    {
-                      id: "all",
-                      label: "Assigned",
-                      count: modalTabCounts.all,
-                      activeClass:
-                        "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/20 scale-[1.02]",
-                      dotBg: "bg-blue-500",
-                    },
-                    {
-                      id: "pending",
-                      label: "Pending",
-                      count: modalTabCounts.pending,
-                      activeClass:
-                        "bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/20 scale-[1.02]",
-                      dotBg: "bg-rose-500",
-                    },
-                    {
-                      id: "inprogress",
-                      label: "In Progress",
-                      count: modalTabCounts.inprogress,
-                      activeClass:
-                        "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/20 scale-[1.02]",
-                      dotBg: "bg-violet-500",
-                    },
-                    {
-                      id: "onhold",
-                      label: "On Hold",
-                      count: modalTabCounts.onhold,
-                      activeClass:
-                        "bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white shadow-md shadow-fuchsia-500/20 scale-[1.02]",
-                      dotBg: "bg-fuchsia-500",
-                    },
-                    {
-                      id: "inreview",
-                      label: "In Review",
-                      count: modalTabCounts.inreview,
-                      activeClass:
-                        "bg-gradient-to-br from-amber-500 to-yellow-600 text-white shadow-md shadow-amber-500/20 scale-[1.02]",
-                      dotBg: "bg-amber-500",
-                    },
-                    {
-                      id: "completed",
-                      label: "Completed",
-                      count: modalTabCounts.completed,
-                      activeClass:
-                        "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20 scale-[1.02]",
-                      dotBg: "bg-emerald-500",
-                    },
-                  ].map((card) => {
-                    const isActive = taskTab === card.id;
-                    return (
-                      <button
-                        key={card.id}
-                        type="button"
-                        onClick={() => setTaskTab(card.id)}
-                        className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between min-w-[110px] sm:min-w-0 h-20 sm:h-22 relative overflow-hidden cursor-pointer ${
-                          isActive
-                            ? `${card.activeClass} border-transparent`
-                            : "bg-white dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs hover:scale-[1.01]"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <span
-                            className={`text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider ${
-                              isActive
-                                ? "text-white/90"
-                                : "text-slate-400 dark:text-slate-500"
-                            }`}
-                          >
-                            {card.label}
-                          </span>
-                          <span
-                            className={`w-2 h-2 rounded-full shrink-0 ${
-                              isActive ? "bg-white" : card.dotBg
-                            }`}
-                          />
-                        </div>
-                        <div className="mt-1.5 flex items-baseline gap-1">
-                          <span
-                            className={`text-xl sm:text-2xl font-black ${
-                              isActive
-                                ? "text-white"
-                                : "text-slate-850 dark:text-white"
-                            }`}
-                          >
-                            {card.count}
-                          </span>
-                          <span
-                            className={`text-[9px] font-bold ${
-                              isActive
-                                ? "text-white/80"
-                                : "text-slate-400 dark:text-slate-500"
-                            }`}
-                          >
-                            tasks
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+
 
                 {/* Main Task List Container */}
                 <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#0f172a] p-3 sm:p-5 overflow-hidden">
@@ -4862,6 +4847,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       <span className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                         {task.title}
                                       </span>
+                                      <div className="mt-1.5">
+                                        {(() => {
+                                          const assignmentDate = task.startDate || task.createdAt;
+                                          const isAssignedToday = assignmentDate && isSameDay(new Date(assignmentDate), selectedDate);
+                                          return (
+                                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isAssignedToday ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                              {isAssignedToday ? 'Today Assigned' : 'Carried Forward'}
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
                                     </td>
                                     <td className="py-3 px-4">
                                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border text-[10px] font-extrabold bg-slate-100/70 text-slate-700 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700 shadow-2xs">
@@ -4902,42 +4898,65 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       )}
                                     </td>
                                     <td className="py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-350">
-                                      {targetDate ? (
-                                        <span className="flex items-center gap-1 text-[11px]">
-                                          <FiClock
-                                            size={11}
-                                            className="text-slate-400 shrink-0"
-                                          />
-                                          {(() => {
-                                            try {
-                                              const isDueDateCol =
-                                                !taskTab ||
-                                                taskTab === "all" ||
-                                                targetDate === task.dueDate;
-                                              const d = parseISO(targetDate);
-                                              if (
-                                                isDueDateCol &&
-                                                (String(targetDate).includes(
-                                                  "00:00:00",
-                                                ) ||
-                                                  !String(targetDate).includes(
-                                                    "T",
-                                                  ))
-                                              ) {
-                                                d.setHours(17, 30, 0, 0);
-                                              }
-                                              return format(
-                                                d,
-                                                "MMM dd, h:mm a",
+                                      <td className="py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-350">
+                                        {targetDate ? (
+                                          <div className="flex flex-col gap-0.5">
+                                            <span className="flex items-center gap-1 text-[11px]">
+                                              <FiClock
+                                                size={11}
+                                                className="text-slate-400 shrink-0"
+                                              />
+                                              {(() => {
+                                                try {
+                                                  const isDueDateCol =
+                                                    !taskTab ||
+                                                    taskTab === "all" ||
+                                                    targetDate === task.dueDate;
+                                                  const d = parseISO(targetDate);
+                                                  if (
+                                                    isDueDateCol &&
+                                                    (String(targetDate).includes(
+                                                      "00:00:00",
+                                                    ) ||
+                                                      !String(targetDate).includes(
+                                                        "T",
+                                                      ))
+                                                  ) {
+                                                    d.setHours(17, 30, 0, 0);
+                                                  }
+                                                  return format(
+                                                    d,
+                                                    "MMM dd, h:mm a",
+                                                  );
+                                                } catch (e) {
+                                                  return "—";
+                                                }
+                                              })()}
+                                            </span>
+                                            {task.dueDate && (!taskTab || taskTab === "all" || targetDate === task.dueDate) && (() => {
+                                              const text = getDeadlineBadgeText(task.dueDate, task.status);
+                                              if (!text) return null;
+                                              const isDelayed = text.includes("overdue");
+                                              const isDueToday = text === "Due Today";
+                                              const isCompleted = text === "Completed";
+                                              const colorClass = isCompleted
+                                                ? "text-emerald-500 dark:text-emerald-400"
+                                                : isDelayed
+                                                ? "text-rose-500 dark:text-rose-400"
+                                                : isDueToday
+                                                ? "text-amber-500 dark:text-amber-400"
+                                                : "text-slate-500 dark:text-slate-400";
+                                              return (
+                                                <span className={`text-[9px] font-bold ${colorClass}`}>
+                                                  {text}
+                                                </span>
                                               );
-                                            } catch (e) {
-                                              return "—";
-                                            }
-                                          })()}
-                                        </span>
-                                      ) : (
-                                        "—"
-                                      )}
+                                            })()}
+                                          </div>
+                                        ) : (
+                                          "—"
+                                        )}
+                                      </td>
                                     </td>
                                     <td className="py-3 px-4">
                                       <span
@@ -4945,7 +4964,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                           task.status,
                                         )}`}
                                       >
-                                        {task.status || "Pending"}
+                                        {task.status || "Not Started"}
                                       </span>
                                     </td>
                                     <td className="py-3 px-4 text-center">
@@ -5008,9 +5027,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               >
                                 {/* Title & Priority */}
                                 <div className="flex items-start justify-between gap-2">
-                                  <h4 className="text-xs font-black text-slate-850 dark:text-white leading-snug">
-                                    {task.title}
-                                  </h4>
+                                  <div className="flex flex-col gap-1.5">
+                                    <h4 className="text-xs font-black text-slate-850 dark:text-white leading-snug">
+                                      {task.title}
+                                    </h4>
+                                    {(() => {
+                                      const assignmentDate = task.startDate || task.createdAt;
+                                      const isAssignedToday = assignmentDate && isSameDay(new Date(assignmentDate), selectedDate);
+                                      return (
+                                        <span className={`w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isAssignedToday ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+                                          {isAssignedToday ? 'Today Assigned' : 'Carried Forward'}
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
                                   {task.priority && (
                                     <span
                                       className={`px-2 py-0.5 rounded-md text-[8.5px] font-black uppercase shrink-0 ${getPriorityStyle(
@@ -5040,34 +5070,55 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       task.status,
                                     )}`}
                                   >
-                                    {task.status || "Pending"}
+                                    {task.status || "Not Started"}
                                   </span>
 
                                   {targetDate && (
-                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                                      <FiClock size={10} />
-                                      {(() => {
-                                        try {
-                                          const isDueDateCol =
-                                            !taskTab ||
-                                            taskTab === "all" ||
-                                            targetDate === task.dueDate;
-                                          const d = parseISO(targetDate);
-                                          if (
-                                            isDueDateCol &&
-                                            (String(targetDate).includes(
-                                              "00:00:00",
-                                            ) ||
-                                              !String(targetDate).includes("T"))
-                                          ) {
-                                            d.setHours(17, 30, 0, 0);
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                        <FiClock size={10} />
+                                        {(() => {
+                                          try {
+                                            const isDueDateCol =
+                                              !taskTab ||
+                                              taskTab === "all" ||
+                                              targetDate === task.dueDate;
+                                            const d = parseISO(targetDate);
+                                            if (
+                                              isDueDateCol &&
+                                              (String(targetDate).includes(
+                                                "00:00:00",
+                                              ) ||
+                                                !String(targetDate).includes("T"))
+                                            ) {
+                                              d.setHours(17, 30, 0, 0);
+                                            }
+                                            return format(d, "MMM dd, h:mm a");
+                                          } catch (e) {
+                                            return "—";
                                           }
-                                          return format(d, "MMM dd, h:mm a");
-                                        } catch (e) {
-                                          return "—";
-                                        }
+                                        })()}
+                                      </span>
+                                      {task.dueDate && (!taskTab || taskTab === "all" || targetDate === task.dueDate) && (() => {
+                                        const text = getDeadlineBadgeText(task.dueDate, task.status);
+                                        if (!text) return null;
+                                        const isDelayed = text.includes("overdue");
+                                        const isDueToday = text === "Due Today";
+                                        const isCompleted = text === "Completed";
+                                        const colorClass = isCompleted
+                                          ? "text-emerald-500 dark:text-emerald-400"
+                                          : isDelayed
+                                          ? "text-rose-500 dark:text-rose-400"
+                                          : isDueToday
+                                          ? "text-amber-500 dark:text-amber-400"
+                                          : "text-slate-500 dark:text-slate-400";
+                                        return (
+                                          <span className={`text-[9px] font-bold ${colorClass}`}>
+                                            {text}
+                                          </span>
+                                        );
                                       })()}
-                                    </span>
+                                    </div>
                                   )}
                                 </div>
 

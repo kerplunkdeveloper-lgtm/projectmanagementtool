@@ -113,7 +113,7 @@ export const getStatusBadge = (status) => {
     default:
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
-          {status || "Pending"}
+          {status || "Not Started"}
         </span>
       );
   }
@@ -133,11 +133,17 @@ const StatusHistoryTable = ({ task, todayLoggedMs = 0 }) => {
   });
 
   const todayHistoryWorkedMs = statusHistory
-    .filter(
-      (h) =>
-        h.status === "In Progress" &&
-        formatDateOnly(h.startTime, h.date) === todayDateStr,
-    )
+    .filter((h) => {
+      if (h.status !== "In Progress") return false;
+      const d = h.startTime ? new Date(h.startTime) : (h.date ? new Date(h.date) : null);
+      if (!d || isNaN(d.getTime())) return false;
+      const hDateStr = d.toLocaleDateString("en-US", {
+        timeZone: "Asia/Kolkata",
+        month: "short",
+        day: "numeric",
+      });
+      return hDateStr === todayDateStr;
+    })
     .reduce((acc, curr) => acc + (curr.duration || 0), 0);
 
   const displayTodayMs =
@@ -210,6 +216,7 @@ const StatusHistoryTable = ({ task, todayLoggedMs = 0 }) => {
                   <th className="px-3.5 py-2">Status</th>
                   <th className="px-3.5 py-2">Start Time</th>
                   <th className="px-3.5 py-2">End Time</th>
+                  <th className="px-3.5 py-2">Hold Reason</th>
                   <th className="px-3.5 py-2 text-right">Duration</th>
                 </tr>
               </thead>
@@ -248,6 +255,9 @@ const StatusHistoryTable = ({ task, todayLoggedMs = 0 }) => {
                         </td>
                         <td className="px-3.5 py-2.5 whitespace-nowrap text-[11px] text-slate-500 dark:text-slate-400">
                           {endStr}
+                        </td>
+                        <td className="px-3.5 py-2.5 whitespace-nowrap text-[11px] text-slate-500 dark:text-slate-400">
+                          {item.reason || "—"}
                         </td>
                         <td className="px-3.5 py-2.5 whitespace-nowrap text-[11px] font-black text-right text-slate-800 dark:text-slate-100">
                           {durationStr}

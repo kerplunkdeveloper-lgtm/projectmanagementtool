@@ -26,7 +26,7 @@ function getISTDateParts(date = new Date()) {
  * Calculates elapsed business office hours (in milliseconds) between two dates in Asia/Kolkata IST.
  * Excludes non-working days and non-working hours.
  */
-function calculateBusinessMs(startDate, endDate, startHour = 9, endHour = 19, workingDays = [1, 2, 3, 4, 5, 6], holidays = []) {
+function calculateBusinessMs(startDate, endDate, startHour = 9, endHour = 19, workingDays = [1, 2, 3, 4, 5, 6], holidays = [], breakStartHour = 13, breakEndHour = 14) {
   if (!startDate || !endDate) return 0;
   let start = new Date(startDate).getTime();
   let end = new Date(endDate).getTime();
@@ -91,6 +91,8 @@ async function checkWithinBusinessHours() {
 
     const startHour = settings.startHour ?? 9;
     const endHour = settings.endHour ?? 19;
+    const breakStartHour = settings.breakStartHour ?? 13;
+    const breakEndHour = settings.breakEndHour ?? 14;
 
     const now = new Date();
     const { day, hour: currentHour } = getISTDateParts(now);

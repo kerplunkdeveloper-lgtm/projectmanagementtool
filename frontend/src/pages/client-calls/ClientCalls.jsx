@@ -13,8 +13,9 @@ import {
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
-
+import { useSelector } from "react-redux";
 const ClientCalls = ({ isEmbedded = false }) => {
+  const { user } = useSelector((state) => state.auth);
   const [calls, setCalls] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -547,7 +548,9 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                {calls.map((call) => (
+                {calls
+                  .filter((call) => user?.role === 'team' ? call.createdBy?._id === (user._id || user.id) : true)
+                  .map((call) => (
                   <tr
                     key={call._id}
                     className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group"

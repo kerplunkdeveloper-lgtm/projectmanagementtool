@@ -54,34 +54,10 @@ const calculateSessionWorkingTime = (item, sessionEndTime = Date.now(), startHou
   if (isNaN(start) || isNaN(end) || end <= start) return 0;
 
   const rawBusinessMs = calculateBusinessMs(start, end, startHour, endHour, workingDays);
-
-  let sessionPauseMs = 0;
-  if (item.blockerHistory && Array.isArray(item.blockerHistory)) {
-    item.blockerHistory.forEach((h) => {
-      if (h.pausedAt) {
-        const p = new Date(h.pausedAt).getTime();
-        let r = h.resumedAt ? new Date(h.resumedAt).getTime() : end;
-        if (r > end) r = end;
-        const oStart = Math.max(p, start);
-        const oEnd = Math.min(r, end);
-        if (oEnd > oStart) {
-          sessionPauseMs += (oEnd - oStart);
-        }
-      }
-    });
-  }
-  if (item.isBlocked && item.blockerPausedAt) {
-    const p = new Date(item.blockerPausedAt).getTime();
-    const oStart = Math.max(p, start);
-    if (end > oStart) {
-      sessionPauseMs += (end - oStart);
-    }
-  }
-
-  return Math.max(0, rawBusinessMs - sessionPauseMs);
+  return Math.max(0, rawBusinessMs);
 };
 
-const handleItemStatusTransition = (item, prevStatus, newStatus, userId, settings = {}) => {
+const handleItemStatusTransition = (item, prevStatus, newStatus, userId, settings = {}, additionalData = {}) => {
   if (!newStatus || newStatus === prevStatus) return;
 
   const now = new Date();
@@ -108,7 +84,15 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
   // 1. Handle LEAVING the previous status
   if (prevStatus === "In Progress") {
     // Designer was actively working; freeze / accrue session working time
-    const sessionWorkedMs = calculateSessionWorkingTime(item, nowMs, startHour, endHour, workingDays);
+    let sessionWorkedMs;
+    
+    if (newStatus === "Not Started" && item.actualStartTime) {
+      // Calculate strict duration for Not Started to preserve exact time outside business hours
+      sessionWorkedMs = Math.max(0, nowMs - new Date(item.actualStartTime).getTime());
+    } else {
+      sessionWorkedMs = calculateSessionWorkingTime(item, nowMs, startHour, endHour, workingDays);
+    }
+
     item.totalTrackedTime = (item.totalTrackedTime || 0) + sessionWorkedMs;
 
     const sessionDateStr = item.actualStartTime
@@ -120,25 +104,42 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
     }
 
     closeOpenHistoryEntry("In Progress", now, sessionWorkedMs);
+    
+    // Clear actualStartTime so frontend optimistic updates don't double count time
+    item.actualStartTime = null;
 
-    // If item was blocked while In Progress, record open blocker segment into blockerHistory
-    if (item.isBlocked && item.blockerPausedAt) {
-      const bStart = new Date(item.blockerPausedAt).getTime();
-      if (nowMs > bStart) {
-        if (!item.blockerHistory) item.blockerHistory = [];
-        item.blockerHistory.push({
-          pausedAt: item.blockerPausedAt,
-          resumedAt: now,
-        });
-      }
-    }
   } else if (prevStatus === "On Hold") {
     // Leaving On Hold: calculate business-hour On Hold duration
     const holdStart = item.holdStartedAt || item.pausedAt || (history.length > 0 ? history[history.length - 1].startTime : now);
     const onHoldBusinessMs = calculateBusinessMs(holdStart, now, startHour, endHour, workingDays);
     item.holdEndedAt = now;
 
+    let wasProductiveHold = false;
+    for (let i = history.length - 1; i >= 0; i--) {
+      if (!history[i].endTime && history[i].status === "On Hold") {
+        if (history[i].reason === "Client Call" || history[i].reason === "Meeting") {
+          wasProductiveHold = true;
+        }
+        break;
+      }
+    }
+
+    if (wasProductiveHold) {
+      item.totalTrackedTime = (item.totalTrackedTime || 0) + onHoldBusinessMs;
+      const sessionDateStr = new Date(holdStart).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      if (sessionDateStr === currentDateStr) {
+        item.dailyTrackedTime = (item.dailyTrackedTime || 0) + onHoldBusinessMs;
+      }
+    }
+
     closeOpenHistoryEntry("On Hold", now, onHoldBusinessMs);
+  } else if (prevStatus === "Blocked") {
+    // Leaving Blocked: calculate business-hour Blocked duration
+    const blockedStart = item.blockedStartedAt || item.pausedAt || (history.length > 0 ? history[history.length - 1].startTime : now);
+    const blockedBusinessMs = calculateBusinessMs(blockedStart, now, startHour, endHour, workingDays);
+    item.blockedStartedAt = null;
+
+    closeOpenHistoryEntry("Blocked", now, blockedBusinessMs);
   } else if (prevStatus === "In Review") {
     const reviewStart = item.reviewStartedAt || nowMs;
     const reviewBusinessMs = calculateBusinessMs(reviewStart, nowMs, startHour, endHour, workingDays);
@@ -153,13 +154,17 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
     item.reviewStartedAt = null;
 
     closeOpenHistoryEntry("In Review", now, reviewBusinessMs);
+  } else if (prevStatus === "Correction") {
+    const correctionStart = item.pausedAt || (history.length > 0 ? history[history.length - 1].startTime : now);
+    const correctionBusinessMs = calculateBusinessMs(correctionStart, now, startHour, endHour, workingDays);
+    closeOpenHistoryEntry("Correction", now, correctionBusinessMs);
   } else if (prevStatus) {
     closeOpenHistoryEntry(prevStatus, now, 0);
   }
 
   // 2. Handle ENTERING the new status
   switch (newStatus) {
-    case "Pending":
+    case "Not Started":
       item.actualStartTime = null; // Reset today's timer to start from 00:00:00 when later placed in progress
       item.actualEndTime = null;
       item.pausedAt = null;
@@ -168,7 +173,7 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
       item.autoPaused = false;
 
       history.push({
-        status: "Pending",
+        status: "Not Started",
         startTime: now,
         endTime: null,
         duration: 0,
@@ -183,10 +188,20 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
         ? new Date(item.actualStartTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
         : null;
       const hasHistoryToday = Array.isArray(item.statusHistory) && item.statusHistory.some((h) => {
-        const d = h.date || (h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null);
+        let d = h.date;
+        if (d && d.includes(",")) {
+          try {
+            d = new Date(d).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+          } catch (e) {}
+        }
+        if (!d || d.includes(",")) {
+          d = h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
+        }
         return d === currentDateStr;
       });
-      if (!hasHistoryToday && (!lastSessionDateStr || lastSessionDateStr !== currentDateStr)) {
+      if (hasHistoryToday && item.actualStartTime) {
+        // Already active today, don't reset dailyTrackedTime
+      } else if (!hasHistoryToday && (!lastSessionDateStr || lastSessionDateStr !== currentDateStr)) {
         // New day & no session today → start fresh daily counter
         item.dailyTrackedTime = 0;
       }
@@ -200,10 +215,6 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
       item.holdEndedAt = null;
       item.autoPaused = false;
 
-      // If still blocked, realign blockerPausedAt to match new actualStartTime
-      if (item.isBlocked) {
-        item.blockerPausedAt = now;
-      }
 
       history.push({
         status: "In Progress",
@@ -229,6 +240,27 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
         duration: 0,
         date: todayStr,
         user: userId,
+        reason: additionalData.reason || "",
+        relatedTaskId: additionalData.relatedTaskId || null,
+      });
+      break;
+
+    case "Blocked":
+      item.pausedAt = now;
+      item.blockedStartedAt = now;
+      item.autoPaused = false;
+
+      history.push({
+        status: "Blocked",
+        startTime: now,
+        endTime: null,
+        duration: 0,
+        date: todayStr,
+        user: userId,
+        reason: additionalData.reason || "",
+        blockerType: additionalData.blockerType || "",
+        blockedBy: additionalData.blockedBy || "",
+        comment: additionalData.comment || "",
       });
       break;
 
@@ -310,41 +342,43 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
 };
 
 const calculateItemWorkingTime = (item) => {
-  if (!item.actualStartTime) return item.totalTrackedTime || 0;
-  const start = new Date(item.actualStartTime).getTime();
-  let end = Date.now();
-  if (item.actualEndTime) {
-    end = new Date(item.actualEndTime).getTime();
-  } else if (item.status === "In Progress" && item.autoPaused) {
-    end = item.pausedAt ? new Date(item.pausedAt).getTime() : Date.now();
-  } else if (item.pausedAt && item.status !== "In Progress") {
-    end = new Date(item.pausedAt).getTime();
-  } else if (item.status === "Pending") {
-    end = item.updatedAt ? new Date(item.updatedAt).getTime() : start;
-  }
-
-  let totalPauseMs = 0;
-  if (item.blockerHistory && item.blockerHistory.length > 0) {
-    item.blockerHistory.forEach((h) => {
-      if (h.pausedAt) {
-        const p = new Date(h.pausedAt).getTime();
-        let r = h.resumedAt ? new Date(h.resumedAt).getTime() : Date.now();
-        if (r > end) r = end;
-        if (r >= p) {
-          totalPauseMs += r - p;
+  // Use session history as the primary source of truth for total productive time.
+  let totalTrackedTime = 0;
+  let hasOpenSession = false;
+  let openSessionStart = null;
+  
+  if (item.statusHistory && Array.isArray(item.statusHistory)) {
+    item.statusHistory.forEach(h => {
+      if (h.status === "In Progress") {
+        if (h.endTime) {
+          totalTrackedTime += h.duration || 0;
+        } else {
+          hasOpenSession = true;
+          openSessionStart = h.startTime;
         }
       }
     });
   }
-  if (item.isBlocked && item.blockerPausedAt) {
-    const p = new Date(item.blockerPausedAt).getTime();
-    if (p < end) {
-      totalPauseMs += end - p;
+
+  // If there's an open session, calculate the time for the CURRENT session up to now
+  // and add it to the historical total.
+  if (hasOpenSession && openSessionStart && item.actualStartTime) {
+    const start = new Date(item.actualStartTime).getTime();
+    let end = Date.now();
+
+    if (item.actualEndTime) {
+      end = new Date(item.actualEndTime).getTime();
+    } else if (item.status === "In Progress" && item.autoPaused) {
+      end = item.pausedAt ? new Date(item.pausedAt).getTime() : Date.now();
+    } else if (item.pausedAt && item.status !== "In Progress") {
+      end = new Date(item.pausedAt).getTime();
     }
+
+    const elapsed = end - start - totalPauseMs;
+    totalTrackedTime += Math.max(0, elapsed);
   }
 
-  const elapsed = end - start - (item.totalPausedMs || 0) - totalPauseMs;
-  return (item.totalTrackedTime || 0) + Math.max(0, elapsed);
+  return totalTrackedTime;
 };
 
 
@@ -509,6 +543,10 @@ const isSameDay = (d1, d2) => {
 exports.createTask = async (req, res) => {
   try {
     req.body.createdBy = req.user._id;
+    
+    // Auto-set start date to creation date
+    const now = new Date();
+    req.body.startDate = now;
 
     // Check business hours when creating task/subtask set to In Progress
     const isTaskInProgress = req.body.status === "In Progress";
@@ -562,8 +600,7 @@ exports.createTask = async (req, res) => {
       }
     }
 
-    const initialStatus = req.body.status || "Pending";
-    const now = new Date();
+    const initialStatus = req.body.status || "Not Started";
     const todayStr = getISTDateStr(now);
     if (!req.body.statusHistory || req.body.statusHistory.length === 0) {
       req.body.statusHistory = [
@@ -583,7 +620,8 @@ exports.createTask = async (req, res) => {
 
     if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
       req.body.subtasks = req.body.subtasks.map(sub => {
-        const subStatus = sub.status || "Pending";
+        sub.startDate = now;
+        const subStatus = sub.status || "Not Started";
         if (!sub.statusHistory || sub.statusHistory.length === 0) {
           sub.statusHistory = [
             {
@@ -751,7 +789,7 @@ exports.updateTask = async (req, res) => {
     let tryingToStartTask = false;
     let targetItem = null;
 
-    if (req.body.status === "In Progress" && previousStatus !== "In Progress") {
+    if (req.body.status === "In Progress" && (previousStatus !== "In Progress" || (previousStatus === "In Progress" && !task.actualStartTime))) {
       tryingToStartTask = true;
       targetItem = task;
     }
@@ -759,7 +797,7 @@ exports.updateTask = async (req, res) => {
     if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
       for (const sub of req.body.subtasks) {
         const prevSub = previousSubtasks.find(p => p._id?.toString() === sub._id?.toString());
-        if (sub.status === "In Progress" && (!prevSub || prevSub.status !== "In Progress")) {
+        if (sub.status === "In Progress" && (!prevSub || prevSub.status !== "In Progress" || (prevSub.status === "In Progress" && !prevSub.actualStartTime))) {
           tryingToStartTask = true;
           targetItem = prevSub || sub;
           break;
@@ -802,7 +840,7 @@ exports.updateTask = async (req, res) => {
       workingDays: [1, 2, 3, 4, 5, 6],
     };
 
-    if (req.body.status && req.body.status !== previousStatus) {
+    if (req.body.status && (req.body.status !== previousStatus || (req.body.status === "In Progress" && !task.actualStartTime))) {
       if (req.body.status === "In Progress") {
         if (task.assignedTo) {
           const hasActive = await hasActiveWork(
@@ -882,7 +920,7 @@ exports.updateTask = async (req, res) => {
         req.body.feedbacks = [...(task.feedbacks || []), rejFeedback];
       }
 
-      handleItemStatusTransition(task, previousStatus, req.body.status, req.user._id, officeSettings);
+      handleItemStatusTransition(task, previousStatus, req.body.status, req.user._id, officeSettings, req.body);
 
       req.body.statusHistory = task.statusHistory;
       req.body.totalTrackedTime = task.totalTrackedTime;
@@ -891,6 +929,7 @@ exports.updateTask = async (req, res) => {
       req.body.actualEndTime = task.actualEndTime;
       req.body.holdStartedAt = task.holdStartedAt;
       req.body.holdEndedAt = task.holdEndedAt;
+      req.body.blockedStartedAt = task.blockedStartedAt;
       req.body.pausedAt = task.pausedAt;
       req.body.autoPaused = task.autoPaused;
       req.body.reviewStartedAt = task.reviewStartedAt;
@@ -933,7 +972,7 @@ exports.updateTask = async (req, res) => {
           (p) => p._id && sub._id && p._id.toString() === sub._id.toString()
         );
 
-        if (prevSub && sub.status && sub.status !== prevSub.status) {
+        if (prevSub && sub.status && (sub.status !== prevSub.status || (sub.status === "In Progress" && !prevSub.actualStartTime))) {
           const isSubMOM = (sub && sub.contentType === "MOM") || (prevSub && prevSub.contentType === "MOM") || task.contentType === "MOM";
           // ✅ FIX Bug 2: Enforce On Hold validation for subtasks (same rule as parent task)
           if (sub.status === "On Hold" && !prevSub.actualStartTime && !prevSub.totalTrackedTime && !isSubMOM) {
@@ -972,7 +1011,7 @@ exports.updateTask = async (req, res) => {
             }
           }
 
-          handleItemStatusTransition(prevSub, prevSub.status, sub.status, req.user._id, officeSettings);
+          handleItemStatusTransition(prevSub, prevSub.status, sub.status, req.user._id, officeSettings, sub);
 
           sub.statusHistory = prevSub.statusHistory;
           sub.totalTrackedTime = prevSub.totalTrackedTime;
@@ -981,6 +1020,7 @@ exports.updateTask = async (req, res) => {
           sub.actualEndTime = prevSub.actualEndTime;
           sub.holdStartedAt = prevSub.holdStartedAt;
           sub.holdEndedAt = prevSub.holdEndedAt;
+          sub.blockedStartedAt = prevSub.blockedStartedAt;
           sub.pausedAt = prevSub.pausedAt;
           sub.autoPaused = prevSub.autoPaused;
           sub.reviewStartedAt = prevSub.reviewStartedAt;
