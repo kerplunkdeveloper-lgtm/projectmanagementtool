@@ -1666,450 +1666,448 @@ const Dashboardmain = () => {
       <WelcomeUser />
 
       {/* Goal tasks (All Users) & My Projects shortcut (Admin, Ops Manager, Social Media Manager only) */}
-      <div className={`grid grid-cols-1 ${canSeeProjectsShortcut ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-4 mt-2 relative z-10`}>
-          {/* My Goals tasks card */}
-          <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col min-h-[340px] relative w-full">
-            {/* Header: Avatar, Title, Lock, and Dots menu */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                {/* Yellow initials avatar */}
-                <div className="w-8 h-8 rounded-full bg-[#f5d05e] dark:bg-[#eab308]/90 text-[#543d02] font-semibold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                  {getInitials(user?.name) || "Aw"}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
-                    My Goals tasks
-                  </h3>
-                  <FiLock
-                    size={12}
-                    className="text-slate-400 dark:text-slate-500 fill-slate-400 dark:fill-slate-500"
-                  />
-                </div>
+      <div
+        className={`grid grid-cols-1 ${canSeeProjectsShortcut ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-4 mt-2 relative z-10`}
+      >
+        {/* My Goals tasks card */}
+        <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col min-h-[340px] relative w-full">
+          {/* Header: Avatar, Title, Lock, and Dots menu */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              {/* Yellow initials avatar */}
+              <div className="w-8 h-8 rounded-full bg-[#f5d05e] dark:bg-[#eab308]/90 text-[#543d02] font-semibold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                {getInitials(user?.name) || "Aw"}
               </div>
-
-              {/* Rounded rectangular ... button */}
-              <button className="w-7 h-6 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 cursor-pointer">
-                <span className="text-xs font-bold tracking-widest leading-none">
-                  •••
-                </span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                  My Goals tasks
+                </h3>
+                <FiLock
+                  size={12}
+                  className="text-slate-400 dark:text-slate-500 fill-slate-400 dark:fill-slate-500"
+                />
+              </div>
             </div>
 
-            {/* Tabs matching reference image */}
-            <div className="flex items-center gap-4 sm:gap-5 border-b border-slate-100 dark:border-white/5 pb-0.5 mb-1.5">
-              {[
-                {
-                  id: "Upcoming",
-                  label: `Upcoming (${goalStats.upcoming.length})`,
-                },
-                {
-                  id: "Overdue",
-                  label: `Overdue (${goalStats.overdue.length})`,
-                },
-                {
-                  id: "Completed",
-                  label: `Completed (${goalStats.completed.length})`,
-                },
-              ].map((tab) => {
-                const isActive = goalTab === tab.id;
+            {/* Rounded rectangular ... button */}
+            <button className="w-7 h-6 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 cursor-pointer">
+              <span className="text-xs font-bold tracking-widest leading-none">
+                •••
+              </span>
+            </button>
+          </div>
+
+          {/* Tabs matching reference image */}
+          <div className="flex items-center gap-4 sm:gap-5 border-b border-slate-100 dark:border-white/5 pb-0.5 mb-1.5">
+            {[
+              {
+                id: "Upcoming",
+                label: `Upcoming (${goalStats.upcoming.length})`,
+              },
+              {
+                id: "Overdue",
+                label: `Overdue (${goalStats.overdue.length})`,
+              },
+              {
+                id: "Completed",
+                label: `Completed (${goalStats.completed.length})`,
+              },
+            ].map((tab) => {
+              const isActive = goalTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setGoalTab(tab.id);
+                    setEditingGoalId(null);
+                  }}
+                  className={`text-xs font-medium pb-1.5 cursor-pointer relative transition-colors ${
+                    isActive
+                      ? "text-slate-900 dark:text-slate-300 font-semibold"
+                      : "text-slate-455 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-400"
+                  }`}
+                >
+                  {tab.label}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeAdminGoalTab"
+                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-slate-800 dark:bg-slate-200"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* + Create task link - only visible in Upcoming tab */}
+          {goalTab === "Upcoming" && (
+            <button
+              onClick={() => handleCreateGoal(null, "")}
+              className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors text-xs py-1.5 cursor-pointer pl-0.5"
+            >
+              <FiPlus size={13} className="text-slate-455" />
+              <span>Create task</span>
+            </button>
+          )}
+          <div className="flex-1 flex flex-col pt-0.5">
+            {/* Tasks List with bottom border lines */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 mt-0.5 divide-y divide-slate-100 dark:divide-white/5">
+              {paginatedGoals.map((g) => {
+                const dateText = formatGoalDates(g.startDate, g.endDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isOverdueGoal =
+                  g.endDate && new Date(g.endDate) < today && !g.completed;
+
                 return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setGoalTab(tab.id);
-                      setEditingGoalId(null);
-                    }}
-                    className={`text-xs font-medium pb-1.5 cursor-pointer relative transition-colors ${
-                      isActive
-                        ? "text-slate-900 dark:text-slate-300 font-semibold"
-                        : "text-slate-455 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-400"
-                    }`}
+                  <div
+                    key={g._id}
+                    className="flex items-center justify-between py-1.5 bg-transparent group/row"
                   >
-                    {tab.label}
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeAdminGoalTab"
-                        className="absolute bottom-0 left-0 right-0 h-[2px] bg-slate-800 dark:bg-slate-200"
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pl-0.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleGoalComplete(g);
+                        }}
+                        className="shrink-0 focus:outline-none cursor-pointer"
+                      >
+                        {g.completed ? (
+                          <div className="w-4.5 h-4.5 rounded-full border border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-450">
+                            <FiCheck size={10} className="stroke-[3]" />
+                          </div>
+                        ) : (
+                          <div className="w-4.5 h-4.5 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-700 hover:border-slate-455 transition-all">
+                            <FiCheck
+                              size={10}
+                              className="text-slate-100 dark:text-[#1e1e1e]"
+                            />
+                          </div>
+                        )}
+                      </button>
 
-            {/* + Create task link - only visible in Upcoming tab */}
-            {goalTab === "Upcoming" && (
-              <button
-                onClick={() => handleCreateGoal(null, "")}
-                className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors text-xs py-1.5 cursor-pointer pl-0.5"
-              >
-                <FiPlus size={13} className="text-slate-455" />
-                <span>Create task</span>
-              </button>
-            )}
-            <div className="flex-1 flex flex-col pt-0.5">
-              {/* Tasks List with bottom border lines */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 mt-0.5 divide-y divide-slate-100 dark:divide-white/5">
-                {paginatedGoals.map((g) => {
-                  const dateText = formatGoalDates(g.startDate, g.endDate);
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  const isOverdueGoal =
-                    g.endDate && new Date(g.endDate) < today && !g.completed;
-
-                  return (
-                    <div
-                      key={g._id}
-                      className="flex items-center justify-between py-1.5 bg-transparent group/row"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1 pl-0.5">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleGoalComplete(g);
+                      {/* Title Editable Directly */}
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="text"
+                          placeholder="Write a task name"
+                          defaultValue={g.taskName}
+                          autoFocus={g._id === newCreatedGoalId}
+                          onFocus={() => {
+                            if (g._id === newCreatedGoalId) {
+                              setTimeout(() => {
+                                setNewCreatedGoalId(null);
+                              }, 50);
+                            }
                           }}
-                          className="shrink-0 focus:outline-none cursor-pointer"
-                        >
-                          {g.completed ? (
-                            <div className="w-4.5 h-4.5 rounded-full border border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-450">
-                              <FiCheck size={10} className="stroke-[3]" />
-                            </div>
-                          ) : (
-                            <div className="w-4.5 h-4.5 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-700 hover:border-slate-455 transition-all">
-                              <FiCheck
-                                size={10}
-                                className="text-slate-100 dark:text-[#1e1e1e]"
-                              />
-                            </div>
-                          )}
-                        </button>
-
-                        {/* Title Editable Directly */}
-                        <div className="flex-1 min-w-0">
-                          <input
-                            type="text"
-                            placeholder="Write a task name"
-                            defaultValue={g.taskName}
-                            autoFocus={g._id === newCreatedGoalId}
-                            onFocus={() => {
-                              if (g._id === newCreatedGoalId) {
-                                setTimeout(() => {
-                                  setNewCreatedGoalId(null);
-                                }, 50);
+                          onBlur={async (e) => {
+                            const val = e.target.value.trim();
+                            if (val !== g.taskName) {
+                              try {
+                                await updateGoal({
+                                  id: g._id,
+                                  goalData: { taskName: val },
+                                }).unwrap();
+                                toast.success("Goal updated");
+                              } catch {
+                                toast.error("Failed to update goal name");
                               }
-                            }}
-                            onBlur={async (e) => {
-                              const val = e.target.value.trim();
-                              if (val !== g.taskName) {
-                                try {
-                                  await updateGoal({
-                                    id: g._id,
-                                    goalData: { taskName: val },
-                                  }).unwrap();
-                                  toast.success("Goal updated");
-                                } catch {
-                                  toast.error("Failed to update goal name");
-                                }
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleExistingGoalEnter(g, e.target.value);
-                              }
-                            }}
-                            className={`goal-inline-input text-xs w-full focus:outline-none py-0.5 ${
-                              g.completed
-                                ? "goal-completed-text"
-                                : "text-slate-700 dark:text-slate-200"
-                            }`}
-                          />
-                          {g.completed && g.completedAt && (
-                            <span className="text-[9px] text-slate-400 dark:text-slate-500 block -mt-0.5 font-medium pl-0.5">
-                              {(() => {
-                                const d = new Date(g.completedAt);
-                                const timeStr = d.toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                });
-                                const dateStr = d.toLocaleDateString([], {
-                                  month: "short",
-                                  day: "numeric",
-                                });
-                                return `Completed at ${timeStr}, ${dateStr}`;
-                              })()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Date and Actions */}
-                      <div className="flex items-center gap-2 shrink-0 pr-0.5">
-                        {/* Start Date Badge */}
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveCalendarGoalId(
-                              activeCalendarGoalId === g._id ? null : g._id,
-                            );
-                            setCalendarTarget("start");
+                            }
                           }}
-                          className="text-[11px] text-slate-450 dark:text-slate-500 font-normal cursor-pointer hover:underline flex items-center gap-1"
-                        >
-                          {dateText ? (
-                            <span
-                              className={`px-1.5 py-0.5 rounded-full font-semibold text-[10px] border ${
-                                isOverdueGoal
-                                  ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/25"
-                                  : "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-white/5"
-                              }`}
-                            >
-                              {dateText}
-                            </span>
-                          ) : (
-                            /* Dashed circle wrapper around calendar icon when date is missing */
-                            <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-455 hover:text-blue-500 cursor-pointer">
-                              <FiCalendar size={10} />
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteGoalClick(g._id);
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleExistingGoalEnter(g, e.target.value);
+                            }
                           }}
-                          className="w-5 h-5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors cursor-pointer shrink-0 opacity-0 group-hover/row:opacity-100"
-                        >
-                          <FiTrash2 size={11} />
-                        </button>
+                          className={`goal-inline-input text-xs w-full focus:outline-none py-0.5 ${
+                            g.completed
+                              ? "goal-completed-text"
+                              : "text-slate-700 dark:text-slate-200"
+                          }`}
+                        />
+                        {g.completed && g.completedAt && (
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 block -mt-0.5 font-medium pl-0.5">
+                            {(() => {
+                              const d = new Date(g.completedAt);
+                              const timeStr = d.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              });
+                              const dateStr = d.toLocaleDateString([], {
+                                month: "short",
+                                day: "numeric",
+                              });
+                              return `Completed at ${timeStr}, ${dateStr}`;
+                            })()}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
 
-                {activeTabGoals.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center text-center py-8">
-                    <FiCheck className="w-6 h-6 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 rounded-full p-1 mb-1 animate-bounce" />
-                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Target & Overdue Tasks
-                    </span>
+                    {/* Right Date and Actions */}
+                    <div className="flex items-center gap-2 shrink-0 pr-0.5">
+                      {/* Start Date Badge */}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveCalendarGoalId(
+                            activeCalendarGoalId === g._id ? null : g._id,
+                          );
+                          setCalendarTarget("start");
+                        }}
+                        className="text-[11px] text-slate-450 dark:text-slate-500 font-normal cursor-pointer hover:underline flex items-center gap-1"
+                      >
+                        {dateText ? (
+                          <span
+                            className={`px-1.5 py-0.5 rounded-full font-semibold text-[10px] border ${
+                              isOverdueGoal
+                                ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/25"
+                                : "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-white/5"
+                            }`}
+                          >
+                            {dateText}
+                          </span>
+                        ) : (
+                          /* Dashed circle wrapper around calendar icon when date is missing */
+                          <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-455 hover:text-blue-500 cursor-pointer">
+                            <FiCalendar size={10} />
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteGoalClick(g._id);
+                        }}
+                        className="w-5 h-5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors cursor-pointer shrink-0 opacity-0 group-hover/row:opacity-100"
+                      >
+                        <FiTrash2 size={11} />
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
+                );
+              })}
 
-              {/* Pagination Controls */}
-              {totalGoalPages > 1 && (
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 mt-auto bg-transparent px-0.5">
-                  <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-550 select-none">
-                    Page {goalPage} of {totalGoalPages}
+              {activeTabGoals.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center text-center py-8">
+                  <FiCheck className="w-6 h-6 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 rounded-full p-1 mb-1 animate-bounce" />
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Target & Overdue Tasks
                   </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() =>
-                        setGoalPage((prev) => Math.max(prev - 1, 1))
-                      }
-                      disabled={goalPage === 1}
-                      className="w-6 h-6 rounded-md border border-slate-200 dark:border-white/10 flex items-center justify-center text-xs text-slate-455 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
-                    >
-                      &lt;
-                    </button>
-                    <button
-                      onClick={() =>
-                        setGoalPage((prev) =>
-                          Math.min(prev + 1, totalGoalPages),
-                        )
-                      }
-                      disabled={goalPage === totalGoalPages}
-                      className="w-6 h-6 rounded-md border border-slate-200 dark:border-white/10 flex items-center justify-center text-xs text-slate-455 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
-                    >
-                      &gt;
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
 
-            {activeCalendarGoalId && (
-              <>
-                <div
-                  className="fixed inset-0 z-40 bg-transparent cursor-default"
-                  onClick={() => setActiveCalendarGoalId(null)}
-                />
-                {renderCalendarPopover(
-                  activeCalendarGoalId,
-                  goals.find((g) => g._id === activeCalendarGoalId)?.startDate,
-                  goals.find((g) => g._id === activeCalendarGoalId)?.endDate,
-                  async (start, end) => {
-                    try {
-                      await updateGoal({
-                        id: activeCalendarGoalId,
-                        goalData: {
-                          startDate: start ? start.toISOString() : null,
-                          endDate: end ? end.toISOString() : null,
-                        },
-                      }).unwrap();
-                    } catch (err) {
-                      toast.error("Failed to update dates");
+            {/* Pagination Controls */}
+            {totalGoalPages > 1 && (
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 mt-auto bg-transparent px-0.5">
+                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-550 select-none">
+                  Page {goalPage} of {totalGoalPages}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setGoalPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={goalPage === 1}
+                    className="w-6 h-6 rounded-md border border-slate-200 dark:border-white/10 flex items-center justify-center text-xs text-slate-455 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                  >
+                    &lt;
+                  </button>
+                  <button
+                    onClick={() =>
+                      setGoalPage((prev) => Math.min(prev + 1, totalGoalPages))
                     }
-                  },
-                )}
-              </>
+                    disabled={goalPage === totalGoalPages}
+                    className="w-6 h-6 rounded-md border border-slate-200 dark:border-white/10 flex items-center justify-center text-xs text-slate-455 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                  >
+                    &gt;
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
-          {/* MY PROJECTS card - shown ONLY for Admin, Operation Manager, and Social Media Manager */}
-          {canSeeProjectsShortcut && (
-            <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col justify-between min-h-[200px]">
-              <div>
-                {/* Header: Title, Count, Go to project page, Pagination */}
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-xs font-black text-[#2e1d6c] dark:text-[#a594fd] uppercase tracking-wider">
-                      My Projects
-                    </h3>
-                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 text-[#8370ec] dark:text-[#9b89ff]">
-                      {userProjects?.length || 0}
-                    </span>
-                  </div>
+          {activeCalendarGoalId && (
+            <>
+              <div
+                className="fixed inset-0 z-40 bg-transparent cursor-default"
+                onClick={() => setActiveCalendarGoalId(null)}
+              />
+              {renderCalendarPopover(
+                activeCalendarGoalId,
+                goals.find((g) => g._id === activeCalendarGoalId)?.startDate,
+                goals.find((g) => g._id === activeCalendarGoalId)?.endDate,
+                async (start, end) => {
+                  try {
+                    await updateGoal({
+                      id: activeCalendarGoalId,
+                      goalData: {
+                        startDate: start ? start.toISOString() : null,
+                        endDate: end ? end.toISOString() : null,
+                      },
+                    }).unwrap();
+                  } catch (err) {
+                    toast.error("Failed to update dates");
+                  }
+                },
+              )}
+            </>
+          )}
+        </div>
 
-                  <div className="flex items-center gap-2.5">
-                    <Link
-                      to={`/${user?.role}/projects`}
-                      className="text-[11px] font-bold text-[#8370ec] dark:text-[#9b89ff] hover:underline cursor-pointer flex items-center gap-0.5"
-                    >
-                      <span>Go to project page</span>
-                      <FiChevronRight size={12} />
-                    </Link>
-
-                    {/* Header Quick Pagination Controls */}
-                    {totalProjectPages > 1 && (
-                      <div className="flex items-center gap-1 bg-white/40 dark:bg-white/5 border border-purple-200/50 dark:border-white/10 rounded-lg p-0.5">
-                        <button
-                          type="button"
-                          disabled={projectPage === 1}
-                          onClick={() =>
-                            setProjectPage((prev) => Math.max(1, prev - 1))
-                          }
-                          className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
-                          title="Previous page"
-                        >
-                          ‹
-                        </button>
-                        <span className="text-[9px] font-bold text-[#2e1d6c] dark:text-purple-200 px-0.5">
-                          {projectPage}/{totalProjectPages}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={projectPage >= totalProjectPages}
-                          onClick={() =>
-                            setProjectPage((prev) =>
-                              Math.min(totalProjectPages, prev + 1),
-                            )
-                          }
-                          className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
-                          title="Next page"
-                        >
-                          ›
-                        </button>
-                      </div>
-                    )}
-                  </div>
+        {/* MY PROJECTS card - shown ONLY for Admin, Operation Manager, and Social Media Manager */}
+        {canSeeProjectsShortcut && (
+          <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col justify-between min-h-[200px]">
+            <div>
+              {/* Header: Title, Count, Go to project page, Pagination */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-xs font-black text-[#2e1d6c] dark:text-[#a594fd] uppercase tracking-wider">
+                    My Projects
+                  </h3>
+                  <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 text-[#8370ec] dark:text-[#9b89ff]">
+                    {userProjects?.length || 0}
+                  </span>
                 </div>
 
-                {/* Grid list of project blocks */}
-                <div className="flex flex-wrap gap-2 items-center align-top content-start">
-                  {/* Compact Dashed Create Project Button */}
-                  <div
-                    onClick={() => setShowCreateModal(true)}
-                    className="w-32 h-11 border-2 border-dashed border-[#8d7df5]/60 hover:border-[#8d7df5] dark:border-purple-600/40 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer bg-white/20 dark:bg-white/5 hover:bg-white/40 dark:hover:bg-white/10 transition-all text-[#2e1d6c] dark:text-purple-300 px-2.5 py-1.5 shrink-0 group shadow-2xs"
+                <div className="flex items-center gap-2.5">
+                  <Link
+                    to={`/${user?.role}/projects`}
+                    className="text-[11px] font-bold text-[#8370ec] dark:text-[#9b89ff] hover:underline cursor-pointer flex items-center gap-0.5"
                   >
-                    <div className="w-5 h-5 rounded-md bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 group-hover:scale-110 transition-transform">
-                      <FiPlus size={12} className="stroke-[3]" />
-                    </div>
-                    <span className="text-[10px] font-bold tracking-tight truncate">
-                      Create Project
-                    </span>
-                  </div>
+                    <span>Go to project page</span>
+                    <FiChevronRight size={12} />
+                  </Link>
 
-                  {/* Paginated projects list */}
-                  {paginatedUserProjects &&
-                    paginatedUserProjects.map((proj) => {
-                      const clientObj = getClientObjectForProject(proj);
-                      return (
-                        <Link
-                          key={proj._id}
-                          to={`/${user?.role}/projects?id=${proj._id}`}
-                          className="w-44 sm:w-48 h-12 bg-white/80 dark:bg-white/5 rounded-xl px-2.5 py-1.5 flex items-center gap-2 border border-white/60 dark:border-white/5 shadow-2xs hover:shadow-sm hover:border-purple-300/50 dark:hover:border-purple-500/30 transition-all cursor-pointer text-left block shrink-0 group"
-                        >
-                          <div className="w-6.5 h-6.5 rounded-md bg-purple-100/80 dark:bg-purple-950/40 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 shrink-0 border border-purple-200/40 dark:border-white/5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                            <FiLayers size={12} />
-                          </div>
-                          <div className="min-w-0 flex-1 flex flex-col justify-center">
-                            <h4 className="text-[10.5px] font-bold text-[#2e1d6c] dark:text-purple-200 truncate leading-tight group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
-                              {proj.name}
-                            </h4>
-                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                              {clientObj && (
-                                <ClientBadge
-                                  client={clientObj}
-                                  size="sm"
-                                  className="!text-[7.5px] !py-[0.5px] !px-1 font-bold"
-                                />
-                              )}
-                              <span className="text-[7.5px] font-extrabold text-[#8d7df5] dark:text-purple-400 uppercase tracking-wider">
-                                {proj.status || "Active"}
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
+                  {/* Header Quick Pagination Controls */}
+                  {totalProjectPages > 1 && (
+                    <div className="flex items-center gap-1 bg-white/40 dark:bg-white/5 border border-purple-200/50 dark:border-white/10 rounded-lg p-0.5">
+                      <button
+                        type="button"
+                        disabled={projectPage === 1}
+                        onClick={() =>
+                          setProjectPage((prev) => Math.max(1, prev - 1))
+                        }
+                        className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                        title="Previous page"
+                      >
+                        ‹
+                      </button>
+                      <span className="text-[9px] font-bold text-[#2e1d6c] dark:text-purple-200 px-0.5">
+                        {projectPage}/{totalProjectPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={projectPage >= totalProjectPages}
+                        onClick={() =>
+                          setProjectPage((prev) =>
+                            Math.min(totalProjectPages, prev + 1),
+                          )
+                        }
+                        className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                        title="Next page"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Footer Pagination Bar */}
-              {totalProjectPages > 1 && (
-                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200/50 dark:border-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                  <span>
-                    Showing {(projectPage - 1) * PROJECTS_PER_PAGE + 1}–
-                    {Math.min(
-                      projectPage * PROJECTS_PER_PAGE,
-                      userProjects?.length || 0,
-                    )}{" "}
-                    of {userProjects?.length || 0} projects
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      disabled={projectPage === 1}
-                      onClick={() =>
-                        setProjectPage((prev) => Math.max(1, prev - 1))
-                      }
-                      className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
-                    >
-                      <span>Prev</span>
-                    </button>
-                    <button
-                      type="button"
-                      disabled={projectPage >= totalProjectPages}
-                      onClick={() =>
-                        setProjectPage((prev) =>
-                          Math.min(totalProjectPages, prev + 1),
-                        )
-                      }
-                      className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
-                    >
-                      <span>Next</span>
-                    </button>
+              {/* Grid list of project blocks */}
+              <div className="flex flex-wrap gap-2 items-center align-top content-start">
+                {/* Compact Dashed Create Project Button */}
+                <div
+                  onClick={() => setShowCreateModal(true)}
+                  className="w-32 h-11 border-2 border-dashed border-[#8d7df5]/60 hover:border-[#8d7df5] dark:border-purple-600/40 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer bg-white/20 dark:bg-white/5 hover:bg-white/40 dark:hover:bg-white/10 transition-all text-[#2e1d6c] dark:text-purple-300 px-2.5 py-1.5 shrink-0 group shadow-2xs"
+                >
+                  <div className="w-5 h-5 rounded-md bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 group-hover:scale-110 transition-transform">
+                    <FiPlus size={12} className="stroke-[3]" />
                   </div>
+                  <span className="text-[10px] font-bold tracking-tight truncate">
+                    Create Project
+                  </span>
                 </div>
-              )}
+
+                {/* Paginated projects list */}
+                {paginatedUserProjects &&
+                  paginatedUserProjects.map((proj) => {
+                    const clientObj = getClientObjectForProject(proj);
+                    return (
+                      <Link
+                        key={proj._id}
+                        to={`/${user?.role}/projects?id=${proj._id}`}
+                        className="w-44 sm:w-48 h-12 bg-white/80 dark:bg-white/5 rounded-xl px-2.5 py-1.5 flex items-center gap-2 border border-white/60 dark:border-white/5 shadow-2xs hover:shadow-sm hover:border-purple-300/50 dark:hover:border-purple-500/30 transition-all cursor-pointer text-left block shrink-0 group"
+                      >
+                        <div className="w-6.5 h-6.5 rounded-md bg-purple-100/80 dark:bg-purple-950/40 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 shrink-0 border border-purple-200/40 dark:border-white/5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                          <FiLayers size={12} />
+                        </div>
+                        <div className="min-w-0 flex-1 flex flex-col justify-center">
+                          <h4 className="text-[10.5px] font-bold text-[#2e1d6c] dark:text-purple-200 truncate leading-tight group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                            {proj.name}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            {clientObj && (
+                              <ClientBadge
+                                client={clientObj}
+                                size="sm"
+                                className="!text-[7.5px] !py-[0.5px] !px-1 font-bold"
+                              />
+                            )}
+                            <span className="text-[7.5px] font-extrabold text-[#8d7df5] dark:text-purple-400 uppercase tracking-wider">
+                              {proj.status || "Active"}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Footer Pagination Bar */}
+            {totalProjectPages > 1 && (
+              <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200/50 dark:border-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <span>
+                  Showing {(projectPage - 1) * PROJECTS_PER_PAGE + 1}–
+                  {Math.min(
+                    projectPage * PROJECTS_PER_PAGE,
+                    userProjects?.length || 0,
+                  )}{" "}
+                  of {userProjects?.length || 0} projects
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={projectPage === 1}
+                    onClick={() =>
+                      setProjectPage((prev) => Math.max(1, prev - 1))
+                    }
+                    className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <span>Prev</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={projectPage >= totalProjectPages}
+                    onClick={() =>
+                      setProjectPage((prev) =>
+                        Math.min(totalProjectPages, prev + 1),
+                      )
+                    }
+                    className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <span>Next</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* .................................................Dashboard Cards / Assigned Clients.............................. */}
       {(() => {

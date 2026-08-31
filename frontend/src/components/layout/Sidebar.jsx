@@ -25,7 +25,10 @@ import { getClients } from "../../features/clients/clientslice";
 import { apiSlice, useGetTasksQuery } from "../../features/api/apiSlice";
 import { getEodReports } from "../../features/eodReports/eodReportSlice";
 import { getDesignerEodReports } from "../../features/eodReports/designerEodReportSlice";
-import { markAllChatAsRead, markAsRead } from "../../features/notifications/notificationSlice";
+import {
+  markAllChatAsRead,
+  markAsRead,
+} from "../../features/notifications/notificationSlice";
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import ProjectIcon from "../common/ProjectIcon";
 
@@ -138,11 +141,15 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     0,
   );
   const dbUnreadChatCount = notifications
-    ? notifications.filter((n) => !n.isRead && n.type === "message_received").length
+    ? notifications.filter((n) => !n.isRead && n.type === "message_received")
+        .length
     : 0;
-  
+
   // Use the database notifications count as the source of truth if it exists, otherwise fallback to local session state
-  const totalUnreadChatCount = Math.max(localUnreadChatCount, dbUnreadChatCount);
+  const totalUnreadChatCount = Math.max(
+    localUnreadChatCount,
+    dbUnreadChatCount,
+  );
 
   // Fetch tasks for MOM reports count
   const { data: allTasks = [] } = useGetTasksQuery(undefined, {
@@ -157,16 +164,23 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
   const fetchedEodRef = React.useRef(false);
   useEffect(() => {
-    if ((role === "admin" || role === "operationmanager") && !fetchedEodRef.current) {
+    if (
+      (role === "admin" || role === "operationmanager") &&
+      !fetchedEodRef.current
+    ) {
       if (!eodReports || eodReports.length === 0) dispatch(getEodReports());
-      if (!designerEodReports || designerEodReports.length === 0) dispatch(getDesignerEodReports());
+      if (!designerEodReports || designerEodReports.length === 0)
+        dispatch(getDesignerEodReports());
       fetchedEodRef.current = true;
     }
   }, [dispatch, role, eodReports, designerEodReports]);
 
   const [lastViewedMom, setLastViewedMom] = useState(() => {
     try {
-      return parseInt(localStorage.getItem(`lastViewedMom_${currentUser?._id || ''}`) || "0", 10);
+      return parseInt(
+        localStorage.getItem(`lastViewedMom_${currentUser?._id || ""}`) || "0",
+        10,
+      );
     } catch {
       return 0;
     }
@@ -176,7 +190,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     return (allTasks || []).filter(
       (t) =>
         (t.contentType || "").toUpperCase() === "MOM" &&
-        new Date(t.createdAt).getTime() > lastViewedMom
+        new Date(t.createdAt).getTime() > lastViewedMom,
     ).length;
   }, [allTasks, lastViewedMom]);
 
@@ -249,7 +263,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       // Show Client Calls ONLY for Social Media Manager department
       if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
         const deptLower = (currentUser?.department || "").toLowerCase();
-        
+
         const isSocialMediaManager = deptLower.includes("social media manager");
 
         if (!isSocialMediaManager) {
@@ -870,7 +884,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     list.forEach((port) => {
                       (port.projectIds || []).forEach((pId) => {
                         const id =
-                          typeof pId === "object" && pId !== null ? pId._id : pId;
+                          typeof pId === "object" && pId !== null
+                            ? pId._id
+                            : pId;
                         if (id) allProjectIds.add(id);
                       });
                     });
@@ -1005,13 +1021,20 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         dispatch(clearAllUnreadCounts());
                         dispatch(markAllChatAsRead());
                       }
-                      if (item.name === "MOM/ClientCall" || item.name === "MOM Client Report" || item.name === "MOM Report") {
+                      if (
+                        item.name === "MOM/ClientCall" ||
+                        item.name === "MOM Client Report" ||
+                        item.name === "MOM Report"
+                      ) {
                         const now = Date.now();
-                        localStorage.setItem(`lastViewedMom_${currentUser?._id || ''}`, now.toString());
+                        localStorage.setItem(
+                          `lastViewedMom_${currentUser?._id || ""}`,
+                          now.toString(),
+                        );
                         setLastViewedMom(now);
                         if (notifications) {
-                          notifications.forEach(n => {
-                            if (!n.isRead && n.type === 'client_call_created') {
+                          notifications.forEach((n) => {
+                            if (!n.isRead && n.type === "client_call_created") {
                               dispatch(markAsRead(n._id));
                             }
                           });
@@ -1110,24 +1133,37 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         </span>
 
                         {/* Notification badges */}
-                        {item.name === "Notifications" &&
-                          unreadCount > 0 && (
-                            <span className="min-w-[1rem] h-[1rem] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[0.5625rem] font-bold animate-pulse shrink-0">
-                              {unreadCount}
-                            </span>
-                          )}
-                        {item.name === "Chat" &&
-                          totalUnreadChatCount > 0 && (
-                            <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[0.5625rem] font-black text-white animate-pulse shrink-0">
-                              {totalUnreadChatCount}
-                            </span>
-                          )}
+                        {item.name === "Notifications" && unreadCount > 0 && (
+                          <span className="min-w-[1rem] h-[1rem] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[0.5625rem] font-bold animate-pulse shrink-0">
+                            {unreadCount}
+                          </span>
+                        )}
+                        {item.name === "Chat" && totalUnreadChatCount > 0 && (
+                          <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[0.5625rem] font-black text-white animate-pulse shrink-0">
+                            {totalUnreadChatCount}
+                          </span>
+                        )}
                         {(item.name === "MOM/ClientCall" ||
                           item.name === "MOM Client Report" ||
                           item.name === "MOM Report") &&
-                          (newMomCount + (notifications ? notifications.filter(n => !n.isRead && n.type === 'client_call_created').length : 0)) > 0 && (
+                          newMomCount +
+                            (notifications
+                              ? notifications.filter(
+                                  (n) =>
+                                    !n.isRead &&
+                                    n.type === "client_call_created",
+                                ).length
+                              : 0) >
+                            0 && (
                             <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-indigo-600 dark:bg-indigo-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
-                              {newMomCount + (notifications ? notifications.filter(n => !n.isRead && n.type === 'client_call_created').length : 0)}
+                              {newMomCount +
+                                (notifications
+                                  ? notifications.filter(
+                                      (n) =>
+                                        !n.isRead &&
+                                        n.type === "client_call_created",
+                                    ).length
+                                  : 0)}
                             </span>
                           )}
                         {item.name === "Reports" &&
@@ -1146,7 +1182,15 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           !(
                             (item.name === "MOM Report" ||
                               item.name === "MOM Client Report") &&
-                            (newMomCount + (notifications ? notifications.filter(n => !n.isRead && n.type === 'client_call_created').length : 0)) > 0
+                            newMomCount +
+                              (notifications
+                                ? notifications.filter(
+                                    (n) =>
+                                      !n.isRead &&
+                                      n.type === "client_call_created",
+                                  ).length
+                                : 0) >
+                              0
                           ) &&
                           !(
                             item.name === "Reports" &&
@@ -1169,7 +1213,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   </NavLink>
 
                   {isPortfoliosItem &&
-                    ((portfolios && portfolios.length > 0) || (projects && projects.length > 0)) &&
+                    ((portfolios && portfolios.length > 0) ||
+                      (projects && projects.length > 0)) &&
                     (() => {
                       hasRenderedPortfoliosList = true;
                       return renderPortfoliosList();
@@ -1182,8 +1227,24 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             const topCardNames =
               role === "operationmanager"
-                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports", "SM Credentials", "MOM/ClientCall"]
-                : ["Home", "Sticky Notes", "Chat", "Users", "SM Credentials", "MOM/ClientCall", "Reports"];
+                ? [
+                    "Home",
+                    "Sticky Notes",
+                    "Chat",
+                    "Users",
+                    "Reports",
+                    "SM Credentials",
+                    "MOM/ClientCall",
+                  ]
+                : [
+                    "Home",
+                    "Sticky Notes",
+                    "Chat",
+                    "Users",
+                    "SM Credentials",
+                    "MOM/ClientCall",
+                    "Reports",
+                  ];
 
             return (
               <>
@@ -1215,7 +1276,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                 {/* Fallback at the bottom if items were not in the menu list */}
                 {!hasRenderedPortfoliosList &&
-                  ((portfolios && portfolios.length > 0) || (projects && projects.length > 0)) &&
+                  ((portfolios && portfolios.length > 0) ||
+                    (projects && projects.length > 0)) &&
                   (role === "admin" ||
                     currentUser?.permissions?.manage_portfolios?.read ||
                     currentUser?.permissions?.manage_portfolios === true ||
@@ -1348,17 +1410,23 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       <div className="p-2 max-h-[22rem] overflow-y-auto sidebar-scrollbar flex flex-col gap-1">
                         {(() => {
                           const filteredUsers = users.filter((u) => {
-                            const searchStr = userSearchQuery.toLowerCase().trim();
+                            const searchStr = userSearchQuery
+                              .toLowerCase()
+                              .trim();
                             if (!searchStr) return true;
-                            
+
                             const searchTerms = searchStr.split(/\s+/);
                             const searchableText = [
                               u.name,
                               u.department || "",
-                              displayRole(u.role)
-                            ].join(" ").toLowerCase();
+                              displayRole(u.role),
+                            ]
+                              .join(" ")
+                              .toLowerCase();
 
-                            return searchTerms.every(term => searchableText.includes(term));
+                            return searchTerms.every((term) =>
+                              searchableText.includes(term),
+                            );
                           });
 
                           if (filteredUsers.length === 0) {

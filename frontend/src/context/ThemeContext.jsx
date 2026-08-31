@@ -155,6 +155,9 @@ export const ThemeProvider = ({ children }) => {
     const root = window.document.documentElement;
 
     const applyTheme = () => {
+      // Disable transitions temporarily during theme switch
+      root.classList.add("theme-transitioning");
+      
       root.classList.remove("dark");
 
       if (theme === "dark") {
@@ -170,6 +173,11 @@ export const ThemeProvider = ({ children }) => {
           root.classList.add("dark");
         }
       }
+
+      // Re-enable transitions after browser paints the new theme
+      window.setTimeout(() => {
+        root.classList.remove("theme-transitioning");
+      }, 50);
     };
 
     applyTheme();
