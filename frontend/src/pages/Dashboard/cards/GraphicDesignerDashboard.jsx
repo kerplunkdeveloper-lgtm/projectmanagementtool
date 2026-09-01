@@ -117,6 +117,7 @@ export const calculateTaskProductivityForDate = (
   task,
   selectedDate = new Date(),
   officeHours = { startHour: 9, endHour: 19 },
+  nowMs = Date.now(),
 ) => {
   if (!task) return 0;
 
@@ -151,7 +152,7 @@ export const calculateTaskProductivityForDate = (
   ).getTime();
 
   // Guard: Never generate artificial productivity for a future date
-  if (dayWorkStart > Date.now()) return 0;
+  if (dayWorkStart > nowMs) return 0;
 
   // Calculate subtasks productivity if any
   let subtasksDuration = 0;
@@ -165,6 +166,7 @@ export const calculateTaskProductivityForDate = (
         sub,
         selectedDate,
         officeHours,
+        nowMs,
       );
     });
   }
@@ -275,7 +277,7 @@ export const calculateTaskProductivityForDate = (
           liveSessionStart = new Date(task.holdStartedAt).getTime();
         }
       }
-      
+
       // 3. Fallback to updatedAt
       if (isNaN(liveSessionStart) || liveSessionStart <= 0) {
         if (task.updatedAt) {
@@ -295,18 +297,18 @@ export const calculateTaskProductivityForDate = (
         liveSessionStart > 0 &&
         (liveSessionDateStr === selDateStr || isSelectedToday)
       ) {
-        const nowMs = Math.min(Date.now(), dayWorkEnd);
+        const cappedNowMs = Math.min(nowMs, dayWorkEnd);
         // Ensure we only calculate time that occurred within today's working hours
         const effectiveLiveStart = Math.max(liveSessionStart, dayWorkStart);
-        let liveWorked = Math.max(0, nowMs - effectiveLiveStart);
-        
+        let liveWorked = Math.max(0, cappedNowMs - effectiveLiveStart);
+
         if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
           task.blockerHistory.forEach((b) => {
             if (b.pausedAt) {
               const p = new Date(b.pausedAt).getTime();
-              const r = b.resumedAt ? new Date(b.resumedAt).getTime() : nowMs;
+              const r = b.resumedAt ? new Date(b.resumedAt).getTime() : cappedNowMs;
               const oStart = Math.max(p, effectiveLiveStart);
-              const oEnd = Math.min(r, nowMs);
+              const oEnd = Math.min(r, cappedNowMs);
               if (oEnd > oStart) {
                 liveWorked -= oEnd - oStart;
               }
@@ -316,8 +318,8 @@ export const calculateTaskProductivityForDate = (
         if (task.isBlocked && task.blockerPausedAt) {
           const p = new Date(task.blockerPausedAt).getTime();
           const oStart = Math.max(p, effectiveLiveStart);
-          if (nowMs > oStart) {
-            liveWorked -= nowMs - oStart;
+          if (cappedNowMs > oStart) {
+            liveWorked -= cappedNowMs - oStart;
           }
         }
         return (
@@ -403,9 +405,9 @@ export const calculateTaskProductivityForDate = (
     ).getTime();
   } else if (statusUpper === "IN PROGRESS" || statusUpper === "IN_PROGRESS") {
     if (task.autoPaused) {
-      taskEnd = new Date(task.pausedAt || Date.now()).getTime();
+      taskEnd = new Date(task.pausedAt || nowMs).getTime();
     } else {
-      taskEnd = isSameDay(selDateObj, new Date()) ? Date.now() : dayWorkEnd;
+      taskEnd = isSameDay(selDateObj, new Date()) ? nowMs : dayWorkEnd;
     }
   } else {
     // Default fallback (e.g. Pending)
@@ -414,7 +416,7 @@ export const calculateTaskProductivityForDate = (
     } else if (task.pausedAt) {
       taskEnd = new Date(task.pausedAt).getTime();
     } else {
-      taskEnd = isSameDay(selDateObj, new Date()) ? Date.now() : dayWorkEnd;
+      taskEnd = isSameDay(selDateObj, new Date()) ? nowMs : dayWorkEnd;
     }
   }
 
@@ -460,7 +462,7 @@ export const calculateTaskProductivityForDate = (
           : isPausedState && task.pausedAt
             ? new Date(task.pausedAt).getTime()
             : isSameDay(selDateObj, new Date())
-              ? Date.now()
+              ? nowMs
               : dayWorkEnd;
         if (!isNaN(pStart) && !isNaN(pEnd) && pEnd > pStart) {
           const overlapStart = Math.max(pStart, dayWorkStart);
@@ -481,7 +483,7 @@ export const calculateTaskProductivityForDate = (
     if (totalPaused > 0) {
       const lifetimeSpan = Math.max(
         1,
-        new Date(task.actualEndTime || Date.now()).getTime() - taskStart,
+        new Date(task.actualEndTime || nowMs).getTime() - taskStart,
       );
       const ratio = daySpan / lifetimeSpan;
       dayPausedMs = Math.min(daySpan, totalPaused * ratio);
@@ -491,12 +493,40 @@ export const calculateTaskProductivityForDate = (
   return Math.max(0, daySpan - dayPausedMs) + subtasksDuration;
 };
 
+export const isTaskLive = (task, selectedDate = new Date()) => {
+  if (!task) return false;
+  const selDateObj = selectedDate
+    ? typeof selectedDate === "string"
+      ? parseISO(selectedDate)
+      : new Date(selectedDate)
+    : new Date();
+  
+  const isSelectedToday = isSameDay(selDateObj, new Date());
+  if (!isSelectedToday) return false;
+
+  const currentIsProductiveHold =
+      task.status === "On Hold" &&
+      task.statusHistory &&
+      task.statusHistory.length > 0 &&
+      (task.statusHistory[task.statusHistory.length - 1].reason === "Client Call" ||
+       task.statusHistory[task.statusHistory.length - 1].reason === "Meeting");
+
+  if (
+    (isStatusInProgress(task.status) || currentIsProductiveHold) &&
+    !task.autoPaused
+  ) {
+    return true;
+  }
+  return false;
+};
+
 const LiveProductivityCell = React.memo(
   ({
     tasks = [],
     initialLoggedMs = 0,
     selectedDate = new Date(),
     officeHours = { startHour: 9, endHour: 19 },
+    productivityCache = null,
   }) => {
     const isSelectedDateToday = useMemo(() => {
       return isSameDay(selectedDate || new Date(), new Date());
@@ -518,50 +548,23 @@ const LiveProductivityCell = React.memo(
     const calculateTotalLogged = useCallback(() => {
       let total = 0;
       const selDateObj = selectedDate ? new Date(selectedDate) : new Date();
-      const selDateStr = selDateObj.toLocaleDateString("en-CA", {
-        timeZone: "Asia/Kolkata",
-      });
 
       tasks.forEach((t) => {
-        let taskTotal = calculateTaskProductivityForDate(
-          t,
-          selectedDate,
-          officeHours,
-        );
-
-        let blockerMs = 0;
-        if (t && Array.isArray(t.blockerHistory)) {
-          t.blockerHistory.forEach((b) => {
-            if (!b.pausedAt) return;
-            const pDate = new Date(b.pausedAt).toLocaleDateString("en-CA", {
-              timeZone: "Asia/Kolkata",
-            });
-            const pMs = new Date(b.pausedAt).getTime();
-            const rMs = b.resumedAt
-              ? new Date(b.resumedAt).getTime()
-              : Date.now();
-            if (pDate === selDateStr) {
-              blockerMs += Math.max(0, rMs - pMs);
-            }
-          });
-        }
-        if (t && t.isBlocked && t.blockerPausedAt) {
-          const pDate = new Date(t.blockerPausedAt).toLocaleDateString(
-            "en-CA",
-            { timeZone: "Asia/Kolkata" },
-          );
-          if (pDate === selDateStr) {
-            blockerMs += Math.max(
-              0,
-              Date.now() - new Date(t.blockerPausedAt).getTime(),
-            );
+        let taskTotal = 0;
+        const pData = productivityCache ? productivityCache.get(t._id) : null;
+        if (pData) {
+          if (pData.isLive) {
+            taskTotal = calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+          } else {
+            taskTotal = pData.staticMs;
           }
+        } else {
+          taskTotal = calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
         }
-
-        total += taskTotal + blockerMs;
+        total += taskTotal;
       });
       return total;
-    }, [tasks, selectedDate, officeHours]);
+    }, [tasks, selectedDate, officeHours, productivityCache]);
 
     const [liveMs, setLiveMs] = useState(() => calculateTotalLogged());
 
@@ -630,6 +633,7 @@ const LiveTotalProductivityCell = React.memo(
     teamPerformance = [],
     selectedDate = new Date(),
     officeHours = { startHour: 9, endHour: 19 },
+    productivityCache = null,
   }) => {
     const isSelectedDateToday = useMemo(() => {
       return isSameDay(selectedDate || new Date(), new Date());
@@ -649,15 +653,22 @@ const LiveTotalProductivityCell = React.memo(
       let grandTotal = 0;
       teamPerformance.forEach((tp) => {
         (tp.tasks || []).forEach((t) => {
-          grandTotal += calculateTaskProductivityForDate(
-            t,
-            selectedDate,
-            officeHours,
-          );
+          let taskTotal = 0;
+          const pData = productivityCache ? productivityCache.get(t._id) : null;
+          if (pData) {
+            if (pData.isLive) {
+              taskTotal = calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+            } else {
+              taskTotal = pData.staticMs;
+            }
+          } else {
+            taskTotal = calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+          }
+          grandTotal += taskTotal;
         });
       });
       return grandTotal;
-    }, [teamPerformance, selectedDate, officeHours]);
+    }, [teamPerformance, selectedDate, officeHours, productivityCache]);
 
     const [liveMs, setLiveMs] = useState(() => calculateGrandTotal());
 
@@ -1357,6 +1368,27 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
   const designerIds = useMemo(() => designers.map((d) => d._id), [designers]);
 
+  const productivityCache = useMemo(() => {
+    const cache = new Map();
+    allTasks.forEach((task) => {
+      if (!task.assignedTo) return;
+      const assigneeId = typeof task.assignedTo === "object" ? task.assignedTo._id : task.assignedTo;
+      if (!designerIds.includes(assigneeId)) return;
+      
+      const isSocialMediaManager = user?.department?.toLowerCase() === "social media manager";
+      if (isSocialMediaManager) {
+        const creatorId = task.createdBy && typeof task.createdBy === "object" ? task.createdBy._id : task.createdBy;
+        const currentUserId = user?._id || user?.id;
+        if (creatorId !== currentUserId) return;
+      }
+
+      const staticMs = calculateTaskProductivityForDate(task, selectedDate, officeHours, Date.now());
+      const isLive = isTaskLive(task, selectedDate);
+      cache.set(task._id, { staticMs, isLive });
+    });
+    return cache;
+  }, [allTasks, designerIds, selectedDate, officeHours, user]);
+
   // 2. Filter Tasks assigned to Graphic Designers + Date Filter
   const designerTasks = useMemo(() => {
     return allTasks.filter((task) => {
@@ -1391,24 +1423,30 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const isRejected =
         statusLower.includes("reject") || statusLower.includes("cancel");
 
-      // 1. Completed tasks: ONLY show them on the day they were actually completed
+      // 1. Completed tasks: ONLY show them on the day they were actually completed, or if they had productivity
       if (isCompleted) {
         const completedDate = task.completedAt
           ? parseISO(task.completedAt)
           : task.updatedAt
             ? parseISO(task.updatedAt)
             : null;
-        return completedDate ? isSameDay(completedDate, selectedDate) : false;
+        if (completedDate && isSameDay(completedDate, selectedDate)) return true;
+        const pData = productivityCache.get(task._id);
+        if (pData && pData.staticMs > 0) return true;
+        return false;
       }
 
-      // 2. Rejected tasks: ONLY show them on the day they were rejected (no carryforward)
+      // 2. Rejected tasks: ONLY show them on the day they were rejected, or if they had productivity
       if (isRejected) {
         const rejectedDate = task.rejectedAt
           ? parseISO(task.rejectedAt)
           : task.updatedAt
             ? parseISO(task.updatedAt)
             : null;
-        return rejectedDate ? isSameDay(rejectedDate, selectedDate) : false;
+        if (rejectedDate && isSameDay(rejectedDate, selectedDate)) return true;
+        const pData = productivityCache.get(task._id);
+        if (pData && pData.staticMs > 0) return true;
+        return false;
       }
 
       // 3. Unfinished active tasks: show if selectedDate is on or after its start date (or created date if no start date)
@@ -1424,7 +1462,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       return false;
     });
-  }, [allTasks, designerIds, selectedDate, user]);
+  }, [allTasks, designerIds, selectedDate, user, officeHours, productivityCache]);
 
   // 3. Compute Metrics
   // todayAssignedTasks: only tasks whose assignment date (startDate || createdAt) falls on selectedDate.
@@ -1762,6 +1800,65 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const blockerTypesSet = new Set();
       const holdReasonsSet = new Set();
 
+      const getLocalDateString = (date = new Date()) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      // Filter reports for this designer
+      const designerReports =
+        designerEodReports?.filter((report) => {
+          const rUserId =
+            typeof report.user === "object" ? report.user?._id : report.user;
+          return rUserId === designer._id;
+        }) || [];
+
+      // Find the one that matches the selectedDate
+      const targetDateStr = getLocalDateString(selectedDate);
+      const designerReport = designerReports.find((report) => {
+        const reportDate = new Date(report.date).toISOString().split("T")[0];
+        return reportDate === targetDateStr;
+      });
+
+      let eodReportTotalMs = null;
+      if (!isSameDay(selectedDate || new Date(), new Date()) && designerReport && Array.isArray(designerReport.tasks)) {
+        let eodTotal = 0;
+        const selDateObj = selectedDate ? new Date(selectedDate) : new Date();
+        const selDateStr = selDateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        designerReport.tasks.forEach((rt) => {
+          const originalTask = (designerTasks || []).find((at) => at._id === (rt.taskId?._id || rt.taskId || rt.id || rt._id));
+          const target = originalTask || rt;
+          let msToday = 0;
+          const pData = productivityCache.get(target._id || target.id);
+          if (pData) {
+            msToday = pData.staticMs;
+          } else {
+            msToday = calculateTaskProductivityForDate(target, selDateObj, officeHours, Date.now());
+          }
+          const taskTotalToday = msToday;
+          if (taskTotalToday > 0) {
+            eodTotal += taskTotalToday;
+          } else {
+            const timeStr = rt.time || "";
+            const hoursMatch = timeStr.match(/(\d+)\s*h/i);
+            const minsMatch = timeStr.match(/(\d+)\s*m/i);
+            const secsMatch = timeStr.match(/(\d+)\s*s/i);
+
+            let mins = 0;
+            if (hoursMatch) mins += parseInt(hoursMatch[1], 10) * 60;
+            if (minsMatch) mins += parseInt(minsMatch[1], 10);
+            if (secsMatch && !hoursMatch && !minsMatch) {
+              const secs = parseInt(secsMatch[1], 10);
+              if (secs > 0) mins += Math.ceil(secs / 60);
+            }
+            eodTotal += mins * 60 * 1000;
+          }
+        });
+        eodReportTotalMs = eodTotal;
+      }
+
       myTasks.forEach((t) => {
         let taskBlockerMs = 0;
         const selDateObj = selectedDate || new Date();
@@ -1850,14 +1947,26 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             const endMs = isSameDay(selDateObj, new Date())
               ? Date.now()
               : startOfDay(addDays(selDateObj, 1)).getTime();
-            const duration = Math.max(0, endMs - new Date(t.holdStartedAt).getTime());
-            
-            const liveHoldEntry = [...(t.statusHistory || [])].reverse().find(x => x.status === "On Hold");
-            
-            if (liveHoldEntry && (liveHoldEntry.reason === "Client Call" || liveHoldEntry.reason === "Meeting")) {
+            const duration = Math.max(
+              0,
+              endMs - new Date(t.holdStartedAt).getTime(),
+            );
+
+            const liveHoldEntry = [...(t.statusHistory || [])]
+              .reverse()
+              .find((x) => x.status === "On Hold");
+
+            if (
+              liveHoldEntry &&
+              (liveHoldEntry.reason === "Client Call" ||
+                liveHoldEntry.reason === "Meeting")
+            ) {
               taskBlockerMs += duration;
               blockerTypesSet.add(liveHoldEntry.reason);
-            } else if (!liveHoldEntry || liveHoldEntry.reason !== "Another Task") {
+            } else if (
+              !liveHoldEntry ||
+              liveHoldEntry.reason !== "Another Task"
+            ) {
               taskOnHoldMs += duration;
               if (liveHoldEntry && liveHoldEntry.reason) {
                 holdReasonsSet.add(liveHoldEntry.reason);
@@ -1868,19 +1977,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
         totalOnHoldMs += taskOnHoldMs;
 
-        const taskLoggedMs = calculateTaskProductivityForDate(
-          t,
-          selectedDate,
-          officeHours,
-        );
-        const taskTotalLoggedWithBlockers = taskLoggedMs + taskBlockerMs;
+        const pData = productivityCache.get(t._id);
+        const taskLoggedMs = pData ? pData.staticMs : calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+        const taskTotalLogged = taskLoggedMs;
 
-        if (taskTotalLoggedWithBlockers > 0) {
-          totalLoggedMs += taskTotalLoggedWithBlockers;
-          totalBusinessLoggedMs += taskTotalLoggedWithBlockers;
-          inProgressLoggedMs += taskTotalLoggedWithBlockers;
+        if (taskTotalLogged > 0) {
+          totalLoggedMs += taskTotalLogged;
+          totalBusinessLoggedMs += taskTotalLogged;
+          inProgressLoggedMs += taskTotalLogged;
         }
       });
+
+      if (eodReportTotalMs !== null) {
+        totalLoggedMs = eodReportTotalMs;
+      }
 
       // Compute approval time using actual review and completion fields (all tasks)
       myTasks.forEach((t) => {
@@ -1903,28 +2013,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const inProgressHours = inProgressLoggedMs / (1000 * 60 * 60);
       const avgApprovalMs =
         approvalCount > 0 ? totalApprovalMs / approvalCount : 0;
-
-      const getLocalDateString = (date = new Date()) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      };
-
-      // Filter reports for this designer
-      const designerReports =
-        designerEodReports?.filter((report) => {
-          const rUserId =
-            typeof report.user === "object" ? report.user?._id : report.user;
-          return rUserId === designer._id;
-        }) || [];
-
-      // Find the one that matches the selectedDate
-      const targetDateStr = getLocalDateString(selectedDate);
-      const designerReport = designerReports.find((report) => {
-        const reportDate = new Date(report.date).toISOString().split("T")[0];
-        return reportDate === targetDateStr;
-      });
 
       let lastSubmittedStr = "Not submitted";
       if (designerReport) {
@@ -1997,14 +2085,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         lastSubmitted: lastSubmittedStr,
         // tasksWorkedOn: count of tasks that had productivity > 0 on selectedDate (all tasks, not just today-assigned)
         tasksWorkedOn: myTasks.filter(
-          (t) =>
-            calculateTaskProductivityForDate(t, selectedDate, officeHours) > 0,
+          (t) => {
+            const pData = productivityCache.get(t._id);
+            return pData ? pData.staticMs > 0 : calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now()) > 0;
+          }
         ).length,
         // tasks passed to LiveProductivityCell = all myTasks (productivity includes historical tasks worked today)
         tasks: myTasks,
       };
     });
-  }, [designers, designerTasks, designerEodReports, selectedDate, officeHours]);
+  }, [designers, designerTasks, designerEodReports, selectedDate, officeHours, productivityCache]);
 
   const avgEfficiency = useMemo(() => {
     const totalLoggedAll = teamPerformance.reduce(
@@ -2031,13 +2121,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     }
 
     return {
-      labels: days.map(day => format(day, "d MMM")),
+      labels: days.map((day) => format(day, "d MMM")),
       datasets: designers.map((designer) => {
         const data = days.map((day) => {
           let totalMs = 0;
           const designerTasksFromAll = allTasks.filter((t) => {
             if (!t.assignedTo) return false;
-            const aId = typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
+            const aId =
+              typeof t.assignedTo === "object"
+                ? t.assignedTo._id
+                : t.assignedTo;
             if (aId !== designer._id) return false;
             const s = (t.status || "").toLowerCase();
             if (s.includes("reject") || s.includes("cancel")) return false;
@@ -2045,13 +2138,18 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           });
 
           designerTasksFromAll.forEach((t) => {
-            totalMs += calculateTaskProductivityForDate(t, day, officeHours);
+            if (isSameDay(day, selectedDate)) {
+              const pData = productivityCache.get(t._id);
+              totalMs += pData ? pData.staticMs : calculateTaskProductivityForDate(t, day, officeHours, Date.now());
+            } else {
+              totalMs += calculateTaskProductivityForDate(t, day, officeHours, Date.now());
+            }
           });
 
           const totalHours = totalMs / (1000 * 60 * 60);
           const mins = Math.round((totalMs / (1000 * 60)) % 60);
           const hrs = Math.floor(totalMs / (1000 * 60 * 60));
-          
+
           return {
             hours: totalHours,
             formatted: `${hrs}h ${String(mins).padStart(2, "0")}m`,
@@ -2064,7 +2162,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         };
       }),
     };
-  }, [selectedDate, designers, allTasks, officeHours]);
+  }, [selectedDate, designers, allTasks, officeHours, productivityCache]);
 
   // 6. Client Progress
   const clientProgress = useMemo(() => {
@@ -2162,7 +2260,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         }
         if (!clientId && t.project) {
           const pId = typeof t.project === "object" ? t.project._id : t.project;
-          const p = projects?.find((x) => x._id === pId) || (typeof t.project === "object" ? t.project : null);
+          const p =
+            projects?.find((x) => x._id === pId) ||
+            (typeof t.project === "object" ? t.project : null);
           if (p && p.client) {
             clientId = typeof p.client === "object" ? p.client._id : p.client;
             if (typeof p.client === "object") cObj = p.client;
@@ -2425,22 +2525,22 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     if (task.client) {
       const cId =
         typeof task.client === "object" ? task.client._id : task.client;
-      const c = clients?.find((x) => x._id === cId) || (typeof task.client === "object" ? task.client : null);
-      clientName =
-        c?.companyName ||
-        c?.name ||
-        "Unknown Client";
+      const c =
+        clients?.find((x) => x._id === cId) ||
+        (typeof task.client === "object" ? task.client : null);
+      clientName = c?.companyName || c?.name || "Unknown Client";
     } else if (task.project) {
       const pId =
         typeof task.project === "object" ? task.project._id : task.project;
-      const p = projects?.find((x) => x._id === pId) || (typeof task.project === "object" ? task.project : null);
+      const p =
+        projects?.find((x) => x._id === pId) ||
+        (typeof task.project === "object" ? task.project : null);
       if (p && p.client) {
         const cId = typeof p.client === "object" ? p.client?._id : p.client;
-        const c = clients?.find((x) => x._id === cId) || (typeof p.client === "object" ? p.client : null);
-        clientName =
-          c?.companyName ||
-          c?.name ||
-          "Unknown Client";
+        const c =
+          clients?.find((x) => x._id === cId) ||
+          (typeof p.client === "object" ? p.client : null);
+        clientName = c?.companyName || c?.name || "Unknown Client";
       }
     }
 
@@ -2698,8 +2798,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   };
 
   const chartLineColors = [
-    "#a855f7", "#3b82f6", "#10b981", "#f97316", "#eab308", 
-    "#ef4444", "#06b6d4", "#f43f5e", "#6366f1", "#8b5cf6",
+    "#a855f7",
+    "#3b82f6",
+    "#10b981",
+    "#f97316",
+    "#eab308",
+    "#ef4444",
+    "#06b6d4",
+    "#f43f5e",
+    "#6366f1",
+    "#8b5cf6",
   ];
 
   const lineChartData = {
@@ -2708,7 +2816,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const color = chartLineColors[i % chartLineColors.length];
       return {
         label: ds.designer.name,
-        data: ds.data.map(d => d.hours),
+        data: ds.data.map((d) => d.hours),
         borderColor: color,
         borderWidth: 2,
         pointBackgroundColor: color,
@@ -2726,13 +2834,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     plugins: {
       legend: {
         display: true,
-        position: 'bottom',
+        position: "bottom",
         labels: {
           boxWidth: 8,
           usePointStyle: true,
           font: { size: 9 },
-          color: isDarkMode ? "#cbd5e1" : "#475569"
-        }
+          color: isDarkMode ? "#cbd5e1" : "#475569",
+        },
       },
       tooltip: {
         callbacks: {
@@ -3508,7 +3616,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   })()}
                 </span>
               </div>
-             
+
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg sidebar-bg border border-slate-200/60 dark:border-slate-800 text-[9px] font-extrabold text-slate-700 dark:text-slate-300">
                 <FiCalendar
                   className="text-indigo-500 dark:text-indigo-400 shrink-0"
@@ -3539,7 +3647,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     In-progress
                   </th>
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-fuchsia-100/80 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-300 whitespace-nowrap text-center">
-                   On-Hold
+                    On-Hold
                   </th>
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-amber-100/80 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 whitespace-nowrap text-center">
                     IN-Review
@@ -3551,7 +3659,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
                     Rev
                   </th>
-
 
                   <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
                     Unproductive Hours
@@ -3634,10 +3741,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   }).length;
 
                   return (
-                    <tr
-                      key={tp.id}
-                      className="h-[42px]"
-                    >
+                    <tr key={tp.id} className="h-[42px]">
                       {/* Designer */}
                       <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80">
                         <div className="flex items-center gap-2">
@@ -3751,8 +3855,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </span>
                       </td>
 
-
-
                       {/* Unproductive Time */}
                       <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
                         {tp.onHoldTimeMs > 0 ? (
@@ -3780,6 +3882,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           initialLoggedMs={tp.totalLoggedMs}
                           selectedDate={selectedDate}
                           officeHours={officeHours}
+                          productivityCache={productivityCache}
                         />
                       </td>
 
@@ -4032,8 +4135,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </span>
                         </td>
 
-
-
                         {/* Unproductive Time */}
                         <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white whitespace-nowrap">
                           {(() => {
@@ -4067,6 +4168,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             teamPerformance={teamPerformance}
                             selectedDate={selectedDate}
                             officeHours={officeHours}
+                            productivityCache={productivityCache}
                           />
                         </td>
 
@@ -4209,7 +4311,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           ];
           return Array.from(
             { length: count },
-            (_, i) => baseColors[i % baseColors.length]
+            (_, i) => baseColors[i % baseColors.length],
           );
         };
 
@@ -4283,257 +4385,262 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
         return (
           <div className="sidebar-bg backdrop-blur-md rounded-2xl  overflow-hidden shadow-sm dark:shadow-xl relative z-10">
-        <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50 dark:bg-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400">
-              <FiAlertCircle className="text-lg" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest">
-              Delayed Projects & Bottlenecks
-            </h3>
-          </div>
-
-          {/* Filters Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full lg:w-auto">
-            {/* Client Filter */}
-            <select
-              value={bottleneckClient}
-              onChange={(e) => setBottleneckClient(e.target.value)}
-              className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
-            >
-              {bottleneckClients.map((client) => (
-                <option key={client} value={client}>
-                  {client}
-                </option>
-              ))}
-            </select>
-
-            {/* Creator Filter */}
-            <select
-              value={bottleneckCreator}
-              onChange={(e) => setBottleneckCreator(e.target.value)}
-              className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
-            >
-              {bottleneckCreators.map((creator) => (
-                <option key={creator} value={creator}>
-                  {creator}
-                </option>
-              ))}
-            </select>
-
-            {/* Assignee Filter */}
-            <select
-              value={bottleneckAssignee}
-              onChange={(e) => setBottleneckAssignee(e.target.value)}
-              className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
-            >
-              {bottleneckAssignees.map((assignee) => (
-                <option key={assignee} value={assignee}>
-                  {assignee}
-                </option>
-              ))}
-            </select>
-
-            {/* Status Filter */}
-            <select
-              value={bottleneckStatus}
-              onChange={(e) => setBottleneckStatus(e.target.value)}
-              className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
-            >
-              {bottleneckStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {delayedTasks.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 border-b border-slate-100 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/30">
-            <div className="bg-white dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm">
-              <h4 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 text-center">
-                By Assignee
-              </h4>
-              <div className="h-[160px] relative">
-                <Doughnut data={bottleneckAssigneeData} options={bOptions} />
+            <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50 dark:bg-transparent">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400">
+                  <FiAlertCircle className="text-lg" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest">
+                  Delayed Projects & Bottlenecks
+                </h3>
               </div>
-            </div>
-            <div className="bg-white dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm">
-              <h4 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 text-center">
-                By Status
-              </h4>
-              <div className="h-[160px] relative">
-                <Doughnut data={bottleneckStatusData} options={bOptions} />
-              </div>
-            </div>
-          </div>
-        )}
 
-        <div className="p-5 space-y-4 max-h-[420px] overflow-y-auto custom-scrollbar">
-          {delayedTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-emerald-500 dark:text-emerald-400">
-              <FiCheckCircle className="text-4xl mb-3 opacity-50" />
-              <p className="text-sm font-black tracking-widest uppercase">
-                Zero Bottlenecks!
-              </p>
-            </div>
-          ) : (
-            delayedTasks.map((task) => {
-              let projName = "No Project";
-              if (task.project) {
-                const pId =
-                  typeof task.project === "object"
-                    ? task.project._id
-                    : task.project;
-                const p = projects?.find((x) => x._id === pId);
-                projName = p?.name || "Unknown";
-              }
-
-              const s = task.status?.toLowerCase() || "";
-              let cardStyle = "border-rose-500 bg-rose-50 dark:bg-rose-500/10";
-              let badgeStyle =
-                "bg-rose-100 text-rose-700 border-rose-205 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/30";
-              let timeBadgeStyle =
-                "text-rose-600 dark:text-rose-300 bg-white dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/30";
-
-              if (s.includes("hold")) {
-                cardStyle =
-                  "border-fuchsia-500 bg-fuchsia-50/50 dark:bg-fuchsia-500/10";
-                badgeStyle =
-                  "bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 dark:border-fuchsia-900/30";
-                timeBadgeStyle =
-                  "text-fuchsia-600 dark:text-fuchsia-300 bg-white dark:bg-fuchsia-500/20 border border-fuchsia-200 dark:border-fuchsia-500/30";
-              } else if (s.includes("progress")) {
-                cardStyle = "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10";
-                badgeStyle =
-                  "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/30";
-                timeBadgeStyle =
-                  "text-blue-600 dark:text-blue-300 bg-white dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30";
-              } else if (s.includes("review") || s.includes("revision")) {
-                cardStyle =
-                  "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-500/10";
-                badgeStyle =
-                  "bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-450 dark:border-yellow-900/30";
-                timeBadgeStyle =
-                  "text-yellow-600 dark:text-yellow-450 bg-white dark:bg-yellow-500/20 border border-yellow-250 dark:border-yellow-500/30";
-              } else if (s.includes("pending") || s.includes("assigned")) {
-                cardStyle =
-                  "border-orange-500 bg-orange-50/50 dark:bg-orange-500/10";
-                badgeStyle =
-                  "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/30";
-                timeBadgeStyle =
-                  "text-orange-655 dark:text-orange-400 bg-white dark:bg-orange-500/20 border border-orange-200 dark:border-orange-500/30";
-              }
-
-              // Hash function to get unique soft badge style per client
-              const getClientBadgeStyle = (name) => {
-                const hash = name
-                  .split("")
-                  .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                const colors = [
-                  "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
-                  "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
-                  "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
-                  "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
-                  "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-900/30",
-                  "bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30",
-                  "bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/30",
-                ];
-                return colors[hash % colors.length];
-              };
-
-              const clientBadgeColor = getClientBadgeStyle(task.clientName);
-
-              return (
-                <div
-                  key={task._id}
-                  className={`flex flex-col md:flex-row md:items-center md:justify-between p-3.5 rounded-xl border-l-4 ${cardStyle} shadow-sm dark:shadow-none transition-all hover:scale-[1.01] hover:shadow-md gap-4`}
+              {/* Filters Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full lg:w-auto">
+                {/* Client Filter */}
+                <select
+                  value={bottleneckClient}
+                  onChange={(e) => setBottleneckClient(e.target.value)}
+                  className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                      <span
-                        className={`px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-md border ${clientBadgeColor}`}
-                      >
-                        {task.clientName}
-                      </span>
-                      <span className="text-[10px] text-slate-300 dark:text-slate-700">
-                        •
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                        {projName}
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
-                      {task.title}
-                    </h4>
+                  {bottleneckClients.map((client) => (
+                    <option key={client} value={client}>
+                      {client}
+                    </option>
+                  ))}
+                </select>
 
-                    <div className="flex items-center gap-6 mt-3 flex-wrap">
-                      {/* Creator */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">
-                          Creator:
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {task.creatorImage ? (
-                            <img
-                              src={task.creatorImage}
-                              alt={task.creatorName}
-                              className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
-                            />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[8px] font-black ring-1 ring-slate-300 shrink-0">
-                              {getInitials(task.creatorName)}
-                            </div>
-                          )}
-                          <span className="text-[11px] font-bold text-slate-750 dark:text-slate-300">
-                            {task.creatorName}
-                          </span>
-                        </div>
-                      </div>
+                {/* Creator Filter */}
+                <select
+                  value={bottleneckCreator}
+                  onChange={(e) => setBottleneckCreator(e.target.value)}
+                  className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
+                >
+                  {bottleneckCreators.map((creator) => (
+                    <option key={creator} value={creator}>
+                      {creator}
+                    </option>
+                  ))}
+                </select>
 
-                      {/* Assignee */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">
-                          Assignee:
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {task.assigneeImage ? (
-                            <img
-                              src={task.assigneeImage}
-                              alt={task.assigneeName}
-                              className="w-5 h-5 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
-                            />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[8px] font-black ring-1 ring-indigo-400/30 shrink-0">
-                              {getInitials(task.assigneeName)}
-                            </div>
-                          )}
-                          <span className="text-[11px] font-bold text-slate-755 dark:text-slate-300">
-                            {task.assigneeName}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                {/* Assignee Filter */}
+                <select
+                  value={bottleneckAssignee}
+                  onChange={(e) => setBottleneckAssignee(e.target.value)}
+                  className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
+                >
+                  {bottleneckAssignees.map((assignee) => (
+                    <option key={assignee} value={assignee}>
+                      {assignee}
+                    </option>
+                  ))}
+                </select>
 
-                  <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                    <span
-                      className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded border ${badgeStyle}`}
-                    >
-                      {task.status}
-                    </span>
-                    <div
-                      className={`text-[10px] font-black px-2.5 py-1 rounded-lg border shadow-sm ${timeBadgeStyle}`}
-                    >
-                      {task.daysDelayed}
-                    </div>
+                {/* Status Filter */}
+                <select
+                  value={bottleneckStatus}
+                  onChange={(e) => setBottleneckStatus(e.target.value)}
+                  className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
+                >
+                  {bottleneckStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {delayedTasks.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 border-b border-slate-100 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/30">
+                <div className="bg-white dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <h4 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 text-center">
+                    By Assignee
+                  </h4>
+                  <div className="h-[160px] relative">
+                    <Doughnut
+                      data={bottleneckAssigneeData}
+                      options={bOptions}
+                    />
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
+                <div className="bg-white dark:bg-slate-900/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <h4 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 text-center">
+                    By Status
+                  </h4>
+                  <div className="h-[160px] relative">
+                    <Doughnut data={bottleneckStatusData} options={bOptions} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="p-5 space-y-4 max-h-[420px] overflow-y-auto custom-scrollbar">
+              {delayedTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-emerald-500 dark:text-emerald-400">
+                  <FiCheckCircle className="text-4xl mb-3 opacity-50" />
+                  <p className="text-sm font-black tracking-widest uppercase">
+                    Zero Bottlenecks!
+                  </p>
+                </div>
+              ) : (
+                delayedTasks.map((task) => {
+                  let projName = "No Project";
+                  if (task.project) {
+                    const pId =
+                      typeof task.project === "object"
+                        ? task.project._id
+                        : task.project;
+                    const p = projects?.find((x) => x._id === pId);
+                    projName = p?.name || "Unknown";
+                  }
+
+                  const s = task.status?.toLowerCase() || "";
+                  let cardStyle =
+                    "border-rose-500 bg-rose-50 dark:bg-rose-500/10";
+                  let badgeStyle =
+                    "bg-rose-100 text-rose-700 border-rose-205 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/30";
+                  let timeBadgeStyle =
+                    "text-rose-600 dark:text-rose-300 bg-white dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/30";
+
+                  if (s.includes("hold")) {
+                    cardStyle =
+                      "border-fuchsia-500 bg-fuchsia-50/50 dark:bg-fuchsia-500/10";
+                    badgeStyle =
+                      "bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 dark:border-fuchsia-900/30";
+                    timeBadgeStyle =
+                      "text-fuchsia-600 dark:text-fuchsia-300 bg-white dark:bg-fuchsia-500/20 border border-fuchsia-200 dark:border-fuchsia-500/30";
+                  } else if (s.includes("progress")) {
+                    cardStyle =
+                      "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10";
+                    badgeStyle =
+                      "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/30";
+                    timeBadgeStyle =
+                      "text-blue-600 dark:text-blue-300 bg-white dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30";
+                  } else if (s.includes("review") || s.includes("revision")) {
+                    cardStyle =
+                      "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-500/10";
+                    badgeStyle =
+                      "bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-450 dark:border-yellow-900/30";
+                    timeBadgeStyle =
+                      "text-yellow-600 dark:text-yellow-450 bg-white dark:bg-yellow-500/20 border border-yellow-250 dark:border-yellow-500/30";
+                  } else if (s.includes("pending") || s.includes("assigned")) {
+                    cardStyle =
+                      "border-orange-500 bg-orange-50/50 dark:bg-orange-500/10";
+                    badgeStyle =
+                      "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/30";
+                    timeBadgeStyle =
+                      "text-orange-655 dark:text-orange-400 bg-white dark:bg-orange-500/20 border border-orange-200 dark:border-orange-500/30";
+                  }
+
+                  // Hash function to get unique soft badge style per client
+                  const getClientBadgeStyle = (name) => {
+                    const hash = name
+                      .split("")
+                      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    const colors = [
+                      "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
+                      "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
+                      "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
+                      "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
+                      "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-900/30",
+                      "bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30",
+                      "bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/30",
+                    ];
+                    return colors[hash % colors.length];
+                  };
+
+                  const clientBadgeColor = getClientBadgeStyle(task.clientName);
+
+                  return (
+                    <div
+                      key={task._id}
+                      className={`flex flex-col md:flex-row md:items-center md:justify-between p-3.5 rounded-xl border-l-4 ${cardStyle} shadow-sm dark:shadow-none transition-all hover:scale-[1.01] hover:shadow-md gap-4`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <span
+                            className={`px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-md border ${clientBadgeColor}`}
+                          >
+                            {task.clientName}
+                          </span>
+                          <span className="text-[10px] text-slate-300 dark:text-slate-700">
+                            •
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                            {projName}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+                          {task.title}
+                        </h4>
+
+                        <div className="flex items-center gap-6 mt-3 flex-wrap">
+                          {/* Creator */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">
+                              Creator:
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {task.creatorImage ? (
+                                <img
+                                  src={task.creatorImage}
+                                  alt={task.creatorName}
+                                  className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[8px] font-black ring-1 ring-slate-300 shrink-0">
+                                  {getInitials(task.creatorName)}
+                                </div>
+                              )}
+                              <span className="text-[11px] font-bold text-slate-750 dark:text-slate-300">
+                                {task.creatorName}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Assignee */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">
+                              Assignee:
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {task.assigneeImage ? (
+                                <img
+                                  src={task.assigneeImage}
+                                  alt={task.assigneeName}
+                                  className="w-5 h-5 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[8px] font-black ring-1 ring-indigo-400/30 shrink-0">
+                                  {getInitials(task.assigneeName)}
+                                </div>
+                              )}
+                              <span className="text-[11px] font-bold text-slate-755 dark:text-slate-300">
+                                {task.assigneeName}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                        <span
+                          className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded border ${badgeStyle}`}
+                        >
+                          {task.status}
+                        </span>
+                        <div
+                          className={`text-[10px] font-black px-2.5 py-1 rounded-lg border shadow-sm ${timeBadgeStyle}`}
+                        >
+                          {task.daysDelayed}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         );
       })()}
@@ -4650,8 +4757,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
               {/* Modal Body Container */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-slate-50/20 dark:bg-slate-900/10">
-
-
                 {/* Main Task List Container */}
                 <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#0f172a] p-3 sm:p-5 overflow-hidden">
                   <div
@@ -4833,11 +4938,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       </span>
                                       <div className="mt-1.5">
                                         {(() => {
-                                          const assignmentDate = task.startDate || task.createdAt;
-                                          const isAssignedToday = assignmentDate && isSameDay(new Date(assignmentDate), selectedDate);
+                                          const assignmentDate =
+                                            task.startDate || task.createdAt;
+                                          const isAssignedToday =
+                                            assignmentDate &&
+                                            isSameDay(
+                                              new Date(assignmentDate),
+                                              selectedDate,
+                                            );
                                           return (
-                                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isAssignedToday ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                              {isAssignedToday ? 'Today Assigned' : 'Carried Forward'}
+                                            <span
+                                              className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isAssignedToday ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"}`}
+                                            >
+                                              {isAssignedToday
+                                                ? "Today Assigned"
+                                                : "Carried Forward"}
                                             </span>
                                           );
                                         })()}
@@ -4896,15 +5011,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                                     !taskTab ||
                                                     taskTab === "all" ||
                                                     targetDate === task.dueDate;
-                                                  const d = parseISO(targetDate);
+                                                  const d =
+                                                    parseISO(targetDate);
                                                   if (
                                                     isDueDateCol &&
-                                                    (String(targetDate).includes(
-                                                      "00:00:00",
-                                                    ) ||
-                                                      !String(targetDate).includes(
-                                                        "T",
-                                                      ))
+                                                    (String(
+                                                      targetDate,
+                                                    ).includes("00:00:00") ||
+                                                      !String(
+                                                        targetDate,
+                                                      ).includes("T"))
                                                   ) {
                                                     d.setHours(17, 30, 0, 0);
                                                   }
@@ -4917,25 +5033,38 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                                 }
                                               })()}
                                             </span>
-                                            {task.dueDate && (!taskTab || taskTab === "all" || targetDate === task.dueDate) && (() => {
-                                              const text = getDeadlineBadgeText(task.dueDate, task.status);
-                                              if (!text) return null;
-                                              const isDelayed = text.includes("overdue");
-                                              const isDueToday = text === "Due Today";
-                                              const isCompleted = text === "Completed";
-                                              const colorClass = isCompleted
-                                                ? "text-emerald-500 dark:text-emerald-400"
-                                                : isDelayed
-                                                ? "text-rose-500 dark:text-rose-400"
-                                                : isDueToday
-                                                ? "text-amber-500 dark:text-amber-400"
-                                                : "text-slate-500 dark:text-slate-400";
-                                              return (
-                                                <span className={`text-[9px] font-bold ${colorClass}`}>
-                                                  {text}
-                                                </span>
-                                              );
-                                            })()}
+                                            {task.dueDate &&
+                                              (!taskTab ||
+                                                taskTab === "all" ||
+                                                targetDate === task.dueDate) &&
+                                              (() => {
+                                                const text =
+                                                  getDeadlineBadgeText(
+                                                    task.dueDate,
+                                                    task.status,
+                                                  );
+                                                if (!text) return null;
+                                                const isDelayed =
+                                                  text.includes("overdue");
+                                                const isDueToday =
+                                                  text === "Due Today";
+                                                const isCompleted =
+                                                  text === "Completed";
+                                                const colorClass = isCompleted
+                                                  ? "text-emerald-500 dark:text-emerald-400"
+                                                  : isDelayed
+                                                    ? "text-rose-500 dark:text-rose-400"
+                                                    : isDueToday
+                                                      ? "text-amber-500 dark:text-amber-400"
+                                                      : "text-slate-500 dark:text-slate-400";
+                                                return (
+                                                  <span
+                                                    className={`text-[9px] font-bold ${colorClass}`}
+                                                  >
+                                                    {text}
+                                                  </span>
+                                                );
+                                              })()}
                                           </div>
                                         ) : (
                                           "—"
@@ -5016,11 +5145,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       {task.title}
                                     </h4>
                                     {(() => {
-                                      const assignmentDate = task.startDate || task.createdAt;
-                                      const isAssignedToday = assignmentDate && isSameDay(new Date(assignmentDate), selectedDate);
+                                      const assignmentDate =
+                                        task.startDate || task.createdAt;
+                                      const isAssignedToday =
+                                        assignmentDate &&
+                                        isSameDay(
+                                          new Date(assignmentDate),
+                                          selectedDate,
+                                        );
                                       return (
-                                        <span className={`w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isAssignedToday ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
-                                          {isAssignedToday ? 'Today Assigned' : 'Carried Forward'}
+                                        <span
+                                          className={`w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isAssignedToday ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"}`}
+                                        >
+                                          {isAssignedToday
+                                            ? "Today Assigned"
+                                            : "Carried Forward"}
                                         </span>
                                       );
                                     })()}
@@ -5073,7 +5212,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                               (String(targetDate).includes(
                                                 "00:00:00",
                                               ) ||
-                                                !String(targetDate).includes("T"))
+                                                !String(targetDate).includes(
+                                                  "T",
+                                                ))
                                             ) {
                                               d.setHours(17, 30, 0, 0);
                                             }
@@ -5083,25 +5224,37 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                           }
                                         })()}
                                       </span>
-                                      {task.dueDate && (!taskTab || taskTab === "all" || targetDate === task.dueDate) && (() => {
-                                        const text = getDeadlineBadgeText(task.dueDate, task.status);
-                                        if (!text) return null;
-                                        const isDelayed = text.includes("overdue");
-                                        const isDueToday = text === "Due Today";
-                                        const isCompleted = text === "Completed";
-                                        const colorClass = isCompleted
-                                          ? "text-emerald-500 dark:text-emerald-400"
-                                          : isDelayed
-                                          ? "text-rose-500 dark:text-rose-400"
-                                          : isDueToday
-                                          ? "text-amber-500 dark:text-amber-400"
-                                          : "text-slate-500 dark:text-slate-400";
-                                        return (
-                                          <span className={`text-[9px] font-bold ${colorClass}`}>
-                                            {text}
-                                          </span>
-                                        );
-                                      })()}
+                                      {task.dueDate &&
+                                        (!taskTab ||
+                                          taskTab === "all" ||
+                                          targetDate === task.dueDate) &&
+                                        (() => {
+                                          const text = getDeadlineBadgeText(
+                                            task.dueDate,
+                                            task.status,
+                                          );
+                                          if (!text) return null;
+                                          const isDelayed =
+                                            text.includes("overdue");
+                                          const isDueToday =
+                                            text === "Due Today";
+                                          const isCompleted =
+                                            text === "Completed";
+                                          const colorClass = isCompleted
+                                            ? "text-emerald-500 dark:text-emerald-400"
+                                            : isDelayed
+                                              ? "text-rose-500 dark:text-rose-400"
+                                              : isDueToday
+                                                ? "text-amber-500 dark:text-amber-400"
+                                                : "text-slate-500 dark:text-slate-400";
+                                          return (
+                                            <span
+                                              className={`text-[9px] font-bold ${colorClass}`}
+                                            >
+                                              {text}
+                                            </span>
+                                          );
+                                        })()}
                                     </div>
                                   )}
                                 </div>
