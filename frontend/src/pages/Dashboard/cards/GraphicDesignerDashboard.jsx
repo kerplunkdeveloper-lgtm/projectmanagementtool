@@ -2155,14 +2155,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         }
 
         let clientId = t.client;
-        if (typeof clientId === "object" && clientId?._id)
+        let cObj = null;
+        if (typeof clientId === "object" && clientId?._id) {
+          cObj = clientId;
           clientId = clientId._id;
+        }
         if (!clientId && t.project) {
           const pId = typeof t.project === "object" ? t.project._id : t.project;
-          const p = projects?.find((x) => x._id === pId);
-          clientId = p?.client?._id || p?.client;
+          const p = projects?.find((x) => x._id === pId) || (typeof t.project === "object" ? t.project : null);
+          if (p && p.client) {
+            clientId = typeof p.client === "object" ? p.client._id : p.client;
+            if (typeof p.client === "object") cObj = p.client;
+          }
         }
-        const cl = clients?.find((c) => c._id === clientId);
+        const cl = clients?.find((c) => c._id === clientId) || cObj;
         const clientName = cl?.name || cl?.companyName || "No Client";
 
         const creatorObj =
@@ -2419,26 +2425,22 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     if (task.client) {
       const cId =
         typeof task.client === "object" ? task.client._id : task.client;
-      const c = clients?.find((x) => x._id === cId);
+      const c = clients?.find((x) => x._id === cId) || (typeof task.client === "object" ? task.client : null);
       clientName =
         c?.companyName ||
         c?.name ||
-        (typeof task.client === "object"
-          ? task.client.companyName || task.client.name
-          : "Unknown Client");
+        "Unknown Client";
     } else if (task.project) {
       const pId =
         typeof task.project === "object" ? task.project._id : task.project;
-      const p = projects?.find((x) => x._id === pId);
-      if (p) {
+      const p = projects?.find((x) => x._id === pId) || (typeof task.project === "object" ? task.project : null);
+      if (p && p.client) {
         const cId = typeof p.client === "object" ? p.client?._id : p.client;
-        const c = clients?.find((x) => x._id === cId);
+        const c = clients?.find((x) => x._id === cId) || (typeof p.client === "object" ? p.client : null);
         clientName =
           c?.companyName ||
           c?.name ||
-          (typeof p.client === "object"
-            ? p.client.companyName || p.client.name
-            : "Unknown Client");
+          "Unknown Client";
       }
     }
 
