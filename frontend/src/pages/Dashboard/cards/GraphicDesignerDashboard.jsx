@@ -3634,7 +3634,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   return (
                     <tr
                       key={tp.id}
-                      className="h-[42px] hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                      className="h-[42px]"
                     >
                       {/* Designer */}
                       <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80">
