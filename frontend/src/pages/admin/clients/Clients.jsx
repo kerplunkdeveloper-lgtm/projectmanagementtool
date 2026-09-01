@@ -29,6 +29,14 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiCheckCircle,
+  FiCamera,
+  FiTool,
+  FiMinus,
+  FiInfo,
+  FiEdit2,
+  FiMessageSquare,
+  FiPhoneCall,
+  FiLock,
 } from "react-icons/fi";
 import { FaRegBuilding } from "react-icons/fa";
 import {
@@ -552,8 +560,53 @@ const Clients = () => {
   const [clientToDelete, setClientToDelete] = useState(null);
   const [viewClient, setViewClient] = useState(null);
   const [showViewOffcanvas, setShowViewOffcanvas] = useState(false);
+  const [viewOffcanvasTab, setViewOffcanvasTab] = useState("Overview");
   const [activeTab, setActiveTab] = useState("profile"); // 'profile', 'service', 'finance'
+  const [editingRowIndex, setEditingRowIndex] = useState(null);
+  const [editRowData, setEditRowData] = useState(null);
 
+  const predefinedAuthMethods = [
+    {
+      method: "Email OTP",
+      subtitle: "OTP will be sent to email",
+      defaultStatus: "Not Configured",
+    },
+    {
+      method: "WhatsApp OTP",
+      subtitle: "OTP will be sent via WhatsApp",
+      defaultStatus: "Not Configured",
+    },
+    {
+      method: "Two-Factor Authentication",
+      subtitle: "Additional layer of security",
+      defaultStatus: "Not Configured",
+    },
+    {
+      method: "SMS / Message OTP",
+      subtitle: "OTP will be sent via SMS",
+      defaultStatus: "Not Configured",
+    },
+    {
+      method: "Voice Call OTP",
+      subtitle: "OTP will be sent via voice call",
+      defaultStatus: "Not Configured",
+    },
+    {
+      method: "Authenticator App",
+      subtitle: "TOTP / Authenticator app",
+      defaultStatus: "Not Configured",
+    },
+    {
+      method: "Selfie Verification",
+      subtitle: "Verify using selfie",
+      defaultStatus: "Disabled",
+    },
+    {
+      method: "Backup Codes",
+      subtitle: "Use backup codes to login",
+      defaultStatus: "Not Configured",
+    },
+  ];
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(7);
@@ -587,6 +640,7 @@ const Clients = () => {
     color: "#3b82f6",
     icon: "FaRegBuilding",
     status: "Active",
+    authMethods: [],
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -603,6 +657,55 @@ const Clients = () => {
       ...prev,
       assignedTo: assigned,
     }));
+  };
+
+  const handleEditRow = (index, currentData) => {
+    setEditingRowIndex(index);
+    setEditRowData({
+      config: currentData.config || "",
+      status: currentData.status || currentData.defaultStatus,
+      method: currentData.method,
+    });
+  };
+
+  const handleCancelEditRow = () => {
+    setEditingRowIndex(null);
+    setEditRowData(null);
+  };
+
+  const handleSaveRow = async () => {
+    if (!viewClient || !editRowData) return;
+
+    const existingMethods = [...(viewClient.authMethods || [])];
+    const existingIndex = existingMethods.findIndex(
+      (m) => m.method === editRowData.method,
+    );
+
+    if (existingIndex >= 0) {
+      existingMethods[existingIndex] = {
+        ...existingMethods[existingIndex],
+        config: editRowData.config,
+        status: editRowData.status,
+      };
+    } else {
+      existingMethods.push({
+        method: editRowData.method,
+        config: editRowData.config,
+        status: editRowData.status,
+      });
+    }
+
+    const payload = { ...viewClient, authMethods: existingMethods };
+    payload.assignedTo = Array.isArray(viewClient.assignedTo)
+      ? viewClient.assignedTo.map((u) => u._id || u)
+      : viewClient.assignedTo
+        ? [viewClient.assignedTo._id || viewClient.assignedTo]
+        : [];
+
+    await dispatch(updateClient({ id: viewClient._id, data: payload }));
+    setViewClient(payload);
+    setEditingRowIndex(null);
+    setEditRowData(null);
   };
 
   useEffect(() => {
@@ -675,6 +778,7 @@ const Clients = () => {
         : client.assignedTo
           ? [client.assignedTo._id || client.assignedTo]
           : [],
+      authMethods: client.authMethods || [],
     });
     setEditId(client._id);
     setActiveTab("profile");
@@ -683,10 +787,12 @@ const Clients = () => {
 
   const handleStatusChange = async (client, newStatus) => {
     if (client.status === newStatus) return;
-    
+
     let reason = "";
     if (newStatus === "Inactive") {
-      reason = window.prompt("Please enter a reason for making the client Inactive:");
+      reason = window.prompt(
+        "Please enter a reason for making the client Inactive:",
+      );
       if (reason === null) return; // User cancelled
     }
 
@@ -1223,12 +1329,9 @@ const Clients = () => {
                       Assigned By
                     </th>
                   )}
-                  {(user?.role === "admin" ||
-                    user?.role === "operationmanager") && (
-                    <th className="px-4 py-3 font-extrabold bg-transparent text-center w-20 border-r-0">
-                      Actions
-                    </th>
-                  )}
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center w-20 border-r-0">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700/60">
@@ -1319,12 +1422,22 @@ const Clients = () => {
                               <div className="min-w-[110px]">
                                 <h2
                                   className={`font-bold transition-colors text-[12.5px] text-slate-800 dark:text-slate-900 truncate max-w-[200px] ${
-                                    (user?.role === "admin" || user?.role === "operationmanager" || (user?.department || "").toLowerCase().includes("social media manager"))
+                                    user?.role === "admin" ||
+                                    user?.role === "operationmanager" ||
+                                    (user?.department || "")
+                                      .toLowerCase()
+                                      .includes("social media manager")
                                       ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                                       : ""
                                   }`}
                                   onClick={() => {
-                                    if (user?.role === "admin" || user?.role === "operationmanager" || (user?.department || "").toLowerCase().includes("social media manager")) {
+                                    if (
+                                      user?.role === "admin" ||
+                                      user?.role === "operationmanager" ||
+                                      (user?.department || "")
+                                        .toLowerCase()
+                                        .includes("social media manager")
+                                    ) {
                                       setViewClient(client);
                                       setShowViewOffcanvas(true);
                                     }
@@ -1352,20 +1465,35 @@ const Clients = () => {
                               </div>
                             </div>
                           </td>
-                          <td className={`${cellClass} text-center w-32 align-middle px-2`}>
+                          <td
+                            className={`${cellClass} text-center w-32 align-middle px-2`}
+                          >
                             <div className="flex flex-col items-center gap-1.5 justify-center py-1">
-                              {user?.role === "admin" || user?.role === "operationmanager" ? (
+                              {user?.role === "admin" ||
+                              user?.role === "operationmanager" ? (
                                 <select
                                   value={client.status || "Active"}
-                                  onChange={(e) => handleStatusChange(client, e.target.value)}
+                                  onChange={(e) =>
+                                    handleStatusChange(client, e.target.value)
+                                  }
                                   className={`outline-none cursor-pointer pl-2 pr-6 py-1 rounded font-bold text-[10px] border text-center w-[95px] appearance-none relative bg-no-repeat bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[position:right_6px_center] ${
                                     client.status === "Inactive"
                                       ? "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200/50 dark:border-rose-800/30"
                                       : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/30"
                                   }`}
                                 >
-                                  <option value="Active" className="text-emerald-600 font-bold">Active</option>
-                                  <option value="Inactive" className="text-rose-600 font-bold">Inactive</option>
+                                  <option
+                                    value="Active"
+                                    className="text-emerald-600 font-bold"
+                                  >
+                                    Active
+                                  </option>
+                                  <option
+                                    value="Inactive"
+                                    className="text-rose-600 font-bold"
+                                  >
+                                    Inactive
+                                  </option>
                                 </select>
                               ) : (
                                 <div
@@ -1378,11 +1506,15 @@ const Clients = () => {
                                   {client.status || "Active"}
                                 </div>
                               )}
-                              {client.status === "Inactive" && client.inactiveReason && (
-                                <div className="text-[8.5px] text-rose-500/90 dark:text-rose-400/90 italic bg-rose-50/50 dark:bg-rose-900/10 px-1.5 py-0.5 rounded w-full max-w-[110px] text-center leading-tight border border-rose-100/50 dark:border-rose-800/20 break-words" title={client.inactiveReason}>
-                                  {client.inactiveReason}
-                                </div>
-                              )}
+                              {client.status === "Inactive" &&
+                                client.inactiveReason && (
+                                  <div
+                                    className="text-[8.5px] text-rose-500/90 dark:text-rose-400/90 italic bg-rose-50/50 dark:bg-rose-900/10 px-1.5 py-0.5 rounded w-full max-w-[110px] text-center leading-tight border border-rose-100/50 dark:border-rose-800/20 break-words"
+                                    title={client.inactiveReason}
+                                  >
+                                    {client.inactiveReason}
+                                  </div>
+                                )}
                             </div>
                           </td>
                           <td className={`${cellClass} text-center w-28`}>
@@ -1642,9 +1774,7 @@ const Clients = () => {
                               </div>
                             </td>
                           )}
-                          {(user?.role === "admin" ||
-                            user?.role === "operationmanager") && (
-                            <td className={`${cellClass} text-center w-20`}>
+                          <td className={`${cellClass} text-center w-20`}>
                               <div className="flex items-center justify-center gap-1">
                                 <button
                                   onClick={() => {
@@ -1656,26 +1786,30 @@ const Clients = () => {
                                 >
                                   <FiEye size={11} className="stroke-[2.5]" />
                                 </button>
-                                <button
-                                  onClick={() => handleEdit(client)}
-                                  className="w-6 h-6 flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-md transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
-                                  title="Edit Record"
-                                >
-                                  <FiEdit size={11} className="stroke-[2.5]" />
-                                </button>
-                                <button
-                                  onClick={() => setClientToDelete(client)}
-                                  className="w-6 h-6 flex items-center justify-center bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-md transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
-                                  title="Delete Record"
-                                >
-                                  <FiTrash2
-                                    size={11}
-                                    className="stroke-[2.5]"
-                                  />
-                                </button>
+                                {(user?.role === "admin" ||
+                                  user?.role === "operationmanager") && (
+                                  <>
+                                    <button
+                                      onClick={() => handleEdit(client)}
+                                      className="w-6 h-6 flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-md transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
+                                      title="Edit Record"
+                                    >
+                                      <FiEdit size={11} className="stroke-[2.5]" />
+                                    </button>
+                                    <button
+                                      onClick={() => setClientToDelete(client)}
+                                      className="w-6 h-6 flex items-center justify-center bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-md transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
+                                      title="Delete Record"
+                                    >
+                                      <FiTrash2
+                                        size={11}
+                                        className="stroke-[2.5]"
+                                      />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </td>
-                          )}
                         </motion.tr>
                       );
                     })
@@ -1688,10 +1822,7 @@ const Clients = () => {
                           1 + // No. of Projects
                           2 + // Services & Deliverables
                           (user?.role === "team" ? 1 : 0) +
-                          (user?.role === "admin" ||
-                          user?.role === "operationmanager"
-                            ? 1
-                            : 0)
+                          1 // Actions
                         }
                         className="px-5 py-24 text-center"
                       >
@@ -2895,12 +3026,13 @@ const Clients = () => {
               {/* Tabs */}
               <div className="px-4.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
                 <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
-                  {["Overview"].map((tab) => (
+                  {["Overview", "Authentication & Verification"].map((tab) => (
                     <button
                       key={tab}
+                      onClick={() => setViewOffcanvasTab(tab)}
                       className={`py-2 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
-                        tab === "Overview"
-                          ? "border-emerald-500 text-slate-800 dark:text-slate-800"
+                        viewOffcanvasTab === tab
+                          ? "border-emerald-500 text-slate-800 dark:text-slate-100"
                           : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                       }`}
                     >
@@ -2912,731 +3044,1023 @@ const Clients = () => {
 
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 sidebar-bg">
-                {(() => {
-                  // Calculate Stats
-                  const clientProjects = projects.filter((p) => {
-                    const cId = p.client?._id || p.client;
-                    return cId === viewClient._id;
-                  });
+                {viewOffcanvasTab === "Overview" &&
+                  (() => {
+                    // Calculate Stats
+                    const clientProjects = projects.filter((p) => {
+                      const cId = p.client?._id || p.client;
+                      return cId === viewClient._id;
+                    });
 
-                  const clientTasks = tasks.filter((t) => {
-                    const cId =
-                      t.client?._id ||
-                      t.client ||
-                      t.project?.client?._id ||
-                      t.project?.client;
-                    return cId === viewClient._id;
-                  });
-
-                  const totalTasks = clientTasks.length;
-                  const inProgressTasks = clientTasks.filter(
-                    (t) => t.status === "In Progress" || t.status === "Not Started",
-                  ).length;
-                  const completedTasks = clientTasks.filter(
-                    (t) => t.status === "Completed",
-                  ).length;
-                  const overdueTasks = clientTasks.filter((t) => {
-                    if (t.status === "Completed") return false;
-                    return (
-                      t.status === "Overdue" ||
-                      (t.dueDate && new Date(t.dueDate) < new Date())
-                    );
-                  }).length;
-
-                  // MOM Tasks filtering and pagination
-                  const momTasks = clientTasks.filter(
-                    (t) =>
-                      t.contentType && t.contentType.toUpperCase() === "MOM",
-                  );
-
-                  const filteredMomTasks = momTasks
-                    .filter((t) => {
-                      const assigneeId = t.assignedTo?._id || t.assignedTo;
-                      if (momAssigneeFilter && assigneeId !== momAssigneeFilter)
-                        return false;
-
+                    const clientTasks = tasks.filter((t) => {
                       const cId =
                         t.client?._id ||
                         t.client ||
                         t.project?.client?._id ||
                         t.project?.client;
-                      if (momClientFilter && cId !== momClientFilter)
-                        return false;
+                      return cId === viewClient._id;
+                    });
 
-                      if (momDateFilter) {
-                        const taskDate = t.dueDate
-                          ? new Date(t.dueDate).toISOString().split("T")[0]
-                          : null;
-                        if (taskDate !== momDateFilter) return false;
-                      }
-                      return true;
-                    })
-                    .sort(
-                      (a, b) =>
-                        new Date(b.createdAt || b.date) -
-                        new Date(a.createdAt || a.date),
+                    const totalTasks = clientTasks.length;
+                    const inProgressTasks = clientTasks.filter(
+                      (t) =>
+                        t.status === "In Progress" ||
+                        t.status === "Not Started",
+                    ).length;
+                    const completedTasks = clientTasks.filter(
+                      (t) => t.status === "Completed",
+                    ).length;
+                    const overdueTasks = clientTasks.filter((t) => {
+                      if (t.status === "Completed") return false;
+                      return (
+                        t.status === "Overdue" ||
+                        (t.dueDate && new Date(t.dueDate) < new Date())
+                      );
+                    }).length;
+
+                    // MOM Tasks filtering and pagination
+                    const momTasks = clientTasks.filter(
+                      (t) =>
+                        t.contentType && t.contentType.toUpperCase() === "MOM",
                     );
 
-                  const uniqueAssignees = Array.from(
-                    new Map(
-                      momTasks
-                        .map((t) => {
-                          const id = t.assignedTo?._id || t.assignedTo;
-                          const name =
-                            typeof t.assignedTo === "object"
-                              ? t.assignedTo.name
-                              : users?.find((u) => (u._id || u.id) === id)
-                                  ?.name || "Unknown";
-                          return [id, { id, name }];
-                        })
-                        .filter(([id]) => id),
-                    ).values(),
-                  ).sort((a, b) => a.name.localeCompare(b.name));
+                    const filteredMomTasks = momTasks
+                      .filter((t) => {
+                        const assigneeId = t.assignedTo?._id || t.assignedTo;
+                        if (
+                          momAssigneeFilter &&
+                          assigneeId !== momAssigneeFilter
+                        )
+                          return false;
 
-                  const uniqueClients = Array.from(
-                    new Map(
-                      momTasks
-                        .map((t) => {
-                          const id =
-                            t.client?._id ||
-                            t.client ||
-                            t.project?.client?._id ||
-                            t.project?.client;
-                          const name =
-                            viewClient.companyName || "Unknown Client";
-                          return [id, { id, name }];
-                        })
-                        .filter(([id]) => id),
-                    ).values(),
-                  ).sort((a, b) => a.name.localeCompare(b.name));
+                        const cId =
+                          t.client?._id ||
+                          t.client ||
+                          t.project?.client?._id ||
+                          t.project?.client;
+                        if (momClientFilter && cId !== momClientFilter)
+                          return false;
 
-                  const handleAdjustMomDate = (days) => {
-                    let d;
-                    if (momDateFilter) {
+                        if (momDateFilter) {
+                          const taskDate = t.dueDate
+                            ? new Date(t.dueDate).toISOString().split("T")[0]
+                            : null;
+                          if (taskDate !== momDateFilter) return false;
+                        }
+                        return true;
+                      })
+                      .sort(
+                        (a, b) =>
+                          new Date(b.createdAt || b.date) -
+                          new Date(a.createdAt || a.date),
+                      );
+
+                    const uniqueAssignees = Array.from(
+                      new Map(
+                        momTasks
+                          .map((t) => {
+                            const id = t.assignedTo?._id || t.assignedTo;
+                            const name =
+                              typeof t.assignedTo === "object"
+                                ? t.assignedTo.name
+                                : users?.find((u) => (u._id || u.id) === id)
+                                    ?.name || "Unknown";
+                            return [id, { id, name }];
+                          })
+                          .filter(([id]) => id),
+                      ).values(),
+                    ).sort((a, b) => a.name.localeCompare(b.name));
+
+                    const uniqueClients = Array.from(
+                      new Map(
+                        momTasks
+                          .map((t) => {
+                            const id =
+                              t.client?._id ||
+                              t.client ||
+                              t.project?.client?._id ||
+                              t.project?.client;
+                            const name =
+                              viewClient.companyName || "Unknown Client";
+                            return [id, { id, name }];
+                          })
+                          .filter(([id]) => id),
+                      ).values(),
+                    ).sort((a, b) => a.name.localeCompare(b.name));
+
+                    const handleAdjustMomDate = (days) => {
+                      let d;
+                      if (momDateFilter) {
+                        const [year, month, day] = momDateFilter
+                          .split("-")
+                          .map(Number);
+                        d = new Date(year, month - 1, day);
+                      } else {
+                        d = new Date();
+                      }
+                      d.setDate(d.getDate() + days);
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, "0");
+                      const dayStr = String(d.getDate()).padStart(2, "0");
+                      setMomDateFilter(`${y}-${m}-${dayStr}`);
+                      setMomCurrentPage(1);
+                    };
+
+                    const handleSetMomToday = () => {
+                      const d = new Date();
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, "0");
+                      const dayStr = String(d.getDate()).padStart(2, "0");
+                      setMomDateFilter(`${y}-${m}-${dayStr}`);
+                      setMomCurrentPage(1);
+                    };
+
+                    const getMomDisplayDate = () => {
+                      if (!momDateFilter) return "Select Date";
                       const [year, month, day] = momDateFilter
                         .split("-")
                         .map(Number);
-                      d = new Date(year, month - 1, day);
-                    } else {
-                      d = new Date();
-                    }
-                    d.setDate(d.getDate() + days);
-                    const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, "0");
-                    const dayStr = String(d.getDate()).padStart(2, "0");
-                    setMomDateFilter(`${y}-${m}-${dayStr}`);
-                    setMomCurrentPage(1);
-                  };
+                      const d = new Date(year, month - 1, day);
+                      return d.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+                    };
 
-                  const handleSetMomToday = () => {
-                    const d = new Date();
-                    const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, "0");
-                    const dayStr = String(d.getDate()).padStart(2, "0");
-                    setMomDateFilter(`${y}-${m}-${dayStr}`);
-                    setMomCurrentPage(1);
-                  };
+                    const totalMomTasks = filteredMomTasks.length;
+                    const totalMomPages = Math.ceil(
+                      totalMomTasks / momItemsPerPage,
+                    );
+                    const paginatedMomTasks = filteredMomTasks.slice(
+                      (momCurrentPage - 1) * momItemsPerPage,
+                      momCurrentPage * momItemsPerPage,
+                    );
 
-                  const getMomDisplayDate = () => {
-                    if (!momDateFilter) return "Select Date";
-                    const [year, month, day] = momDateFilter
-                      .split("-")
-                      .map(Number);
-                    const d = new Date(year, month - 1, day);
-                    return d.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    });
-                  };
-
-                  const totalMomTasks = filteredMomTasks.length;
-                  const totalMomPages = Math.ceil(
-                    totalMomTasks / momItemsPerPage,
-                  );
-                  const paginatedMomTasks = filteredMomTasks.slice(
-                    (momCurrentPage - 1) * momItemsPerPage,
-                    momCurrentPage * momItemsPerPage,
-                  );
-
-                  return (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full">
-                      {/* Left Column */}
-                      <div className="lg:col-span-7 xl:col-span-7 space-y-4">
-                        {/* Section 1: Client Profile (Compact & Clean Grid UX) */}
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-                          {/* Header */}
-                          <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100 dark:border-slate-800">
-                            <div className="flex items-center gap-2.5">
-                              {(() => {
-                                const ClientIcon = getClientIconComponent(
-                                  viewClient.icon,
-                                );
-                                return (
-                                  <div
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border shadow-2xs"
-                                    style={{
-                                      backgroundColor: `${viewClient.color || "#3b82f6"}15`,
-                                      borderColor: `${viewClient.color || "#3b82f6"}30`,
-                                      color: viewClient.color || "#3b82f6",
-                                    }}
-                                  >
-                                    <ClientIcon size={13} />
-                                  </div>
-                                );
-                              })()}
-                              <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                                Client Profile
-                              </h3>
-                            </div>
-
-                            {/* Status Badge */}
-                            {viewClient.status === "Inactive" ? (
-                              <span className="px-2.5 py-0.5 rounded-full text-rose-700 dark:text-rose-400 font-extrabold text-[10.5px] bg-rose-100/80 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50">
-                                Inactive
-                              </span>
-                            ) : (
-                              <span className="px-2.5 py-0.5 rounded-full text-emerald-700 dark:text-emerald-400 font-extrabold text-[10.5px] bg-emerald-100/80 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/50">
-                                Active
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Profile Fields Grid */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-                            {/* Company Name */}
-                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                                Company Name
-                              </span>
-                              <span
-                                className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs"
-                                title={viewClient.companyName}
-                              >
-                                {viewClient.companyName}
-                              </span>
-                            </div>
-
-                            {/* Industry */}
-                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                                Industry
-                              </span>
-                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
-                                {viewClient.industry || "-"}
-                              </span>
-                            </div>
-
-                            {/* Account Manager */}
-                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                                Account Manager
-                              </span>
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <div className="w-4.5 h-4.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-[8.5px] shrink-0">
-                                  {viewClient.spoc
-                                    ? viewClient.spoc.charAt(0).toUpperCase()
-                                    : "-"}
-                                </div>
-                                <span
-                                  className="font-bold text-slate-800 dark:text-slate-100 truncate text-xs"
-                                  title={viewClient.spoc || "-"}
-                                >
-                                  {viewClient.spoc || "-"}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Phone */}
-                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                                Phone
-                              </span>
-                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
-                                {viewClient.phoneNumber || "-"}
-                              </span>
-                            </div>
-
-                            {/* Onboard Date */}
-                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                                Onboard Date
-                              </span>
-                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
-                                {viewClient.onboardingDate
-                                  ? new Date(
-                                      viewClient.onboardingDate,
-                                    ).toLocaleDateString("en-GB", {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                    })
-                                  : "-"}
-                              </span>
-                            </div>
-
-                            {/* Designation */}
-                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                                Designation
-                              </span>
-                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
-                                {viewClient.designation ||
-                                  viewClient.contactPerson ||
-                                  "-"}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Financial Fields (Role-Based for Admin / OM) */}
-                          {(user?.role === "admin" ||
-                            user?.role === "operationmanager") && (
-                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2.5 text-xs">
-                              <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                                <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
-                                  Base Budget
-                                </span>
-                                <span className="font-bold text-slate-800 dark:text-slate-100">
-                                  ₹
-                                  {(viewClient.budget || 0).toLocaleString(
-                                    "en-IN",
-                                  )}
-                                </span>
-                              </div>
-
-                              <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-                                <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
-                                  GST Slab
-                                </span>
-                                <span className="font-bold text-slate-800 dark:text-slate-100">
-                                  {viewClient.gst || 18}%
-                                </span>
-                              </div>
-
-                              <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/50">
-                                <span className="text-[9.5px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block mb-0.5">
-                                  Grand Total
-                                </span>
-                                <span className="font-black text-emerald-600 dark:text-emerald-400">
-                                  ₹
-                                  {(
-                                    viewClient.totalBudget ||
-                                    viewClient.budget ||
-                                    0
-                                  ).toLocaleString("en-IN")}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* MOM Table */}
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm overflow-hidden">
-                          <div className="flex flex-col gap-4 mb-4">
-                            <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                              <FiBookOpen size={14} className="text-blue-500" />
-                              MOM Tasks
-                            </h3>
-
-                            <div className="flex flex-col xl:flex-row xl:justify-end xl:items-center gap-4">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                  onClick={() => {
-                                    setMomDateFilter("");
-                                    setMomCurrentPage(1);
-                                  }}
-                                  className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[11px] rounded-lg transition-colors cursor-pointer"
-                                >
-                                  All Dates
-                                </button>
-                                <button
-                                  onClick={handleSetMomToday}
-                                  className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[11px] rounded-lg transition-colors cursor-pointer"
-                                >
-                                  Today
-                                </button>
-
-                                <div
-                                  className="relative group cursor-pointer"
-                                  onClick={(e) => {
-                                    const input =
-                                      e.currentTarget.querySelector(
-                                        'input[type="date"]',
-                                      );
-                                    if (
-                                      input &&
-                                      typeof input.showPicker === "function"
-                                    ) {
-                                      input.showPicker();
-                                    }
-                                  }}
-                                >
-                                  <div className="flex items-center gap-3 px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 rounded-lg transition-colors min-w-[120px] justify-between cursor-pointer">
-                                    <div className="flex items-center gap-2">
-                                      <FiCalendar
-                                        className="text-emerald-500"
-                                        size={14}
-                                      />
-                                      <span className="text-slate-800 dark:text-slate-200 font-extrabold text-[11px]">
-                                        {getMomDisplayDate()}
-                                      </span>
-                                    </div>
-                                    <FiChevronDown
-                                      className="text-slate-400"
-                                      size={12}
-                                    />
-                                  </div>
-                                  <input
-                                    type="date"
-                                    value={momDateFilter}
-                                    onChange={(e) => {
-                                      setMomDateFilter(e.target.value);
-                                      setMomCurrentPage(1);
-                                    }}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                  />
-                                </div>
-
-                                <div className="flex items-center bg-[#f0f5fa] dark:bg-slate-800 rounded-lg overflow-hidden">
-                                  <button
-                                    onClick={() => handleAdjustMomDate(-1)}
-                                    className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                                  >
-                                    <FiChevronLeft
-                                      size={14}
-                                      strokeWidth={2.5}
-                                    />
-                                  </button>
-                                  <div className="w-px h-3 bg-slate-200 dark:bg-slate-600"></div>
-                                  <button
-                                    onClick={() => handleAdjustMomDate(1)}
-                                    className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                                  >
-                                    <FiChevronRight
-                                      size={14}
-                                      strokeWidth={2.5}
-                                    />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left whitespace-nowrap text-xs">
-                              <thead>
-                                <tr className="bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest text-[9px]">
-                                  <th className="px-3 py-2.5 rounded-l-md w-8 text-center">
-                                    <FiCheckCircle
-                                      size={14}
-                                      className="text-slate-400 mx-auto inline-block"
-                                    />
-                                  </th>
-                                  <th className="px-3 py-2.5">Assignee</th>
-                                  <th className="px-3 py-2.5">Task</th>
-                                  <th className="px-3 py-2.5">Start Date</th>
-                                  <th className="px-3 py-2.5">End Date</th>
-                                  <th className="px-3 py-2.5 text-center">
-                                    Status
-                                  </th>
-                                  <th className="px-3 py-2.5 text-center rounded-r-md">
-                                    Time
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                                {paginatedMomTasks.length > 0 ? (
-                                  paginatedMomTasks.map((task) => {
-                                    const assigneeId =
-                                      task.assignedTo?._id || task.assignedTo;
-                                    const assigneeUserObj =
-                                      typeof task.assignedTo === "object"
-                                        ? task.assignedTo
-                                        : users?.find(
-                                            (u) =>
-                                              (u._id || u.id) === assigneeId,
-                                          );
-                                    const assigneeName =
-                                      assigneeUserObj?.name || "Unknown";
-                                    const isCompleted =
-                                      task.status?.toLowerCase() ===
-                                        "completed" ||
-                                      task.status?.toLowerCase() === "done";
-
-                                    return (
-                                      <tr
-                                        key={task._id}
-                                        className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-b border-slate-100/50 dark:border-slate-800/50 last:border-0 transition-colors"
-                                      >
-                                        <td className="px-3 py-2.5 text-center">
-                                          {isCompleted ? (
-                                            <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center mx-auto text-white shadow-sm">
-                                              <FiCheckCircle
-                                                size={10}
-                                                strokeWidth={3}
-                                              />
-                                            </div>
-                                          ) : (
-                                            <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 mx-auto"></div>
-                                          )}
-                                        </td>
-                                        <td className="px-3 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
-                                          <div className="flex items-center gap-2">
-                                            {renderUserAvatarSmall(
-                                              assigneeUserObj,
-                                              "w-6 h-6 text-[8px]",
-                                            )}
-                                            <span className="truncate max-w-[120px]">
-                                              {assigneeName}
-                                            </span>
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-2.5">
-                                          <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px] xl:max-w-[200px]">
-                                            {task.taskName || task.title}
-                                          </div>
-                                          <div className="text-[9px] text-slate-500 mt-0.5 font-medium truncate max-w-[150px] xl:max-w-[200px]">
-                                            {task.project?.name || "-"}
-                                          </div>
-                                        </td>
-                                        <td className="px-3 py-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                                          {task.startDate
-                                            ? new Date(
-                                                task.startDate,
-                                              ).toLocaleDateString("en-GB", {
-                                                day: "2-digit",
-                                                month: "short",
-                                              })
-                                            : "—"}
-                                        </td>
-                                        <td className="px-3 py-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                                          {task.dueDate
-                                            ? new Date(
-                                                task.dueDate,
-                                              ).toLocaleDateString("en-GB", {
-                                                day: "2-digit",
-                                                month: "short",
-                                              })
-                                            : "—"}
-                                        </td>
-                                        <td className="px-3 py-2.5 text-center">
-                                          <span
-                                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                              task.status === "Completed"
-                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                                : task.status === "In Progress"
-                                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                                  : task.status === "On-Hold"
-                                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                                    : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
-                                            }`}
-                                          >
-                                            {task.status}
-                                          </span>
-                                        </td>
-                                        <td className="px-3 py-2.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 text-center">
-                                          {task.status === "In Progress" &&
-                                          task.timer &&
-                                          task.timer.startTime ? (
-                                            <span className="text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 font-bold">
-                                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                                              Running
-                                            </span>
-                                          ) : (
-                                            task.totalTimeSpent || "-"
-                                          )}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })
-                                ) : (
-                                  <tr>
-                                    <td
-                                      colSpan="7"
-                                      className="px-3 py-8 text-center"
-                                    >
-                                      <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
-                                        <FiBookOpen
-                                          size={20}
-                                          className="mb-2 opacity-30"
-                                        />
-                                        <span className="text-[11px] font-bold">
-                                          No MOM tasks found.
-                                        </span>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-
-                          {/* Pagination */}
-                          {totalMomPages > 1 && (
-                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                              <span className="text-[10px] font-semibold text-slate-500">
-                                {totalMomTasks} records
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() =>
-                                    setMomCurrentPage((p) => Math.max(1, p - 1))
-                                  }
-                                  disabled={momCurrentPage === 1}
-                                  className="h-6 w-6 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 transition-colors"
-                                >
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2.5}
-                                      d="M15 19l-7-7 7-7"
-                                    />
-                                  </svg>
-                                </button>
-                                <span className="text-[10px] font-bold px-2 text-slate-700 dark:text-slate-300">
-                                  {momCurrentPage} / {totalMomPages}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    setMomCurrentPage((p) =>
-                                      Math.min(totalMomPages, p + 1),
-                                    )
-                                  }
-                                  disabled={momCurrentPage === totalMomPages}
-                                  className="h-6 w-6 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 transition-colors"
-                                >
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2.5}
-                                      d="M9 5l7 7-7 7"
-                                    />
-                                  </svg>
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Column */}
-                      <div className="lg:col-span-5 xl:col-span-5 space-y-4 w-full">
-                        {/* Section 2: Projects Card */}
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm w-full">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                              Projects ({clientProjects.length})
-                            </h3>
-                            <Link to={`/${user.role}/projects`}>
-                              <span className="text-[10.5px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 cursor-pointer">
-                                View All
-                              </span>
-                            </Link>
-                          </div>
-
-                          <div className="space-y-2">
-                            {clientProjects.slice(0, 5).map((project) => (
-                              <Link
-                                key={project._id}
-                                to={`/${user.role}/projects?id=${project._id}`}
-                                className="block"
-                              >
-                                <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/30 transition-colors hover:bg-blue-50/80 dark:hover:bg-blue-950/20 hover:border-blue-200/50 dark:hover:border-blue-800/50 cursor-pointer group">
-                                  <div className="flex items-center gap-2.5">
+                    return (
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full">
+                        {/* Left Column */}
+                        <div className="lg:col-span-7 xl:col-span-7 space-y-4">
+                          {/* Section 1: Client Profile (Compact & Clean Grid UX) */}
+                          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                            {/* Header */}
+                            <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100 dark:border-slate-800">
+                              <div className="flex items-center gap-2.5">
+                                {(() => {
+                                  const ClientIcon = getClientIconComponent(
+                                    viewClient.icon,
+                                  );
+                                  return (
                                     <div
-                                      className="w-6.5 h-6.5 rounded-lg flex items-center justify-center text-white shadow-sm"
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border shadow-2xs"
                                       style={{
-                                        background:
-                                          project.color ||
-                                          "var(--accent-gradient)",
+                                        backgroundColor: `${viewClient.color || "#3b82f6"}15`,
+                                        borderColor: `${viewClient.color || "#3b82f6"}30`,
+                                        color: viewClient.color || "#3b82f6",
                                       }}
                                     >
-                                      <FiBriefcase size={12} />
+                                      <ClientIcon size={13} />
                                     </div>
-                                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                      {project.name}
-                                    </span>
+                                  );
+                                })()}
+                                <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                                  Client Profile
+                                </h3>
+                              </div>
+
+                              {/* Status Badge */}
+                              {viewClient.status === "Inactive" ? (
+                                <span className="px-2.5 py-0.5 rounded-full text-rose-700 dark:text-rose-400 font-extrabold text-[10.5px] bg-rose-100/80 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50">
+                                  Inactive
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded-full text-emerald-700 dark:text-emerald-400 font-extrabold text-[10.5px] bg-emerald-100/80 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/50">
+                                  Active
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Profile Fields Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                              {/* Company Name */}
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                  Company Name
+                                </span>
+                                <span
+                                  className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs"
+                                  title={viewClient.companyName}
+                                >
+                                  {viewClient.companyName}
+                                </span>
+                              </div>
+
+                              {/* Industry */}
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                  Industry
+                                </span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
+                                  {viewClient.industry || "-"}
+                                </span>
+                              </div>
+
+                              {/* Account Manager */}
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                  Account Manager
+                                </span>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className="w-4.5 h-4.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-[8.5px] shrink-0">
+                                    {viewClient.spoc
+                                      ? viewClient.spoc.charAt(0).toUpperCase()
+                                      : "-"}
                                   </div>
-                                  <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
-                                    {project.status || "Active"}
+                                  <span
+                                    className="font-bold text-slate-800 dark:text-slate-100 truncate text-xs"
+                                    title={viewClient.spoc || "-"}
+                                  >
+                                    {viewClient.spoc || "-"}
                                   </span>
                                 </div>
-                              </Link>
-                            ))}
-                            {clientProjects.length === 0 && (
-                              <div className="flex flex-col items-center justify-center py-4 text-slate-400">
-                                <FiBriefcase
-                                  size={20}
-                                  className="mb-1.5 opacity-30"
-                                />
-                                <span className="text-[11px] font-bold">
-                                  No projects assigned yet.
+                              </div>
+
+                              {/* Phone */}
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                  Phone
                                 </span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
+                                  {viewClient.phoneNumber || "-"}
+                                </span>
+                              </div>
+
+                              {/* Onboard Date */}
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                  Onboard Date
+                                </span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
+                                  {viewClient.onboardingDate
+                                    ? new Date(
+                                        viewClient.onboardingDate,
+                                      ).toLocaleDateString("en-GB", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric",
+                                      })
+                                    : "-"}
+                                </span>
+                              </div>
+
+                              {/* Designation */}
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                  Designation
+                                </span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
+                                  {viewClient.designation ||
+                                    viewClient.contactPerson ||
+                                    "-"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Financial Fields (Role-Based for Admin / OM) */}
+                            {(user?.role === "admin" ||
+                              user?.role === "operationmanager") && (
+                              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2.5 text-xs">
+                                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                  <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
+                                    Base Budget
+                                  </span>
+                                  <span className="font-bold text-slate-800 dark:text-slate-100">
+                                    ₹
+                                    {(viewClient.budget || 0).toLocaleString(
+                                      "en-IN",
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                  <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
+                                    GST Slab
+                                  </span>
+                                  <span className="font-bold text-slate-800 dark:text-slate-100">
+                                    {viewClient.gst || 18}%
+                                  </span>
+                                </div>
+
+                                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/50">
+                                  <span className="text-[9.5px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block mb-0.5">
+                                    Grand Total
+                                  </span>
+                                  <span className="font-black text-emerald-600 dark:text-emerald-400">
+                                    ₹
+                                    {(
+                                      viewClient.totalBudget ||
+                                      viewClient.budget ||
+                                      0
+                                    ).toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* MOM Table */}
+                          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm overflow-hidden">
+                            <div className="flex flex-col gap-4 mb-4">
+                              <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                                <FiBookOpen
+                                  size={14}
+                                  className="text-blue-500"
+                                />
+                                MOM Tasks
+                              </h3>
+
+                              <div className="flex flex-col xl:flex-row xl:justify-end xl:items-center gap-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setMomDateFilter("");
+                                      setMomCurrentPage(1);
+                                    }}
+                                    className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[11px] rounded-lg transition-colors cursor-pointer"
+                                  >
+                                    All Dates
+                                  </button>
+                                  <button
+                                    onClick={handleSetMomToday}
+                                    className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[11px] rounded-lg transition-colors cursor-pointer"
+                                  >
+                                    Today
+                                  </button>
+
+                                  <div
+                                    className="relative group cursor-pointer"
+                                    onClick={(e) => {
+                                      const input =
+                                        e.currentTarget.querySelector(
+                                          'input[type="date"]',
+                                        );
+                                      if (
+                                        input &&
+                                        typeof input.showPicker === "function"
+                                      ) {
+                                        input.showPicker();
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-3 px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 rounded-lg transition-colors min-w-[120px] justify-between cursor-pointer">
+                                      <div className="flex items-center gap-2">
+                                        <FiCalendar
+                                          className="text-emerald-500"
+                                          size={14}
+                                        />
+                                        <span className="text-slate-800 dark:text-slate-200 font-extrabold text-[11px]">
+                                          {getMomDisplayDate()}
+                                        </span>
+                                      </div>
+                                      <FiChevronDown
+                                        className="text-slate-400"
+                                        size={12}
+                                      />
+                                    </div>
+                                    <input
+                                      type="date"
+                                      value={momDateFilter}
+                                      onChange={(e) => {
+                                        setMomDateFilter(e.target.value);
+                                        setMomCurrentPage(1);
+                                      }}
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                  </div>
+
+                                  <div className="flex items-center bg-[#f0f5fa] dark:bg-slate-800 rounded-lg overflow-hidden">
+                                    <button
+                                      onClick={() => handleAdjustMomDate(-1)}
+                                      className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                                    >
+                                      <FiChevronLeft
+                                        size={14}
+                                        strokeWidth={2.5}
+                                      />
+                                    </button>
+                                    <div className="w-px h-3 bg-slate-200 dark:bg-slate-600"></div>
+                                    <button
+                                      onClick={() => handleAdjustMomDate(1)}
+                                      className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                                    >
+                                      <FiChevronRight
+                                        size={14}
+                                        strokeWidth={2.5}
+                                      />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left whitespace-nowrap text-xs">
+                                <thead>
+                                  <tr className="bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest text-[9px]">
+                                    <th className="px-3 py-2.5 rounded-l-md w-8 text-center">
+                                      <FiCheckCircle
+                                        size={14}
+                                        className="text-slate-400 mx-auto inline-block"
+                                      />
+                                    </th>
+                                    <th className="px-3 py-2.5">Assignee</th>
+                                    <th className="px-3 py-2.5">Task</th>
+                                    <th className="px-3 py-2.5">Start Date</th>
+                                    <th className="px-3 py-2.5">End Date</th>
+                                    <th className="px-3 py-2.5 text-center">
+                                      Status
+                                    </th>
+                                    <th className="px-3 py-2.5 text-center rounded-r-md">
+                                      Time
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                  {paginatedMomTasks.length > 0 ? (
+                                    paginatedMomTasks.map((task) => {
+                                      const assigneeId =
+                                        task.assignedTo?._id || task.assignedTo;
+                                      const assigneeUserObj =
+                                        typeof task.assignedTo === "object"
+                                          ? task.assignedTo
+                                          : users?.find(
+                                              (u) =>
+                                                (u._id || u.id) === assigneeId,
+                                            );
+                                      const assigneeName =
+                                        assigneeUserObj?.name || "Unknown";
+                                      const isCompleted =
+                                        task.status?.toLowerCase() ===
+                                          "completed" ||
+                                        task.status?.toLowerCase() === "done";
+
+                                      return (
+                                        <tr
+                                          key={task._id}
+                                          className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-b border-slate-100/50 dark:border-slate-800/50 last:border-0 transition-colors"
+                                        >
+                                          <td className="px-3 py-2.5 text-center">
+                                            {isCompleted ? (
+                                              <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center mx-auto text-white shadow-sm">
+                                                <FiCheckCircle
+                                                  size={10}
+                                                  strokeWidth={3}
+                                                />
+                                              </div>
+                                            ) : (
+                                              <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 mx-auto"></div>
+                                            )}
+                                          </td>
+                                          <td className="px-3 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                                            <div className="flex items-center gap-2">
+                                              {renderUserAvatarSmall(
+                                                assigneeUserObj,
+                                                "w-6 h-6 text-[8px]",
+                                              )}
+                                              <span className="truncate max-w-[120px]">
+                                                {assigneeName}
+                                              </span>
+                                            </div>
+                                          </td>
+                                          <td className="px-3 py-2.5">
+                                            <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px] xl:max-w-[200px]">
+                                              {task.taskName || task.title}
+                                            </div>
+                                            <div className="text-[9px] text-slate-500 mt-0.5 font-medium truncate max-w-[150px] xl:max-w-[200px]">
+                                              {task.project?.name || "-"}
+                                            </div>
+                                          </td>
+                                          <td className="px-3 py-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
+                                            {task.startDate
+                                              ? new Date(
+                                                  task.startDate,
+                                                ).toLocaleDateString("en-GB", {
+                                                  day: "2-digit",
+                                                  month: "short",
+                                                })
+                                              : "—"}
+                                          </td>
+                                          <td className="px-3 py-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
+                                            {task.dueDate
+                                              ? new Date(
+                                                  task.dueDate,
+                                                ).toLocaleDateString("en-GB", {
+                                                  day: "2-digit",
+                                                  month: "short",
+                                                })
+                                              : "—"}
+                                          </td>
+                                          <td className="px-3 py-2.5 text-center">
+                                            <span
+                                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                                task.status === "Completed"
+                                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                                  : task.status ===
+                                                      "In Progress"
+                                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                                    : task.status === "On-Hold"
+                                                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                                      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                                              }`}
+                                            >
+                                              {task.status}
+                                            </span>
+                                          </td>
+                                          <td className="px-3 py-2.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 text-center">
+                                            {task.status === "In Progress" &&
+                                            task.timer &&
+                                            task.timer.startTime ? (
+                                              <span className="text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 font-bold">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                                Running
+                                              </span>
+                                            ) : (
+                                              task.totalTimeSpent || "-"
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })
+                                  ) : (
+                                    <tr>
+                                      <td
+                                        colSpan="7"
+                                        className="px-3 py-8 text-center"
+                                      >
+                                        <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                                          <FiBookOpen
+                                            size={20}
+                                            className="mb-2 opacity-30"
+                                          />
+                                          <span className="text-[11px] font-bold">
+                                            No MOM tasks found.
+                                          </span>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+
+                            {/* Pagination */}
+                            {totalMomPages > 1 && (
+                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                <span className="text-[10px] font-semibold text-slate-500">
+                                  {totalMomTasks} records
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() =>
+                                      setMomCurrentPage((p) =>
+                                        Math.max(1, p - 1),
+                                      )
+                                    }
+                                    disabled={momCurrentPage === 1}
+                                    className="h-6 w-6 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 transition-colors"
+                                  >
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2.5}
+                                        d="M15 19l-7-7 7-7"
+                                      />
+                                    </svg>
+                                  </button>
+                                  <span className="text-[10px] font-bold px-2 text-slate-700 dark:text-slate-300">
+                                    {momCurrentPage} / {totalMomPages}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      setMomCurrentPage((p) =>
+                                        Math.min(totalMomPages, p + 1),
+                                      )
+                                    }
+                                    disabled={momCurrentPage === totalMomPages}
+                                    className="h-6 w-6 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 transition-colors"
+                                  >
+                                    <svg
+                                      className="w-3 h-3"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2.5}
+                                        d="M9 5l7 7-7 7"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
                         </div>
 
-                        {/* Section 3: Tasks Summary Card */}
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm w-full">
-                          <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
-                            Tasks Summary
-                          </h3>
-                          <div className="grid grid-cols-2 gap-2.5">
-                            {/* Total */}
-                            <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
-                              <span className="text-xl font-black text-blue-700 dark:text-blue-400 mb-0.5">
-                                {totalTasks}
-                              </span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
-                                Total
-                              </span>
+                        {/* Right Column */}
+                        <div className="lg:col-span-5 xl:col-span-5 space-y-4 w-full">
+                          {/* Section 2: Projects Card */}
+                          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm w-full">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                                Projects ({clientProjects.length})
+                              </h3>
+                              <Link to={`/${user.role}/projects`}>
+                                <span className="text-[10.5px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 cursor-pointer">
+                                  View All
+                                </span>
+                              </Link>
                             </div>
-                            {/* In Progress */}
-                            <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
-                              <span className="text-xl font-black text-amber-600 dark:text-amber-400 mb-0.5">
-                                {inProgressTasks}
-                              </span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
-                                Active
-                              </span>
+
+                            <div className="space-y-2">
+                              {clientProjects.slice(0, 5).map((project) => (
+                                <Link
+                                  key={project._id}
+                                  to={`/${user.role}/projects?id=${project._id}`}
+                                  className="block"
+                                >
+                                  <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/30 transition-colors hover:bg-blue-50/80 dark:hover:bg-blue-950/20 hover:border-blue-200/50 dark:hover:border-blue-800/50 cursor-pointer group">
+                                    <div className="flex items-center gap-2.5">
+                                      <div
+                                        className="w-6.5 h-6.5 rounded-lg flex items-center justify-center text-white shadow-sm"
+                                        style={{
+                                          background:
+                                            project.color ||
+                                            "var(--accent-gradient)",
+                                        }}
+                                      >
+                                        <FiBriefcase size={12} />
+                                      </div>
+                                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                        {project.name}
+                                      </span>
+                                    </div>
+                                    <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                      {project.status || "Active"}
+                                    </span>
+                                  </div>
+                                </Link>
+                              ))}
+                              {clientProjects.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-4 text-slate-400">
+                                  <FiBriefcase
+                                    size={20}
+                                    className="mb-1.5 opacity-30"
+                                  />
+                                  <span className="text-[11px] font-bold">
+                                    No projects assigned yet.
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                            {/* Completed */}
-                            <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
-                              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mb-0.5">
-                                {completedTasks}
-                              </span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
-                                Done
-                              </span>
-                            </div>
-                            {/* Overdue */}
-                            <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40">
-                              <span className="text-xl font-black text-rose-600 dark:text-rose-400 mb-0.5">
-                                {overdueTasks}
-                              </span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
-                                Overdue
-                              </span>
+                          </div>
+
+                          {/* Section 3: Tasks Summary Card */}
+                          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm w-full">
+                            <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
+                              Tasks Summary
+                            </h3>
+                            <div className="grid grid-cols-2 gap-2.5">
+                              {/* Total */}
+                              <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
+                                <span className="text-xl font-black text-blue-700 dark:text-blue-400 mb-0.5">
+                                  {totalTasks}
+                                </span>
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
+                                  Total
+                                </span>
+                              </div>
+                              {/* In Progress */}
+                              <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
+                                <span className="text-xl font-black text-amber-600 dark:text-amber-400 mb-0.5">
+                                  {inProgressTasks}
+                                </span>
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
+                                  Active
+                                </span>
+                              </div>
+                              {/* Completed */}
+                              <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                                <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mb-0.5">
+                                  {completedTasks}
+                                </span>
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
+                                  Done
+                                </span>
+                              </div>
+                              {/* Overdue */}
+                              <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40">
+                                <span className="text-xl font-black text-rose-600 dark:text-rose-400 mb-0.5">
+                                  {overdueTasks}
+                                </span>
+                                <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
+                                  Overdue
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
+                    );
+                  })()}
+
+                {viewOffcanvasTab === "Authentication & Verification" && (
+                  <div className="w-full flex flex-col xl:flex-row gap-5">
+                    {/* Main Content: Methods List */}
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-4">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-md bg-purple-100 text-purple-600 flex items-center justify-center">
+                              <FiCheckCircle size={14} />
+                            </span>
+                            Authentication & Verification
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            Manage multi-factor authentication and verification
+                            methods for this client.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400">
+                              <th className="px-4 py-3 w-[240px]">Method</th>
+                              <th className="px-4 py-3 w-full">
+                                Configuration
+                              </th>
+                              <th className="px-4 py-3 text-center w-[180px]">
+                                Status
+                              </th>
+                              <th className="px-4 py-3 text-center w-[90px]">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                            {predefinedAuthMethods.map((predef, idx) => {
+                              const currentData =
+                                (viewClient?.authMethods || []).find(
+                                  (m) => m.method === predef.method,
+                                ) || predef;
+                              const isEditingThisRow = editingRowIndex === idx;
+
+                              let icon = (
+                                <FiCheckCircle
+                                  size={14}
+                                  className="text-slate-600"
+                                />
+                              );
+                              let iconBg = "bg-slate-100";
+                              let subtitle = predef.subtitle;
+                              if (predef.method === "Email OTP") {
+                                icon = (
+                                  <FiMail
+                                    size={14}
+                                    className="text-purple-600"
+                                  />
+                                );
+                                iconBg = "bg-purple-100";
+                              } else if (predef.method === "WhatsApp OTP") {
+                                icon = (
+                                  <FiPhone
+                                    size={14}
+                                    className="text-emerald-600"
+                                  />
+                                );
+                                iconBg = "bg-emerald-100";
+                              } else if (
+                                predef.method === "Two-Factor Authentication"
+                              ) {
+                                icon = (
+                                  <FiCheckCircle
+                                    size={14}
+                                    className="text-blue-600"
+                                  />
+                                );
+                                iconBg = "bg-blue-100";
+                              } else if (
+                                predef.method === "SMS / Message OTP"
+                              ) {
+                                icon = (
+                                  <FiMessageSquare
+                                    size={14}
+                                    className="text-blue-600"
+                                  />
+                                );
+                                iconBg = "bg-blue-100";
+                              } else if (predef.method === "Voice Call OTP") {
+                                icon = (
+                                  <FiPhoneCall
+                                    size={14}
+                                    className="text-orange-600"
+                                  />
+                                );
+                                iconBg = "bg-orange-100";
+                              } else if (
+                                predef.method === "Authenticator App"
+                              ) {
+                                icon = (
+                                  <FiLock
+                                    size={14}
+                                    className="text-purple-600"
+                                  />
+                                );
+                                iconBg = "bg-purple-100";
+                              } else if (
+                                predef.method === "Selfie Verification"
+                              ) {
+                                icon = (
+                                  <FiCamera
+                                    size={14}
+                                    className="text-slate-600"
+                                  />
+                                );
+                                iconBg = "bg-slate-100";
+                              } else if (predef.method === "Backup Codes") {
+                                icon = (
+                                  <FiTool
+                                    size={14}
+                                    className="text-emerald-600"
+                                  />
+                                );
+                                iconBg = "bg-emerald-100";
+                              }
+
+                              return (
+                                <tr
+                                  key={idx}
+                                  className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors"
+                                >
+                                  <td className="px-4 py-3 align-middle">
+                                    <div className="flex items-center gap-3">
+                                      <div
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconBg}`}
+                                      >
+                                        {icon}
+                                      </div>
+                                      <div>
+                                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                          {predef.method}
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                          {subtitle}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  <td className="px-4 py-3 align-middle text-xs text-slate-600 dark:text-slate-300 font-medium">
+                                    {isEditingThisRow ? (
+                                      <input
+                                        type="text"
+                                        value={editRowData.config}
+                                        onChange={(e) =>
+                                          setEditRowData({
+                                            ...editRowData,
+                                            config: e.target.value,
+                                          })
+                                        }
+                                        placeholder="Enter configuration..."
+                                        className="w-full py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 font-medium"
+                                      />
+                                    ) : (
+                                      currentData.config || (
+                                        <span className="text-slate-400 italic">
+                                          {currentData.status ===
+                                            "Configured" ||
+                                          currentData.status === "Enabled"
+                                            ? "Enabled"
+                                            : "Not configured"}
+                                        </span>
+                                      )
+                                    )}
+                                  </td>
+
+                                  <td className="px-4 py-3 align-middle text-center">
+                                    {isEditingThisRow ? (
+                                      <select
+                                        value={editRowData.status}
+                                        onChange={(e) =>
+                                          setEditRowData({
+                                            ...editRowData,
+                                            status: e.target.value,
+                                          })
+                                        }
+                                        className="w-full min-w-[130px] py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 font-medium"
+                                      >
+                                        <option value="Enabled">Enabled</option>
+                                        <option value="Configured">
+                                          Configured
+                                        </option>
+                                        <option value="Not Configured">
+                                          Not Configured
+                                        </option>
+                                        <option value="Disabled">
+                                          Disabled
+                                        </option>
+                                      </select>
+                                    ) : (
+                                      <span
+                                        className={`inline-flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                          currentData.status === "Enabled"
+                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                                            : currentData.status ===
+                                                "Configured"
+                                              ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                                              : currentData.status ===
+                                                  "Disabled"
+                                                ? "bg-rose-50 text-rose-600 border border-rose-200"
+                                                : "bg-orange-50 text-orange-600 border border-orange-200"
+                                        }`}
+                                      >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+                                        {currentData.status ||
+                                          predef.defaultStatus}
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  <td className="px-4 py-3 align-middle text-center w-[120px]">
+                                    {isEditingThisRow ? (
+                                      <div className="flex items-center justify-center gap-2">
+                                        <button
+                                          onClick={handleCancelEditRow}
+                                          className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors border border-rose-200 shadow-sm"
+                                        >
+                                          <FiX size={12} strokeWidth={3} />
+                                        </button>
+                                        <button
+                                          onClick={handleSaveRow}
+                                          className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm"
+                                        >
+                                          <FiCheck size={12} strokeWidth={3} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex justify-center">
+                                        {predef.method === "Backup Codes" ? (
+                                          <button
+                                            onClick={() =>
+                                              handleEditRow(idx, currentData)
+                                            }
+                                            className="px-3 py-1.5 rounded-lg border border-purple-200 bg-purple-50 text-purple-600 text-[10px] font-bold hover:bg-purple-100 transition-colors shadow-sm"
+                                          >
+                                            Manage
+                                          </button>
+                                        ) : currentData.status === "Disabled" ||
+                                          currentData.status ===
+                                            "Not Configured" ? (
+                                          <button
+                                            onClick={() =>
+                                              handleEditRow(idx, currentData)
+                                            }
+                                            className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
+                                          >
+                                            <FiEdit2 size={12} />
+                                          </button>
+                                        ) : (
+                                          <button
+                                            onClick={() =>
+                                              handleEditRow(idx, currentData)
+                                            }
+                                            className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
+                                          >
+                                            <FiEdit2 size={12} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  );
-                })()}
+                  </div>
+                )}
               </div>
             </motion.div>
           </React.Fragment>

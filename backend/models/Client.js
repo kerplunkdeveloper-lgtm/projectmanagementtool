@@ -133,6 +133,16 @@ const clientSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    authMethods: [{
+      method: { type: String, required: true },
+      config: { type: String, default: "" },
+      status: {
+        type: String,
+        enum: ["Enabled", "Not Configured", "Disabled", "Configured"],
+        default: "Enabled"
+      }
+    }],
   },
   {
     timestamps: true,
