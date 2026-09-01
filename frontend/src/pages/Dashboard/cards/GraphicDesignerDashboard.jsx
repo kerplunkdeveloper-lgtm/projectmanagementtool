@@ -3092,7 +3092,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             </span>
           </div>
         </div>
-
         {/* Board Filter Panel */}
         {showBoardFilter && (
           <div className="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-md">
@@ -3683,7 +3682,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* Pending */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-slate-200 dark:bg-slate-100">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-slate-200 dark:bg-slate-800/60">
                         <StatusCellValue
                           todayVal={tp.pending}
                           carryVal={tp.carryForward?.pending || 0}
@@ -3693,42 +3692,42 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* In Progress */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-violet-200 dark:bg-violet-400">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-violet-200 dark:bg-violet-900/30">
                         <StatusCellValue
                           todayVal={tp.inProgress}
                           carryVal={tp.carryForward?.inProgress || 0}
-                          activeTextClass="text-violet-600 dark:text-violet-400"
+                          activeTextClass="text-violet-600 dark:text-violet-300"
                           badgeClass="bg-white dark:bg-slate-955 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-900/60 shadow-3xs"
                           showRunningIndicator={true}
                         />
                       </td>
 
                       {/* On Hold */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-orange-200 dark:bg-orange-400">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-orange-200 dark:bg-orange-900/30">
                         <StatusCellValue
                           todayVal={tp.onHold}
                           carryVal={tp.carryForward?.onHold || 0}
-                          activeTextClass="text-orange-600 dark:text-orange-400"
+                          activeTextClass="text-orange-600 dark:text-orange-300"
                           badgeClass="bg-white dark:bg-slate-955 text-orange-600 dark:text-orange-400 border-orange-200/50 dark:border-orange-900/60 shadow-3xs"
                         />
                       </td>
 
                       {/* In Review */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-amber-200 dark:bg-amber-400">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-amber-200 dark:bg-amber-900/30">
                         <StatusCellValue
                           todayVal={tp.inReview}
                           carryVal={tp.carryForward?.inReview || 0}
-                          activeTextClass="text-amber-600 dark:text-amber-400"
+                          activeTextClass="text-amber-600 dark:text-amber-300"
                           badgeClass="bg-white dark:bg-slate-955 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/60 shadow-3xs"
                         />
                       </td>
 
                       {/* Completed */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-emerald-200 dark:bg-emerald-400">
+                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-emerald-200 dark:bg-emerald-900/30">
                         <StatusCellValue
                           todayVal={tp.completed}
                           carryVal={tp.carryForward?.completed || 0}
-                          activeTextClass="text-emerald-600 dark:text-emerald-400"
+                          activeTextClass="text-emerald-600 dark:text-emerald-300"
                           badgeClass="bg-white dark:bg-slate-955 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60 shadow-3xs"
                         />
                       </td>

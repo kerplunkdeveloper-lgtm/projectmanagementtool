@@ -88,12 +88,12 @@ const DashboardCards = () => {
         </div>
 
         {/* Active Clients Card */}
-        <div className="bg-gradient-to-b from-[#05e010] to-[#95ed95a4] rounded-[24px] p-6 shadow-sm relative overflow-hidden group flex-1 min-h-[220px] flex flex-col">
+        <div className="bg-gradient-to-b from-[#11cd18] to-[#45e745a4] rounded-[24px] p-6 shadow-sm relative overflow-hidden group flex-1 min-h-[220px] flex flex-col">
           <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl mb-4 shadow-lg shadow-blue-500/30">
             <FiUsers />
           </div>
           <p className="text-[16px] font-bold text-slate-800 dark:text-slate-200 mb-1">No. of Active Clients</p>
-          <h1 className="text-5xl md:text-7xl font-black text-black mb-4 tracking-tight">{activeClientsCount}</h1>
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-4 tracking-tight">{activeClientsCount}</h1>
           
         </div>
 
@@ -105,7 +105,7 @@ const DashboardCards = () => {
               <FiUsers />
             </div>
             <p className="text-[16px] font-bold text-slate-800 dark:text-slate-200 mb-1">No. of Inactive Clients</p>
-            <h1 className="text-5xl md:text-7xl font-black text-black mb-4 tracking-tight">{inactiveClientsCount}</h1>
+            <h1 className="text-5xl md:text-7xl font-black text-white mb-4 tracking-tight">{inactiveClientsCount}</h1>
             <div className="flex items-center justify-between mt-auto pt-2 z-10">
             </div>
           </div>
