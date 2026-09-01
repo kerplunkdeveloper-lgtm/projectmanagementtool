@@ -30,9 +30,7 @@ const Login = lazyWithRetry(() => import("../pages/auth/Login.jsx"));
 const DashboardLayout = lazyWithRetry(
   () => import("../components/layout/DashboardLayout.jsx"),
 );
-const Dashboardmain = lazyWithRetry(
-  () => import("../pages/Dashboard/Dashboardmain.jsx"),
-);
+import Dashboardmain from "../pages/Dashboard/Dashboardmain.jsx";
 const Project = lazyWithRetry(() => import("../pages/projects/Project.jsx"));
 const AdminUsers = lazyWithRetry(() => import("../pages/admin/AdminUsers.jsx"));
 const PartnerHub = lazyWithRetry(

@@ -491,10 +491,10 @@ const Navbar = ({ setSidebarOpen }) => {
         <div
           className="
             hidden sm:flex items-center gap-1.5
-            px-2.5 py-2 rounded-md 
-            sidebar-bg
+            px-2.5 py-2
+          
             text-slate-700 dark:text-slate-200
-            text-xs font-semibold shrink-0 shadow-2xs
+            text-xs font-semibold shrink-0
           "
           title={`Location: ${user?.location || profile?.user?.location || "Chennai"}`}
         >

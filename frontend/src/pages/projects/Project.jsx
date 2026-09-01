@@ -455,27 +455,27 @@ const Project = () => {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/30 shadow-sm">
+        <div className="overflow-x-auto  rounded-xl bg-white dark:bg-slate-900/30 shadow-sm">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
-                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                <th className="px-4 py-2 ">
                   Project Name
                 </th>
-                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                <th className="px-4 py-2 ">
                   Client
                 </th>
-                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                <th className="px-4 py-2">
                   Project created by
                 </th>
 
-                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                <th className="px-4 py-2">
                   Status
                 </th>
-                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                <th className="px-4 py-2">
                   Progress
                 </th>
-                <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
+                <th className="px-4 py-2 text-center">
                   Action
                 </th>
               </tr>
@@ -500,7 +500,7 @@ const Project = () => {
                     } hover:bg-blue-50/20 dark:hover:bg-[#3b82f6]/5`}
                   >
                     <td
-                      className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-800 dark:text-slate-100 cursor-pointer"
+                      className="px-4 py-2  font-semibold text-slate-800 dark:text-slate-100 cursor-pointer"
                       onClick={() =>
                         navigate(
                           `/${currentUser?.role}/projects?id=${project._id}`,
@@ -508,7 +508,7 @@ const Project = () => {
                       }
                     >
                       <div className="flex items-center gap-2">
-                        <ProjectIcon name={project.name} size="sm" />
+                        <ProjectIcon className="bg-blue" name={project.name} size="sm" />
                         <span className="hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors flex items-center gap-1.5">
                           {project.name}
                           {project.access === "Private" && (
@@ -516,14 +516,14 @@ const Project = () => {
                               title="Private Project"
                               className="text-slate-400 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-md"
                             >
-                              <FiLock size={10} />
+                              <FiLock size={10} className="text-black" />
                             </span>
                           )}
                         </span>
                       </div>
                     </td>
 
-                    <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                    <td className="px-4 py-2 ">
                       {(() => {
                         const clientId = project.client?._id || project.client;
                         const clientObj = clients?.find(
@@ -539,7 +539,7 @@ const Project = () => {
                       })()}
                     </td>
 
-                    <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                    <td className="px-4 py-2 ">
                       <div className="flex items-center gap-2">
                         {(() => {
                           const createdUser = project.createdBy;
@@ -561,7 +561,7 @@ const Project = () => {
                               <img
                                 src={avatarUrl}
                                 alt={createdUser?.name || "Creator"}
-                                className="w-6 h-6 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+                                className="w-6 h-6 rounded-full object-cover shadow-sm"
                               />
                             );
                           }
@@ -607,14 +607,14 @@ const Project = () => {
                       </div>
                     </td>
 
-                    <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                    <td className="px-4 py-2 ">
                       <span
                         className={`text-[9px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}
                       >
                         {project.status}
                       </span>
                     </td>
-                    <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                    <td className="px-4 py-2 ">
                       {(() => {
                         const projectTasks = tasks.filter(
                           (t) =>
@@ -642,7 +642,7 @@ const Project = () => {
                         );
                       })()}
                     </td>
-                    <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
+                    <td className="px-4 py-2  text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() =>
