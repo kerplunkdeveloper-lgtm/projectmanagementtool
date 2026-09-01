@@ -11,7 +11,8 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import lightlogin from "../../assets/logol.png";
-import sorted from "../../assets/sorted.png"
+import sorted from "../../assets/sorted.png";
+import darksorted from "../../assets/darksorted.png";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -76,14 +77,7 @@ const Login = () => {
           alt="Project Management Background"
           className="absolute inset-0 w-full h-full  z-0"
         />
-        {/* Color Overlay */}
-        <div
-          className="absolute inset-0 opacity-20 z-10"
-          style={{
-            background:
-              "var(--color-brand-gradient, linear-gradient(to right, #1e3a8a, #3b82f6))",
-          }}
-        ></div>
+
       </div>
 
       {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
@@ -94,7 +88,8 @@ const Login = () => {
         <div className="w-full max-w-[490px] mx-auto relative z-10  md:bg-transparent md:dark:bg-transparent p-8 sm:p-10 md:p-0 rounded-[2rem] md:rounded-none shadow-2xl md:shadow-none border border-slate-100 dark:border-slate-800 md:border-none">
           <form onSubmit={handleSubmit} className="w-full">
             <div className="flex justify-center md:justify-start mb-10 md:mb-12">
-              <img src={sorted} alt="Sorted Logo" className="w-[180px] md:w-[300px] h-auto object-contain" />
+              <img src={sorted} alt="Sorted Logo" className="w-[180px] md:w-[300px] h-auto object-contain dark:hidden" />
+              <img src={darksorted} alt="Sorted Logo" className="w-[180px] md:w-[300px] h-auto object-contain hidden dark:block" />
             </div>
            
 

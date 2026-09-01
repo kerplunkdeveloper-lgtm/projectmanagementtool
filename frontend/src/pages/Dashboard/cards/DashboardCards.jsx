@@ -92,14 +92,9 @@ const DashboardCards = () => {
           <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl mb-4 shadow-lg shadow-blue-500/30">
             <FiUsers />
           </div>
-          <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-1">No. of Active Clients</p>
-          <h1 className="text-5xl font-black text-blue-600 dark:text-blue-400 mb-4 tracking-tight">{activeClientsCount}</h1>
-          <div className="flex items-center justify-between mt-auto pt-2">
-            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Clients currently working</span>
-            <span className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-white dark:bg-blue-900/40 px-2 py-1 rounded-md shadow-sm">
-              <FiArrowUpRight size={12} /> 12.5%
-            </span>
-          </div>
+          <p className="text-[16px] font-bold text-slate-800 dark:text-slate-200 mb-1">No. of Active Clients</p>
+          <h1 className="text-5xl md:text-7xl font-black text-black mb-4 tracking-tight">{activeClientsCount}</h1>
+          
         </div>
 
         {/* Inactive Clients Card */}
@@ -109,13 +104,9 @@ const DashboardCards = () => {
             <div className="w-12 h-12 rounded-full bg-rose-500 text-white flex items-center justify-center text-xl mb-4 shadow-lg shadow-rose-500/30">
               <FiUsers />
             </div>
-            <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 mb-1">No. of Inactive Clients</p>
-            <h1 className="text-5xl font-black text-rose-600 dark:text-rose-400 mb-4 tracking-tight">{inactiveClientsCount}</h1>
+            <p className="text-[16px] font-bold text-slate-800 dark:text-slate-200 mb-1">No. of Inactive Clients</p>
+            <h1 className="text-5xl md:text-7xl font-black text-black mb-4 tracking-tight">{inactiveClientsCount}</h1>
             <div className="flex items-center justify-between mt-auto pt-2 z-10">
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Clients not active</span>
-              <span className="flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-white dark:bg-rose-950/40 px-2 py-1 rounded-md shadow-sm">
-                <FiArrowDownRight size={12} /> 3.2%
-              </span>
             </div>
           </div>
         )}

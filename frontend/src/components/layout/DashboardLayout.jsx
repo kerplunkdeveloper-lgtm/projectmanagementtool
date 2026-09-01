@@ -9,7 +9,6 @@ import { exitImpersonation } from "../../features/auth/authSlice";
 import { apiSlice } from "../../features/api/apiSlice";
 import HorizontalSidebar from "./HorizontalSidebar";
 import { useTheme } from "../../context/ThemeContext";
-import { preloadAllRoutes } from "../../routes/AppRoutes";
 
 const DashboardLayout = ({ role }) => {
   const { sidebarLayout } = useTheme();
@@ -25,9 +24,9 @@ const DashboardLayout = ({ role }) => {
   const { user, originalAdminUser } = useSelector((state) => state.auth);
   const mainContainerRef = useRef(null);
 
-  // Preload all core page chunks in the background for zero-delay sidebar navigation
+  // Core page chunks are now preloaded on hover in the Sidebar instead of all at once here.
   useEffect(() => {
-    preloadAllRoutes();
+    // preloadAllRoutes(); removed to prevent main thread blocking
   }, []);
 
   // Reset scroll position to top when navigating to a new page

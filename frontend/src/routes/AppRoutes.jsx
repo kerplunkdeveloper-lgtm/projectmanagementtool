@@ -83,37 +83,47 @@ const AllCalendar = lazyWithRetry(
 );
 import SMtasks from "../pages/smTasks/SMtasks.jsx";
 
-// Background preload core route bundles for zero-delay sidebar navigation
-export const preloadAllRoutes = () => {
-  const routesToPreload = [
-    () => import("../pages/Dashboard/Dashboardmain.jsx"),
-    () => import("../pages/projects/Project.jsx"),
-    () => import("../pages/admin/clients/Clients.jsx"),
-    () => import("../pages/admin/AdminUsers.jsx"),
-    () => import("../pages/tasks/Task.jsx"),
-    () => import("../pages/settings/Settings.jsx"),
-    () => import("../pages/profile/Profile.jsx"),
-    () => import("../pages/notifications/Notifications.jsx"),
-    () => import("../pages/admin/portfolio/Portfolio.jsx"),
-    () => import("../pages/admin/AdminEodReports.jsx"),
-    () => import("../pages/admin/Stickynotes.jsx"),
-    () => import("../pages/socialAccounts/SocialAccounts.jsx"),
-    () => import("../pages/client-calls/ClientCalls.jsx"),
-    () => import("../pages/admin/MomClientReport.jsx"),
-    () => import("../pages/chat/ChatPage.jsx"),
-    () => import("../pages/workload/Workload.jsx"),
-    () => import("../pages/calendar/AllCalendar.jsx"),
-  ];
+// Dictionary of route preloading functions for hover-intent preloading
+export const routePreloaders = {
+  dashboard: () => import("../pages/Dashboard/Dashboardmain.jsx"),
+  projects: () => import("../pages/projects/Project.jsx"),
+  clients: () => import("../pages/admin/clients/Clients.jsx"),
+  users: () => import("../pages/admin/AdminUsers.jsx"),
+  tasks: () => import("../pages/tasks/Task.jsx"),
+  settings: () => import("../pages/settings/Settings.jsx"),
+  profile: () => import("../pages/profile/Profile.jsx"),
+  notifications: () => import("../pages/notifications/Notifications.jsx"),
+  portfolio: () => import("../pages/admin/portfolio/Portfolio.jsx"),
+  eodReports: () => import("../pages/admin/AdminEodReports.jsx"),
+  stickyNotes: () => import("../pages/admin/Stickynotes.jsx"),
+  socialAccounts: () => import("../pages/socialAccounts/SocialAccounts.jsx"),
+  clientCalls: () => import("../pages/client-calls/ClientCalls.jsx"),
+  mom: () => import("../pages/admin/MomClientReport.jsx"),
+  chat: () => import("../pages/chat/ChatPage.jsx"),
+  workload: () => import("../pages/workload/Workload.jsx"),
+  calendar: () => import("../pages/calendar/AllCalendar.jsx"),
+};
 
-  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-    window.requestIdleCallback(() => {
-      routesToPreload.forEach((fn) => fn());
-    });
-  } else {
-    setTimeout(() => {
-      routesToPreload.forEach((fn) => fn());
-    }, 1000);
-  }
+export const preloadRoute = (path) => {
+  if (!path) return;
+  const p = path.toLowerCase();
+  if (p.endsWith("/projects")) routePreloaders.projects?.();
+  else if (p.endsWith("/clients")) routePreloaders.clients?.();
+  else if (p.endsWith("/users")) routePreloaders.users?.();
+  else if (p.endsWith("/tasks")) routePreloaders.tasks?.();
+  else if (p.endsWith("/settings")) routePreloaders.settings?.();
+  else if (p.endsWith("/profile")) routePreloaders.profile?.();
+  else if (p.endsWith("/notifications")) routePreloaders.notifications?.();
+  else if (p.endsWith("/portfolio")) routePreloaders.portfolio?.();
+  else if (p.endsWith("/reports") || p.endsWith("/my-reports")) routePreloaders.eodReports?.();
+  else if (p.endsWith("/stickynotes")) routePreloaders.stickyNotes?.();
+  else if (p.endsWith("/social-accounts")) routePreloaders.socialAccounts?.();
+  else if (p.endsWith("/client-calls")) routePreloaders.clientCalls?.();
+  else if (p.endsWith("/mom-report")) routePreloaders.mom?.();
+  else if (p.endsWith("/chat")) routePreloaders.chat?.();
+  else if (p.endsWith("/workload")) routePreloaders.workload?.();
+  else if (p.endsWith("/calendar")) routePreloaders.calendar?.();
+  else routePreloaders.dashboard?.(); // Fallback for root paths like /admin, /team
 };
 
 // Elegant, premium animated page loader

@@ -31,6 +31,7 @@ import {
 } from "../../features/notifications/notificationSlice";
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import ProjectIcon from "../common/ProjectIcon";
+import { preloadRoute } from "../../routes/AppRoutes";
 
 const projectColors = [
   "bg-fuchsia-300 text-fuchsia-900 dark:bg-fuchsia-400 dark:text-fuchsia-950",
@@ -1015,6 +1016,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 <React.Fragment key={item.path}>
                   <NavLink
                     to={item.path}
+                    onMouseEnter={() => preloadRoute(item.path)}
                     onClick={() => {
                       if (window.innerWidth < 1024) setSidebarOpen(false);
                       if (item.name === "Chat") {

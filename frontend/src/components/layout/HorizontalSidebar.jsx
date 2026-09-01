@@ -10,6 +10,7 @@ import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import { impersonateUser, exitImpersonation } from "../../features/auth/authSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { apiSlice } from "../../features/api/apiSlice";
+import { preloadRoute } from "../../routes/AppRoutes";
 
 const HorizontalSidebar = ({ role }) => {
   const dispatch = useDispatch();
@@ -288,6 +289,7 @@ const HorizontalSidebar = ({ role }) => {
               <NavLink
                 key={item.name}
                 to={item.path}
+                onMouseEnter={() => preloadRoute(item.path)}
                 onClick={() => {
                   if (isChat) {
                     dispatch(clearAllUnreadCounts());
