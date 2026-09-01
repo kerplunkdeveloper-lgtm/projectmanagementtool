@@ -1285,33 +1285,7 @@ const TaskOverviewTab = ({
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const selectedTask = tasks.find((t) => t._id === selectedTaskId);
 
-  const getTaskDisplayId = (task) => {
-    if (!task || !task._id) return "";
-    const projId = task.project?._id || task.project;
-    const projectObj = projId ? projectsMap.get(String(projId)) : null;
-    const projChar = (projectObj?.name || task.project?.name || "P")
-      .charAt(0)
-      .toUpperCase();
-    const client = task.project?.client?.companyName
-      ? task.project.client
-      : projectObj?.client || task.project?.client;
-    const clientName = client?.companyName || "";
-    const clientChars = clientName
-      ? clientName.substring(0, 2).toUpperCase().padEnd(2, "X")
-      : "XX";
-    const projectTasks = tasks.filter(
-      (t) => (t.project?._id || t.project) === projId,
-    );
-    const sortedByCreation = [...projectTasks].sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (timeA !== timeB) return timeA - timeB;
-      return (a._id || "").localeCompare(b._id || "");
-    });
-    const idx = sortedByCreation.findIndex((t) => t._id === task._id);
-    const num = idx !== -1 ? idx + 1 : 1;
-    return `${projChar}${clientChars}T${num}`;
-  };
+  // getTaskDisplayId and taskDisplayIdMap moved below projectsMap for correct initialization
 
   const showStartInProgressWarning = (action = "review") => {
     const actionMsg =
@@ -1852,6 +1826,55 @@ const TaskOverviewTab = ({
     });
     return map;
   }, [projects]);
+
+  const taskDisplayIdMap = React.useMemo(() => {
+    const map = new Map();
+    if (!tasks) return map;
+
+    const projectGroups = new Map();
+    for (const t of tasks) {
+      const projId = String(t.project?._id || t.project || "unknown");
+      if (!projectGroups.has(projId)) {
+        projectGroups.set(projId, []);
+      }
+      projectGroups.get(projId).push(t);
+    }
+
+    for (const [projId, pTasks] of projectGroups.entries()) {
+      const projectObj = projectsMap.get(projId);
+      
+      const firstTask = pTasks[0];
+      const projChar = (projectObj?.name || firstTask.project?.name || "P")
+        .charAt(0)
+        .toUpperCase();
+      const client = firstTask.project?.client?.companyName
+        ? firstTask.project.client
+        : projectObj?.client || firstTask.project?.client;
+      const clientName = client?.companyName || "";
+      const clientChars = clientName
+        ? clientName.substring(0, 2).toUpperCase().padEnd(2, "X")
+        : "XX";
+      const prefix = `${projChar}${clientChars}T`;
+
+      const sorted = [...pTasks].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) return timeA - timeB;
+        return (a._id || "").localeCompare(b._id || "");
+      });
+
+      for (let i = 0; i < sorted.length; i++) {
+        map.set(sorted[i]._id, `${prefix}${i + 1}`);
+      }
+    }
+
+    return map;
+  }, [tasks, projectsMap]);
+
+  const getTaskDisplayId = React.useCallback((task) => {
+    if (!task || !task._id) return "";
+    return taskDisplayIdMap.get(task._id) || "";
+  }, [taskDisplayIdMap]);
 
   const filteredOverviewTasks = React.useMemo(() => {
     return tasks

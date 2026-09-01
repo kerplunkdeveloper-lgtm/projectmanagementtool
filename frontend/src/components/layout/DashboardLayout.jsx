@@ -104,7 +104,7 @@ const DashboardLayout = ({ role }) => {
         )}
 
         {/* NAVBAR */}
-        <Navbar setSidebarOpen={setSidebarOpen} />
+        {!isChatPage && <Navbar setSidebarOpen={setSidebarOpen} />}
 
         {/* HORIZONTAL SIDEBAR */}
         {sidebarLayout === "horizontal" && (

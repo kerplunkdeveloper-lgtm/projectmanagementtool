@@ -32,6 +32,8 @@ import {
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import ProjectIcon from "../common/ProjectIcon";
 import { preloadRoute } from "../../routes/AppRoutes";
+import sortedLogo from "../../assets/sorted.png";
+import darkSortedLogo from "../../assets/darksorted.png";
 
 const projectColors = [
   "bg-fuchsia-300 text-fuchsia-900 dark:bg-fuchsia-400 dark:text-fuchsia-950",
@@ -539,22 +541,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           {/* LOGO */}
           <div
             onClick={() => navigate(`/${role}`)}
-            className="logo-container group mb-2"
-            title="Kerplunk Media"
+            className="mb-2 cursor-pointer transition-transform active:scale-95 flex items-center  px-1"
+            title="Sorted Logo"
           >
-            <div className="logo-border-wrapper">
-              <div className="logo-spinning-border" />
-            </div>
-            <div className="logo-inner">
-              <span className="logo-text-kerplunk">
-                {"KERPLUNK".split("").map((char, index) => (
-                  <span key={index} className="logo-char">
-                    {char}
-                  </span>
-                ))}
-              </span>
-            </div>
-            <span className="logo-text-media">MEDIA</span>
+            <img 
+              src={isDark ? darkSortedLogo : sortedLogo} 
+              alt="Sorted Logo" 
+              className="h-13 w-auto object-contain drop-shadow-sm" 
+            />
           </div>
 
           <button

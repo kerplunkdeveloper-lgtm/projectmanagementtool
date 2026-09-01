@@ -681,6 +681,28 @@ const Clients = () => {
     setShowModal(true);
   };
 
+  const handleStatusChange = async (client, newStatus) => {
+    if (client.status === newStatus) return;
+    
+    let reason = "";
+    if (newStatus === "Inactive") {
+      reason = window.prompt("Please enter a reason for making the client Inactive:");
+      if (reason === null) return; // User cancelled
+    }
+
+    const payload = {
+      ...client,
+      status: newStatus,
+      inactiveReason: reason,
+      assignedTo: Array.isArray(client.assignedTo)
+        ? client.assignedTo.map((u) => u._id || u)
+        : client.assignedTo
+          ? [client.assignedTo._id || client.assignedTo]
+          : [],
+    };
+    await dispatch(updateClient({ id: client._id, data: payload }));
+  };
+
   const allUsers = useMemo(() => {
     return users || [];
   }, [users]);
@@ -1186,8 +1208,8 @@ const Clients = () => {
                   <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-20">
                     Status
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-18">
-                    No. of Projects
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-14">
+                    Projects
                   </th>
                   <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[380px] border-r border-slate-200 dark:border-slate-700/60">
                     Service & Members
@@ -1330,16 +1352,26 @@ const Clients = () => {
                               </div>
                             </div>
                           </td>
-                          <td className={`${cellClass} text-center w-20`}>
-                            {client.status === "Inactive" ? (
-                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 font-bold text-[10px] border border-rose-200/50 dark:border-rose-800/30">
-                                Inactive
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-200/50 dark:border-emerald-800/30">
-                                Active
-                              </span>
-                            )}
+                          <td className={`${cellClass} text-center w-32 align-middle px-2`}>
+                            <div className="flex flex-col items-center gap-1.5 justify-center py-1">
+                              <select
+                                value={client.status || "Active"}
+                                onChange={(e) => handleStatusChange(client, e.target.value)}
+                                className={`outline-none cursor-pointer pl-2 pr-6 py-1 rounded font-bold text-[10px] border text-center w-[95px] appearance-none relative bg-no-repeat bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[position:right_6px_center] ${
+                                  client.status === "Inactive"
+                                    ? "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200/50 dark:border-rose-800/30"
+                                    : "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/30"
+                                }`}
+                              >
+                                <option value="Active" className="text-emerald-600 font-bold">Active</option>
+                                <option value="Inactive" className="text-rose-600 font-bold">Inactive</option>
+                              </select>
+                              {client.status === "Inactive" && client.inactiveReason && (
+                                <div className="text-[8.5px] text-rose-500/90 dark:text-rose-400/90 italic bg-rose-50/50 dark:bg-rose-900/10 px-1.5 py-0.5 rounded w-full max-w-[110px] text-center leading-tight border border-rose-100/50 dark:border-rose-800/20 break-words" title={client.inactiveReason}>
+                                  {client.inactiveReason}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className={`${cellClass} text-center w-28`}>
                             <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-[10px] border border-blue-200/50 dark:border-blue-800/30">

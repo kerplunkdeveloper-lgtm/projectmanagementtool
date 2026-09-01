@@ -88,7 +88,7 @@ const DashboardCards = () => {
         </div>
 
         {/* Active Clients Card */}
-        <div className="bg-gradient-to-b from-[#11cd18] to-[#45e745a4] rounded-[24px] p-6 shadow-sm relative overflow-hidden group flex-1 min-h-[220px] flex flex-col">
+        <div className="bg-gradient-to-b from-[#11cd17a5] to-[#45e745a4] rounded-[24px] p-6 shadow-sm relative overflow-hidden group flex-1 min-h-[220px] flex flex-col">
           <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl mb-4 shadow-lg shadow-blue-500/30">
             <FiUsers />
           </div>
@@ -99,7 +99,7 @@ const DashboardCards = () => {
 
         {/* Inactive Clients Card */}
         {isAdminOrOpManager && (
-          <div className="bg-gradient-to-b from-[#e60230] to-[#ff2b52a9] rounded-[24px] p-6 shadow-sm relative overflow-hidden group flex-1 min-h-[220px] flex flex-col">
+          <div className="bg-gradient-to-b from-[#e60230aa] to-[#ff2b52a9] rounded-[24px] p-6 shadow-sm relative overflow-hidden group flex-1 min-h-[220px] flex flex-col">
             <div className="absolute right-6 bottom-6 opacity-5 w-24 h-24 bg-rose-500 rounded-full blur-2xl pointer-events-none"></div>
             <div className="w-12 h-12 rounded-full bg-rose-500 text-white flex items-center justify-center text-xl mb-4 shadow-lg shadow-rose-500/30">
               <FiUsers />

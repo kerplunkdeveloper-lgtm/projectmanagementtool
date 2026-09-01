@@ -128,6 +128,11 @@ const clientSchema = new mongoose.Schema(
       enum: ["Active", "Inactive"],
       default: "Active",
     },
+    
+    inactiveReason: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
