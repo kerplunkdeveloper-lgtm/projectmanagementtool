@@ -1,22 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { FiUser, FiZap, FiShield } from "react-icons/fi";
-import { MdOutlineLightbulb } from "react-icons/md";
-import { IoCheckmarkCircle } from "react-icons/io5";
+import { FiUser } from "react-icons/fi";
 
 const Preloader = () => {
   const { user, loading } = useSelector((state) => state.auth);
   const [show, setShow] = useState(true);
   const [activeFrame, setActiveFrame] = useState(1);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     let timer;
     if (!loading) {
-      setProgress(100);
       timer = setTimeout(() => {
         setShow(false);
-      }, 3000); // Faster exit once loaded
+      }, 2000); // Faster exit once loaded
     } else {
       setShow(true);
     }
@@ -44,26 +40,6 @@ const Preloader = () => {
 
     return () => clearTimeout(timer);
   }, [show, loading]);
-
-  // Simulate progress bar (faster and more fluid)
-  useEffect(() => {
-    // Only run the simulated progress while actually loading
-    if (!loading) return;
-    
-    const interval = setInterval(() => {
-      setProgress(p => {
-        // Slow down progress significantly after 85% if still actually loading
-        if (p >= 88) {
-          const next = p + (Math.random() > 0.7 ? 1 : 0); // slowly creep up
-          return next > 99 ? 99 : next; // Hard cap at 99% while loading
-        }
-        const next = p + Math.floor(Math.random() * 8) + 2; // Fast initial progress
-        return next > 99 ? 99 : next;
-      });
-    }, 120); // Faster update interval for fluidity
-    
-    return () => clearInterval(interval);
-  }, [loading]);
 
   if (!show && !loading) return null;
 
@@ -104,9 +80,8 @@ const Preloader = () => {
         </svg>
       </div>
 
-
       {/* Main Content Area */}
-      <div className="flex flex-col items-center justify-center z-10 w-full max-w-3xl px-6 mt-16 animate-[fadeIn_0.7s_ease-out]">
+      <div className="flex flex-col items-center justify-center z-10 w-full max-w-3xl px-6 animate-[fadeIn_0.7s_ease-out]">
         
         {/* Robot Mascot Animation */}
         <div className="relative w-48 h-48 md:w-56 md:h-56 flex flex-col items-center justify-center pointer-events-none mb-6">
@@ -146,17 +121,11 @@ const Preloader = () => {
           <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)] animate-bounce" style={{ animationDuration: '1.2s' }}></div>
           <div className="w-2.5 h-2.5 rounded-full bg-green-100 dark:bg-gray-700 animate-pulse delay-150"></div>
         </div>
-
-       
-
-       
-
-       
-
       </div>
     </div>
   );
 };
 
 export default Preloader;
+
 
