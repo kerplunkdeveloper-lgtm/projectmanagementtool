@@ -130,9 +130,9 @@ export const calculateTaskProductivityForDate = (
 
   const startTimeStr = officeHours?.startTime ?? "09:00";
   const endTimeStr = officeHours?.endTime ?? "19:00";
-  
-  const [startH, startM] = startTimeStr.split(':').map(Number);
-  const [endH, endM] = endTimeStr.split(':').map(Number);
+
+  const [startH, startM] = startTimeStr.split(":").map(Number);
+  const [endH, endM] = endTimeStr.split(":").map(Number);
 
   // Office-hours boundaries for selectedDate (local time) — used by both paths
   const dayWorkStart = new Date(
@@ -1239,7 +1239,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     } catch (err) {}
   }, [user]);
 
-  const [officeHours, setOfficeHours] = useState({ startTime: "09:00", endTime: "19:00" });
+  const [officeHours, setOfficeHours] = useState({
+    startTime: "09:00",
+    endTime: "19:00",
+  });
   useEffect(() => {
     const fetchOfficeHours = async () => {
       try {
@@ -1429,8 +1432,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           officeHours,
           Date.now(),
         );
+        const rawStaticMs = calculateTaskProductivityForDate(
+          task,
+          selectedDate,
+          { startTime: "00:00", endTime: "23:59" },
+          Date.now(),
+        );
         const isLive = isTaskLive(task, selectedDate);
-        cache.set(task._id, { staticMs, isLive });
+        cache.set(task._id, { staticMs, rawStaticMs, isLive });
       });
     });
     return cache;
@@ -2052,12 +2061,27 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               officeHours,
               Date.now(),
             );
+        const taskRawLoggedMs =
+          pData && pData.rawStaticMs !== undefined
+            ? pData.rawStaticMs
+            : calculateTaskProductivityForDate(
+                t,
+                selectedDate,
+                { startTime: "00:00", endTime: "23:59" },
+                Date.now(),
+              );
+
         const taskTotalLogged = taskLoggedMs;
 
         if (taskTotalLogged > 0) {
           totalLoggedMs += taskTotalLogged;
           totalBusinessLoggedMs += taskTotalLogged;
           inProgressLoggedMs += taskTotalLogged;
+        }
+
+        const offWorkingMs = Math.max(0, taskRawLoggedMs - taskLoggedMs);
+        if (offWorkingMs > 0) {
+          totalOffworkingLoggedMs += offWorkingMs;
         }
       });
 
@@ -2069,26 +2093,34 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const selDateObjLocal = new Date(selectedDate);
       const startTimeStr = officeHours?.startTime ?? "09:00";
       const endTimeStr = officeHours?.endTime ?? "19:00";
-      
+
       const officeStart = new Date(selDateObjLocal);
-      const [startH, startM] = startTimeStr.split(':').map(Number);
+      const [startH, startM] = startTimeStr.split(":").map(Number);
       officeStart.setHours(startH, startM, 0, 0);
 
       const officeEnd = new Date(selDateObjLocal);
-      const [endH, endM] = endTimeStr.split(':').map(Number);
+      const [endH, endM] = endTimeStr.split(":").map(Number);
       officeEnd.setHours(endH, endM, 0, 0);
 
       const now = new Date();
       let endToUse = officeEnd;
       if (isSameDay(selDateObjLocal, now) && now < officeEnd) {
-         endToUse = now > officeStart ? now : officeStart;
+        endToUse = now > officeStart ? now : officeStart;
       }
-      
+
       // Calculate total elapsed office ms
-      const elapsedOfficeMs = calculateBusinessMsBetween(officeStart, endToUse, officeHours, null);
-      
+      const elapsedOfficeMs = calculateBusinessMsBetween(
+        officeStart,
+        endToUse,
+        officeHours,
+        null,
+      );
+
       // Override totalOnHoldMs to be the remaining time that isn't logged or blocked
-      totalOnHoldMs = Math.max(0, elapsedOfficeMs - totalLoggedMs - totalBlockerMs);
+      totalOnHoldMs = Math.max(
+        0,
+        elapsedOfficeMs - totalLoggedMs - totalBlockerMs,
+      );
 
       // Compute approval time using actual review and completion fields (all tasks)
       myTasks.forEach((t) => {
@@ -2213,9 +2245,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     );
     const startTimeStr = officeHours?.startTime ?? "09:00";
     const endTimeStr = officeHours?.endTime ?? "19:00";
-    const [startH, startM] = startTimeStr.split(':').map(Number);
-    const [endH, endM] = endTimeStr.split(':').map(Number);
-    const totalOfficeMs = (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
+    const [startH, startM] = startTimeStr.split(":").map(Number);
+    const [endH, endM] = endTimeStr.split(":").map(Number);
+    const totalOfficeMs =
+      (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
     return totalOfficeMs > 0 && teamPerformance.length > 0
       ? Math.min(
           100,
@@ -3734,8 +3767,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   {(() => {
                     const startTimeStr = officeHours?.startTime ?? "09:00";
                     const endTimeStr = officeHours?.endTime ?? "19:00";
-                    const s = parseInt(startTimeStr.split(':')[0], 10);
-                    const e = parseInt(endTimeStr.split(':')[0], 10);
+                    const s = parseInt(startTimeStr.split(":")[0], 10);
+                    const e = parseInt(endTimeStr.split(":")[0], 10);
                     const fmt = (h) => {
                       const ampm = h >= 12 ? "PM" : "AM";
                       const val = h % 12 === 0 ? 12 : h % 12;
@@ -3833,9 +3866,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                   const startTimeStr = officeHours?.startTime ?? "09:00";
                   const endTimeStr = officeHours?.endTime ?? "19:00";
-                  const [startH, startM] = startTimeStr.split(':').map(Number);
-                  const [endH, endM] = endTimeStr.split(':').map(Number);
-                  const totalOfficeMs = (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
+                  const [startH, startM] = startTimeStr.split(":").map(Number);
+                  const [endH, endM] = endTimeStr.split(":").map(Number);
+                  const totalOfficeMs =
+                    (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
                   const efficiency =
                     totalOfficeMs > 0
                       ? Math.min(
@@ -3989,22 +4023,25 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                       {/* Unproductive Time */}
                       <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
-                        {tp.onHoldTimeMs > 0 ? (
-                          <span className="text-orange-600 dark:text-orange-400 font-black text-[11.5px]">
-                            {(() => {
-                              const totalMinutes = Math.floor(
-                                tp.onHoldTimeMs / (1000 * 60),
-                              );
-                              const h = Math.floor(totalMinutes / 60);
-                              const m = totalMinutes % 60;
-                              return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                            })()}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500 font-bold text-[11.5px]">
-                            0m
-                          </span>
-                        )}
+                        <div className="flex flex-col items-center">
+                          {tp.onHoldTimeMs > 0 ? (
+                            <span className="text-orange-600 dark:text-orange-400 font-black text-[11.5px]">
+                              {(() => {
+                                const totalMinutes = Math.floor(
+                                  tp.onHoldTimeMs / (1000 * 60),
+                                );
+                                const h = Math.floor(totalMinutes / 60);
+                                const m = totalMinutes % 60;
+                                return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                              })()}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500 font-bold text-[11.5px]">
+                              0m
+                            </span>
+                          )}
+
+                        </div>
                       </td>
 
                       {/* Productive Time — live when In Progress */}
@@ -4094,9 +4131,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   );
                   const startTimeStr = officeHours?.startTime ?? "09:00";
                   const endTimeStr = officeHours?.endTime ?? "19:00";
-                  const [startH, startM] = startTimeStr.split(':').map(Number);
-                  const [endH, endM] = endTimeStr.split(':').map(Number);
-                  const totalOfficeMs = (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
+                  const [startH, startM] = startTimeStr.split(":").map(Number);
+                  const [endH, endM] = endTimeStr.split(":").map(Number);
+                  const totalOfficeMs =
+                    (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
                   const totalPossibleMs =
                     teamPerformance.length * totalOfficeMs;
                   const avgEfficiency =
@@ -5215,17 +5253,27 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                         >
                                           {task.status || "Not Started"}
                                         </span>
-                                        {task.status === "On Hold" && (() => {
-                                          const hEntry = [...(task.statusHistory || [])].reverse().find(x => x.status === "On Hold");
-                                          if (hEntry && hEntry.reason) {
-                                            return (
-                                              <span className="text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
-                                                {hEntry.reason}
-                                              </span>
-                                            );
-                                          }
-                                          return null;
-                                        })()}
+                                        {task.status === "On Hold" &&
+                                          (() => {
+                                            const hEntry = [
+                                              ...(task.statusHistory || []),
+                                            ]
+                                              .reverse()
+                                              .find(
+                                                (x) => x.status === "On Hold",
+                                              );
+                                            if (hEntry && hEntry.reason) {
+                                              return (
+                                                <span
+                                                  className="text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400"
+                                                  title={hEntry.reason}
+                                                >
+                                                  {hEntry.reason}
+                                                </span>
+                                              );
+                                            }
+                                            return null;
+                                          })()}
                                       </div>
                                     </td>
                                     <td className="py-3 px-4 text-center">
@@ -5344,17 +5392,25 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                     >
                                       {task.status || "Not Started"}
                                     </span>
-                                    {task.status === "On Hold" && (() => {
-                                      const hEntry = [...(task.statusHistory || [])].reverse().find(x => x.status === "On Hold");
-                                      if (hEntry && hEntry.reason) {
-                                        return (
-                                          <span className="text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
-                                            {hEntry.reason}
-                                          </span>
-                                        );
-                                      }
-                                      return null;
-                                    })()}
+                                    {task.status === "On Hold" &&
+                                      (() => {
+                                        const hEntry = [
+                                          ...(task.statusHistory || []),
+                                        ]
+                                          .reverse()
+                                          .find((x) => x.status === "On Hold");
+                                        if (hEntry && hEntry.reason) {
+                                          return (
+                                            <span
+                                              className="text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400"
+                                              title={hEntry.reason}
+                                            >
+                                              {hEntry.reason}
+                                            </span>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
                                   </div>
 
                                   {targetDate && (
