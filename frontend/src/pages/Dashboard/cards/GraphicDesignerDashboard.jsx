@@ -1160,7 +1160,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     data: allTasks = [],
     isLoading,
     refetch: refetchTasks,
-  } = useGetTasksQuery();
+  } = useGetTasksQuery({ active_only: true });
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDropdown, setShowDropdown] = useState(false);
@@ -1368,38 +1368,46 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
   const designerIds = useMemo(() => designers.map((d) => d._id), [designers]);
 
+  const tasksByAssignee = useMemo(() => {
+    const map = {};
+    allTasks.forEach((t) => {
+      if (!t.assignedTo) return;
+      const aId = typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
+      if (!map[aId]) map[aId] = [];
+      map[aId].push(t);
+    });
+    return map;
+  }, [allTasks]);
+
   const productivityCache = useMemo(() => {
     const cache = new Map();
-    allTasks.forEach((task) => {
-      if (!task.assignedTo) return;
-      const assigneeId = typeof task.assignedTo === "object" ? task.assignedTo._id : task.assignedTo;
-      if (!designerIds.includes(assigneeId)) return;
-      
-      const isSocialMediaManager = user?.department?.toLowerCase() === "social media manager";
-      if (isSocialMediaManager) {
-        const creatorId = task.createdBy && typeof task.createdBy === "object" ? task.createdBy._id : task.createdBy;
-        const currentUserId = user?._id || user?.id;
-        if (creatorId !== currentUserId) return;
-      }
+    designerIds.forEach((assigneeId) => {
+      const tasks = tasksByAssignee[assigneeId] || [];
+      tasks.forEach((task) => {
+        const isSocialMediaManager = user?.department?.toLowerCase() === "social media manager";
+        if (isSocialMediaManager) {
+          const creatorId = task.createdBy && typeof task.createdBy === "object" ? task.createdBy._id : task.createdBy;
+          const currentUserId = user?._id || user?.id;
+          if (creatorId !== currentUserId) return;
+        }
 
-      const staticMs = calculateTaskProductivityForDate(task, selectedDate, officeHours, Date.now());
-      const isLive = isTaskLive(task, selectedDate);
-      cache.set(task._id, { staticMs, isLive });
+        const staticMs = calculateTaskProductivityForDate(task, selectedDate, officeHours, Date.now());
+        const isLive = isTaskLive(task, selectedDate);
+        cache.set(task._id, { staticMs, isLive });
+      });
     });
     return cache;
-  }, [allTasks, designerIds, selectedDate, officeHours, user]);
+  }, [designerIds, tasksByAssignee, selectedDate, officeHours, user]);
 
   // 2. Filter Tasks assigned to Graphic Designers + Date Filter
   const designerTasks = useMemo(() => {
-    return allTasks.filter((task) => {
-      // Check Assignee
-      if (!task.assignedTo) return false;
-      const assigneeId =
-        typeof task.assignedTo === "object"
-          ? task.assignedTo._id
-          : task.assignedTo;
-      if (!designerIds.includes(assigneeId)) return false;
+    const relevantTasks = [];
+    designerIds.forEach((assigneeId) => {
+      const tasks = tasksByAssignee[assigneeId] || [];
+      relevantTasks.push(...tasks);
+    });
 
+    return relevantTasks.filter((task) => {
       // Check Creator if logged-in user is a Social Media Manager
       const isSocialMediaManager =
         user?.department?.toLowerCase() === "social media manager";
@@ -1462,7 +1470,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       return false;
     });
-  }, [allTasks, designerIds, selectedDate, user, officeHours, productivityCache]);
+  }, [designerIds, tasksByAssignee, selectedDate, user, officeHours, productivityCache]);
 
   // 3. Compute Metrics
   // todayAssignedTasks: only tasks whose assignment date (startDate || createdAt) falls on selectedDate.
@@ -2123,20 +2131,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     return {
       labels: days.map((day) => format(day, "d MMM")),
       datasets: designers.map((designer) => {
+        // Hoist filtering out of the days loop and use tasksByAssignee index
+        const myTasksFromAll = tasksByAssignee[designer._id] || [];
+        const designerTasksFromAll = myTasksFromAll.filter((t) => {
+          const s = (t.status || "").toLowerCase();
+          if (s.includes("reject") || s.includes("cancel")) return false;
+          return true;
+        });
+
         const data = days.map((day) => {
           let totalMs = 0;
-          const designerTasksFromAll = allTasks.filter((t) => {
-            if (!t.assignedTo) return false;
-            const aId =
-              typeof t.assignedTo === "object"
-                ? t.assignedTo._id
-                : t.assignedTo;
-            if (aId !== designer._id) return false;
-            const s = (t.status || "").toLowerCase();
-            if (s.includes("reject") || s.includes("cancel")) return false;
-            return true;
-          });
-
           designerTasksFromAll.forEach((t) => {
             if (isSameDay(day, selectedDate)) {
               const pData = productivityCache.get(t._id);
@@ -2162,7 +2166,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         };
       }),
     };
-  }, [selectedDate, designers, allTasks, officeHours, productivityCache]);
+  }, [selectedDate, designers, tasksByAssignee, officeHours, productivityCache]);
 
   // 6. Client Progress
   const clientProgress = useMemo(() => {

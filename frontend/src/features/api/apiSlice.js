@@ -65,7 +65,12 @@ export const apiSlice = createApi({
     // TASKS ENDPOINTS
     // ==========================================
     getTasks: builder.query({
-      query: () => "/tasks",
+      query: (params) => {
+        if (!params || Object.keys(params).length === 0) return "/tasks";
+        const queryParams = new URLSearchParams();
+        if (params.active_only) queryParams.append('active_only', params.active_only);
+        return `/tasks?${queryParams.toString()}`;
+      },
       providesTags: ["Task"],
       transformResponse: (response) => response.data,
     }),

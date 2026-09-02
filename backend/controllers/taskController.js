@@ -443,6 +443,27 @@ exports.getTasks = async (req, res) => {
         { project: { $in: projectIds } }
       ];
     }
+
+    if (req.query.active_only === 'true') {
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      
+      const activeCondition = {
+        $or: [
+          { status: { $nin: ['Completed', 'Rejected', 'Approved', 'Cancelled'] } },
+          { updatedAt: { $gte: fourteenDaysAgo } },
+          { completedAt: { $gte: fourteenDaysAgo } },
+          { rejectedAt: { $gte: fourteenDaysAgo } }
+        ]
+      };
+      
+      if (query.$or) {
+        query = { $and: [{ $or: query.$or }, activeCondition] };
+      } else {
+        query = { ...query, ...activeCondition };
+      }
+    }
+
     const tasks = await Task.find(query)
       .populate({
         path: "project",
