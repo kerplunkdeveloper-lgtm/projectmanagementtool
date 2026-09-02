@@ -104,15 +104,18 @@ const Preloader = () => {
           <div className="w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
             <FiUser className="text-green-600 dark:text-green-400 text-[10px]" />
           </div>
-          <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+          <span className="text-lg font-semibold text-gray-600 dark:text-gray-300">
             {user?.email || "Welcome"}
           </span>
+          
         </div>
 
-        {/* Large Title */}
-        <h1 className="text-3xl md:text-[34px] font-bold text-gray-900 dark:text-white mb-2 text-center tracking-tight">
-          Loading your <span className="text-green-500">workspace</span>
-        </h1>
+<div className="font-semibold">
+   <span className="text-md font-semibold text-gray-600 italic dark:text-gray-300">
+            {user?.department || "Welcome"}
+          </span>
+</div>
+       
         <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium">Please wait a moment...</p>
 
         {/* Loading Indicator Dots */}

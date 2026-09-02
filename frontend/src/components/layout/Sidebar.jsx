@@ -485,11 +485,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       }
       const targetRole = result.data.user.role;
       if (targetRole === "admin") {
-        navigate("/admin");
+        window.location.href = "/admin";
       } else if (targetRole === "operationmanager") {
-        navigate("/operationmanager");
+        window.location.href = "/operationmanager";
       } else if (targetRole === "team") {
-        navigate("/team");
+        window.location.href = "/team";
       }
     } catch (err) {
       toast.error(err || "Failed to switch user");
@@ -501,7 +501,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     dispatch(apiSlice.util.resetApiState());
     toast.success("Switched back to Admin");
     if (window.innerWidth < 1024) setSidebarOpen(false);
-    navigate("/admin");
+    
+    window.location.href = "/admin";
   };
 
   const handleLogout = async () => {
@@ -544,10 +545,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             className="mb-2 cursor-pointer transition-transform active:scale-95 flex items-center  px-1"
             title="Sorted Logo"
           >
-            <img 
-              src={isDark ? darkSortedLogo : sortedLogo} 
-              alt="Sorted Logo" 
-              className="h-13 w-auto object-contain drop-shadow-sm" 
+            <img
+              src={isDark ? darkSortedLogo : sortedLogo}
+              alt="Sorted Logo"
+              className="h-13 w-auto object-contain drop-shadow-sm"
             />
           </div>
 

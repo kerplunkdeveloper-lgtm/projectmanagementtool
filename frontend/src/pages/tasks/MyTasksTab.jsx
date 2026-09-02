@@ -1236,7 +1236,6 @@ const COLUMN_OPTIONS = [
   { key: "holdReason", label: "Hold Reason" },
   { key: "feedbackMom", label: "Feedback MOM" },
   { key: "activeTime", label: "Productivity" },
-  { key: "onHoldTime", label: "Unproductivity" },
   { key: "timeTracker", label: "Total time spent for this task " },
   { key: "revision", label: "Revision" },
   { key: "startDate", label: "Start Date" },
@@ -1350,7 +1349,6 @@ const MyTasksTab = ({
       status: false,
       feedbackMom: false,
       activeTime: false,
-      onHoldTime: false,
       blockedTime: false,
       timeTracker: false,
       revision: false,
@@ -2663,7 +2661,6 @@ const MyTasksTab = ({
                         { key: "contentType", label: "Content-type" },
                         { key: "status", label: "Status" },
                         { key: "activeTime", label: "Productivity" },
-                        { key: "onHoldTime", label: "Unproductivity" },
                         { key: "holdReason", label: "Hold Reason" },
                         { key: "blockedTime", label: "Blocked" },
                         { key: "feedbackMom", label: "Feedback MOM" },
@@ -3309,15 +3306,6 @@ const MyTasksTab = ({
                         defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
                       />
                     )}
-                    {!hiddenColumns.onHoldTime && (
-                      <ResizableHeader
-                        id="onHoldTime"
-                        label="Unproductivity"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
-                      />
-                    )}
                     {!hiddenColumns.holdReason && (
                       <ResizableHeader
                         id="holdReason"
@@ -3664,19 +3652,6 @@ const MyTasksTab = ({
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <WorkTimeCell
-                                  task={task}
-                                  dateFilter={dateFilter}
-                                  officeHours={officeHours}
-                                />
-                              </td>
-                            )}
-
-                            {!hiddenColumns.onHoldTime && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <OnHoldTimeCell
                                   task={task}
                                   dateFilter={dateFilter}
                                   officeHours={officeHours}

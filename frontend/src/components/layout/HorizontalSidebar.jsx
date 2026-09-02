@@ -7,7 +7,10 @@ import toast from "react-hot-toast";
 import { sidebarConfig } from "../../config/sidebarConfig";
 import { markAllChatAsRead } from "../../features/notifications/notificationSlice";
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
-import { impersonateUser, exitImpersonation } from "../../features/auth/authSlice";
+import {
+  impersonateUser,
+  exitImpersonation,
+} from "../../features/auth/authSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { apiSlice } from "../../features/api/apiSlice";
 import { preloadRoute } from "../../routes/AppRoutes";
@@ -15,12 +18,14 @@ import { preloadRoute } from "../../routes/AppRoutes";
 const HorizontalSidebar = ({ role }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user: currentUser, originalAdminUser } = useSelector((state) => state.auth);
+  const { user: currentUser, originalAdminUser } = useSelector(
+    (state) => state.auth,
+  );
   const { unreadCounts = {} } = useSelector((state) => state.chat);
   const { notifications } = useSelector((state) => state.notifications);
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
-  
+
   const [showSwitchDropdown, setShowSwitchDropdown] = useState(false);
   const [switchSearch, setSwitchSearch] = useState("");
   const [switchCoords, setSwitchCoords] = useState({ top: 0, left: 0 });
@@ -85,11 +90,11 @@ const HorizontalSidebar = ({ role }) => {
       setShowSwitchDropdown(false);
       const targetRole = result.data.user.role;
       if (targetRole === "admin") {
-        navigate("/admin");
+        window.location.href = "/admin";
       } else if (targetRole === "operationmanager") {
-        navigate("/operationmanager");
+        window.location.href = "/operationmanager";
       } else if (targetRole === "team") {
-        navigate("/team");
+        window.location.href = "/team";
       }
     } catch (err) {
       toast.error(err || "Failed to switch user");
@@ -101,19 +106,23 @@ const HorizontalSidebar = ({ role }) => {
     dispatch(apiSlice.util.resetApiState());
     toast.success("Switched back to Admin");
     setShowSwitchDropdown(false);
-    navigate("/admin");
+    window.location.href = "/admin";
   };
 
   const localUnreadChatCount = Object.values(unreadCounts).reduce(
     (sum, val) => sum + (val || 0),
     0,
   );
-  
+
   const dbUnreadChatCount = notifications
-    ? notifications.filter((n) => !n.isRead && n.type === "message_received").length
+    ? notifications.filter((n) => !n.isRead && n.type === "message_received")
+        .length
     : 0;
 
-  const totalUnreadChatCount = Math.max(localUnreadChatCount, dbUnreadChatCount);
+  const totalUnreadChatCount = Math.max(
+    localUnreadChatCount,
+    dbUnreadChatCount,
+  );
 
   const menuItems = (sidebarConfig[role] || []).filter((item) => {
     // Hide Projects Overview for Social Media Manager department
@@ -379,13 +388,17 @@ const HorizontalSidebar = ({ role }) => {
                 className="w-full bg-slate-50 dark:bg-[#111111] text-xs px-2.5 py-1.5 pl-8 rounded-lg border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 text-slate-700 dark:text-white transition-colors"
                 autoFocus
               />
-              <FiSearch size={11.5} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <FiSearch
+                size={11.5}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
             </div>
 
             {/* User List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 pr-0.5">
               {filteredUsers.map((u) => {
-                const isCurrent = u._id === (currentUser?._id || currentUser?.id);
+                const isCurrent =
+                  u._id === (currentUser?._id || currentUser?.id);
                 const avatarUrl = getAvatarUrl(u);
                 const dept = u.department || displayRole(u.role);
                 return (
@@ -438,7 +451,7 @@ const HorizontalSidebar = ({ role }) => {
               )}
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );

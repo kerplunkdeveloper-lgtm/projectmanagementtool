@@ -9,6 +9,7 @@ import { getUsers } from "../../features/users/userSlice";
 import { format, parseISO } from "date-fns";
 import toast from "react-hot-toast";
 import { calculateTaskProductivityForDate } from "../Dashboard/cards/GraphicDesignerDashboard";
+import { calculateBusinessMsBetween } from "../../utils/taskTimerUtils";
 import axiosInstance from "../../services/axiosInstance";
 import {
   getDesignerEodReports,
@@ -438,6 +439,97 @@ const calculateTotalLoggedTime = (
   return `${m}m`;
 };
 
+const calculateTotalUnproductivityMs = (tasks, allTasks = [], selectedDate, officeHours) => {
+  const selDateObjLocal = selectedDate ? parseISO(selectedDate) : new Date();
+  
+  const startTimeStr = officeHours?.startTime ?? "09:00";
+  const endTimeStr = officeHours?.endTime ?? "19:00";
+  
+  const officeStart = new Date(selDateObjLocal);
+  const [startH, startM] = startTimeStr.split(':').map(Number);
+  officeStart.setHours(startH, startM, 0, 0);
+
+  const officeEnd = new Date(selDateObjLocal);
+  const [endH, endM] = endTimeStr.split(':').map(Number);
+  officeEnd.setHours(endH, endM, 0, 0);
+
+  const now = new Date();
+  let endToUse = officeEnd;
+  const isSameDay = selDateObjLocal.toDateString() === now.toDateString();
+  if (isSameDay && now < officeEnd) {
+     endToUse = now > officeStart ? now : officeStart;
+  }
+  
+  const elapsedOfficeMs = calculateBusinessMsBetween(officeStart, endToUse, officeHours, null);
+  
+  let totalLoggedMs = 0;
+  let totalBlockerMs = 0;
+  
+  const selDateStr = selDateObjLocal.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+  (allTasks || []).forEach((t) => {
+    // 1. Productivity
+    totalLoggedMs += calculateTaskProductivityForDate(t, selDateObjLocal, officeHours);
+    
+    // 2. Blockers
+    let taskBlockerMs = 0;
+    if (Array.isArray(t.statusHistory)) {
+      t.statusHistory.forEach((h) => {
+        if (h.status === "Blocked") {
+          let hDate = h.date;
+          if (hDate && hDate.includes(",")) {
+            try { hDate = new Date(hDate).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); } catch (e) {}
+          }
+          if (!hDate || hDate.includes(",")) {
+            hDate = h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
+          }
+          if (hDate === selDateStr) {
+            taskBlockerMs += h.duration || 0;
+          }
+        }
+      });
+    }
+
+    if (t.status === "Blocked" && t.blockedStartedAt) {
+      const hDate = new Date(t.blockedStartedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      if (hDate === selDateStr) {
+        const endMs = isSameDay ? Date.now() : officeEnd.getTime();
+        taskBlockerMs += Math.max(0, endMs - new Date(t.blockedStartedAt).getTime());
+      }
+    }
+    
+    if (Array.isArray(t.statusHistory)) {
+      t.statusHistory.forEach((h) => {
+        if (h.status === "On Hold") {
+          let hDate = h.date;
+          if (hDate && hDate.includes(",")) {
+            try { hDate = new Date(hDate).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); } catch (e) {}
+          }
+          if (!hDate || hDate.includes(",")) {
+            hDate = h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
+          }
+          if (hDate === selDateStr) {
+            if (h.reason === "Client Call" || h.reason === "Meeting") {
+              taskBlockerMs += h.duration || 0;
+            }
+          }
+        }
+      });
+    }
+    
+    totalBlockerMs += taskBlockerMs;
+  });
+  
+  let unproductivityMs = Math.max(0, elapsedOfficeMs - totalLoggedMs - totalBlockerMs);
+  
+  if (unproductivityMs <= 0) return "0m";
+  const totalMinutes = Math.floor(unproductivityMs / (1000 * 60));
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return `${m}m`;
+};
+
 const calculateProductivityPercentage = (
   tasks,
   allTasks = [],
@@ -554,6 +646,9 @@ const EodReports = () => {
   const [reportId, setReportId] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [officeHours, setOfficeHours] = useState({ startTime: "09:00", endTime: "19:00" });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
@@ -1215,6 +1310,10 @@ const EodReports = () => {
     [tasksState],
   );
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedDate]);
+
   const filteredTasks = React.useMemo(() => {
     const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
     let list = tasksState.filter((t) => {
@@ -1256,6 +1355,12 @@ const EodReports = () => {
         getStatusPriority(a.statusAtEod) - getStatusPriority(b.statusAtEod),
     );
   }, [tasksState, searchTerm, allTasks, selectedDate, officeHours]);
+
+  const totalPages = Math.ceil(filteredTasks.length / itemsPerPage);
+  const paginatedTasks = filteredTasks.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   if (tasksLoading || reportLoading || projectsLoading) {
     return (
@@ -1329,7 +1434,7 @@ const EodReports = () => {
                 {filteredTasks.length}
               </span>
             </div>
-
+            
             {/* Search Box */}
             <div className="relative min-w-[240px]">
              
@@ -1383,7 +1488,7 @@ const EodReports = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredTasks.map((task, idx) => {
+                    paginatedTasks.map((task, idx) => {
                       const assignerUser = users.find(
                         (u) => u._id === task.reviewedBy,
                       );
@@ -1549,19 +1654,46 @@ const EodReports = () => {
                                 placeholder={`Why ${task.statusAtEod?.toLowerCase() || "pending"}?`}
                                 className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all font-semibold"
                                 value={task.reason || ""}
-                                onChange={(e) =>
-                                  updateTask(task.id, "reason", e.target.value)
-                                }
-                                disabled={isSubmitted}
-                              />
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
+                                  onChange={(e) =>
+                                    updateTask(task.id, "reason", e.target.value)
+                                  }
+                                  disabled={isSubmitted}
+                                />
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                   )}
                 </tbody>
               </table>
+              {/* Pagination Controls */}
+              {Math.ceil(filteredTasks.length / itemsPerPage) > 1 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t theme-border bg-white dark:bg-slate-900/50">
+                  <span className="text-xs font-semibold theme-text-secondary">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredTasks.length)} of {filteredTasks.length} entries
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg border theme-border theme-text-primary hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <span className="text-xs font-bold theme-text-primary px-2">
+                      Page {currentPage} of {Math.ceil(filteredTasks.length / itemsPerPage)}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredTasks.length / itemsPerPage), p + 1))}
+                      disabled={currentPage === Math.ceil(filteredTasks.length / itemsPerPage)}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg border theme-border theme-text-primary hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1650,28 +1782,29 @@ const EodReports = () => {
                 </div>
               </div>
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-3 block relative z-10">
-                Total Time Taken
+                Total Productivity
               </span>
             </div>
 
-            {/* 7. Productivity % Card */}
-            <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-emerald-100 to-emerald-50 dark:from-emerald-900/40 dark:to-emerald-900/10 rounded-full -mr-6 -mt-6 blur-2xl group-hover:scale-150 transition-all duration-500" />
+
+            {/* Unproductivity Card */}
+            <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/40 dark:to-orange-900/10 rounded-full -mr-6 -mt-6 blur-2xl group-hover:scale-150 transition-all duration-500" />
               <div className="flex items-center justify-between relative z-10">
-                <span className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-                  {calculateProductivityPercentage(
+                <span className="text-2xl font-bold tracking-tight text-orange-600 dark:text-orange-400">
+                  {calculateTotalUnproductivityMs(
                     tasksState,
                     allTasks,
                     selectedDate,
                     officeHours,
-                  )}%
+                  )}
                 </span>
-                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl group-hover:bg-emerald-100 dark:group-hover:bg-emerald-500/20 transition-colors duration-300">
-                  <FiCheckCircle className="text-emerald-600 dark:text-emerald-400 text-xl" />
+                <div className="p-2.5 bg-orange-50 dark:bg-orange-500/10 rounded-xl group-hover:bg-orange-100 dark:group-hover:bg-orange-500/20 transition-colors duration-300 shrink-0 ml-1">
+                  <FiClock className="text-orange-600 dark:text-orange-400 text-xl" />
                 </div>
               </div>
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-3 block relative z-10">
-                Productivity
+                Total Unproductivity
               </span>
             </div>
           </div>
