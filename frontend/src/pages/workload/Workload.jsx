@@ -95,7 +95,7 @@ const getHeaderBannerGradient = (accent) => {
 const calculateTaskProductivityForDate = (
   task,
   selectedDate = new Date(),
-  officeHours = { startHour: 9, endHour: 19 }
+  officeHours = { startTime: "09:00", endTime: "19:00" }
 ) => {
   if (!task) return 0;
 
@@ -105,15 +105,18 @@ const calculateTaskProductivityForDate = (
       : new Date(selectedDate)
     : new Date();
 
-  const startHour = officeHours?.startHour ?? 9;
-  const endHour = officeHours?.endHour ?? 19;
+  const startTimeStr = officeHours?.startTime ?? "09:00";
+  const endTimeStr = officeHours?.endTime ?? "19:00";
+  
+  const [startH, startM] = startTimeStr.split(':').map(Number);
+  const [endH, endM] = endTimeStr.split(':').map(Number);
 
   const dayWorkStart = new Date(
     selDateObj.getFullYear(),
     selDateObj.getMonth(),
     selDateObj.getDate(),
-    startHour,
-    0,
+    startH,
+    startM,
     0,
     0
   ).getTime();
@@ -122,8 +125,8 @@ const calculateTaskProductivityForDate = (
     selDateObj.getFullYear(),
     selDateObj.getMonth(),
     selDateObj.getDate(),
-    endHour,
-    0,
+    endH,
+    endM,
     0,
     0
   ).getTime();

@@ -71,7 +71,7 @@ const isSameDate = (d1, d2) => {
 const checkTaskProductivityAndDate = (
   task,
   dateFilter,
-  officeHours = { startHour: 9, endHour: 19 },
+  officeHours = { startTime: "09:00", endTime: "19:00" },
 ) => {
   if (!dateFilter || dateFilter === "All") return true;
   if (!task) return false;
@@ -3163,6 +3163,7 @@ const TaskOverviewTab = ({
                                 { key: "dueDate", label: "End Date" },
                                 { key: "priority", label: "Priority" },
                                 { key: "status", label: "Status" },
+                                { key: "holdReason", label: "Hold Reason" },
                                 {
                                   key: "totalHours",
                                   label: "Total Inprogress",
@@ -3258,6 +3259,11 @@ const TaskOverviewTab = ({
                 {!hiddenColumns.status && (
                   <th className="py-2 px-2 border-r border-b border-slate-300 dark:border-white/15 text-center whitespace-nowrap">
                     STATUS
+                  </th>
+                )}
+                {!hiddenColumns.holdReason && (
+                  <th className="py-2 px-2 border-r border-b border-slate-300 dark:border-white/15 text-center whitespace-nowrap">
+                    REASON FOR HOLD
                   </th>
                 )}
                 {!hiddenColumns.totalHours && (
@@ -3509,6 +3515,11 @@ const TaskOverviewTab = ({
                       <span className="badge-span badge-status-not-started text-[11px]">
                         Not Started
                       </span>
+                    </td>
+                  )}
+                  {!hiddenColumns.holdReason && (
+                    <td className="py-2 px-2 border-r border-b border-slate-200 dark:border-white/10 text-center text-slate-400 text-[11px]">
+                      —
                     </td>
                   )}
                   {!hiddenColumns.totalHours && (
@@ -4170,6 +4181,21 @@ const TaskOverviewTab = ({
                                 </span>
                               )}
                             </div>
+                          </td>
+                        )}
+                        {!hiddenColumns.holdReason && (
+                          <td className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
+                            {task.status === "On Hold" && (() => {
+                              const hEntry = [...(task.statusHistory || [])].reverse().find(x => x.status === "On Hold");
+                              if (hEntry && hEntry.reason) {
+                                return (
+                                  <span className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
+                                    {hEntry.reason}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
                           </td>
                         )}
                         {!hiddenColumns.totalHours && (

@@ -8,25 +8,26 @@ const OfficeSettingsSchema = new mongoose.Schema({
     immutable: true,
   },
 
-  startHour: {
-    type: Number,
-    default: 9,
-    min: 0,
-    max: 23,
+  startTime: {
+    type: String,
+    default: "09:00",
     required: true,
+    match: [/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Please fill a valid time format (HH:mm)'],
   },
 
-  endHour: {
-    type: Number,
-    default: 19,
-    min: 1,
-    max: 24,
+  endTime: {
+    type: String,
+    default: "19:00",
     required: true,
+    match: [/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Please fill a valid time format (HH:mm)'],
     validate: {
       validator(value) {
-        return value > this.startHour;
+        if (!this.startTime) return true;
+        const [startH, startM] = this.startTime.split(':').map(Number);
+        const [endH, endM] = value.split(':').map(Number);
+        return endH > startH || (endH === startH && endM > startM);
       },
-      message: "End hour must be greater than start hour.",
+      message: "End time must be greater than start time.",
     },
   },
 
@@ -35,18 +36,16 @@ const OfficeSettingsSchema = new mongoose.Schema({
     default: [1, 2, 3, 4, 5, 6], // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
   },
 
-  breakStartHour: {
-    type: Number,
-    default: 13,
-    min: 0,
-    max: 23,
+  breakStartTime: {
+    type: String,
+    default: "13:00",
+    match: [/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Please fill a valid time format (HH:mm)'],
   },
 
-  breakEndHour: {
-    type: Number,
-    default: 14,
-    min: 0,
-    max: 23,
+  breakEndTime: {
+    type: String,
+    default: "14:00",
+    match: [/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Please fill a valid time format (HH:mm)'],
   },
 }, {
   timestamps: true,

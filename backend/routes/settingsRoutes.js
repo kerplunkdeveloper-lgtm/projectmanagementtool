@@ -8,7 +8,7 @@ router.get("/office-hours", protect, async (req, res) => {
   try {
     let settings = await OfficeSettings.findOne({ key: "global" });
     if (!settings) {
-      settings = await OfficeSettings.create({ key: "global", startHour: 9, endHour: 19 });
+      settings = await OfficeSettings.create({ key: "global", startTime: "09:00", endTime: "19:00" });
     }
     res.json({ success: true, data: settings });
   } catch (err) {
@@ -17,12 +17,14 @@ router.get("/office-hours", protect, async (req, res) => {
 });
 
 router.put("/office-hours", protect, authorize("admin", "operationmanager"), async (req, res) => {
-  const { startHour, endHour, workingDays } = req.body;
+  const { startTime, endTime, workingDays, breakStartTime, breakEndTime } = req.body;
   try {
     const updateData = {
-      startHour: Number(startHour),
-      endHour: Number(endHour),
+      startTime,
+      endTime,
     };
+    if (breakStartTime !== undefined) updateData.breakStartTime = breakStartTime;
+    if (breakEndTime !== undefined) updateData.breakEndTime = breakEndTime;
     if (Array.isArray(workingDays)) {
       updateData.workingDays = workingDays.map(Number);
     }

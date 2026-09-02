@@ -105,8 +105,10 @@ const Settings = () => {
     setSoundEnabled,
   } = useTheme();
 
-  const [startHour, setStartHour] = useState(9);
-  const [endHour, setEndHour] = useState(19);
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("19:00");
+  const [breakStartTime, setBreakStartTime] = useState("13:00");
+  const [breakEndTime, setBreakEndTime] = useState("14:00");
   const [loadingHours, setLoadingHours] = useState(true);
   const [savingHours, setSavingHours] = useState(false);
 
@@ -122,8 +124,10 @@ const Settings = () => {
       try {
         const response = await axiosInstance.get("/settings/office-hours");
         if (response.data?.success) {
-          setStartHour(response.data.data.startHour);
-          setEndHour(response.data.data.endHour);
+          setStartTime(response.data.data.startTime || "09:00");
+          setEndTime(response.data.data.endTime || "19:00");
+          if (response.data.data.breakStartTime) setBreakStartTime(response.data.data.breakStartTime);
+          if (response.data.data.breakEndTime) setBreakEndTime(response.data.data.breakEndTime);
         }
       } catch (err) {
         console.error("Failed to fetch office hours:", err);
@@ -138,8 +142,10 @@ const Settings = () => {
     setSavingHours(true);
     try {
       const response = await axiosInstance.put("/settings/office-hours", {
-        startHour,
-        endHour,
+        startTime,
+        endTime,
+        breakStartTime,
+        breakEndTime,
       });
       if (response.data?.success) {
         toast.success("Office working hours updated successfully!");
@@ -330,52 +336,6 @@ const Settings = () => {
               </div>
             </div>
 
-            {/* SOUND SETTINGS */}
-            <div className="theme-bg-card border theme-border rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-4 border-b theme-border pb-3">
-                <FiSliders className="text-blue-500 dark:text-[#3b82f6] text-lg" />
-                <h3 className="text-sm font-bold theme-text-primary uppercase tracking-wider">
-                  Preferences
-                </h3>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 dark:bg-[#3b82f6]/10 flex items-center justify-center text-blue-500 dark:text-[#3b82f6]">
-                    {soundEnabled ? (
-                      <FiVolume2 size={16} />
-                    ) : (
-                      <FiVolumeX size={16} />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="text-[11px] font-black theme-text-primary">
-                      Notification Sounds
-                    </h4>
-                    <p className="text-[9px] theme-text-secondary mt-0.5">
-                      Play a chime when you receive notifications or messages.
-                    </p>
-                  </div>
-                </div>
-
-                {/* IOS-style toggle switch */}
-                <button
-                  onClick={() => setSoundEnabled(!soundEnabled)}
-                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    soundEnabled
-                      ? "theme-bg-accent"
-                      : "bg-slate-200 dark:bg-slate-800"
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      soundEnabled ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
             {/* BUSINESS HOURS INFO */}
             <div className="theme-bg-card border theme-border rounded-2xl p-5 shadow-sm mt-5">
               <div className="flex items-center justify-between mb-4 border-b theme-border pb-3">
@@ -413,44 +373,55 @@ const Settings = () => {
                       <label className="text-[10px] font-black uppercase tracking-wider theme-text-secondary block">
                         Start Workday
                       </label>
-                      <select
+                      <input
+                        type="time"
                         disabled={!canChangeOfficeHours}
-                        value={startHour}
-                        onChange={(e) => setStartHour(Number(e.target.value))}
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold theme-text-primary cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6] disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {Array.from({ length: 24 }).map((_, i) => (
-                          <option key={i} value={i}>
-                            {(() => {
-                              const ampm = i >= 12 ? "PM" : "AM";
-                              const hourVal = i % 12 === 0 ? 12 : i % 12;
-                              return `${String(hourVal).padStart(2, "0")}:00 ${ampm}`;
-                            })()}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase tracking-wider theme-text-secondary block">
                         End Workday
                       </label>
-                      <select
+                      <input
+                        type="time"
                         disabled={!canChangeOfficeHours}
-                        value={endHour}
-                        onChange={(e) => setEndHour(Number(e.target.value))}
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold theme-text-primary cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6] disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {Array.from({ length: 24 }).map((_, i) => (
-                          <option key={i} value={i}>
-                            {(() => {
-                              const ampm = i >= 12 ? "PM" : "AM";
-                              const hourVal = i % 12 === 0 ? 12 : i % 12;
-                              return `${String(hourVal).padStart(2, "0")}:00 ${ampm}`;
-                            })()}
-                          </option>
-                        ))}
-                      </select>
+                      />
+                    </div>
+                  </div>
+
+                  {/* Lunch Hours Fields */}
+                  <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-white/10">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-wider theme-text-secondary block">
+                        Lunch Start Time
+                      </label>
+                      <input
+                        type="time"
+                        disabled={!canChangeOfficeHours}
+                        value={breakStartTime}
+                        onChange={(e) => setBreakStartTime(e.target.value)}
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold theme-text-primary cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6] disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase tracking-wider theme-text-secondary block">
+                        Lunch End Time
+                      </label>
+                      <input
+                        type="time"
+                        disabled={!canChangeOfficeHours}
+                        value={breakEndTime}
+                        onChange={(e) => setBreakEndTime(e.target.value)}
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold theme-text-primary cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6] disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
                     </div>
                   </div>
 

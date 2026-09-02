@@ -61,6 +61,7 @@ import {
   addDays,
 } from "date-fns";
 import { calculateBusinessMs } from "../../../utils/businessHours";
+import { calculateBusinessMsBetween } from "../../../utils/taskTimerUtils";
 import axiosInstance from "../../../services/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -116,7 +117,7 @@ export const isStatusInProgress = (s) =>
 export const calculateTaskProductivityForDate = (
   task,
   selectedDate = new Date(),
-  officeHours = { startHour: 9, endHour: 19 },
+  officeHours = { startTime: "09:00", endTime: "19:00" },
   nowMs = Date.now(),
 ) => {
   if (!task) return 0;
@@ -127,16 +128,19 @@ export const calculateTaskProductivityForDate = (
       : new Date(selectedDate)
     : new Date();
 
-  const startHour = officeHours?.startHour ?? 9;
-  const endHour = officeHours?.endHour ?? 19;
+  const startTimeStr = officeHours?.startTime ?? "09:00";
+  const endTimeStr = officeHours?.endTime ?? "19:00";
+  
+  const [startH, startM] = startTimeStr.split(':').map(Number);
+  const [endH, endM] = endTimeStr.split(':').map(Number);
 
   // Office-hours boundaries for selectedDate (local time) — used by both paths
   const dayWorkStart = new Date(
     selDateObj.getFullYear(),
     selDateObj.getMonth(),
     selDateObj.getDate(),
-    startHour,
-    0,
+    startH,
+    startM,
     0,
     0,
   ).getTime();
@@ -145,8 +149,8 @@ export const calculateTaskProductivityForDate = (
     selDateObj.getFullYear(),
     selDateObj.getMonth(),
     selDateObj.getDate(),
-    endHour,
-    0,
+    endH,
+    endM,
     0,
     0,
   ).getTime();
@@ -306,7 +310,9 @@ export const calculateTaskProductivityForDate = (
           task.blockerHistory.forEach((b) => {
             if (b.pausedAt) {
               const p = new Date(b.pausedAt).getTime();
-              const r = b.resumedAt ? new Date(b.resumedAt).getTime() : cappedNowMs;
+              const r = b.resumedAt
+                ? new Date(b.resumedAt).getTime()
+                : cappedNowMs;
               const oStart = Math.max(p, effectiveLiveStart);
               const oEnd = Math.min(r, cappedNowMs);
               if (oEnd > oStart) {
@@ -500,16 +506,17 @@ export const isTaskLive = (task, selectedDate = new Date()) => {
       ? parseISO(selectedDate)
       : new Date(selectedDate)
     : new Date();
-  
+
   const isSelectedToday = isSameDay(selDateObj, new Date());
   if (!isSelectedToday) return false;
 
   const currentIsProductiveHold =
-      task.status === "On Hold" &&
-      task.statusHistory &&
-      task.statusHistory.length > 0 &&
-      (task.statusHistory[task.statusHistory.length - 1].reason === "Client Call" ||
-       task.statusHistory[task.statusHistory.length - 1].reason === "Meeting");
+    task.status === "On Hold" &&
+    task.statusHistory &&
+    task.statusHistory.length > 0 &&
+    (task.statusHistory[task.statusHistory.length - 1].reason ===
+      "Client Call" ||
+      task.statusHistory[task.statusHistory.length - 1].reason === "Meeting");
 
   if (
     (isStatusInProgress(task.status) || currentIsProductiveHold) &&
@@ -525,7 +532,7 @@ const LiveProductivityCell = React.memo(
     tasks = [],
     initialLoggedMs = 0,
     selectedDate = new Date(),
-    officeHours = { startHour: 9, endHour: 19 },
+    officeHours = { startTime: "09:00", endTime: "19:00" },
     productivityCache = null,
   }) => {
     const isSelectedDateToday = useMemo(() => {
@@ -554,12 +561,22 @@ const LiveProductivityCell = React.memo(
         const pData = productivityCache ? productivityCache.get(t._id) : null;
         if (pData) {
           if (pData.isLive) {
-            taskTotal = calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+            taskTotal = calculateTaskProductivityForDate(
+              t,
+              selectedDate,
+              officeHours,
+              Date.now(),
+            );
           } else {
             taskTotal = pData.staticMs;
           }
         } else {
-          taskTotal = calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+          taskTotal = calculateTaskProductivityForDate(
+            t,
+            selectedDate,
+            officeHours,
+            Date.now(),
+          );
         }
         total += taskTotal;
       });
@@ -632,7 +649,7 @@ const LiveTotalProductivityCell = React.memo(
   ({
     teamPerformance = [],
     selectedDate = new Date(),
-    officeHours = { startHour: 9, endHour: 19 },
+    officeHours = { startTime: "09:00", endTime: "19:00" },
     productivityCache = null,
   }) => {
     const isSelectedDateToday = useMemo(() => {
@@ -657,12 +674,22 @@ const LiveTotalProductivityCell = React.memo(
           const pData = productivityCache ? productivityCache.get(t._id) : null;
           if (pData) {
             if (pData.isLive) {
-              taskTotal = calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+              taskTotal = calculateTaskProductivityForDate(
+                t,
+                selectedDate,
+                officeHours,
+                Date.now(),
+              );
             } else {
               taskTotal = pData.staticMs;
             }
           } else {
-            taskTotal = calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+            taskTotal = calculateTaskProductivityForDate(
+              t,
+              selectedDate,
+              officeHours,
+              Date.now(),
+            );
           }
           grandTotal += taskTotal;
         });
@@ -1212,15 +1239,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     } catch (err) {}
   }, [user]);
 
-  const [officeHours, setOfficeHours] = useState({ startHour: 9, endHour: 19 });
+  const [officeHours, setOfficeHours] = useState({ startTime: "09:00", endTime: "19:00" });
   useEffect(() => {
     const fetchOfficeHours = async () => {
       try {
         const { data } = await axiosInstance.get("/settings/office-hours");
         if (data?.success) {
           setOfficeHours({
-            startHour: data.data.startHour,
-            endHour: data.data.endHour,
+            startTime: data.data.startTime,
+            endTime: data.data.endTime,
           });
         }
       } catch (err) {}
@@ -1372,7 +1399,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     const map = {};
     allTasks.forEach((t) => {
       if (!t.assignedTo) return;
-      const aId = typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
+      const aId =
+        typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
       if (!map[aId]) map[aId] = [];
       map[aId].push(t);
     });
@@ -1384,14 +1412,23 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     designerIds.forEach((assigneeId) => {
       const tasks = tasksByAssignee[assigneeId] || [];
       tasks.forEach((task) => {
-        const isSocialMediaManager = user?.department?.toLowerCase() === "social media manager";
+        const isSocialMediaManager =
+          user?.department?.toLowerCase() === "social media manager";
         if (isSocialMediaManager) {
-          const creatorId = task.createdBy && typeof task.createdBy === "object" ? task.createdBy._id : task.createdBy;
+          const creatorId =
+            task.createdBy && typeof task.createdBy === "object"
+              ? task.createdBy._id
+              : task.createdBy;
           const currentUserId = user?._id || user?.id;
           if (creatorId !== currentUserId) return;
         }
 
-        const staticMs = calculateTaskProductivityForDate(task, selectedDate, officeHours, Date.now());
+        const staticMs = calculateTaskProductivityForDate(
+          task,
+          selectedDate,
+          officeHours,
+          Date.now(),
+        );
         const isLive = isTaskLive(task, selectedDate);
         cache.set(task._id, { staticMs, isLive });
       });
@@ -1438,7 +1475,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           : task.updatedAt
             ? parseISO(task.updatedAt)
             : null;
-        if (completedDate && isSameDay(completedDate, selectedDate)) return true;
+        if (completedDate && isSameDay(completedDate, selectedDate))
+          return true;
         const pData = productivityCache.get(task._id);
         if (pData && pData.staticMs > 0) return true;
         return false;
@@ -1470,7 +1508,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       return false;
     });
-  }, [designerIds, tasksByAssignee, selectedDate, user, officeHours, productivityCache]);
+  }, [
+    designerIds,
+    tasksByAssignee,
+    selectedDate,
+    user,
+    officeHours,
+    productivityCache,
+  ]);
 
   // 3. Compute Metrics
   // todayAssignedTasks: only tasks whose assignment date (startDate || createdAt) falls on selectedDate.
@@ -1831,19 +1876,32 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       });
 
       let eodReportTotalMs = null;
-      if (!isSameDay(selectedDate || new Date(), new Date()) && designerReport && Array.isArray(designerReport.tasks)) {
+      if (
+        !isSameDay(selectedDate || new Date(), new Date()) &&
+        designerReport &&
+        Array.isArray(designerReport.tasks)
+      ) {
         let eodTotal = 0;
         const selDateObj = selectedDate ? new Date(selectedDate) : new Date();
-        const selDateStr = selDateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        const selDateStr = selDateObj.toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kolkata",
+        });
         designerReport.tasks.forEach((rt) => {
-          const originalTask = (designerTasks || []).find((at) => at._id === (rt.taskId?._id || rt.taskId || rt.id || rt._id));
+          const originalTask = (designerTasks || []).find(
+            (at) => at._id === (rt.taskId?._id || rt.taskId || rt.id || rt._id),
+          );
           const target = originalTask || rt;
           let msToday = 0;
           const pData = productivityCache.get(target._id || target.id);
           if (pData) {
             msToday = pData.staticMs;
           } else {
-            msToday = calculateTaskProductivityForDate(target, selDateObj, officeHours, Date.now());
+            msToday = calculateTaskProductivityForDate(
+              target,
+              selDateObj,
+              officeHours,
+              Date.now(),
+            );
           }
           const taskTotalToday = msToday;
           if (taskTotalToday > 0) {
@@ -1986,7 +2044,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         totalOnHoldMs += taskOnHoldMs;
 
         const pData = productivityCache.get(t._id);
-        const taskLoggedMs = pData ? pData.staticMs : calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now());
+        const taskLoggedMs = pData
+          ? pData.staticMs
+          : calculateTaskProductivityForDate(
+              t,
+              selectedDate,
+              officeHours,
+              Date.now(),
+            );
         const taskTotalLogged = taskLoggedMs;
 
         if (taskTotalLogged > 0) {
@@ -1999,6 +2064,31 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       if (eodReportTotalMs !== null) {
         totalLoggedMs = eodReportTotalMs;
       }
+
+      // Compute elapsed business time for selectedDate to determine true unproductivity
+      const selDateObjLocal = new Date(selectedDate);
+      const startTimeStr = officeHours?.startTime ?? "09:00";
+      const endTimeStr = officeHours?.endTime ?? "19:00";
+      
+      const officeStart = new Date(selDateObjLocal);
+      const [startH, startM] = startTimeStr.split(':').map(Number);
+      officeStart.setHours(startH, startM, 0, 0);
+
+      const officeEnd = new Date(selDateObjLocal);
+      const [endH, endM] = endTimeStr.split(':').map(Number);
+      officeEnd.setHours(endH, endM, 0, 0);
+
+      const now = new Date();
+      let endToUse = officeEnd;
+      if (isSameDay(selDateObjLocal, now) && now < officeEnd) {
+         endToUse = now > officeStart ? now : officeStart;
+      }
+      
+      // Calculate total elapsed office ms
+      const elapsedOfficeMs = calculateBusinessMsBetween(officeStart, endToUse, officeHours, null);
+      
+      // Override totalOnHoldMs to be the remaining time that isn't logged or blocked
+      totalOnHoldMs = Math.max(0, elapsedOfficeMs - totalLoggedMs - totalBlockerMs);
 
       // Compute approval time using actual review and completion fields (all tasks)
       myTasks.forEach((t) => {
@@ -2092,25 +2182,40 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         onHoldTimeMs: totalOnHoldMs,
         lastSubmitted: lastSubmittedStr,
         // tasksWorkedOn: count of tasks that had productivity > 0 on selectedDate (all tasks, not just today-assigned)
-        tasksWorkedOn: myTasks.filter(
-          (t) => {
-            const pData = productivityCache.get(t._id);
-            return pData ? pData.staticMs > 0 : calculateTaskProductivityForDate(t, selectedDate, officeHours, Date.now()) > 0;
-          }
-        ).length,
+        tasksWorkedOn: myTasks.filter((t) => {
+          const pData = productivityCache.get(t._id);
+          return pData
+            ? pData.staticMs > 0
+            : calculateTaskProductivityForDate(
+                t,
+                selectedDate,
+                officeHours,
+                Date.now(),
+              ) > 0;
+        }).length,
         // tasks passed to LiveProductivityCell = all myTasks (productivity includes historical tasks worked today)
         tasks: myTasks,
       };
     });
-  }, [designers, designerTasks, designerEodReports, selectedDate, officeHours, productivityCache]);
+  }, [
+    designers,
+    designerTasks,
+    designerEodReports,
+    selectedDate,
+    officeHours,
+    productivityCache,
+  ]);
 
   const avgEfficiency = useMemo(() => {
     const totalLoggedAll = teamPerformance.reduce(
       (s, tp) => s + tp.totalLoggedMs,
       0,
     );
-    const totalOfficeMs =
-      (officeHours.endHour - officeHours.startHour) * 3600 * 1000;
+    const startTimeStr = officeHours?.startTime ?? "09:00";
+    const endTimeStr = officeHours?.endTime ?? "19:00";
+    const [startH, startM] = startTimeStr.split(':').map(Number);
+    const [endH, endM] = endTimeStr.split(':').map(Number);
+    const totalOfficeMs = (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
     return totalOfficeMs > 0 && teamPerformance.length > 0
       ? Math.min(
           100,
@@ -2144,9 +2249,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           designerTasksFromAll.forEach((t) => {
             if (isSameDay(day, selectedDate)) {
               const pData = productivityCache.get(t._id);
-              totalMs += pData ? pData.staticMs : calculateTaskProductivityForDate(t, day, officeHours, Date.now());
+              totalMs += pData
+                ? pData.staticMs
+                : calculateTaskProductivityForDate(
+                    t,
+                    day,
+                    officeHours,
+                    Date.now(),
+                  );
             } else {
-              totalMs += calculateTaskProductivityForDate(t, day, officeHours, Date.now());
+              totalMs += calculateTaskProductivityForDate(
+                t,
+                day,
+                officeHours,
+                Date.now(),
+              );
             }
           });
 
@@ -2166,7 +2283,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         };
       }),
     };
-  }, [selectedDate, designers, tasksByAssignee, officeHours, productivityCache]);
+  }, [
+    selectedDate,
+    designers,
+    tasksByAssignee,
+    officeHours,
+    productivityCache,
+  ]);
 
   // 6. Client Progress
   const clientProgress = useMemo(() => {
@@ -3609,8 +3732,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 <span>Office:</span>
                 <span>
                   {(() => {
-                    const s = officeHours.startHour;
-                    const e = officeHours.endHour;
+                    const startTimeStr = officeHours?.startTime ?? "09:00";
+                    const endTimeStr = officeHours?.endTime ?? "19:00";
+                    const s = parseInt(startTimeStr.split(':')[0], 10);
+                    const e = parseInt(endTimeStr.split(':')[0], 10);
                     const fmt = (h) => {
                       const ampm = h >= 12 ? "PM" : "AM";
                       const val = h % 12 === 0 ? 12 : h % 12;
@@ -3706,8 +3831,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   ];
                   const avatarBg = avatarColors[idx % avatarColors.length];
 
-                  const totalOfficeMs =
-                    (officeHours.endHour - officeHours.startHour) * 3600 * 1000;
+                  const startTimeStr = officeHours?.startTime ?? "09:00";
+                  const endTimeStr = officeHours?.endTime ?? "19:00";
+                  const [startH, startM] = startTimeStr.split(':').map(Number);
+                  const [endH, endM] = endTimeStr.split(':').map(Number);
+                  const totalOfficeMs = (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
                   const efficiency =
                     totalOfficeMs > 0
                       ? Math.min(
@@ -3964,8 +4092,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     (s, tp) => s + tp.totalLoggedMs,
                     0,
                   );
-                  const totalOfficeMs =
-                    (officeHours.endHour - officeHours.startHour) * 3600 * 1000;
+                  const startTimeStr = officeHours?.startTime ?? "09:00";
+                  const endTimeStr = officeHours?.endTime ?? "19:00";
+                  const [startH, startM] = startTimeStr.split(':').map(Number);
+                  const [endH, endM] = endTimeStr.split(':').map(Number);
+                  const totalOfficeMs = (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
                   const totalPossibleMs =
                     teamPerformance.length * totalOfficeMs;
                   const avgEfficiency =
@@ -5076,13 +5207,26 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       </td>
                                     </td>
                                     <td className="py-3 px-4">
-                                      <span
-                                        className={`px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider ${getStatusBadgeStyle(
-                                          task.status,
-                                        )}`}
-                                      >
-                                        {task.status || "Not Started"}
-                                      </span>
+                                      <div className="flex flex-col gap-1">
+                                        <span
+                                          className={`w-fit px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider ${getStatusBadgeStyle(
+                                            task.status,
+                                          )}`}
+                                        >
+                                          {task.status || "Not Started"}
+                                        </span>
+                                        {task.status === "On Hold" && (() => {
+                                          const hEntry = [...(task.statusHistory || [])].reverse().find(x => x.status === "On Hold");
+                                          if (hEntry && hEntry.reason) {
+                                            return (
+                                              <span className="text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
+                                                {hEntry.reason}
+                                              </span>
+                                            );
+                                          }
+                                          return null;
+                                        })()}
+                                      </div>
                                     </td>
                                     <td className="py-3 px-4 text-center">
                                       <ApprovalTimelineCell task={task} />
@@ -5192,13 +5336,26 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                                 {/* Status & Date Row */}
                                 <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-800">
-                                  <span
-                                    className={`px-2 py-0.5 rounded-md text-[9.5px] uppercase ${getStatusBadgeStyle(
-                                      task.status,
-                                    )}`}
-                                  >
-                                    {task.status || "Not Started"}
-                                  </span>
+                                  <div className="flex flex-col gap-1">
+                                    <span
+                                      className={`w-fit px-2 py-0.5 rounded-md text-[9.5px] uppercase ${getStatusBadgeStyle(
+                                        task.status,
+                                      )}`}
+                                    >
+                                      {task.status || "Not Started"}
+                                    </span>
+                                    {task.status === "On Hold" && (() => {
+                                      const hEntry = [...(task.statusHistory || [])].reverse().find(x => x.status === "On Hold");
+                                      if (hEntry && hEntry.reason) {
+                                        return (
+                                          <span className="text-[9px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
+                                            {hEntry.reason}
+                                          </span>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+                                  </div>
 
                                   {targetDate && (
                                     <div className="flex flex-col items-end gap-0.5">

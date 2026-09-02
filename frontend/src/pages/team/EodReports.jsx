@@ -510,8 +510,14 @@ const calculateProductivityPercentage = (
     }
   });
 
+  const startTimeStr = officeHours?.startTime ?? "09:00";
+  const endTimeStr = officeHours?.endTime ?? "19:00";
+  
+  const [startH, startM] = startTimeStr.split(':').map(Number);
+  const [endH, endM] = endTimeStr.split(':').map(Number);
+
   const totalOfficeMs =
-    (officeHours.endHour - officeHours.startHour) * 3600 * 1000;
+    (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
 
   if (totalOfficeMs <= 0) return 0;
   
@@ -547,7 +553,7 @@ const EodReports = () => {
   const [overallStatus, setOverallStatus] = useState("On Track");
   const [reportId, setReportId] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [officeHours, setOfficeHours] = useState({ startHour: 9, endHour: 19 });
+  const [officeHours, setOfficeHours] = useState({ startTime: "09:00", endTime: "19:00" });
 
   const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
@@ -566,8 +572,8 @@ const EodReports = () => {
         const settings = res.data?.data || res.data;
         if (settings) {
           setOfficeHours({
-            startHour: settings.startHour ?? 9,
-            endHour: settings.endHour ?? 19,
+            startTime: settings.startTime ?? "09:00",
+            endTime: settings.endTime ?? "19:00",
             workingDays: settings.workingDays || [1, 2, 3, 4, 5, 6],
           });
         }

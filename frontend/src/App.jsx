@@ -4,6 +4,7 @@ import ThemeSettingsPanel from "./components/common/ThemeSettingsPanel";
 import Preloader from "./components/common/Preloader";
 import OfficeHoursPausedPopup from "./components/common/OfficeHoursPausedPopup";
 import ResumePausedTasksPopup from "./components/common/ResumePausedTasksPopup";
+import LunchBreakPopup from "./components/common/LunchBreakPopup";
 
 const App = () => {
   return (
@@ -13,6 +14,7 @@ const App = () => {
       <ThemeSettingsPanel />
       <OfficeHoursPausedPopup />
       <ResumePausedTasksPopup />
+      <LunchBreakPopup />
     </>
   );
 };

@@ -24,7 +24,7 @@ export function getISTDateParts(date = new Date()) {
  * Calculates the elapsed business office hours (in milliseconds) between two dates in Asia/Kolkata IST.
  * Excludes non-working days (default Sunday = 0) and non-working hours.
  */
-export function calculateBusinessMs(startDate, endDate, startHour = 9, endHour = 19, workingDays = [1, 2, 3, 4, 5, 6], holidays = []) {
+export function calculateBusinessMs(startDate, endDate, startTime = "09:00", endTime = "19:00", workingDays = [1, 2, 3, 4, 5, 6], holidays = []) {
   if (!startDate || !endDate) return 0;
   let start = new Date(startDate).getTime();
   let end = new Date(endDate).getTime();
@@ -32,6 +32,9 @@ export function calculateBusinessMs(startDate, endDate, startHour = 9, endHour =
 
   const IST_OFFSET = 330 * 60 * 1000;
   let totalMs = 0;
+  
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
 
   let curTime = start;
   while (curTime < end) {
@@ -49,15 +52,15 @@ export function calculateBusinessMs(startDate, endDate, startHour = 9, endHour =
       continue;
     }
 
-    if (hour < startHour) {
-      // Before startHour: advance to startHour today IST
-      const msUntilStart = ((startHour - hour) * 3600 - min * 60 - sec) * 1000 - ms;
+    if (hour < startH || (hour === startH && min < startM)) {
+      // Before start time: advance to start time today IST
+      const msUntilStart = ((startH - hour) * 3600 + (startM - min) * 60 - sec) * 1000 - ms;
       curTime += msUntilStart;
       continue;
     }
 
-    if (hour >= endHour) {
-      // After or at endHour: advance to next day midnight IST
+    if (hour > endH || (hour === endH && min >= endM)) {
+      // After or at end time: advance to next day midnight IST
       const msToday = (hour * 3600 + min * 60 + sec) * 1000 + ms;
       curTime += (24 * 3600 * 1000 - msToday);
       continue;
@@ -65,7 +68,7 @@ export function calculateBusinessMs(startDate, endDate, startHour = 9, endHour =
 
     // Inside office working hours block today
     const curBlockEndIST = new Date(curIST);
-    curBlockEndIST.setUTCHours(endHour, 0, 0, 0);
+    curBlockEndIST.setUTCHours(endH, endM, 0, 0);
     const curBlockEndTime = curBlockEndIST.getTime() - IST_OFFSET;
 
     const blockEnd = Math.min(end, curBlockEndTime);

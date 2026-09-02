@@ -6,22 +6,28 @@ import { parseISO, isSameDay } from "date-fns";
 export function calculateBusinessMsBetween(
   startDate,
   endDate,
-  officeHours = { startHour: 9, endHour: 19, workingDays: [1, 2, 3, 4, 5, 6] }
+  officeHours = { startTime: "09:00", endTime: "19:00", workingDays: [1, 2, 3, 4, 5, 6] },
+  currentUserId = null
 ) {
   if (!startDate || !endDate) return 0;
   let start = new Date(startDate).getTime();
   let end = new Date(endDate).getTime();
   if (isNaN(start) || isNaN(end) || start >= end) return 0;
 
-  const startHour = officeHours?.startHour ?? 9;
-  const endHour = officeHours?.endHour ?? 19;
-  const breakStartHour = officeHours?.breakStartHour ?? 13;
-  const breakEndHour = officeHours?.breakEndHour ?? 14;
+  const startTimeStr = officeHours?.startTime ?? "09:00";
+  const endTimeStr = officeHours?.endTime ?? "19:00";
+  const breakStartTimeStr = officeHours?.breakStartTime ?? "13:00";
+  const breakEndTimeStr = officeHours?.breakEndTime ?? "14:00";
   const workingDays = officeHours?.workingDays || [1, 2, 3, 4, 5, 6];
 
   const IST_OFFSET = 330 * 60 * 1000; // +5:30 IST offset
   let totalMs = 0;
   let curTime = start;
+  
+  const [startH, startM] = startTimeStr.split(':').map(Number);
+  const [endH, endM] = endTimeStr.split(':').map(Number);
+  const [breakStartH, breakStartM] = breakStartTimeStr.split(':').map(Number);
+  const [breakEndH, breakEndM] = breakEndTimeStr.split(':').map(Number);
 
   while (curTime < end) {
     const curIST = new Date(curTime + IST_OFFSET);
@@ -37,38 +43,54 @@ export function calculateBusinessMsBetween(
       continue;
     }
 
-    if (hour < startHour) {
-      const msUntilStart = ((startHour - hour) * 3600 - min * 60 - sec) * 1000 - ms;
+    if (hour < startH || (hour === startH && min < startM)) {
+      const msUntilStart = ((startH - hour) * 3600 + (startM - min) * 60 - sec) * 1000 - ms;
       curTime += msUntilStart;
       continue;
     }
 
-    if (hour >= endHour) {
+    if (hour > endH || (hour === endH && min >= endM)) {
       const msToday = (hour * 3600 + min * 60 + sec) * 1000 + ms;
       curTime += 24 * 3600 * 1000 - msToday;
       continue;
     }
 
     const curBlockEndIST = new Date(curIST);
-    curBlockEndIST.setUTCHours(endHour, 0, 0, 0);
+    curBlockEndIST.setUTCHours(endH, endM, 0, 0);
     const curBlockEndTime = curBlockEndIST.getTime() - IST_OFFSET;
 
     const breakStartIST = new Date(curIST);
-    breakStartIST.setUTCHours(breakStartHour, 0, 0, 0);
+    breakStartIST.setUTCHours(breakStartH, breakStartM, 0, 0);
     const breakStartTime = breakStartIST.getTime() - IST_OFFSET;
 
     const breakEndIST = new Date(curIST);
-    breakEndIST.setUTCHours(breakEndHour, 0, 0, 0);
+    breakEndIST.setUTCHours(breakEndH, breakEndM, 0, 0);
     const breakEndTime = breakEndIST.getTime() - IST_OFFSET;
 
-    if (hour >= breakStartHour && hour < breakEndHour) {
-      const msUntilBreakEnd = ((breakEndHour - hour) * 3600 - min * 60 - sec) * 1000 - ms;
+    const curDateStr = new Date(curIST.getTime() - IST_OFFSET).toLocaleDateString("en-CA");
+    let hasSkippedLunch = false;
+    if (typeof localStorage !== "undefined") {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("skippedLunch_") && key.endsWith(curDateStr)) {
+          hasSkippedLunch = true;
+          break;
+        }
+      }
+    }
+
+    if (
+      !hasSkippedLunch &&
+      (hour > breakStartH || (hour === breakStartH && min >= breakStartM)) &&
+      (hour < breakEndH || (hour === breakEndH && min < breakEndM))
+    ) {
+      const msUntilBreakEnd = ((breakEndH - hour) * 3600 + (breakEndM - min) * 60 - sec) * 1000 - ms;
       curTime += msUntilBreakEnd;
       continue;
     }
 
     let blockEndTime = curBlockEndTime;
-    if (hour < breakStartHour) {
+    if (!hasSkippedLunch && (hour < breakStartH || (hour === breakStartH && min < breakStartM))) {
       blockEndTime = Math.min(curBlockEndTime, breakStartTime);
     }
     
@@ -86,7 +108,7 @@ export function calculateBusinessMsBetween(
 export function getCurrentActiveSessionMs(
   task,
   nowMs = Date.now(),
-  officeHours = { startHour: 9, endHour: 19, workingDays: [1, 2, 3, 4, 5, 6] }
+  officeHours = { startTime: "09:00", endTime: "19:00", workingDays: [1, 2, 3, 4, 5, 6] }
 ) {
   if (!task || task.status !== "In Progress" || task.autoPaused) return 0;
   if (!task.actualStartTime) return 0;
@@ -129,7 +151,7 @@ export function getCurrentActiveSessionMs(
 export function getTodayProductivityMs(
   task,
   now = new Date(),
-  officeHours = { startHour: 9, endHour: 19, workingDays: [1, 2, 3, 4, 5, 6] }
+  officeHours = { startTime: "09:00", endTime: "19:00", workingDays: [1, 2, 3, 4, 5, 6] }
 ) {
   if (!task) return 0;
 
@@ -188,7 +210,7 @@ export function getTodayProductivityMs(
 export function getTotalTrackedMs(
   task,
   now = new Date(),
-  officeHours = { startHour: 9, endHour: 19, workingDays: [1, 2, 3, 4, 5, 6] }
+  officeHours = { startTime: "09:00", endTime: "19:00", workingDays: [1, 2, 3, 4, 5, 6] }
 ) {
   if (!task) return 0;
 
@@ -213,7 +235,7 @@ export function getStatusTrackedMs(
   task,
   targetStatus,
   now = new Date(),
-  officeHours = { startHour: 9, endHour: 19, workingDays: [1, 2, 3, 4, 5, 6] }
+  officeHours = { startTime: "09:00", endTime: "19:00", workingDays: [1, 2, 3, 4, 5, 6] }
 ) {
   if (!task) return 0;
 

@@ -76,7 +76,7 @@ const isStatusInProgress = (s) =>
 const checkTaskProductivityAndDate = (
   task,
   dateFilter,
-  officeHours = { startHour: 9, endHour: 19 },
+  officeHours = { startTime: "09:00", endTime: "19:00" },
 ) => {
   if (!dateFilter || dateFilter === "All") return true;
   if (!task) return false;
@@ -691,7 +691,7 @@ const MomFeedbackInput = ({ task, onSave }) => {
   );
 };
 
-const DEFAULT_OFFICE_HOURS = { startHour: 9, endHour: 19 };
+const DEFAULT_OFFICE_HOURS = { startTime: "09:00", endTime: "19:00" };
 
 const formatMsToHMS = (ms) => {
   if (!ms || ms <= 0) return "0s";
@@ -1259,7 +1259,27 @@ const MyTasksTab = ({
 }) => {
   const authUsers = useSelector((state) => state.auth?.users);
   const users = authUsers || [];
-  const officeHours = React.useMemo(() => ({ startHour: 9, endHour: 19 }), []);
+  
+  const [officeHours, setOfficeHours] = useState({
+    startTime: "09:00",
+    endTime: "19:00",
+    breakStartTime: "",
+    breakEndTime: ""
+  });
+
+  useEffect(() => {
+    const fetchOfficeHours = async () => {
+      try {
+        const { data } = await axiosInstance.get("/settings/office-hours");
+        if (data && data.data) {
+          setOfficeHours(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch office hours:", err);
+      }
+    };
+    fetchOfficeHours();
+  }, []);
 
   const [updateTaskTrigger] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
@@ -2484,6 +2504,16 @@ const MyTasksTab = ({
     toast.success("My Tasks data exported to Excel!");
   };
 
+  const format12Hour = (timeStr) => {
+    if (!timeStr) return "";
+    const [h, m] = timeStr.split(":");
+    let hours = parseInt(h, 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${hours}:${m} ${ampm}`;
+  };
+
   return (
     <>
       <div className="px-4 xl:px-6 pt-3 pb-3 flex flex-col gap-3">
@@ -2992,7 +3022,7 @@ const MyTasksTab = ({
       </AnimatePresence>
 
       {/* STATUS TABS */}
-      <div className="px-4 xl:px-6 pb-2">
+      <div className="px-4 xl:px-6 pb-2 flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex items-center gap-1 p-1 bg-slate-50/80 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-700/60 rounded-full overflow-x-auto custom-scrollbar shadow-sm">
           {[
             { name: "All", label: "All status" },
@@ -3027,6 +3057,15 @@ const MyTasksTab = ({
             );
           })}
         </div>
+        
+        {officeHours?.breakStartTime && officeHours?.breakEndTime && (
+          <div className="flex items-center gap-1.5 ml-auto bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-3 py-1.5 rounded-xl self-center shrink-0">
+            <FiClock className="text-amber-500" size={13} />
+            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
+            Lunch Time: {format12Hour(officeHours.breakStartTime)} - {format12Hour(officeHours.breakEndTime)} - Automatic paused
+            </span>
+          </div>
+        )}
       </div>
 
       {/* TASK LIST CONTAINER */}

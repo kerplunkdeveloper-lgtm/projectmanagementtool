@@ -25,7 +25,7 @@ const ResumePausedTasksPopup = () => {
   const [updateTask] = useUpdateTaskMutation();
   const [isOpen, setIsOpen] = useState(false);
   const [resumeTaskData, setResumeTaskData] = useState(null);
-  const [officeHours, setOfficeHours] = useState({ startHour: 9, endHour: 19 });
+  const [officeHours, setOfficeHours] = useState({ startTime: "09:00", endTime: "19:00" });
 
   // Fetch office hours settings
   useEffect(() => {
@@ -34,8 +34,8 @@ const ResumePausedTasksPopup = () => {
         const { data } = await axiosInstance.get("/settings/office-hours");
         if (data?.success) {
           setOfficeHours({
-            startHour: data.data.startHour,
-            endHour: data.data.endHour,
+            startTime: data.data.startTime,
+            endTime: data.data.endTime,
             workingDays: data.data.workingDays || [1, 2, 3, 4, 5, 6],
           });
         }
@@ -56,8 +56,16 @@ const ResumePausedTasksPopup = () => {
         ? officeHours.workingDays
         : [1, 2, 3, 4, 5, 6];
     if (!workingDays.includes(day)) return false;
-    const hour = now.getHours();
-    return hour >= officeHours.startHour && hour < officeHours.endHour;
+    const startTimeStr = officeHours?.startTime ?? "09:00";
+    const endTimeStr = officeHours?.endTime ?? "19:00";
+    const [startH, startM] = startTimeStr.split(':').map(Number);
+    const [endH, endM] = endTimeStr.split(':').map(Number);
+    
+    const nowTime = now.getHours() * 60 + now.getMinutes();
+    const startMins = startH * 60 + startM;
+    const endMins = endH * 60 + endM;
+    
+    return nowTime >= startMins && nowTime < endMins;
   };
 
   useEffect(() => {

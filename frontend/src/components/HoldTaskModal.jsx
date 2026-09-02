@@ -3,12 +3,12 @@ import React, { useState } from "react";
 export const HoldTaskModal = ({ isOpen, onClose, onSubmit, tasks = [] }) => {
   const [reason, setReason] = useState("Another Task");
   const [relatedTaskId, setRelatedTaskId] = useState("");
+  const [otherReasonText, setOtherReasonText] = useState("");
   
   const reasons = [
     "Another Task",
     "Client Call",
     "Meeting",
-    "Break",
     "Other"
   ];
 
@@ -16,11 +16,12 @@ export const HoldTaskModal = ({ isOpen, onClose, onSubmit, tasks = [] }) => {
     e.preventDefault();
     onSubmit({
       status: "On Hold",
-      reason,
+      reason: reason === "Other" ? (otherReasonText || "Other") : reason,
       relatedTaskId: reason === "Another Task" ? relatedTaskId : null,
     });
     setReason("Another Task");
     setRelatedTaskId("");
+    setOtherReasonText("");
   };
 
   if (!isOpen) return null;
@@ -78,6 +79,22 @@ export const HoldTaskModal = ({ isOpen, onClose, onSubmit, tasks = [] }) => {
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {reason === "Other" && (
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-300">
+                Other reason
+              </label>
+              <input
+                type="text"
+                value={otherReasonText}
+                onChange={(e) => setOtherReasonText(e.target.value)}
+                placeholder="[ Please enter reason... ]"
+                className="w-full p-2 text-sm bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 dark:text-white outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                required
+              />
             </div>
           )}
 

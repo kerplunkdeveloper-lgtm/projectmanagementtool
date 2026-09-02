@@ -3655,6 +3655,7 @@ const ProjectTaskBoard = ({
                           { id: "endDate", label: "End Date" },
                           { id: "priority", label: "Priority" },
                           { id: "status", label: "Status" },
+                          { id: "holdReason", label: "Hold Reason" },
                           { id: "revision", label: "Revision" },
                           {
                             id: "totalHours",
@@ -3721,6 +3722,7 @@ const ProjectTaskBoard = ({
                 !hiddenColumns.contentType,
                 !hiddenColumns.priority,
                 !hiddenColumns.status,
+                !hiddenColumns.holdReason,
                 !hiddenColumns.revision,
                 !hiddenColumns.totalHours,
                 !hiddenColumns.approvalInfo,
@@ -4110,6 +4112,12 @@ const ProjectTaskBoard = ({
                               {!hiddenColumns.status && (
                                 <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                                   Status
+                                </th>
+                              )}
+                              {/* Hold Reason Column */}
+                              {!hiddenColumns.holdReason && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                  Reason for Hold
                                 </th>
                               )}
                               {/* Revision Column */}
@@ -5889,6 +5897,22 @@ const ProjectTaskBoard = ({
                                                           </div>
                                                         </td>
                                                       )}
+                                                      {/* Hold Reason Column (Tasks) */}
+                                                      {!hiddenColumns.holdReason && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                          {task.status === "On Hold" && (() => {
+                                                            const hEntry = [...(task.statusHistory || [])].reverse().find(x => x.status === "On Hold");
+                                                            if (hEntry && hEntry.reason) {
+                                                              return (
+                                                                <span className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
+                                                                  {hEntry.reason}
+                                                                </span>
+                                                              );
+                                                            }
+                                                            return null;
+                                                          })()}
+                                                        </td>
+                                                      )}
 
                                                       {/* Revision Column */}
                                                       {!hiddenColumns.revision && (
@@ -7126,6 +7150,23 @@ const ProjectTaskBoard = ({
                                                                       </span>
                                                                     )}
                                                                   </div>
+                                                                </td>
+                                                              )}
+                                                              
+                                                              {/* Hold Reason Column (Subtasks) */}
+                                                              {!hiddenColumns.holdReason && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                  {sub.status === "On Hold" && (() => {
+                                                                    const hEntry = [...(sub.statusHistory || [])].reverse().find(x => x.status === "On Hold");
+                                                                    if (hEntry && hEntry.reason) {
+                                                                      return (
+                                                                        <span className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
+                                                                          {hEntry.reason}
+                                                                        </span>
+                                                                      );
+                                                                    }
+                                                                    return null;
+                                                                  })()}
                                                                 </td>
                                                               )}
 
