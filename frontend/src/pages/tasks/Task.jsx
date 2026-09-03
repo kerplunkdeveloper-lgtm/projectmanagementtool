@@ -72,9 +72,12 @@ const Task = () => {
   const dateDropdownRef = useRef(null);
   const [filteredOverviewCount, setFilteredOverviewCount] = useState(null);
 
-  const { data: tasks = [], isLoading: loading } = useGetTasksQuery(undefined, {
-    skip: !user,
-  });
+  const [isActiveOnly, setIsActiveOnly] = useState(true);
+
+  const { data: tasks = [], isLoading: loading } = useGetTasksQuery(
+    isActiveOnly ? { active_only: true } : undefined,
+    { skip: !user }
+  );
 
   const { data: projects = [] } = useGetProjectsQuery(undefined, {
     skip: !user,
@@ -150,7 +153,18 @@ const Task = () => {
           </div>
           
           {/* Portal target for right-side actions (like Export / Hide Column) */}
-          <div id="task-actions-portal" className="flex items-center gap-2 shrink-0"></div>
+          <div id="task-actions-portal" className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsActiveOnly(!isActiveOnly)}
+              className={`text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition-all border ${
+                isActiveOnly
+                  ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300"
+                  : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+              }`}
+            >
+              {isActiveOnly ? "Active Tasks Only" : "All Tasks"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -162,6 +176,7 @@ const Task = () => {
             projects={projects}
             currentUserId={currentUserId}
             user={user}
+            loading={loading}
             dateFilter={dateFilter}
             setDateFilter={setDateFilter}
             showDateDropdown={showDateDropdown}

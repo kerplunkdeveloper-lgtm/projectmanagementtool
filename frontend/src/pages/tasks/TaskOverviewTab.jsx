@@ -1046,6 +1046,7 @@ const TaskOverviewTab = ({
   projects,
   currentUserId,
   user,
+  loading,
   dateFilter,
   setDateFilter,
   showDateDropdown,
@@ -3563,7 +3564,23 @@ const TaskOverviewTab = ({
                 </tr>
               )}
 
-              {filteredOverviewTasks.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={
+                      Object.values(hiddenColumns).filter(
+                        (isHidden) => !isHidden,
+                      ).length
+                    }
+                    className="py-12 text-center"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="text-xs font-semibold text-slate-500">Loading tasks...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredOverviewTasks.length === 0 ? (
                 <tr>
                   <td
                     colSpan={
