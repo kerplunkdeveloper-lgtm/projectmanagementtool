@@ -452,6 +452,24 @@ exports.getTasks = async (req, res) => {
       }
     }
 
+    if (req.query.department) {
+      const usersInDept = await User.find({ department: req.query.department }).select("_id").lean();
+      const userIds = usersInDept.map(u => u._id);
+      
+      const deptCondition = {
+        $or: [
+          { assignedTo: { $in: userIds } },
+          { "subtasks.assignedTo": { $in: userIds } }
+        ]
+      };
+      
+      if (query.$or || query.$and) {
+        query = { $and: [query, deptCondition] };
+      } else {
+        query = { ...query, ...deptCondition };
+      }
+    }
+
     if (req.query.active_only === 'true') {
       const fourteenDaysAgo = new Date();
       fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);

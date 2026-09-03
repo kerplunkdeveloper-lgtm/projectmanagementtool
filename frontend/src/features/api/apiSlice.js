@@ -70,6 +70,7 @@ export const apiSlice = createApi({
         const queryParams = new URLSearchParams();
         if (params.active_only) queryParams.append('active_only', params.active_only);
         if (params.project) queryParams.append('project', params.project);
+        if (params.department) queryParams.append('department', params.department);
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],

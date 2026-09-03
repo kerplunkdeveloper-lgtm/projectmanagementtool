@@ -1335,7 +1335,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     data: allTasks = [],
     isLoading,
     refetch: refetchTasks,
-  } = useGetTasksQuery({ active_only: true });
+  } = useGetTasksQuery({ active_only: true, department: targetDept });
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDropdown, setShowDropdown] = useState(false);
