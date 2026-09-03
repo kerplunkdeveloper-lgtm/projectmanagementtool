@@ -617,7 +617,7 @@ const LiveProductivityCell = React.memo(
 
     if (isSelectedDateToday && hasInProgress) {
       return (
-        <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+        <div className="flex items-center justify-center gap-1.5 whitespace-nowrap border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 rounded-full">
           <span
             className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0"
             title="Running"
@@ -731,6 +731,106 @@ const LiveTotalProductivityCell = React.memo(
     );
   },
 );
+
+const LiveUnproductiveCell = React.memo(({ tp, selectedDate = new Date(), officeHours = { startTime: "09:00", endTime: "19:00" }, productivityCache }) => {
+  const isSelectedDateToday = useMemo(() => isSameDay(selectedDate || new Date(), new Date()), [selectedDate]);
+
+  const hasLiveTask = useMemo(() => {
+    return (tp.tasks || []).some(t => isTaskLive(t, selectedDate));
+  }, [tp.tasks, selectedDate]);
+
+  const [now, setNow] = useState(() => new Date());
+
+  const isWithinOfficeHours = useMemo(() => {
+    const startTimeStr = officeHours?.startTime ?? "09:00";
+    const endTimeStr = officeHours?.endTime ?? "19:00";
+    const [startH, startM] = startTimeStr.split(":").map(Number);
+    const [endH, endM] = endTimeStr.split(":").map(Number);
+    const officeStart = new Date(now);
+    officeStart.setHours(startH, startM, 0, 0);
+    const officeEnd = new Date(now);
+    officeEnd.setHours(endH, endM, 0, 0);
+    return isSelectedDateToday && now >= officeStart && now < officeEnd;
+  }, [isSelectedDateToday, officeHours, now]);
+
+  const isUnproductiveRunning = isWithinOfficeHours && !hasLiveTask;
+
+  useEffect(() => {
+    setNow(new Date());
+  }, [tp, hasLiveTask]);
+
+  useEffect(() => {
+    if (isUnproductiveRunning) {
+      const interval = setInterval(() => {
+        setNow(new Date());
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isUnproductiveRunning]);
+
+  const liveMs = useMemo(() => {
+    if (!isSelectedDateToday) return tp.onHoldTimeMs || 0;
+    
+    const startTimeStr = officeHours?.startTime ?? "09:00";
+    const [startH, startM] = startTimeStr.split(":").map(Number);
+    const officeStart = new Date(now);
+    officeStart.setHours(startH, startM, 0, 0);
+
+    const endTimeStr = officeHours?.endTime ?? "19:00";
+    const [endH, endM] = endTimeStr.split(":").map(Number);
+    const officeEnd = new Date(now);
+    officeEnd.setHours(endH, endM, 0, 0);
+
+    const endToUse = now < officeEnd ? Math.max(now.getTime(), officeStart.getTime()) : officeEnd.getTime();
+    
+    const elapsedOfficeMs = Math.max(0, endToUse - officeStart.getTime());
+
+    let liveTotalLoggedMs = 0;
+    (tp.tasks || []).forEach(t => {
+        const pData = productivityCache ? productivityCache.get(t._id) : null;
+        if (pData) {
+            if (pData.isLive) {
+                liveTotalLoggedMs += calculateTaskProductivityForDate(t, selectedDate, officeHours, now.getTime());
+            } else {
+                liveTotalLoggedMs += pData.staticMs;
+            }
+        } else {
+            liveTotalLoggedMs += calculateTaskProductivityForDate(t, selectedDate, officeHours, now.getTime());
+        }
+    });
+
+    return Math.max(0, elapsedOfficeMs - liveTotalLoggedMs - (tp.blockerTimeMs || 0));
+  }, [now, isSelectedDateToday, tp.onHoldTimeMs, officeHours, tp.tasks, productivityCache, selectedDate, tp.blockerTimeMs]);
+
+  const formatMs = (ms, includeSeconds) => {
+    if (!ms || ms <= 0) return includeSeconds ? "0m 0s" : "0m";
+    const totalSecs = Math.floor(ms / 1000);
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    const mStr = String(m).padStart(2, "0");
+    const sStr = String(s).padStart(2, "0");
+    if (includeSeconds) return h > 0 ? `${h}h ${mStr}m ${sStr}s` : `${m}m`;
+    return h > 0 ? `${h}h ${mStr}m` : `${m}m`;
+  };
+
+  if (isUnproductiveRunning) {
+    return (
+        <div className="flex items-center justify-center gap-1.5 whitespace-nowrap border border-orange-500/40 bg-orange-500/10 px-2 py-0.5 rounded-full">
+          <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping shrink-0" title="Idle" />
+          <span className="text-orange-700 dark:text-orange-400 font-black text-[12px] whitespace-nowrap">
+            {formatMs(liveMs, true)}
+          </span>
+        </div>
+    );
+  }
+
+  if (!liveMs || liveMs <= 0) {
+    return <span className="text-slate-400 dark:text-slate-500 font-bold text-[11.5px]">0m</span>;
+  }
+
+  return <span className="text-orange-600 dark:text-orange-400 font-black text-[11.5px]">{formatMs(liveMs, false)}</span>;
+});
 
 const StatusCellValue = React.memo(
   ({
@@ -4024,23 +4124,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       {/* Unproductive Time */}
                       <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
                         <div className="flex flex-col items-center">
-                          {tp.onHoldTimeMs > 0 ? (
-                            <span className="text-orange-600 dark:text-orange-400 font-black text-[11.5px]">
-                              {(() => {
-                                const totalMinutes = Math.floor(
-                                  tp.onHoldTimeMs / (1000 * 60),
-                                );
-                                const h = Math.floor(totalMinutes / 60);
-                                const m = totalMinutes % 60;
-                                return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                              })()}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 dark:text-slate-500 font-bold text-[11.5px]">
-                              0m
-                            </span>
-                          )}
-
+                          <LiveUnproductiveCell
+                            tp={tp}
+                            selectedDate={selectedDate}
+                            officeHours={officeHours}
+                            productivityCache={productivityCache}
+                          />
                         </div>
                       </td>
 
