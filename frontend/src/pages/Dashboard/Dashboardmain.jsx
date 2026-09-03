@@ -1525,22 +1525,46 @@ const Dashboardmain = () => {
         <style
           dangerouslySetInnerHTML={{
             __html: `
-          @keyframes launchSuperman {
-            0% { transform: translate(-150px, 100vh) scale(0.6); }
-            10% { transform: translate(10vw, 80vh) scale(0.8); }
-            45% { transform: translate(45vw, 45vh) scale(1.1); }
-            70% { transform: translate(75vw, 25vh) scale(0.9); }
-            100% { transform: translate(105vw, -150px) scale(0.6); }
+        @keyframes launchSuperman {
+          /* LEFT BOTTOM */
+          0% {
+            transform: translate(-300px, 100vh) scale(0.6);
           }
-          .superman-container {
-            position: absolute;
-            animation: launchSuperman 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+
+          /* CENTER - reach in 0.2s */
+          13.33% {
+            transform: translate(50vw, 40vh) scale(1.1);
           }
-        `,
+
+          /* CENTER - STOP for 0.5s */
+          46.67% {
+            transform: translate(50vw, 40vh) scale(1.1);
+          }
+
+          /* TOP RIGHT */
+          100% {
+            transform: translate(105vw, -150px) scale(0.6);
+          }
+        }
+
+        .superman-container {
+          position: absolute;
+          animation: launchSuperman 1.5s linear forwards;
+          will-change: transform;
+          
+          left:600;
+          
+        }
+      `,
           }}
         />
+
         <div className="superman-container w-[300px] h-[300px]">
-          <img src={supermanImg} alt="Superman" className="w-full h-full object-contain" />
+          <img
+            src={supermanImg}
+            alt="Superman"
+            className="w-full h-full object-contain"
+          />
         </div>
       </div>
     );
