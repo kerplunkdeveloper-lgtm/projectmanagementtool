@@ -25,10 +25,11 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Filler,
 } from "chart.js";
-import { Doughnut, Line } from "react-chartjs-2";
+import { Doughnut, Line, Bar } from "react-chartjs-2";
 
 ChartJS.register(
   ArcElement,
@@ -38,6 +39,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Filler,
 );
@@ -732,105 +734,151 @@ const LiveTotalProductivityCell = React.memo(
   },
 );
 
-const LiveUnproductiveCell = React.memo(({ tp, selectedDate = new Date(), officeHours = { startTime: "09:00", endTime: "19:00" }, productivityCache }) => {
-  const isSelectedDateToday = useMemo(() => isSameDay(selectedDate || new Date(), new Date()), [selectedDate]);
+const LiveUnproductiveCell = React.memo(
+  ({
+    tp,
+    selectedDate = new Date(),
+    officeHours = { startTime: "09:00", endTime: "19:00" },
+    productivityCache,
+  }) => {
+    const isSelectedDateToday = useMemo(
+      () => isSameDay(selectedDate || new Date(), new Date()),
+      [selectedDate],
+    );
 
-  const hasLiveTask = useMemo(() => {
-    return (tp.tasks || []).some(t => isTaskLive(t, selectedDate));
-  }, [tp.tasks, selectedDate]);
+    const hasLiveTask = useMemo(() => {
+      return (tp.tasks || []).some((t) => isTaskLive(t, selectedDate));
+    }, [tp.tasks, selectedDate]);
 
-  const [now, setNow] = useState(() => new Date());
+    const [now, setNow] = useState(() => new Date());
 
-  const isWithinOfficeHours = useMemo(() => {
-    const startTimeStr = officeHours?.startTime ?? "09:00";
-    const endTimeStr = officeHours?.endTime ?? "19:00";
-    const [startH, startM] = startTimeStr.split(":").map(Number);
-    const [endH, endM] = endTimeStr.split(":").map(Number);
-    const officeStart = new Date(now);
-    officeStart.setHours(startH, startM, 0, 0);
-    const officeEnd = new Date(now);
-    officeEnd.setHours(endH, endM, 0, 0);
-    return isSelectedDateToday && now >= officeStart && now < officeEnd;
-  }, [isSelectedDateToday, officeHours, now]);
+    const isWithinOfficeHours = useMemo(() => {
+      const startTimeStr = officeHours?.startTime ?? "09:00";
+      const endTimeStr = officeHours?.endTime ?? "19:00";
+      const [startH, startM] = startTimeStr.split(":").map(Number);
+      const [endH, endM] = endTimeStr.split(":").map(Number);
+      const officeStart = new Date(now);
+      officeStart.setHours(startH, startM, 0, 0);
+      const officeEnd = new Date(now);
+      officeEnd.setHours(endH, endM, 0, 0);
+      return isSelectedDateToday && now >= officeStart && now < officeEnd;
+    }, [isSelectedDateToday, officeHours, now]);
 
-  const isUnproductiveRunning = isWithinOfficeHours && !hasLiveTask;
+    const isUnproductiveRunning = isWithinOfficeHours && !hasLiveTask;
 
-  useEffect(() => {
-    setNow(new Date());
-  }, [tp, hasLiveTask]);
+    useEffect(() => {
+      setNow(new Date());
+    }, [tp, hasLiveTask]);
 
-  useEffect(() => {
-    if (isUnproductiveRunning) {
-      const interval = setInterval(() => {
-        setNow(new Date());
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isUnproductiveRunning]);
+    useEffect(() => {
+      if (isUnproductiveRunning) {
+        const interval = setInterval(() => {
+          setNow(new Date());
+        }, 1000);
+        return () => clearInterval(interval);
+      }
+    }, [isUnproductiveRunning]);
 
-  const liveMs = useMemo(() => {
-    if (!isSelectedDateToday) return tp.onHoldTimeMs || 0;
-    
-    const startTimeStr = officeHours?.startTime ?? "09:00";
-    const [startH, startM] = startTimeStr.split(":").map(Number);
-    const officeStart = new Date(now);
-    officeStart.setHours(startH, startM, 0, 0);
+    const liveMs = useMemo(() => {
+      if (!isSelectedDateToday) return tp.onHoldTimeMs || 0;
 
-    const endTimeStr = officeHours?.endTime ?? "19:00";
-    const [endH, endM] = endTimeStr.split(":").map(Number);
-    const officeEnd = new Date(now);
-    officeEnd.setHours(endH, endM, 0, 0);
+      const startTimeStr = officeHours?.startTime ?? "09:00";
+      const [startH, startM] = startTimeStr.split(":").map(Number);
+      const officeStart = new Date(now);
+      officeStart.setHours(startH, startM, 0, 0);
 
-    const endToUse = now < officeEnd ? Math.max(now.getTime(), officeStart.getTime()) : officeEnd.getTime();
-    
-    const elapsedOfficeMs = Math.max(0, endToUse - officeStart.getTime());
+      const endTimeStr = officeHours?.endTime ?? "19:00";
+      const [endH, endM] = endTimeStr.split(":").map(Number);
+      const officeEnd = new Date(now);
+      officeEnd.setHours(endH, endM, 0, 0);
 
-    let liveTotalLoggedMs = 0;
-    (tp.tasks || []).forEach(t => {
+      const endToUse =
+        now < officeEnd
+          ? Math.max(now.getTime(), officeStart.getTime())
+          : officeEnd.getTime();
+
+      const elapsedOfficeMs = Math.max(0, endToUse - officeStart.getTime());
+
+      let liveTotalLoggedMs = 0;
+      (tp.tasks || []).forEach((t) => {
         const pData = productivityCache ? productivityCache.get(t._id) : null;
         if (pData) {
-            if (pData.isLive) {
-                liveTotalLoggedMs += calculateTaskProductivityForDate(t, selectedDate, officeHours, now.getTime());
-            } else {
-                liveTotalLoggedMs += pData.staticMs;
-            }
+          if (pData.isLive) {
+            liveTotalLoggedMs += calculateTaskProductivityForDate(
+              t,
+              selectedDate,
+              officeHours,
+              now.getTime(),
+            );
+          } else {
+            liveTotalLoggedMs += pData.staticMs;
+          }
         } else {
-            liveTotalLoggedMs += calculateTaskProductivityForDate(t, selectedDate, officeHours, now.getTime());
+          liveTotalLoggedMs += calculateTaskProductivityForDate(
+            t,
+            selectedDate,
+            officeHours,
+            now.getTime(),
+          );
         }
-    });
+      });
 
-    return Math.max(0, elapsedOfficeMs - liveTotalLoggedMs - (tp.blockerTimeMs || 0));
-  }, [now, isSelectedDateToday, tp.onHoldTimeMs, officeHours, tp.tasks, productivityCache, selectedDate, tp.blockerTimeMs]);
+      return Math.max(
+        0,
+        elapsedOfficeMs - liveTotalLoggedMs - (tp.blockerTimeMs || 0),
+      );
+    }, [
+      now,
+      isSelectedDateToday,
+      tp.onHoldTimeMs,
+      officeHours,
+      tp.tasks,
+      productivityCache,
+      selectedDate,
+      tp.blockerTimeMs,
+    ]);
 
-  const formatMs = (ms, includeSeconds) => {
-    if (!ms || ms <= 0) return includeSeconds ? "0m 0s" : "0m";
-    const totalSecs = Math.floor(ms / 1000);
-    const h = Math.floor(totalSecs / 3600);
-    const m = Math.floor((totalSecs % 3600) / 60);
-    const s = totalSecs % 60;
-    const mStr = String(m).padStart(2, "0");
-    const sStr = String(s).padStart(2, "0");
-    if (includeSeconds) return h > 0 ? `${h}h ${mStr}m ${sStr}s` : `${m}m`;
-    return h > 0 ? `${h}h ${mStr}m` : `${m}m`;
-  };
+    const formatMs = (ms, includeSeconds) => {
+      if (!ms || ms <= 0) return includeSeconds ? "0m 0s" : "0m";
+      const totalSecs = Math.floor(ms / 1000);
+      const h = Math.floor(totalSecs / 3600);
+      const m = Math.floor((totalSecs % 3600) / 60);
+      const s = totalSecs % 60;
+      const mStr = String(m).padStart(2, "0");
+      const sStr = String(s).padStart(2, "0");
+      if (includeSeconds) return h > 0 ? `${h}h ${mStr}m ${sStr}s` : `${m}m`;
+      return h > 0 ? `${h}h ${mStr}m` : `${m}m`;
+    };
 
-  if (isUnproductiveRunning) {
-    return (
+    if (isUnproductiveRunning) {
+      return (
         <div className="flex items-center justify-center gap-1.5 whitespace-nowrap border border-orange-500/40 bg-orange-500/10 px-2 py-0.5 rounded-full">
-          <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping shrink-0" title="Idle" />
+          <span
+            className="w-2 h-2 rounded-full bg-orange-500 animate-ping shrink-0"
+            title="Idle"
+          />
           <span className="text-orange-700 dark:text-orange-400 font-black text-[12px] whitespace-nowrap">
             {formatMs(liveMs, true)}
           </span>
         </div>
+      );
+    }
+
+    if (!liveMs || liveMs <= 0) {
+      return (
+        <span className="text-slate-400 dark:text-slate-500 font-bold text-[11.5px]">
+          0m
+        </span>
+      );
+    }
+
+    return (
+      <span className="text-orange-600 dark:text-orange-400 font-black text-[11.5px]">
+        {formatMs(liveMs, false)}
+      </span>
     );
-  }
-
-  if (!liveMs || liveMs <= 0) {
-    return <span className="text-slate-400 dark:text-slate-500 font-bold text-[11.5px]">0m</span>;
-  }
-
-  return <span className="text-orange-600 dark:text-orange-400 font-black text-[11.5px]">{formatMs(liveMs, false)}</span>;
-});
+  },
+);
 
 const StatusCellValue = React.memo(
   ({
@@ -1364,6 +1412,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const [bottleneckCreator, setBottleneckCreator] = useState("All Creators");
   const [bottleneckAssignee, setBottleneckAssignee] = useState("All Assignees");
   const [bottleneckStatus, setBottleneckStatus] = useState("All Statuses");
+  const [trendDesignerFilter, setTrendDesignerFilter] =
+    useState("All Designers");
   const [updateTask] = useUpdateTaskMutation();
 
   // Live Task Board filter state
@@ -2995,7 +3045,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     return `${Math.round((count / totalAssignedTasksCount) * 100)}%`;
   };
 
-  const doughnutData = {
+  const barChartData = {
     labels: [
       "Not Started",
       "In Progress",
@@ -3006,6 +3056,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     ],
     datasets: [
       {
+        label: "Tasks",
         data: [
           metrics.pending,
           metrics.inProgress,
@@ -3022,15 +3073,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           "#eab308", // On Hold (Yellow)
           "#ef4444", // Rejected (Red)
         ],
-        borderWidth: 2,
-        borderColor: isDarkMode ? "#1e293b" : "#ffffff",
-        hoverOffset: 4,
+        borderWidth: 0,
+        borderRadius: 4,
       },
     ],
   };
 
-  const doughnutOptions = {
-    cutout: "75%",
+  const barChartOptions = {
+    maintainAspectRatio: false,
+    responsive: true,
     plugins: {
       legend: {
         display: false,
@@ -3039,19 +3090,34 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         enabled: true,
         callbacks: {
           label: (context) => {
-            const label = context.label || "";
             const value = context.raw || 0;
             const percentage = getPercentageString(value);
-            return ` ${label}: ${value} (${percentage})`;
+            return ` ${value} Tasks (${percentage})`;
           },
         },
       },
     },
-    maintainAspectRatio: false,
-    responsive: true,
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: {
+          font: { size: 9, weight: "bold" },
+          color: isDarkMode ? "#94a3b8" : "#64748b",
+        },
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+        },
+        ticks: {
+          stepSize: 1,
+          font: { size: 9 },
+          color: isDarkMode ? "#94a3b8" : "#64748b",
+        },
+      },
+    },
     animation: {
-      animateRotate: true,
-      animateScale: true,
       duration: 1000,
       easing: "easeOutQuart",
     },
@@ -3072,22 +3138,28 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
   const lineChartData = {
     labels: productivityTrendData.labels,
-    datasets: productivityTrendData.datasets.map((ds, i) => {
-      const color = chartLineColors[i % chartLineColors.length];
-      return {
-        label: ds.designer.name,
-        data: ds.data.map((d) => d.hours),
-        borderColor: color,
-        borderWidth: 2,
-        pointBackgroundColor: color,
-        pointBorderColor: "#ffffff",
-        pointBorderWidth: 1.5,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.35,
-        fill: false,
-      };
-    }),
+    datasets: productivityTrendData.datasets
+      .filter(
+        (ds) =>
+          trendDesignerFilter === "All Designers" ||
+          ds.designer.name === trendDesignerFilter,
+      )
+      .map((ds, i) => {
+        const color = chartLineColors[i % chartLineColors.length];
+        return {
+          label: ds.designer.name,
+          data: ds.data.map((d) => d.hours),
+          borderColor: color,
+          borderWidth: 2,
+          pointBackgroundColor: color,
+          pointBorderColor: "#ffffff",
+          pointBorderWidth: 1.5,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          tension: 0.35,
+          fill: false,
+        };
+      }),
   };
 
   const lineChartOptions = {
@@ -4484,50 +4556,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 Based on Today Assigned
               </span>
             </div>
-          </div>
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center min-h-[180px]">
-            {/* Chart Area (7/12 width) */}
-            <div className="sm:col-span-7 relative flex items-center justify-center h-[170px]">
-              <Doughnut data={doughnutData} options={doughnutOptions} />
-              <div className="absolute flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[22px] font-black text-slate-800 dark:text-white leading-none">
-                  {metrics.tasksAssigned}
-                </span>
-                <span className="text-[8.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
-                  Total
-                </span>
+            <div className="text-right">
+              <div className="text-lg font-black text-indigo-600 dark:text-indigo-400 leading-none">
+                {metrics.tasksAssigned}
+              </div>
+              <div className="text-[8.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+                Total Tasks
               </div>
             </div>
-            {/* Custom Legend Area (5/12 width) */}
-            <div className="sm:col-span-5 space-y-1.5 px-1">
-              {statusLegendItems.map((item, index) => {
-                const total = metrics.tasksAssigned || 0;
-                const opacityStyle =
-                  total > 0 && item.count === 0 ? "opacity-40" : "";
-                return (
-                  <div
-                    key={index}
-                    className={`flex items-center justify-between text-[10.5px] font-semibold text-slate-600 dark:text-slate-350 transition-opacity duration-200 ${opacityStyle}`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="truncate max-w-[85px] text-slate-700 dark:text-slate-350 font-bold">
-                        {item.label}
-                      </span>
-                    </div>
-                    <span className="font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap ml-2">
-                      {item.count}{" "}
-                      <span className="text-[9.5px] text-slate-400 dark:text-slate-550 font-semibold">
-                        ({item.percent})
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+          </div>
+          <div className="flex-1 w-full min-h-[170px] relative mt-2">
+            <Bar data={barChartData} options={barChartOptions} />
           </div>
         </div>
 
@@ -4541,6 +4580,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide">
                 This Week
               </span>
+            </div>
+            <div>
+              <select
+                value={trendDesignerFilter}
+                onChange={(e) => setTrendDesignerFilter(e.target.value)}
+                className="px-2.5 py-1 text-[10px] font-bold bg-slate-50 dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-indigo-500 transition-all shadow-sm cursor-pointer"
+              >
+                <option value="All Designers">All Designers</option>
+                {designers.map((designer) => (
+                  <option key={designer._id} value={designer.name}>
+                    {designer.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="flex-1 min-h-[170px] relative mt-1">

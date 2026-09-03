@@ -60,6 +60,7 @@ import { getUsers } from "../../../features/users/userSlice";
 import { getProjects } from "../../../features/projects/projectSlice";
 import { getTasks } from "../../../features/tasks/taskSlice";
 import { useTheme } from "../../../context/ThemeContext";
+import toast from "react-hot-toast";
 
 const renderUserAvatarSmall = (u, sizeClass = "w-6 h-6 text-[8px]") => {
   if (!u) return null;
@@ -731,6 +732,27 @@ const Clients = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!formData.companyName || formData.companyName.trim() === "") {
+      toast.error("Company Name is required");
+      return;
+    }
+    
+    if (!formData.industry || formData.industry.trim() === "") {
+      toast.error("Industry is required");
+      return;
+    }
+    
+    if (!formData.phoneNumber || formData.phoneNumber.trim() === "") {
+      toast.error("Phone Number is required");
+      return;
+    }
+
+    if (!formData.service || formData.service.length === 0) {
+      toast.error("Please select at least one service");
+      return;
+    }
+
     const payload = {
       ...formData,
       budget: formData.budget === "" ? 0 : Number(formData.budget),
@@ -746,15 +768,21 @@ const Clients = () => {
       delete payload.assignedTo;
     }
 
-    if (editId) {
-      await dispatch(updateClient({ id: editId, data: payload }));
-    } else {
-      await dispatch(createClient(payload));
-    }
+    try {
+      if (editId) {
+        await dispatch(updateClient({ id: editId, data: payload })).unwrap();
+        toast.success("Client updated successfully");
+      } else {
+        await dispatch(createClient(payload)).unwrap();
+        toast.success("Client created successfully");
+      }
 
-    setShowModal(false);
-    setFormData(initialForm);
-    setEditId(null);
+      setShowModal(false);
+      setFormData(initialForm);
+      setEditId(null);
+    } catch (err) {
+      toast.error(err || "Failed to save client");
+    }
   };
 
   const handleEdit = (client) => {
