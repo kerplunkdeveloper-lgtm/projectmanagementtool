@@ -39,6 +39,7 @@ import {
   useDeleteGoalMutation,
 } from "../../features/api/apiSlice";
 import toast from "react-hot-toast";
+import supermanImg from "../../assets/superman.png";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -1524,122 +1525,22 @@ const Dashboardmain = () => {
         <style
           dangerouslySetInnerHTML={{
             __html: `
-          @keyframes launchRocket {
-            0% { transform: translate(-150px, 100vh) rotate(45deg) scale(0.6); }
-            10% { transform: translate(10vw, 80vh) rotate(43deg) scale(0.8); }
-            45% { transform: translate(45vw, 45vh) rotate(47deg) scale(1.1); }
-            70% { transform: translate(75vw, 25vh) rotate(42deg) scale(0.9); }
-            100% { transform: translate(105vw, -150px) rotate(45deg) scale(0.6); }
+          @keyframes launchSuperman {
+            0% { transform: translate(-150px, 100vh) scale(0.6); }
+            10% { transform: translate(10vw, 80vh) scale(0.8); }
+            45% { transform: translate(45vw, 45vh) scale(1.1); }
+            70% { transform: translate(75vw, 25vh) scale(0.9); }
+            100% { transform: translate(105vw, -150px) scale(0.6); }
           }
-          @keyframes thrustWobble {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(1px, -1px) rotate(-1deg); }
-            50% { transform: translate(-1px, 1px) rotate(1deg); }
-            75% { transform: translate(-1px, -1px) rotate(-0.5deg); }
-          }
-          @keyframes flamePulse {
-            0%, 100% { transform: scaleY(1); }
-            50% { transform: scaleY(1.3) scaleX(1.1); }
-          }
-          @keyframes particleFade {
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            100% { transform: translate(-120px, 120px) scale(0.1); opacity: 0; }
-          }
-          .rocket-container {
+          .superman-container {
             position: absolute;
-            animation: launchRocket 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-          }
-          .rocket-shaker {
-            animation: thrustWobble 0.08s infinite ease-in-out;
-          }
-          .rocket-flame {
-            transform-origin: 25px 95px;
-            animation: flamePulse 0.15s infinite ease-in-out;
-          }
-          .rainbow-particle {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(2px);
-            animation: particleFade 0.6s infinite linear;
+            animation: launchSuperman 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
           }
         `,
           }}
         />
-        <div className="rocket-container w-[160px] h-[160px]">
-          <div className="rocket-shaker w-full h-full relative">
-            {/* Rainbow particles exhaust trail */}
-            <div className="absolute top-[75px] left-[10px] pointer-events-none">
-              <div
-                className="rainbow-particle w-7 h-7 bg-red-500"
-                style={{ animationDelay: "0s", left: "-5px", top: "10px" }}
-              />
-              <div
-                className="rainbow-particle w-6 h-6 bg-orange-500"
-                style={{ animationDelay: "0.08s", left: "-12px", top: "18px" }}
-              />
-              <div
-                className="rainbow-particle w-5.5 h-5.5 bg-yellow-400"
-                style={{ animationDelay: "0.16s", left: "-18px", top: "24px" }}
-              />
-              <div
-                className="rainbow-particle w-5 h-5 bg-green-400"
-                style={{ animationDelay: "0.24s", left: "-24px", top: "30px" }}
-              />
-              <div
-                className="rainbow-particle w-4.5 h-4.5 bg-blue-400"
-                style={{ animationDelay: "0.32s", left: "-30px", top: "36px" }}
-              />
-              <div
-                className="rainbow-particle w-4 h-4 bg-indigo-500"
-                style={{ animationDelay: "0.4s", left: "-36px", top: "42px" }}
-              />
-              <div
-                className="rainbow-particle w-3 h-3 bg-purple-500"
-                style={{ animationDelay: "0.48s", left: "-42px", top: "48px" }}
-              />
-            </div>
-
-            <svg viewBox="0 0 120 120" className="w-full h-full">
-              <g className="rocket-flame">
-                <path
-                  d="M20 95 C 10 115, 25 125, 25 125 C 25 125, 40 115, 30 95 Z"
-                  fill="#ffa801"
-                />
-                <path
-                  d="M22 98 C 15 110, 25 118, 25 118 C 25 118, 35 110, 28 98 Z"
-                  fill="#ffd32a"
-                />
-              </g>
-              <path d="M15 85 C 5 85, 5 70, 20 60 Z" fill="#ef5777" />
-              <path d="M35 85 C 45 85, 45 70, 30 60 Z" fill="#ef5777" />
-              <path
-                d="M15 55 C 15 25, 25 10, 25 10 C 25 10, 35 25, 35 55 C 35 75, 33 90, 25 95 C 17 90, 15 75, 15 55 Z"
-                fill="#ffffff"
-                stroke="#dcdde1"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M18 40 C 18 30, 25 10, 25 10 C 25 10, 32 30, 32 40 Z"
-                fill="#ef5777"
-              />
-              <circle
-                cx="25"
-                cy="45"
-                r="5"
-                fill="#34e7e4"
-                stroke="#00d8d6"
-                strokeWidth="1.5"
-              />
-              <path
-                d="M23 42.5 C 25 41.5, 27 42, 27 43"
-                stroke="#ffffff"
-                strokeWidth="0.8"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <rect x="16.5" y="60" width="17" height="4" fill="#0be881" />
-            </svg>
-          </div>
+        <div className="superman-container w-[300px] h-[300px]">
+          <img src={supermanImg} alt="Superman" className="w-full h-full object-contain" />
         </div>
       </div>
     );
@@ -1774,14 +1675,14 @@ const Dashboardmain = () => {
                         className="shrink-0 focus:outline-none cursor-pointer"
                       >
                         {g.completed ? (
-                          <div className="w-4.5 h-4.5 rounded-full border border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-450">
-                            <FiCheck size={10} className="stroke-[3]" />
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 border border-emerald-600 shadow-sm shadow-emerald-500/40 flex items-center justify-center text-white transform transition-all duration-300 scale-105">
+                            <FiCheck size={11} className="stroke-[4]" />
                           </div>
                         ) : (
-                          <div className="w-4.5 h-4.5 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-700 hover:border-slate-455 transition-all">
+                          <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all duration-300 group-hover:border-emerald-400">
                             <FiCheck
-                              size={10}
-                              className="text-slate-100 dark:text-[#1e1e1e]"
+                              size={11}
+                              className="text-transparent group-hover/row:text-slate-200 dark:group-hover/row:text-slate-700 transition-colors"
                             />
                           </div>
                         )}
