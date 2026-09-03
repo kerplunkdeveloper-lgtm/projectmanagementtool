@@ -33,8 +33,9 @@ export function calculateBusinessMs(startDate, endDate, startTime = "09:00", end
   const IST_OFFSET = 330 * 60 * 1000;
   let totalMs = 0;
   
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
+  const parseTime = (t) => typeof t === 'string' ? t.split(':').map(Number) : [Number(t) || 0, 0];
+  const [startH, startM] = parseTime(startTime);
+  const [endH, endM] = parseTime(endTime);
 
   let curTime = start;
   while (curTime < end) {
