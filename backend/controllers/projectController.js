@@ -40,7 +40,29 @@ exports.getProjects = async (req, res) => {
         path: "createdBy",
         select: "name department profile profileImage profilePic avatar",
         populate: { path: "profile" }
-      });
+      }).lean();
+
+    // Fetch task stats for these projects
+    const projectIds = projects.map(p => p._id);
+    const taskStats = await Task.aggregate([
+      { $match: { project: { $in: projectIds } } },
+      { 
+        $group: { 
+          _id: "$project", 
+          total: { $sum: 1 }, 
+          completed: { 
+            $sum: { $cond: [ { $eq: ["$status", "Completed"] }, 1, 0 ] } 
+          } 
+        } 
+      }
+    ]);
+    
+    const statsMap = {};
+    taskStats.forEach(stat => statsMap[stat._id.toString()] = stat);
+    
+    projects.forEach(p => {
+       p.taskStats = statsMap[p._id.toString()] || { total: 0, completed: 0 };
+    });
 
     res.status(200).json({
       success: true,

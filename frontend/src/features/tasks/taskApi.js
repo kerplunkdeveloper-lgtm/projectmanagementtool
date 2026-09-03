@@ -1,7 +1,8 @@
 import axiosInstance from "../../services/axiosInstance";
 
-export const getTasksAPI = async () => {
-  const response = await axiosInstance.get("/tasks");
+export const getTasksAPI = async (projectId) => {
+  const url = projectId ? `/tasks?project=${projectId}` : "/tasks";
+  const response = await axiosInstance.get(url);
   return response.data;
 };
 

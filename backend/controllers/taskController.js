@@ -444,6 +444,14 @@ exports.getTasks = async (req, res) => {
       ];
     }
 
+    if (req.query.project) {
+      if (query.$or) {
+        query = { $and: [{ $or: query.$or }, { project: req.query.project }] };
+      } else {
+        query.project = req.query.project;
+      }
+    }
+
     if (req.query.active_only === 'true') {
       const fourteenDaysAgo = new Date();
       fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);

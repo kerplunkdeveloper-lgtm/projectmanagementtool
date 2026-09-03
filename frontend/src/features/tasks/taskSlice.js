@@ -9,9 +9,9 @@ import toast from "react-hot-toast";
 
 export const getTasks = createAsyncThunk(
   "tasks/getAll",
-  async (_, thunkAPI) => {
+  async (projectId, thunkAPI) => {
     try {
-      return await getTasksAPI();
+      return await getTasksAPI(projectId);
     } catch (error) {
       const message = error.response?.data?.message || error.message;
       return thunkAPI.rejectWithValue(message);

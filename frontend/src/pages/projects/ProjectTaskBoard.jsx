@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -1708,7 +1708,7 @@ const ProjectTaskBoard = ({
   // Stable empty array to prevent infinite loops when data is undefined
   const EMPTY_TASKS = useRef([]).current;
   const { data: tasks = EMPTY_TASKS, isLoading: tasksLoading } =
-    useGetTasksQuery();
+    useGetTasksQuery({ project: activeProjectId }, { skip: !activeProjectId });
   const [createTaskMutation] = useCreateTaskMutation();
   const [updateTaskMutation] = useUpdateTaskMutation();
   const [deleteTaskMutation] = useDeleteTaskMutation();
@@ -3394,6 +3394,34 @@ const ProjectTaskBoard = ({
     setExpandedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
   };
 
+  const sectionsWithTasks = useMemo(() => {
+    const projectSections = activeProject?.sections || [];
+    const taskSections = sortedTasks.map((t) => t.section || "General");
+    const rawSections = [...projectSections, ...taskSections];
+    const sectionsToRender = Array.from(
+      new Set(rawSections.length > 0 ? rawSections : ["General"])
+    );
+
+    return sectionsToRender.map((sectionName) => {
+      const sectionTasks = sortedTasks
+        .filter(
+          (t) =>
+            t.section === sectionName ||
+            (!t.section && sectionName === "General")
+        )
+        .sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateA - dateB;
+        });
+      
+      return {
+        sectionName,
+        sectionTasks,
+      };
+    });
+  }, [sortedTasks, activeProject?.sections]);
+
   // Dashboard calculations
   const totalTasks = activeProjectTasks.length;
   const completedTasks = activeProjectTasks.filter(
@@ -3705,7 +3733,15 @@ const ProjectTaskBoard = ({
       </div>
 
       {/* TAB CONTENT */}
-      <div className="min-h-[400px]">
+      <div className="min-h-[400px] relative">
+          {tasksLoading && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 dark:bg-[#0f172a]/60 backdrop-blur-sm rounded-xl">
+              <FiLoader size={36} className="animate-spin text-blue-500 mb-4" />
+              <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tracking-wide">
+                Loading Tasks...
+              </p>
+            </div>
+          )}
           <DragDropContext onDragEnd={handleDragEnd}>
             {(() => {
               const showSelectionColumn = Object.values(
@@ -4175,24 +4211,8 @@ const ProjectTaskBoard = ({
                             </tr>
                           </thead>
                           {(() => {
-                            const projectSections =
-                              activeProject.sections || [];
-                            const taskSections = sortedTasks.map(
-                              (t) => t.section || "General",
-                            );
-                            const rawSections = [
-                              ...projectSections,
-                              ...taskSections,
-                            ];
-                            const sectionsToRender = Array.from(
-                              new Set(
-                                rawSections.length > 0
-                                  ? rawSections
-                                  : ["General"],
-                              ),
-                            );
                             const hasNoSectionsAndNoTasks =
-                              sectionsToRender.length === 0 &&
+                              sectionsWithTasks.length === 0 &&
                               sortedTasks.length === 0;
                             if (hasNoSectionsAndNoTasks) {
                               return (
@@ -4201,19 +4221,8 @@ const ProjectTaskBoard = ({
                                 </tbody>
                               );
                             }
-                            return sectionsToRender.map(
-                              (sectionName, sectionIndex) => {
-                                const sectionTasks = sortedTasks
-                                  .filter(
-                                    (t) =>
-                                      t.section === sectionName ||
-                                      (!t.section && sectionName === "General"),
-                                  )
-                                  .sort((a, b) => {
-                                    const dateA = new Date(a.createdAt || 0);
-                                    const dateB = new Date(b.createdAt || 0);
-                                    return dateA - dateB; // Sort ascending (one by one)
-                                  });
+                            return sectionsWithTasks.map(
+                              ({ sectionName, sectionTasks }, sectionIndex) => {
                                 const isSectionCollapsed =
                                   !!collapsedSections[sectionName];
 

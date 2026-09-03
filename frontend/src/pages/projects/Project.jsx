@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -162,7 +162,6 @@ const Project = () => {
     dispatch(getProjects());
     dispatch(getClients());
     dispatch(getUsers());
-    dispatch(getTasks());
     dispatch(getPortfolios());
   }, [dispatch]);
 
@@ -176,28 +175,32 @@ const Project = () => {
     currentUser?.role === "team";
 
   // Filter projects
-  const filteredProjects = projects.filter((project) => {
-    const matchesSearch = project.name
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "All" || project.status === statusFilter;
-    const matchesCreatedBy =
-      createdByFilter === "All" ||
-      (project.createdBy && project.createdBy._id === createdByFilter) ||
-      project.createdBy === createdByFilter;
-    const matchesClient =
-      clientFilter === "All" ||
-      (project.client && project.client._id === clientFilter) ||
-      project.client === clientFilter;
-    return matchesSearch && matchesStatus && matchesCreatedBy && matchesClient;
-  });
+  const filteredProjects = useMemo(() => {
+    return projects.filter((project) => {
+      const matchesSearch = project.name
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === "All" || project.status === statusFilter;
+      const matchesCreatedBy =
+        createdByFilter === "All" ||
+        (project.createdBy && project.createdBy._id === createdByFilter) ||
+        project.createdBy === createdByFilter;
+      const matchesClient =
+        clientFilter === "All" ||
+        (project.client && project.client._id === clientFilter) ||
+        project.client === clientFilter;
+      return matchesSearch && matchesStatus && matchesCreatedBy && matchesClient;
+    });
+  }, [projects, searchTerm, statusFilter, createdByFilter, clientFilter]);
 
   const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
-  const paginatedProjects = filteredProjects.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
+  const paginatedProjects = useMemo(() => {
+    return filteredProjects.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage,
+    );
+  }, [filteredProjects, currentPage]);
 
   // Handle modal trigger
   const handleOpenCreate = () => {
@@ -482,14 +485,6 @@ const Project = () => {
             </thead>
             <tbody className="text-xs bg-white dark:bg-slate-950/20">
               {paginatedProjects.map((project, index) => {
-                const projectPortfolio = portfolios.find((port) =>
-                  (port.projectIds || []).some((id) =>
-                    typeof id === "object" && id !== null
-                      ? id._id === project._id
-                      : id === project._id,
-                  ),
-                );
-
                 return (
                   <tr
                     key={project._id}
@@ -616,22 +611,16 @@ const Project = () => {
                     </td>
                     <td className="px-4 py-2 ">
                       {(() => {
-                        const projectTasks = tasks.filter(
-                          (t) =>
-                            t.project?._id === project._id ||
-                            t.project === project._id,
-                        );
-                        const total = projectTasks.length;
-                        const completed = projectTasks.filter(
-                          (t) => t.status === "Completed",
-                        ).length;
+                        const stats = project.taskStats || { total: 0, completed: 0 };
+                        const total = stats.total;
+                        const completed = stats.completed;
                         const percent =
                           total > 0 ? Math.round((completed / total) * 100) : 0;
                         return (
                           <div className="flex items-center gap-2 max-w-[180px]">
                             <div className="w-16 bg-slate-100 dark:bg-slate-700 h-1.5 rounded overflow-hidden shrink-0">
                               <div
-                                className="bg-blue-600 dark:bg-[#3b82f6] h-full rounded transition-all duration-350"
+                                className="bg-blue-600 dark:bg-[#3b82f6] h-full rounded"
                                 style={{ width: `${percent}%` }}
                               />
                             </div>
