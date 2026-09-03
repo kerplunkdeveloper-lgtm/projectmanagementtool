@@ -9,10 +9,14 @@ import { exitImpersonation } from "../../features/auth/authSlice";
 import { apiSlice } from "../../features/api/apiSlice";
 import HorizontalSidebar from "./HorizontalSidebar";
 import { useTheme } from "../../context/ThemeContext";
+import { usePresence } from "../../hooks/usePresence";
+import PresenceWidget from "../common/PresenceWidget";
 
 const DashboardLayout = ({ role }) => {
   const { sidebarLayout } = useTheme();
-  useSocket();
+  const socket = useSocket();
+  const { user, originalAdminUser } = useSelector((state) => state.auth);
+  const presence = usePresence(socket, user?._id || user?.id);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,7 +25,6 @@ const DashboardLayout = ({ role }) => {
   const [sidebarOpen, setSidebarOpen] = useState(
     () => window.innerWidth >= 1024,
   );
-  const { user, originalAdminUser } = useSelector((state) => state.auth);
   const mainContainerRef = useRef(null);
 
   // Core page chunks are now preloaded on hover in the Sidebar instead of all at once here.
@@ -104,7 +107,7 @@ const DashboardLayout = ({ role }) => {
         )}
 
         {/* NAVBAR */}
-        {!isChatPage && <Navbar setSidebarOpen={setSidebarOpen} />}
+        {!isChatPage && <Navbar setSidebarOpen={setSidebarOpen} presence={presence} />}
 
         {/* HORIZONTAL SIDEBAR */}
         {sidebarLayout === "horizontal" && (
@@ -112,7 +115,6 @@ const DashboardLayout = ({ role }) => {
             <HorizontalSidebar role={role} />
           </div>
         )}
-
         {/* SCROLLABLE CONTENT */}
         <main
           ref={mainContainerRef}

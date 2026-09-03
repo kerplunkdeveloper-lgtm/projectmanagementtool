@@ -234,6 +234,7 @@ const userPresence = {}; // userId -> { status: 'online' | 'offline', lastSeen: 
 const Message = require('./models/Message');
 const ChatRoom = require('./models/ChatRoom');
 const User = require('./models/User');
+const { handlePresenceChange } = require('./utils/presenceService');
 
 // Socket.io connection logic
 io.on('connection', (socket) => {
@@ -259,18 +260,31 @@ io.on('connection', (socket) => {
       lastSeen: new Date(),
     };
     
+    // Notify through presence service to handle auto-resuming tasks
+    await handlePresenceChange(io, userId, 'online');
+
     // Send complete presence state to the newly joined socket
     socket.emit('presence_state', userPresence);
 
     // Broadcast the list of currently online userIds to everyone
     io.emit('online_users_list', Object.keys(onlineUsers));
 
-    // Broadcast individual user:presence update
-    io.emit('user:presence', {
-      userId: userId.toString(),
-      status: 'online',
-      lastSeen: userPresence[userId].lastSeen,
-    });
+  });
+
+  socket.on('heartbeat', async ({ status, lastActivityAt }) => {
+    const userId = socketToUser[socket.id];
+    if (!userId) return;
+
+    if (userPresence[userId]) {
+      userPresence[userId].lastSeen = new Date();
+      if (status) {
+        userPresence[userId].status = status;
+      }
+    }
+
+    if (status) {
+      await handlePresenceChange(io, userId, status, lastActivityAt ? new Date(lastActivityAt) : new Date());
+    }
   });
 
   // Real-Time Group Message Read Receipts (Seen By)
@@ -415,17 +429,7 @@ io.on('connection', (socket) => {
             lastSeen: lastSeenDate,
           };
 
-          // Broadcast offline status to everyone
-          io.emit('user:presence', {
-            userId: userId,
-            status: 'offline',
-            lastSeen: lastSeenDate,
-          });
-
-          // Asynchronously persist to database
-          User.findByIdAndUpdate(userId, { lastSeen: lastSeenDate }).catch((err) => {
-            console.error('Error updating user lastSeen:', err);
-          });
+          await handlePresenceChange(io, userId, 'offline', lastSeenDate);
         }
       }
       // Broadcast updated online list

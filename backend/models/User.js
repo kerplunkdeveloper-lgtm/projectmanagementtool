@@ -108,6 +108,17 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
 
+  presenceStatus: {
+    type: String,
+    enum: ['online', 'away', 'offline'],
+    default: 'offline',
+  },
+
+  lastActivityAt: {
+    type: Date,
+    default: Date.now,
+  },
+
   employmentStatus: {
     type: String,
     enum: ['active', 'relieved'],
