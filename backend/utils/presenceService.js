@@ -40,6 +40,32 @@ const handlePresenceChange = async (io, userId, newStatus, lastActivityAt = new 
         task.pausedAt = lastActivityAt || new Date();
         task.autoPaused = true;
         await task.save();
+        io.emit('task_updated', { taskId: task._id });
+      }
+
+      // Also pause any In Progress subtasks assigned to this user
+      const tasksWithSubtasksToPause = await Task.find({
+        'subtasks.assignedTo': userId,
+        'subtasks.status': { $in: ['In Progress', 'In-Progress'] },
+        'subtasks.pausedAt': null
+      });
+
+      for (const task of tasksWithSubtasksToPause) {
+        let changed = false;
+        task.subtasks.forEach(sub => {
+          const isAssigned = Array.isArray(sub.assignedTo)
+            ? sub.assignedTo.some(u => (u?._id || u).toString() === userId.toString())
+            : (sub.assignedTo?._id || sub.assignedTo)?.toString() === userId.toString();
+          if (isAssigned && (sub.status === 'In Progress' || sub.status === 'In-Progress') && !sub.pausedAt) {
+            sub.pausedAt = lastActivityAt || new Date();
+            sub.autoPaused = true;
+            changed = true;
+          }
+        });
+        if (changed) {
+          await task.save();
+          io.emit('task_updated', { taskId: task._id });
+        }
       }
     } else if (newStatus === 'online' && (oldStatus === 'away' || oldStatus === 'offline')) {
       // Resume any auto-paused In Progress tasks
@@ -56,13 +82,9 @@ const handlePresenceChange = async (io, userId, newStatus, lastActivityAt = new 
       const now = new Date();
       for (const task of tasksToResume) {
         const pauseDurationMs = now.getTime() - new Date(task.pausedAt).getTime();
-        
-        // Calculate business ms paused to not penalize off-hours if we track business pause
-        // In simple terms, just add to totalPausedMs
         task.totalPausedMs = (task.totalPausedMs || 0) + pauseDurationMs;
         
-        // Try calculating business pause time if startHour/endHour exist (defaults)
-        const bizPause = calculateBusinessMs(new Date(task.pausedAt).getTime(), now.getTime(), 9, 19, [1,2,3,4,5,6]);
+        const bizPause = calculateBusinessMs(new Date(task.pausedAt).getTime(), now.getTime(), "09:00", "19:00", [1,2,3,4,5,6]);
         task.businessTotalPausedMs = (task.businessTotalPausedMs || 0) + Math.max(0, bizPause);
         
         task.pausedAt = null;
@@ -70,7 +92,42 @@ const handlePresenceChange = async (io, userId, newStatus, lastActivityAt = new 
         await task.save();
         
         resumedAnyTask = true;
-        totalOfflineMs = pauseDurationMs; // assume roughly same for all tasks of this user
+        totalOfflineMs = pauseDurationMs;
+        io.emit('task_updated', { taskId: task._id });
+      }
+
+      // Resume any auto-paused In Progress subtasks
+      const tasksWithSubtasksToResume = await Task.find({
+        'subtasks.assignedTo': userId,
+        'subtasks.status': { $in: ['In Progress', 'In-Progress'] },
+        'subtasks.autoPaused': true,
+        'subtasks.pausedAt': { $ne: null }
+      });
+
+      for (const task of tasksWithSubtasksToResume) {
+        let changed = false;
+        task.subtasks.forEach(sub => {
+          const isAssigned = Array.isArray(sub.assignedTo)
+            ? sub.assignedTo.some(u => (u?._id || u).toString() === userId.toString())
+            : (sub.assignedTo?._id || sub.assignedTo)?.toString() === userId.toString();
+          if (isAssigned && (sub.status === 'In Progress' || sub.status === 'In-Progress') && sub.autoPaused && sub.pausedAt) {
+            const pauseDurationMs = now.getTime() - new Date(sub.pausedAt).getTime();
+            sub.totalPausedMs = (sub.totalPausedMs || 0) + pauseDurationMs;
+
+            const bizPause = calculateBusinessMs(new Date(sub.pausedAt).getTime(), now.getTime(), "09:00", "19:00", [1,2,3,4,5,6]);
+            sub.businessTotalPausedMs = (sub.businessTotalPausedMs || 0) + Math.max(0, bizPause);
+
+            sub.pausedAt = null;
+            sub.autoPaused = false;
+            changed = true;
+            resumedAnyTask = true;
+            totalOfflineMs = pauseDurationMs;
+          }
+        });
+        if (changed) {
+          await task.save();
+          io.emit('task_updated', { taskId: task._id });
+        }
       }
 
       // If we resumed a task, emit the welcome back event

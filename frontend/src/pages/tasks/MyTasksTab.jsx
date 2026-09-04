@@ -53,6 +53,17 @@ import { BlockTaskModal } from "../../components/BlockTaskModal";
 import StatusHistoryTable from "../../components/common/StatusHistoryTable";
 import { calculateTaskProductivityForDate } from "../Dashboard/cards/GraphicDesignerDashboard";
 
+const MemoizedBlock = React.memo(({ render }) => {
+  return render();
+}, (prev, next) => {
+  if (!prev.deps || !next.deps) return false;
+  if (prev.deps.length !== next.deps.length) return false;
+  for (let i = 0; i < prev.deps.length; i++) {
+    if (prev.deps[i] !== next.deps[i]) return false;
+  }
+  return true;
+});
+
 const isSameDate = (d1, d2) => {
   if (!d1 || !d2) return false;
   try {
@@ -3084,6 +3095,9 @@ const MyTasksTab = ({
           </p>
         </div>
       ) : viewType === "kanban" ? (
+        <MemoizedBlock 
+          deps={[filteredTasks, tasks, draggedTaskId, projectsMap, expandedTasks, users, dateFilter, officeHours]}
+          render={() => (
         <div className="flex gap-6 overflow-x-auto pb-8 pt-2 scrollbar-thin px-2">
           {[
             "Not Started",
@@ -3236,7 +3250,11 @@ const MyTasksTab = ({
             );
           })}
         </div>
+        )} />
       ) : (
+        <MemoizedBlock 
+          deps={[sortedTasks, tasks, hiddenColumns, expandedTasks, dateFilter, officeHours, projectsMap, users, visibleColCount, currentPage, itemsPerPage, totalItems, totalPages]}
+          render={() => (
         <div className="space-y-4">
           <div className="bg-white dark:bg-[#0f111a] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden  transition-all">
             <div className="overflow-x-auto max-h-[calc(100vh-220px)] w-full scrollbar-thin">
@@ -3268,6 +3286,15 @@ const MyTasksTab = ({
                         colWidths={colWidths}
                         handleMouseDown={handleMouseDown}
                         defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap"
+                      />
+                    )}
+                    {!hiddenColumns.contentCopy && (
+                      <ResizableHeader
+                        id="contentCopy"
+                        label="Content Copy"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
                       />
                     )}
                     {!hiddenColumns.client && (
@@ -3378,15 +3405,6 @@ const MyTasksTab = ({
                         defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-52 whitespace-nowrap"
                       />
                     )}
-                    {!hiddenColumns.contentCopy && (
-                      <ResizableHeader
-                        id="contentCopy"
-                        label="Content Copy"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
-                      />
-                    )}
                     {!hiddenColumns.createdTime && (
                       <ResizableHeader
                         id="createdTime"
@@ -3394,15 +3412,6 @@ const MyTasksTab = ({
                         colWidths={colWidths}
                         handleMouseDown={handleMouseDown}
                         defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[200px] w-56"
-                      />
-                    )}
-                    {!hiddenColumns.feedbackMom && (
-                      <ResizableHeader
-                        id="feedbackMom"
-                        label="Feedback MOM"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[170px] max-w-[280px]"
                       />
                     )}
                   </tr>
@@ -3461,11 +3470,11 @@ const MyTasksTab = ({
                                     className={`flex items-center gap-2 ${isCompleted ? "line-through text-slate-400" : "text-slate-800 dark:text-white"}`}
                                   >
                                     <BiFile
-                                      size={25}
+                                      size={20}
                                       className="text-slate-400 shrink-0"
                                     />
                                     <span
-                                      className="text-sm font-black truncate max-w-[260px]"
+                                      className="text-sm font-medium truncate max-w-[260px]"
                                       title={task.title}
                                     >
                                       {task.title}
@@ -3492,6 +3501,40 @@ const MyTasksTab = ({
                                       </button>
                                     )}
                                   </div>
+                                </div>
+                              </td>
+                            )}
+
+                            {!hiddenColumns.contentCopy && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
+                                  {task.contentCopy ? (
+                                    <>
+                                      <span>{task.contentCopy}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(
+                                            task.contentCopy,
+                                          );
+                                          toast.success(
+                                            "Content copied to clipboard!",
+                                          );
+                                        }}
+                                        className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
+                                        title="Copy to clipboard"
+                                      >
+                                        <FiCopy size={12} />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span className="text-slate-400 italic font-normal">
+                                      —
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                             )}
@@ -3818,63 +3861,9 @@ const MyTasksTab = ({
                               </td>
                             )}
 
-                            {!hiddenColumns.contentCopy && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
-                                  {task.contentCopy ? (
-                                    <>
-                                      <span>{task.contentCopy}</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(
-                                            task.contentCopy,
-                                          );
-                                          toast.success(
-                                            "Content copied to clipboard!",
-                                          );
-                                        }}
-                                        className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
-                                        title="Copy to clipboard"
-                                      >
-                                        <FiCopy size={12} />
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <span className="text-slate-400 italic font-normal">
-                                      —
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            )}
-
                             {!hiddenColumns.createdTime && (
                               <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-[11.5px]">
                                 <CreatedTime time={task.createdAt} />
-                              </td>
-                            )}
-
-                            {!hiddenColumns.feedbackMom && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[170px] max-w-[280px]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {task.contentType === "MOM" ? (
-                                  <MomFeedbackInput
-                                    task={task}
-                                    onSave={(id, fields) =>
-                                      handleTaskFieldChange(id, fields)
-                                    }
-                                  />
-                                ) : (
-                                  <span className="text-slate-300 dark:text-slate-600 font-semibold text-xs flex justify-center">
-                                    —
-                                  </span>
-                                )}
                               </td>
                             )}
                           </tr>
@@ -3995,6 +3984,7 @@ const MyTasksTab = ({
             )}
           </div>
         </div>
+        )} />
       )}
 
       {/* SUBMIT FOR REVIEW CONFIRMATION MODAL */}

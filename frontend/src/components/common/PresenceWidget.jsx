@@ -12,74 +12,142 @@ const PresenceWidget = ({ presence, layout = "floating" }) => {
   const [activeTask, setActiveTask] = useState(null);
 
   useEffect(() => {
-    if (!tasksData || !tasksData.data || !user) return;
-    
-    // Find any "In Progress" task for the current user
-    const inProgressTask = tasksData.data.find(
-      (t) =>
-        t.status === "In Progress" &&
-        (t.assignedTo?._id === user?._id || t.assignedTo === user?._id)
-    );
-    
-    if (inProgressTask) {
-      setActiveTask(inProgressTask);
+    if (!tasksData || !user) return;
+    const tasksList = Array.isArray(tasksData)
+      ? tasksData
+      : tasksData?.data || [];
+    const userIdStr = (user?._id || user?.id)?.toString();
+
+    // Find any "In Progress" task or subtask for the current user
+    let foundTask = null;
+    let foundSubtask = null;
+
+    for (const t of tasksList) {
+      const isTaskInProgress =
+        t.status === "In Progress" || t.status === "In-Progress";
+      const isAssignee = Array.isArray(t.assignedTo)
+        ? t.assignedTo.some((u) => (u?._id || u)?.toString() === userIdStr)
+        : (t.assignedTo?._id || t.assignedTo)?.toString() === userIdStr;
+
+      if (isAssignee && isTaskInProgress) {
+        foundTask = t;
+        break;
+      }
+
+      const activeSub = t.subtasks?.find((sub) => {
+        const isSubInProgress =
+          sub.status === "In Progress" || sub.status === "In-Progress";
+        const isSubAssignee = Array.isArray(sub.assignedTo)
+          ? sub.assignedTo.some((u) => (u?._id || u)?.toString() === userIdStr)
+          : (sub.assignedTo?._id || sub.assignedTo)?.toString() === userIdStr;
+        return isSubAssignee && isSubInProgress;
+      });
+
+      if (activeSub) {
+        foundTask = t;
+        foundSubtask = activeSub;
+        break;
+      }
+    }
+
+    if (foundTask) {
+      setActiveTask({
+        task: foundTask,
+        target: foundSubtask || foundTask,
+        isSubtask: !!foundSubtask,
+        title: foundSubtask
+          ? `${foundTask.title} (${foundSubtask.title})`
+          : foundTask.title,
+        status: (foundSubtask || foundTask).status,
+        pausedAt: (foundSubtask || foundTask).pausedAt,
+        autoPaused: (foundSubtask || foundTask).autoPaused,
+        actualStartTime: (foundSubtask || foundTask).actualStartTime,
+        totalTrackedTime: (foundSubtask || foundTask).totalTrackedTime || 0,
+        totalPausedMs: (foundSubtask || foundTask).totalPausedMs || 0,
+      });
     } else {
       setActiveTask(null);
+      setProductiveTime("");
     }
   }, [tasksData, user]);
 
   useEffect(() => {
     if (!activeTask) return;
-    
-    const interval = setInterval(() => {
-      let totalMs = activeTask.totalLoggedMs || 0;
-      
-      if (!activeTask.pausedAt && activeTask.actualStartTime) {
-        let sessionStart = new Date(activeTask.actualStartTime).getTime();
-        const elapsed = Date.now() - sessionStart - (activeTask.totalPausedMs || 0);
+
+    const updateTimer = () => {
+      const target = activeTask.target || activeTask;
+      let totalMs = target.totalTrackedTime || 0;
+
+      if (!target.pausedAt && target.actualStartTime) {
+        let sessionStart = new Date(target.actualStartTime).getTime();
+        const elapsed = Date.now() - sessionStart - (target.totalPausedMs || 0);
         totalMs += Math.max(0, elapsed);
       }
-      
+
       const totalMinutes = Math.floor(totalMs / 60000);
       const hours = Math.floor(totalMinutes / 60);
       const mins = totalMinutes % 60;
       setProductiveTime(`${hours}h ${mins}m`);
-    }, 1000);
-    
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+
     return () => clearInterval(interval);
   }, [activeTask]);
 
   if (!user) return null;
 
   // Do not show widget for management roles
-  const hiddenRoles = ['admin', 'operation manager', 'social media manager', 'operationmanager', 'socialmediamanager'];
+  const hiddenRoles = [
+    "admin",
+    "operation manager",
+    "social media manager",
+    "operationmanager",
+    "socialmediamanager",
+  ];
   if (user.role && hiddenRoles.includes(user.role.toLowerCase())) {
     return null;
   }
 
   const getPresenceDisplay = () => {
     switch (presence) {
-      case "online": return { color: "text-emerald-500", dot: "bg-emerald-500 animate-pulse", text: "Online" };
-      case "away": return { color: "text-amber-500", dot: "bg-amber-500", text: "Away" };
-      case "offline": return { color: "text-rose-500", dot: "bg-rose-500", text: "Offline" };
-      default: return { color: "text-slate-400", dot: "bg-slate-400", text: "Unknown" };
+      case "online":
+        return {
+          color: "text-emerald-500",
+          dot: "bg-emerald-500 animate-pulse",
+          text: "Online",
+        };
+      case "away":
+        return { color: "text-amber-500", dot: "bg-amber-500", text: "Away" };
+      case "offline":
+        return { color: "text-rose-500", dot: "bg-rose-500", text: "Offline" };
+      default:
+        return {
+          color: "text-slate-400",
+          dot: "bg-slate-400",
+          text: "Unknown",
+        };
     }
   };
 
   const pDisplay = getPresenceDisplay();
-  const isWorking = activeTask && !activeTask.pausedAt && !activeTask.autoPaused;
+  const isWorking =
+    activeTask && !activeTask.pausedAt && !activeTask.autoPaused;
   const isPaused = activeTask && (activeTask.pausedAt || activeTask.autoPaused);
 
   if (layout === "navbar") {
     return (
       <div className="hidden md:flex items-center gap-3 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700/60 mr-2">
-        <div className={`flex items-center gap-1.5 text-[11px] font-bold ${pDisplay.color}`}>
+        <div
+          className={`flex items-center gap-1.5 text-[11px] font-bold ${pDisplay.color}`}
+        >
           <span className={`w-2 h-2 rounded-full ${pDisplay.dot}`} />
           {pDisplay.text}
         </div>
-        
+
         <div className="w-[1px] h-3 bg-slate-300 dark:bg-slate-600"></div>
-        
+
         <div className="flex items-center gap-1.5">
           {isWorking ? (
             <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">
@@ -105,12 +173,14 @@ const PresenceWidget = ({ presence, layout = "floating" }) => {
         <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
           User: {user.name}
         </span>
-        <div className={`flex items-center gap-1.5 text-xs font-black ${pDisplay.color}`}>
+        <div
+          className={`flex items-center gap-1.5 text-xs font-black ${pDisplay.color}`}
+        >
           <span className={`w-2 h-2 rounded-full ${pDisplay.dot}`} />
           {pDisplay.text}
         </div>
       </div>
-      
+
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           {isWorking ? (
@@ -137,13 +207,17 @@ const PresenceWidget = ({ presence, layout = "floating" }) => {
               {activeTask.title}
             </div>
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-slate-500 dark:text-slate-400">Status:</span>
+              <span className="text-slate-500 dark:text-slate-400">
+                Status:
+              </span>
               <span className="font-bold text-indigo-600 dark:text-indigo-400">
                 {activeTask.status}
               </span>
             </div>
             <div className="flex justify-between items-center text-[11px] mt-1">
-              <span className="text-slate-500 dark:text-slate-400">Productive Time:</span>
+              <span className="text-slate-500 dark:text-slate-400">
+                Productive Time:
+              </span>
               <span className="font-black text-slate-800 dark:text-slate-200 font-mono">
                 {productiveTime || "0h 0m"}
               </span>
