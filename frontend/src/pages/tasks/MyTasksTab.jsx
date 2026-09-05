@@ -1363,6 +1363,7 @@ const MyTasksTab = ({
       blockedTime: false,
       timeTracker: false,
       revision: false,
+      correctionHistory: false,
       startDate: false,
       endDate: false,
       assignedBy: false,
@@ -2376,8 +2377,9 @@ const MyTasksTab = ({
       "Status",
       "Productivity",
       "Unproductivity",
-      "Total time spent for this task ",
       "Revision",
+      "Correction History",
+      "Total time spent for this task ",
       "Start Date",
       "DUE DATE",
       "Assigned By",
@@ -2468,7 +2470,10 @@ const MyTasksTab = ({
         ? new Date(task.createdAt).toLocaleString()
         : "—";
       const contentCopy = task.contentCopy || task.copy || "—";
-      const revisionCount = task.reviewCycles?.length || 0;
+      const revisionCount = task.revisions || (task.correctionHistory?.length ? task.correctionHistory.length : 0);
+      const correctionHistoryStr = (task.correctionHistory || [])
+        .map((c, i) => `#${i + 1}: ${c.reason || ""}`)
+        .join(" | ") || "—";
 
       const { activeStr, totalStr } = computeTaskTimes(task);
       const approvalStr = computeApprovalStr(task);
@@ -2482,8 +2487,9 @@ const MyTasksTab = ({
         task.contentType || "NONE",
         task.status || "Not Started",
         activeStr,
-        totalStr,
         revisionCount,
+        correctionHistoryStr,
+        totalStr,
         startDate,
         dueDate,
         createdBy,
@@ -2674,9 +2680,10 @@ const MyTasksTab = ({
                         { key: "activeTime", label: "Productivity" },
                         { key: "holdReason", label: "Hold Reason" },
                         { key: "blockedTime", label: "Blocked" },
+                        { key: "revision", label: "Revision" },
+                        { key: "correctionHistory", label: "Correction History" },
                         { key: "feedbackMom", label: "Feedback MOM" },
                         { key: "timeTracker", label: "Total time spent for this task " },
-                        { key: "revision", label: "Revision" },
                         { key: "startDate", label: "Start Date" },
                         { key: "endDate", label: "Due Date" },
                         { key: "assignedBy", label: "Assigned By" },
@@ -3342,6 +3349,24 @@ const MyTasksTab = ({
                         defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
                       />
                     )}
+                    {!hiddenColumns.revision && (
+                      <ResizableHeader
+                        id="revision"
+                        label="Revision"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
+                      />
+                    )}
+                    {!hiddenColumns.correctionHistory && (
+                      <ResizableHeader
+                        id="correctionHistory"
+                        label="Correction History"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 text-center"
+                      />
+                    )}
                     {!hiddenColumns.timeTracker && (
                       <ResizableHeader
                         id="timeTracker"
@@ -3349,15 +3374,6 @@ const MyTasksTab = ({
                         colWidths={colWidths}
                         handleMouseDown={handleMouseDown}
                         defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.revision && (
-                      <ResizableHeader
-                        id="revision"
-                        label="Revision"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28"
                       />
                     )}
                     {!hiddenColumns.startDate && (
@@ -3744,6 +3760,60 @@ const MyTasksTab = ({
                               </td>
                             )}
 
+                            {!hiddenColumns.revision && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex justify-center items-center gap-1.5">
+                                  <span className="font-extrabold text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20 shadow-xs">
+                                    {task.revisions || (task.correctionHistory?.length ? task.correctionHistory.length : 0)}
+                                  </span>
+                                </div>
+                              </td>
+                            )}
+
+                            {!hiddenColumns.correctionHistory && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] max-w-[260px] text-left"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {(() => {
+                                  const history = task.correctionHistory || [];
+                                  if (history.length === 0) {
+                                    return (
+                                      <span className="text-slate-300 dark:text-slate-600 font-semibold text-xs flex justify-center">
+                                        —
+                                      </span>
+                                    );
+                                  }
+                                  const latest = history[history.length - 1];
+                                  return (
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-400 font-extrabold text-[10px] rounded border border-orange-200 dark:border-orange-800 shrink-0">
+                                          {history.length} {history.length === 1 ? "Correction" : "Corrections"}
+                                        </span>
+                                        {latest.requestedAt && (
+                                          <span className="text-[10px] text-slate-400 font-bold">
+                                            {new Date(latest.requestedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {latest.reason && (
+                                        <span
+                                          className="text-[11px] font-medium text-slate-700 dark:text-slate-300 line-clamp-2"
+                                          title={latest.reason}
+                                        >
+                                          "{latest.reason}"
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                            )}
+
                             {!hiddenColumns.timeTracker && (
                               <td
                                 className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
@@ -3754,19 +3824,6 @@ const MyTasksTab = ({
                                   dateFilter={dateFilter}
                                   officeHours={officeHours}
                                 />
-                              </td>
-                            )}
-
-                            {!hiddenColumns.revision && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div className="flex justify-center items-center gap-1.5">
-                                  <span className="font-extrabold text-[11px] text-slate-805 dark:text-yellow-50 text-center">
-                                    {task.revisions || 0}
-                                  </span>
-                                </div>
                               </td>
                             )}
 

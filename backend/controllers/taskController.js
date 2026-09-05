@@ -428,24 +428,29 @@ exports.getTasks = async (req, res) => {
     let query = {};
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const Client = require("../models/Client");
-      const assignedClients = await Client.find({ assignedTo: req.user._id }).select("_id").lean();
+      const [assignedClients, usersInSameDept] = await Promise.all([
+        Client.find({ assignedTo: req.user._id }).select("_id").lean(),
+        req.user.department
+          ? User.find({ department: req.user.department }).select("_id").lean()
+          : Promise.resolve([])
+      ]);
+
       const clientIds = assignedClients.map(c => c._id);
+      const userIds = usersInSameDept.map(u => u._id);
 
-      // Projects of assigned clients
-      const assignedProjects = await Project.find({ client: { $in: clientIds } }).select("_id").lean();
+      const [assignedProjects, projectsInDept] = await Promise.all([
+        Project.find({ client: { $in: clientIds } }).select("_id").lean(),
+        userIds.length > 0
+          ? Project.find({ createdBy: { $in: userIds } }).select("_id").lean()
+          : Promise.resolve([])
+      ]);
+
       let projectIds = assignedProjects.map(p => p._id);
-
-      // Add projects in department
-      if (req.user.department) {
-        const usersInSameDept = await User.find({ department: req.user.department }).select("_id").lean();
-        const userIds = usersInSameDept.map(u => u._id);
-        const projectsInDept = await Project.find({ createdBy: { $in: userIds } }).select("_id").lean();
-        const deptProjIds = projectsInDept.map(p => p._id.toString());
-        
-        // Merge projectIds avoiding duplicates
-        const projectIdsSet = new Set([...projectIds.map(id => id.toString()), ...deptProjIds]);
-        projectIds = Array.from(projectIdsSet);
-      }
+      const deptProjIds = projectsInDept.map(p => p._id.toString());
+      
+      // Merge projectIds avoiding duplicates
+      const projectIdsSet = new Set([...projectIds.map(id => id.toString()), ...deptProjIds]);
+      projectIds = Array.from(projectIdsSet);
 
       query.$or = [
         { createdBy: req.user._id },
@@ -527,31 +532,11 @@ exports.getTasks = async (req, res) => {
         select: "name email department profile",
         populate: { path: "profile", select: "profileImage" }
       })
-      .populate({
-        path: "comments.user",
-        select: "name email profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "attachments.uploadedBy",
-        select: "name email profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "feedbacks.addedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "correctionHistory.requestedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "rejectionHistory.rejectedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
+      .populate("comments.user", "name email department")
+      .populate("attachments.uploadedBy", "name email department")
+      .populate("feedbacks.addedBy", "name email department")
+      .populate("correctionHistory.requestedBy", "name email department")
+      .populate("rejectionHistory.rejectedBy", "name email department")
       .lean();
 
     res.status(200).json({

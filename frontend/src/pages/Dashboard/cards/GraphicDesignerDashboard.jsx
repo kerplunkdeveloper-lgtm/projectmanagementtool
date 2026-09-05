@@ -1632,7 +1632,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   } = useGetTasksQuery(
     { active_only: true, department: targetDept },
     {
-      pollingInterval: 12000,
+      pollingInterval: 30000,
       refetchOnFocus: true,
       refetchOnReconnect: true,
     },
@@ -1659,6 +1659,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const [onlineUserIds, setOnlineUserIds] = useState([]);
 
   useEffect(() => {
+    let syncDebounceTimer = null;
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
       const socketUrl = baseUrl
@@ -1684,13 +1685,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       });
 
       const handleRealtimeTaskSync = () => {
-        refetchTasks();
-        dispatch(apiSlice.util.invalidateTags(["Task"]));
-        const curDate = selectedDateRef.current || new Date();
-        const year = curDate.getFullYear();
-        const month = String(curDate.getMonth() + 1).padStart(2, "0");
-        const day = String(curDate.getDate()).padStart(2, "0");
-        dispatch(getDesignerEodReports({ date: `${year}-${month}-${day}` }));
+        if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+        syncDebounceTimer = setTimeout(() => {
+          refetchTasks();
+          const curDate = selectedDateRef.current || new Date();
+          const year = curDate.getFullYear();
+          const month = String(curDate.getMonth() + 1).padStart(2, "0");
+          const day = String(curDate.getDate()).padStart(2, "0");
+          dispatch(getDesignerEodReports({ date: `${year}-${month}-${day}` }));
+        }, 300);
       };
 
       socket.on("task_updated", handleRealtimeTaskSync);
@@ -1710,6 +1713,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       });
 
       return () => {
+        if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
         socket.disconnect();
       };
     } catch (err) {}
@@ -2011,9 +2015,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   // Productivity continues to use all designerTasks (actual work done on selectedDate).
   const todayAssignedDesignerTasks = useMemo(() => {
     return designerTasks.filter((task) => {
-      const assignmentDate = task.startDate || task.createdAt;
+      const assignmentDate = getTaskAssignmentDate(task);
       if (!assignmentDate) return false;
       return isSameDay(new Date(assignmentDate), selectedDate);
+    });
+  }, [designerTasks, selectedDate]);
+
+  const carryForwardDesignerTasks = useMemo(() => {
+    return designerTasks.filter((task) => {
+      const assignmentDate = getTaskAssignmentDate(task);
+      if (!assignmentDate) return false;
+      return isBefore(
+        startOfDay(new Date(assignmentDate)),
+        startOfDay(selectedDate),
+      );
     });
   }, [designerTasks, selectedDate]);
 
@@ -2058,6 +2073,40 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       }
     });
 
+    // Carry Forward Counts for Metric Cards
+    let carryAssigned = carryForwardDesignerTasks.length;
+    let carryCompleted = 0;
+    let carryPending = 0;
+    let carryInProgress = 0;
+    let carryOnHold = 0;
+    let carryInReview = 0;
+    let carryDueToday = 0;
+
+    carryForwardDesignerTasks.forEach((task) => {
+      const status = task.status?.toLowerCase() || "";
+      if (status === "completed" || status.includes("approve")) carryCompleted++;
+      else if (status.includes("hold")) carryOnHold++;
+      else if (status.includes("progress")) carryInProgress++;
+      else if (status.includes("review") || status.includes("revision"))
+        carryInReview++;
+      else if (status === "pending") carryPending++;
+      else if (!status.includes("reject") && !status.includes("cancel"))
+        carryPending++;
+
+      if (
+        task.dueDate &&
+        status !== "completed" &&
+        !status.includes("approve") &&
+        !status.includes("reject") &&
+        !status.includes("cancel")
+      ) {
+        const days = getDaysRemaining(task.dueDate, selectedDate);
+        if (days !== null && days === 0) {
+          carryDueToday++;
+        }
+      }
+    });
+
     return {
       designersWorking: designers.length,
       // tasksAssigned = today's assigned batch only
@@ -2072,8 +2121,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       dueToday,
       rejected,
       totalRevisions,
+      carryForward: {
+        assigned: carryAssigned,
+        completed: carryCompleted,
+        pending: carryPending,
+        inProgress: carryInProgress,
+        onHold: carryOnHold,
+        inReview: carryInReview,
+        dueToday: carryDueToday,
+      },
     };
-  }, [todayAssignedDesignerTasks, designers.length, selectedDate]);
+  }, [todayAssignedDesignerTasks, carryForwardDesignerTasks, designers.length, selectedDate]);
 
   const interruptions = useMemo(() => {
     let totalBlockers = 0;
@@ -3325,6 +3383,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   : `Total ${targetDept}s`
                 : `Assigned ${targetDept}`,
             value: metrics.designersWorking,
+            cf: null,
             icon: FiUsers,
             glow: "hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)] hover:border-blue-300 dark:hover:border-blue-500",
             bg: "bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-800/40",
@@ -3342,6 +3401,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {
             label: "Assigned",
             value: metrics.tasksAssigned,
+            cf: metrics.carryForward?.assigned,
+            cfBadge:
+              "bg-indigo-100/90 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700/50",
             icon: FiLayers,
             glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)] hover:border-indigo-300 dark:hover:border-indigo-500",
             bg: "bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-800/40",
@@ -3355,6 +3417,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {
             label: "Not Started",
             value: metrics.pending,
+            cf: metrics.carryForward?.pending,
+            cfBadge:
+              "bg-teal-100/90 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-700/50",
             icon: FiClock,
             glow: "hover:shadow-[0_4px_20px_rgba(20,184,166,0.15)] hover:border-teal-300 dark:hover:border-teal-500",
             bg: "bg-teal-50/70 dark:bg-teal-950/20 border border-teal-200/70 dark:border-teal-800/40",
@@ -3368,6 +3433,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {
             label: "In Progress",
             value: metrics.inProgress,
+            cf: metrics.carryForward?.inProgress,
+            cfBadge:
+              "bg-sky-100/90 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-700/50",
             icon: FiPlay,
             glow: "hover:shadow-[0_4px_20px_rgba(14,165,233,0.15)] hover:border-sky-300 dark:hover:border-sky-500",
             bg: "bg-sky-50/70 dark:bg-sky-950/20 border border-sky-200/70 dark:border-sky-800/40",
@@ -3381,6 +3449,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {
             label: "On Hold",
             value: metrics.onHold,
+            cf: metrics.carryForward?.onHold,
+            cfBadge:
+              "bg-fuchsia-100/90 dark:bg-fuchsia-900/60 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-700/50",
             icon: FiPauseCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(217,70,239,0.15)] hover:border-fuchsia-300 dark:hover:border-fuchsia-500",
             bg: "bg-fuchsia-50/70 dark:bg-fuchsia-950/20 border border-fuchsia-200/70 dark:border-fuchsia-800/40",
@@ -3394,6 +3465,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {
             label: "In Review",
             value: metrics.inReview,
+            cf: metrics.carryForward?.inReview,
+            cfBadge:
+              "bg-amber-100/90 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700/50",
             icon: FiEye,
             glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)] hover:border-amber-300 dark:hover:border-amber-500",
             bg: "bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40",
@@ -3407,6 +3481,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {
             label: "Completed",
             value: metrics.completed,
+            cf: metrics.carryForward?.completed,
+            cfBadge:
+              "bg-emerald-100/90 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/50",
             icon: FiCheckCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:border-emerald-300 dark:hover:border-emerald-500",
             bg: "bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40",
@@ -3420,6 +3497,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {
             label: "Due Tasks",
             value: metrics.dueToday,
+            cf: metrics.carryForward?.dueToday,
+            cfBadge:
+              "bg-rose-100/90 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-700/50",
             icon: FiCalendar,
             glow: "hover:shadow-[0_4px_20px_rgba(244,63,94,0.15)] hover:border-rose-300 dark:hover:border-rose-500",
             bg: "bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-800/40",
@@ -3445,11 +3525,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/20 dark:from-white/5 to-transparent rounded-full -mr-6 -mt-6 blur-md pointer-events-none" />
 
               <div className="flex items-center justify-between mb-2 relative z-10">
-                <span
-                  className={`text-2xl lg:text-3xl font-black ${m.valueColor} tracking-tight`}
-                >
-                  {m.value}
-                </span>
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span
+                    className={`text-2xl lg:text-3xl font-black ${m.valueColor} tracking-tight`}
+                  >
+                    {m.value}
+                  </span>
+                  {m.cf !== undefined && m.cf !== null && (
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black tracking-wide border shadow-2xs ${m.cfBadge || "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"}`}
+                      title={`${m.cf} Carry Forward`}
+                    >
+                      {m.cf} CF
+                    </span>
+                  )}
+                </div>
                 <div
                   className={`p-2 rounded-xl ${m.iconBg} group-hover:scale-110 transition-transform duration-300 shadow-2xs`}
                 >
