@@ -1869,15 +1869,15 @@ const Dashboardmain = () => {
 
         {/* MY PROJECTS card - shown ONLY for Admin, Operation Manager, and Social Media Manager */}
         {canSeeProjectsShortcut && (
-          <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col justify-between min-h-[200px]">
+          <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-[#223149] shadow-xs p-4 sm:p-5 flex flex-col justify-between min-h-[200px]">
             <div>
               {/* Header: Title, Count, Go to project page, Pagination */}
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-xs font-black text-[#2e1d6c] dark:text-[#a594fd] uppercase tracking-wider">
+                  <h3 className="text-xs font-black text-indigo-700 dark:text-white uppercase tracking-wider">
                     My Projects
                   </h3>
-                  <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 text-[#8370ec] dark:text-[#9b89ff]">
+                  <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/40">
                     {userProjects?.length || 0}
                   </span>
                 </div>
@@ -1885,7 +1885,7 @@ const Dashboardmain = () => {
                 <div className="flex items-center gap-2.5">
                   <Link
                     to={`/${user?.role}/projects`}
-                    className="text-[11px] font-bold text-[#8370ec] dark:text-[#9b89ff] hover:underline cursor-pointer flex items-center gap-0.5"
+                    className="text-[11px] font-bold text-indigo-600 dark:text-[#a5b4fc] hover:underline cursor-pointer flex items-center gap-0.5"
                   >
                     <span>Go to project page</span>
                     <FiChevronRight size={12} />
@@ -1893,19 +1893,19 @@ const Dashboardmain = () => {
 
                   {/* Header Quick Pagination Controls */}
                   {totalProjectPages > 1 && (
-                    <div className="flex items-center gap-1 bg-white/40 dark:bg-white/5 border border-purple-200/50 dark:border-white/10 rounded-lg p-0.5">
+                    <div className="flex items-center gap-1 bg-white/60 dark:bg-[#131d2e] border border-slate-200 dark:border-[#223149] rounded-lg p-0.5">
                       <button
                         type="button"
                         disabled={projectPage === 1}
                         onClick={() =>
                           setProjectPage((prev) => Math.max(1, prev - 1))
                         }
-                        className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                        className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
                         title="Previous page"
                       >
                         ‹
                       </button>
-                      <span className="text-[9px] font-bold text-[#2e1d6c] dark:text-purple-200 px-0.5">
+                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 px-1">
                         {projectPage}/{totalProjectPages}
                       </span>
                       <button
@@ -1916,7 +1916,7 @@ const Dashboardmain = () => {
                             Math.min(totalProjectPages, prev + 1),
                           )
                         }
-                        className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                        className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
                         title="Next page"
                       >
                         ›
@@ -1927,16 +1927,16 @@ const Dashboardmain = () => {
               </div>
 
               {/* Grid list of project blocks */}
-              <div className="flex flex-wrap gap-2 items-center align-top content-start">
+              <div className="flex flex-wrap gap-2.5 items-center align-top content-start">
                 {/* Compact Dashed Create Project Button */}
                 <div
                   onClick={() => setShowCreateModal(true)}
-                  className="w-32 h-11 border-2 border-dashed border-[#8d7df5]/60 hover:border-[#8d7df5] dark:border-purple-600/40 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer bg-white/20 dark:bg-white/5 hover:bg-white/40 dark:hover:bg-white/10 transition-all text-[#2e1d6c] dark:text-purple-300 px-2.5 py-1.5 shrink-0 group shadow-2xs"
+                  className="w-36 h-12 border-2 border-dashed border-indigo-400/60 hover:border-indigo-500 dark:border-indigo-500/50 hover:dark:border-indigo-400 rounded-xl flex items-center justify-center gap-2 cursor-pointer bg-indigo-50/50 dark:bg-[#131d2e] hover:bg-indigo-50 dark:hover:bg-[#1a2538] transition-all text-indigo-700 dark:text-indigo-200 px-3 py-1.5 shrink-0 group shadow-2xs"
                 >
-                  <div className="w-5 h-5 rounded-md bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 group-hover:scale-110 transition-transform">
-                    <FiPlus size={12} className="stroke-[3]" />
+                  <div className="w-5 h-5 rounded-md bg-indigo-100 dark:bg-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-300 group-hover:scale-110 transition-transform">
+                    <FiPlus size={13} className="stroke-[3]" />
                   </div>
-                  <span className="text-[10px] font-bold tracking-tight truncate">
+                  <span className="text-[11px] font-black tracking-tight truncate text-indigo-900 dark:text-[#f8fafc]">
                     Create Project
                   </span>
                 </div>
@@ -1949,13 +1949,13 @@ const Dashboardmain = () => {
                       <Link
                         key={proj._id}
                         to={`/${user?.role}/projects?id=${proj._id}`}
-                        className="w-44 sm:w-48 h-12 bg-white/80 dark:bg-white/5 rounded-xl px-2.5 py-1.5 flex items-center gap-2 border border-white/60 dark:border-white/5 shadow-2xs hover:shadow-sm hover:border-purple-300/50 dark:hover:border-purple-500/30 transition-all cursor-pointer text-left block shrink-0 group"
+                        className="w-48 sm:w-52 h-12 bg-white dark:bg-[#131d2e] rounded-xl px-3 py-1.5 flex items-center gap-2.5 border border-slate-200/90 dark:border-[#223149] shadow-2xs hover:shadow-md hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all cursor-pointer text-left block shrink-0 group"
                       >
-                        <div className="w-6.5 h-6.5 rounded-md bg-purple-100/80 dark:bg-purple-950/40 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 shrink-0 border border-purple-200/40 dark:border-white/5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                          <FiLayers size={12} />
+                        <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/40 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                          <FiLayers size={13} />
                         </div>
                         <div className="min-w-0 flex-1 flex flex-col justify-center">
-                          <h4 className="text-[10.5px] font-bold text-[#2e1d6c] dark:text-purple-200 truncate leading-tight group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                          <h4 className="text-[11.5px] font-black text-[#0f172a] dark:text-[#f8fafc] truncate leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                             {proj.name}
                           </h4>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -1963,10 +1963,10 @@ const Dashboardmain = () => {
                               <ClientBadge
                                 client={clientObj}
                                 size="sm"
-                                className="!text-[7.5px] !py-[0.5px] !px-1 font-bold"
+                                className="!text-[8px] !py-[0.5px] !px-1.5 font-black"
                               />
                             )}
-                            <span className="text-[7.5px] font-extrabold text-[#8d7df5] dark:text-purple-400 uppercase tracking-wider">
+                            <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
                               {proj.status || "Active"}
                             </span>
                           </div>
@@ -1979,7 +1979,7 @@ const Dashboardmain = () => {
 
             {/* Footer Pagination Bar */}
             {totalProjectPages > 1 && (
-              <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200/50 dark:border-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
+              <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200 dark:border-[#223149] text-[10px] font-bold text-slate-500 dark:text-slate-400">
                 <span>
                   Showing {(projectPage - 1) * PROJECTS_PER_PAGE + 1}–
                   {Math.min(
@@ -1995,7 +1995,7 @@ const Dashboardmain = () => {
                     onClick={() =>
                       setProjectPage((prev) => Math.max(1, prev - 1))
                     }
-                    className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
+                    className="px-2.5 py-1 rounded-md border border-slate-200 dark:border-[#223149] text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-[#1a2538] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
                   >
                     <span>Prev</span>
                   </button>
@@ -2007,7 +2007,7 @@ const Dashboardmain = () => {
                         Math.min(totalProjectPages, prev + 1),
                       )
                     }
-                    className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
+                    className="px-2.5 py-1 rounded-md border border-slate-200 dark:border-[#223149] text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-[#1a2538] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
                   >
                     <span>Next</span>
                   </button>
