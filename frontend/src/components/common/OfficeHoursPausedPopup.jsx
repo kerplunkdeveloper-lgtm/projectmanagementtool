@@ -188,9 +188,10 @@ const OfficeHoursPausedPopup = () => {
       const isBiz = isCurrentlyInBusinessHours();
 
       // Only show Away mode if we are in business hours AND the task was paused today
+      const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
       const isPausedToday = target.pausedAt
-        ? new Date(target.pausedAt).toDateString() === new Date().toDateString()
-        : true;
+        ? new Date(target.pausedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) === todayIST
+        : false;
 
       const mode = isBiz && isPausedToday ? "away" : "office_hours";
 

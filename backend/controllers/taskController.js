@@ -187,23 +187,34 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
       const lastSessionDateStr = item.actualStartTime
         ? new Date(item.actualStartTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
         : null;
-      const hasHistoryToday = Array.isArray(item.statusHistory) && item.statusHistory.some((h) => {
-        let d = h.date;
-        if (d && d.includes(",")) {
-          try {
-            d = new Date(d).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-          } catch (e) {}
-        }
-        if (!d || d.includes(",")) {
-          d = h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
-        }
-        return d === currentDateStr;
-      });
-      if (hasHistoryToday && item.actualStartTime) {
-        // Already active today, don't reset dailyTrackedTime
-      } else if (!hasHistoryToday && (!lastSessionDateStr || lastSessionDateStr !== currentDateStr)) {
-        // New day & no session today → start fresh daily counter
+
+      let historyTodayWorkedMs = 0;
+      let hasInProgressToday = false;
+      if (Array.isArray(item.statusHistory)) {
+        item.statusHistory.forEach((h) => {
+          if (h.status !== "In Progress") return;
+          let d = h.date;
+          if (d && d.includes(",")) {
+            try {
+              d = new Date(d).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+            } catch (e) {}
+          }
+          if (!d || d.includes(",")) {
+            d = h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
+          }
+          if (d === currentDateStr) {
+            hasInProgressToday = true;
+            historyTodayWorkedMs += (h.duration || 0);
+          }
+        });
+      }
+
+      if (!hasInProgressToday && (!lastSessionDateStr || lastSessionDateStr !== currentDateStr)) {
+        // New day & no In Progress session today → start fresh daily counter
         item.dailyTrackedTime = 0;
+      } else if (hasInProgressToday) {
+        // Resuming today → ensure dailyTrackedTime reflects today's worked time
+        item.dailyTrackedTime = Math.max(item.dailyTrackedTime || 0, historyTodayWorkedMs);
       }
       // If same day resume (e.g. On Hold -> In Progress), dailyTrackedTime continues accumulating — correct!
 
