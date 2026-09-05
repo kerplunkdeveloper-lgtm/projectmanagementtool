@@ -464,7 +464,9 @@ exports.getTasks = async (req, res) => {
     }
 
     if (req.query.department) {
-      const usersInDept = await User.find({ department: req.query.department }).select("_id").lean();
+      const usersInDept = await User.find({
+        department: { $regex: req.query.department, $options: "i" }
+      }).select("_id").lean();
       const userIds = usersInDept.map(u => u._id);
       
       const deptCondition = {
@@ -547,26 +549,6 @@ exports.getTasks = async (req, res) => {
       })
       .populate({
         path: "rejectionHistory.rejectedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "subtasks.correctionHistory.requestedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "subtasks.rejectionHistory.rejectedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "statusHistory.user",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "subtasks.statusHistory.user",
         select: "name email department profile",
         populate: { path: "profile", select: "profileImage" }
       })

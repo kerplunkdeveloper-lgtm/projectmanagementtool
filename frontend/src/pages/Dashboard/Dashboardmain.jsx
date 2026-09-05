@@ -1429,25 +1429,9 @@ const Dashboardmain = () => {
     const webKey = unique.find(isWebDev) || "Web Developer";
     const mobileKey = unique.find(isMobileDev) || "Mobile Developer";
 
-    // Specified order: 1. Graphic Designer, 2. Cinematographer, 3. Social Media Manager, 4. Web Developer, 5. Mobile Developer
-    const ordered = [graphicKey, cinemaKey, socialKey, webKey, mobileKey];
-
-    // Filter remaining department keys (e.g. SEO Specialist, Performance Marketer, etc.)
-    const remainingDepts = unique.filter((d) => {
-      if (ordered.includes(d)) return false;
-      if (isExcluded(d)) return false;
-      if (
-        isGraphic(d) ||
-        isCinema(d) ||
-        isSocialMedia(d) ||
-        isWebDev(d) ||
-        isMobileDev(d)
-      )
-        return false;
-      return true;
-    });
-
-    return [...ordered, ...remainingDepts];
+    // Only show the 5 specified departments:
+    // 1. Graphic Designer, 2. Cinematographer, 3. Social Media Manager, 4. Web Developer, 5. Mobile Developer
+    return [graphicKey, cinemaKey, socialKey, webKey, mobileKey];
   }, [users]);
 
   const getInitials = (name) => {

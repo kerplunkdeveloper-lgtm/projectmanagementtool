@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import { getDesignerEodReports } from "../../../features/eodReports/designerEodReportSlice";
+import LiveTaskBoard from "./LiveTaskBoard";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -91,6 +92,24 @@ import {
   FiEdit3,
 } from "react-icons/fi";
 
+const kolkataFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Kolkata",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export const getKolkataDateStr = (date) => {
+  if (!date) return "";
+  try {
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return "";
+    return kolkataFormatter.format(d);
+  } catch (e) {
+    return "";
+  }
+};
+
 /**
  * Canonical logic to determine a task's assignment date in priority order:
  * 1. task.assignedDate
@@ -111,6 +130,36 @@ export const getTaskAssignmentDate = (task) => {
 
 export const isStatusInProgress = (s) =>
   (s || "").trim().toUpperCase().replace(/[-_]/g, " ") === "IN PROGRESS";
+
+export const getDaysRemaining = (dueDateStr, referenceDate = new Date()) => {
+  if (!dueDateStr) return null;
+  const dueDate = new Date(dueDateStr);
+  dueDate.setHours(0, 0, 0, 0);
+  const refDate = new Date(referenceDate);
+  refDate.setHours(0, 0, 0, 0);
+  const diffTime = dueDate.getTime() - refDate.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+export const getDeadlineBadgeText = (dueDateStr, status, selectedDate) => {
+  if (!dueDateStr) return "";
+  const days = getDaysRemaining(dueDateStr, selectedDate);
+  const isCompleted =
+    status?.toLowerCase() === "completed" ||
+    status?.toLowerCase().includes("approve");
+  if (isCompleted) return "Completed";
+
+  if (days < 0) {
+    const absDays = Math.abs(days);
+    return `${absDays} ${absDays === 1 ? "day" : "days"} overdue`;
+  } else if (days === 0) {
+    return "Due Today";
+  } else if (days === 1) {
+    return "Due Tomorrow";
+  } else {
+    return `${days} days to go`;
+  }
+};
 
 /**
  * Single source of truth to calculate actual worked time for a task
@@ -183,9 +232,7 @@ export const calculateTaskProductivityForDate = (
     Array.isArray(task.statusHistory) &&
     task.statusHistory.length > 0
   ) {
-    const selDateStr = selDateObj.toLocaleDateString("en-CA", {
-      timeZone: "Asia/Kolkata",
-    });
+    const selDateStr = getKolkataDateStr(selDateObj);
     const isSelectedToday = isSameDay(selDateObj, new Date());
     let historyDuration = 0;
 
@@ -198,17 +245,11 @@ export const calculateTaskProductivityForDate = (
       let entryDate = h.date;
       if (entryDate && entryDate.includes(",")) {
         try {
-          entryDate = new Date(entryDate).toLocaleDateString("en-CA", {
-            timeZone: "Asia/Kolkata",
-          });
+          entryDate = getKolkataDateStr(entryDate);
         } catch (e) {}
       }
       if (!entryDate || entryDate.includes(",")) {
-        entryDate = h.startTime
-          ? new Date(h.startTime).toLocaleDateString("en-CA", {
-              timeZone: "Asia/Kolkata",
-            })
-          : null;
+        entryDate = h.startTime ? getKolkataDateStr(h.startTime) : null;
       }
       if (entryDate !== selDateStr) return;
 
@@ -293,9 +334,7 @@ export const calculateTaskProductivityForDate = (
 
       const liveSessionDateStr =
         liveSessionStart > 0
-          ? new Date(liveSessionStart).toLocaleDateString("en-CA", {
-              timeZone: "Asia/Kolkata",
-            })
+          ? getKolkataDateStr(liveSessionStart)
           : null;
 
       // Only add live elapsed time if liveSessionStart is valid
@@ -346,9 +385,7 @@ export const calculateTaskProductivityForDate = (
   }
 
   if (!task.actualStartTime) {
-    const selDateStr = selDateObj.toLocaleDateString("en-CA", {
-      timeZone: "Asia/Kolkata",
-    });
+    const selDateStr = getKolkataDateStr(selDateObj);
     const isSelectedToday = isSameDay(selDateObj, new Date());
     const baseTracked = isSelectedToday
       ? task.dailyTrackedTime || 0
@@ -727,7 +764,7 @@ const LiveTotalProductivityCell = React.memo(
     };
 
     return (
-      <span className="text-[12px] font-black text-white whitespace-nowrap">
+      <span className="text-[12px] font-black text-emerald-700 dark:text-emerald-300 whitespace-nowrap">
         {formatGrandTotal(liveMs)}
       </span>
     );
@@ -885,7 +922,7 @@ const StatusCellValue = React.memo(
     todayVal = 0,
     carryVal = 0,
     activeTextClass = "",
-    inactiveTextClass = "text-slate-400 dark:text-slate-600",
+    inactiveTextClass = "text-slate-500 dark:text-slate-400 font-bold",
     badgeClass = "",
     showRunningIndicator = false,
   }) => {
@@ -920,7 +957,7 @@ const StatusCellValue = React.memo(
             {carryVal} CF
           </span>
         ) : (
-          <span className="text-[10px] font-bold text-slate-300 dark:text-slate-700 opacity-40 select-none w-3 text-center">
+          <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 select-none w-3 text-center">
             -
           </span>
         )}
@@ -1152,141 +1189,6 @@ const getPriorityStyle = (priority) => {
   return "bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
 };
 
-const getDaysRemaining = (dueDateStr, referenceDate = new Date()) => {
-  if (!dueDateStr) return null;
-  const dueDate = new Date(dueDateStr);
-  dueDate.setHours(0, 0, 0, 0);
-  const refDate = new Date(referenceDate);
-  refDate.setHours(0, 0, 0, 0);
-  const diffTime = dueDate.getTime() - refDate.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
-
-const splitTasksByDateCategory = (columnTasks, colName, selectedDate) => {
-  const isCompletedCol = colName.toLowerCase() === "completed";
-
-  const selStart = startOfDay(selectedDate || new Date());
-  const selEnd = endOfDay(selectedDate || new Date());
-
-  const previousTasks = [];
-  const todayTasks = [];
-  const upcomingTasks = [];
-
-  const parseVal = (v) => {
-    if (!v) return null;
-    if (v instanceof Date) return v;
-    if (typeof v === "string") {
-      const p = parseISO(v);
-      if (!isNaN(p.getTime())) return p;
-    }
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d;
-  };
-
-  columnTasks.forEach((t) => {
-    let taskDate = null;
-    if (isCompletedCol) {
-      taskDate =
-        parseVal(t.completedAt) ||
-        parseVal(t.updatedAt) ||
-        parseVal(t.dueDate) ||
-        parseVal(t.createdAt);
-    } else {
-      taskDate =
-        parseVal(t.dueDate) || parseVal(t.startDate) || parseVal(t.createdAt);
-    }
-
-    if (!taskDate || isNaN(taskDate.getTime())) {
-      todayTasks.push(t);
-      return;
-    }
-
-    if (isSameDay(taskDate, selectedDate || new Date())) {
-      todayTasks.push(t);
-    } else if (isBefore(taskDate, selStart)) {
-      previousTasks.push(t);
-    } else if (isAfter(taskDate, selEnd)) {
-      upcomingTasks.push(t);
-    } else {
-      todayTasks.push(t);
-    }
-  });
-
-  upcomingTasks.sort((a, b) => {
-    const dA = a.dueDate ? new Date(a.dueDate) : new Date(0);
-    const dB = b.dueDate ? new Date(b.dueDate) : new Date(0);
-    return dA - dB;
-  });
-
-  return { previousTasks, todayTasks, upcomingTasks };
-};
-
-const getSectionConfig = (colName, type) => {
-  const colLower = colName.toLowerCase();
-
-  let prevTitle = `Prev ${colName}`;
-  let todayTitle = `Today ${colName}`;
-  let upcomingTitle = `Upcoming ${colName}`;
-
-  if (colLower === "overall overdue") {
-    prevTitle = "Prev Overdue";
-    todayTitle = "Due Today";
-    upcomingTitle = "Upcoming Due";
-  } else if (colLower === "in progress") {
-    prevTitle = "Prev In Progress";
-    todayTitle = "Today In Progress";
-    upcomingTitle = "Upcoming In Progress";
-  } else if (colLower === "on hold") {
-    prevTitle = "Prev On Hold";
-    todayTitle = "Today On Hold";
-    upcomingTitle = "Upcoming On Hold";
-  } else if (colLower === "in review") {
-    prevTitle = "Prev In Review";
-    todayTitle = "Today In Review";
-    upcomingTitle = "Upcoming In Review";
-  } else if (colLower === "completed") {
-    prevTitle = "Prev Completed";
-    todayTitle = "Today Completed";
-    upcomingTitle = "Upcoming Completed";
-  } else if (colLower === "pending") {
-    prevTitle = "Prev Not Started";
-    todayTitle = "Today Not Started";
-    upcomingTitle = "Upcoming Not Started";
-  }
-
-  if (type === "prev") {
-    return {
-      title: prevTitle,
-      badgeContainer:
-        "bg-rose-100/60 dark:bg-rose-950/30 border-rose-200/40 dark:border-rose-900/40",
-      titleColor: "text-rose-600 dark:text-rose-400",
-      countBadge:
-        "text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60",
-      emptyText: `No previous ${colName.toLowerCase()} tasks`,
-    };
-  }
-  if (type === "today") {
-    return {
-      title: todayTitle,
-      badgeContainer:
-        "bg-amber-100/60 dark:bg-amber-950/30 border-amber-200/40 dark:border-amber-900/40",
-      titleColor: "text-amber-600 dark:text-amber-400",
-      countBadge:
-        "text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60",
-      emptyText: `No ${colName.toLowerCase()} tasks today`,
-    };
-  }
-  return {
-    title: upcomingTitle,
-    badgeContainer:
-      "bg-blue-100/60 dark:bg-blue-950/30 border-blue-200/40 dark:border-blue-900/40",
-    titleColor: "text-blue-600 dark:text-blue-400",
-    countBadge:
-      "text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60",
-    emptyText: `No upcoming ${colName.toLowerCase()} tasks`,
-  };
-};
-
 const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
@@ -1415,15 +1317,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const [trendDesignerFilter, setTrendDesignerFilter] =
     useState("All Designers");
   const [updateTask] = useUpdateTaskMutation();
-
-  // Live Task Board filter state
-  const [boardFilter, setBoardFilter] = useState({
-    search: "",
-    assignee: "All",
-    priority: "All",
-    client: "All",
-  });
-  const [showBoardFilter, setShowBoardFilter] = useState(false);
 
   useEffect(() => {
     const params = {};
@@ -1823,96 +1716,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     return { total: totalBlockers, counts };
   }, [designerTasks, selectedDate]);
 
-  // 4. Board Data
-  const boardColumns = [
-    "Overall Overdue",
-    "Not Started",
-    "In Progress",
-    "On Hold",
-    "IN REVIEW",
-    "Completed",
-  ];
-  const getColumnForTask = (task) => {
-    const status = task.status || "Not Started";
-
-    if (boardColumns.includes(status)) return status;
-    if (status.toLowerCase().includes("progress")) return "In Progress";
-    if (status.toLowerCase().includes("hold")) return "On Hold";
-    if (status.toLowerCase().includes("review")) return "IN REVIEW";
-    if (status.toLowerCase().includes("revision")) return "IN REVIEW";
-    if (status.toLowerCase().includes("reject")) return "Rejected";
-    if (status.toLowerCase().includes("approve")) return "Completed";
-    if (status.toLowerCase() === "completed") return "Completed";
-    if (status.toLowerCase() === "assigned") return "Not Started";
-    return "Not Started";
-  };
-
-  // Apply board-level filters to designerTasks
-  const boardFilteredTasks = useMemo(() => {
-    return designerTasks.filter((task) => {
-      // Search filter
-      if (boardFilter.search.trim()) {
-        const q = boardFilter.search.toLowerCase();
-        const titleMatch = task.title?.toLowerCase().includes(q);
-        const projId =
-          typeof task.project === "object" ? task.project?._id : task.project;
-        const proj = projects?.find((p) => p._id === projId);
-        const projMatch = proj?.name?.toLowerCase().includes(q);
-        if (!titleMatch && !projMatch) return false;
-      }
-      // Assignee filter
-      if (boardFilter.assignee !== "All") {
-        const aId =
-          typeof task.assignedTo === "object"
-            ? task.assignedTo?._id
-            : task.assignedTo;
-        if (aId !== boardFilter.assignee) return false;
-      }
-      // Priority filter
-      if (boardFilter.priority !== "All") {
-        if ((task.priority || "Medium") !== boardFilter.priority) return false;
-      }
-      // Client filter
-      if (boardFilter.client !== "All") {
-        let cId =
-          typeof task.client === "object" ? task.client?._id : task.client;
-        if (!cId && task.project) {
-          const projId =
-            typeof task.project === "object" ? task.project?._id : task.project;
-          const proj = projects?.find((p) => p._id === projId);
-          cId =
-            typeof proj?.client === "object" ? proj?.client?._id : proj?.client;
-        }
-        if (cId !== boardFilter.client) return false;
-      }
-      return true;
-    });
-  }, [designerTasks, boardFilter, projects]);
-
-  const tasksByColumn = useMemo(() => {
-    const cols = {};
-    boardColumns.forEach((c) => (cols[c] = []));
-    boardFilteredTasks.forEach((task) => {
-      const col = getColumnForTask(task);
-      if (cols[col]) cols[col].push(task);
-
-      // Mirror incomplete tasks that have a due date in the Overall Overdue column
-      const isCompletedOrRejected =
-        task.status?.toLowerCase() === "completed" ||
-        task.status?.toLowerCase().includes("approve") ||
-        task.status?.toLowerCase().includes("reject") ||
-        task.status?.toLowerCase().includes("cancel");
-      if (!isCompletedOrRejected && task.dueDate) {
-        const daysRemaining = getDaysRemaining(task.dueDate, selectedDate);
-        if (daysRemaining !== null) {
-          cols["Overall Overdue"].push(task);
-        }
-      }
-    });
-    return cols;
-  }, [boardFilteredTasks, selectedDate]);
-
-  // 5. Team Performance
+  // 4. Team Performance
   const teamPerformance = useMemo(() => {
     return designers.map((designer) => {
       // All tasks for this designer that are visible on selectedDate
@@ -2042,9 +1846,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       ) {
         let eodTotal = 0;
         const selDateObj = selectedDate ? new Date(selectedDate) : new Date();
-        const selDateStr = selDateObj.toLocaleDateString("en-CA", {
-          timeZone: "Asia/Kolkata",
-        });
+        const selDateStr = getKolkataDateStr(selDateObj);
         designerReport.tasks.forEach((rt) => {
           const originalTask = (designerTasks || []).find(
             (at) => at._id === (rt.taskId?._id || rt.taskId || rt.id || rt._id),
@@ -2087,24 +1889,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       myTasks.forEach((t) => {
         let taskBlockerMs = 0;
         const selDateObj = selectedDate || new Date();
+        const selDateStr = getKolkataDateStr(selDateObj);
         const dayStart = startOfDay(selDateObj).getTime();
         const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
 
         if (Array.isArray(t.statusHistory)) {
           t.statusHistory.forEach((h) => {
             if (h.status === "Blocked") {
-              const hDate = new Date(h.startTime || h.date).toLocaleDateString(
-                "en-CA",
-                {
-                  timeZone: "Asia/Kolkata",
-                },
-              );
-              if (
-                hDate ===
-                selDateObj.toLocaleDateString("en-CA", {
-                  timeZone: "Asia/Kolkata",
-                })
-              ) {
+              const hDate = getKolkataDateStr(h.startTime || h.date);
+              if (hDate === selDateStr) {
                 taskBlockerMs += h.duration || 0;
                 if (h.blockerType) {
                   blockerTypesSet.add(h.blockerType);
@@ -2115,16 +1908,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         }
 
         if (t.status === "Blocked" && t.blockedStartedAt) {
-          const hDate = new Date(t.blockedStartedAt).toLocaleDateString(
-            "en-CA",
-            {
-              timeZone: "Asia/Kolkata",
-            },
-          );
-          if (
-            hDate ===
-            selDateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
-          ) {
+          const hDate = getKolkataDateStr(t.blockedStartedAt);
+          if (hDate === selDateStr) {
             const endMs = isSameDay(selDateObj, new Date())
               ? Date.now()
               : startOfDay(addDays(selDateObj, 1)).getTime();
@@ -2138,19 +1923,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         totalBlockerMs += taskBlockerMs;
 
         let taskOnHoldMs = 0;
-        const selDateStr = selDateObj.toLocaleDateString("en-CA", {
-          timeZone: "Asia/Kolkata",
-        });
 
         if (Array.isArray(t.statusHistory)) {
           t.statusHistory.forEach((h) => {
             if (h.status === "On Hold") {
-              const hDate = new Date(h.startTime || h.date).toLocaleDateString(
-                "en-CA",
-                {
-                  timeZone: "Asia/Kolkata",
-                },
-              );
+              const hDate = getKolkataDateStr(h.startTime || h.date);
               if (hDate === selDateStr) {
                 if (h.reason === "Client Call" || h.reason === "Meeting") {
                   taskBlockerMs += h.duration || 0;
@@ -2165,9 +1942,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         }
 
         if (t.status === "On Hold" && t.holdStartedAt) {
-          const hDate = new Date(t.holdStartedAt).toLocaleDateString("en-CA", {
-            timeZone: "Asia/Kolkata",
-          });
+          const hDate = getKolkataDateStr(t.holdStartedAt);
           if (hDate === selDateStr) {
             const endMs = isSameDay(selDateObj, new Date())
               ? Date.now()
@@ -2810,226 +2585,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     }
     return name.substring(0, 2).toUpperCase();
   };
-  const getDeadlineBadgeText = (dueDateStr, status) => {
-    if (!dueDateStr) return "";
-    const days = getDaysRemaining(dueDateStr, selectedDate);
-    const isCompleted =
-      status?.toLowerCase() === "completed" ||
-      status?.toLowerCase().includes("approve");
-    if (isCompleted) return "Completed";
-
-    if (days < 0) {
-      const absDays = Math.abs(days);
-      return `${absDays} ${absDays === 1 ? "day" : "days"} overdue`;
-    } else if (days === 0) {
-      return "Due Today";
-    } else if (days === 1) {
-      return "Due Tomorrow";
-    } else {
-      return `${days} days to go`;
-    }
-  };
-
-  const renderTaskCard = (task) => {
-    let clientName = "No Client";
-    if (task.client) {
-      const cId =
-        typeof task.client === "object" ? task.client._id : task.client;
-      const c =
-        clients?.find((x) => x._id === cId) ||
-        (typeof task.client === "object" ? task.client : null);
-      clientName = c?.companyName || c?.name || "Unknown Client";
-    } else if (task.project) {
-      const pId =
-        typeof task.project === "object" ? task.project._id : task.project;
-      const p =
-        projects?.find((x) => x._id === pId) ||
-        (typeof task.project === "object" ? task.project : null);
-      if (p && p.client) {
-        const cId = typeof p.client === "object" ? p.client?._id : p.client;
-        const c =
-          clients?.find((x) => x._id === cId) ||
-          (typeof p.client === "object" ? p.client : null);
-        clientName = c?.companyName || c?.name || "Unknown Client";
-      }
-    }
-
-    const aId = task.assignedTo
-      ? typeof task.assignedTo === "object"
-        ? task.assignedTo._id
-        : task.assignedTo
-      : null;
-    const assignedUser = aId
-      ? designers.find((d) => d._id === aId) ||
-        (task.assignedTo && typeof task.assignedTo === "object"
-          ? task.assignedTo
-          : null)
-      : null;
-    const assignedByName = task.createdBy
-      ? typeof task.createdBy === "object"
-        ? task.createdBy.name
-        : null
-      : null;
-
-    const profileImg =
-      assignedUser?.profile?.profileImage?.url ||
-      assignedUser?.profileImage?.url ||
-      null;
-    const initials = (assignedUser?.name || "")
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-    const creatorInitials = (assignedByName || "")
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        whileHover={{ y: -2 }}
-        key={task._id}
-        className="bg-white dark:bg-slate-800/90 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all duration-200 shadow-xs hover:shadow-md relative group backdrop-blur-sm flex flex-col gap-1.5"
-      >
-        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-l-xl opacity-80 group-hover:opacity-100 transition-opacity" />
-        {/* Title row: icon + name */}
-        <div className="flex items-start gap-1.5 pl-1 min-w-0">
-          <FiFileText
-            size={12}
-            className="text-indigo-500 dark:text-indigo-400 shrink-0 mt-[2px]"
-          />
-          <p
-            className="text-[11.5px] font-bold text-slate-800 dark:text-white leading-tight break-words"
-            title={task.title}
-          >
-            {task.title}
-          </p>
-        </div>
-        {/* Completion Date Badge — shown prominently for completed tasks */}
-        {(() => {
-          const isCompleted =
-            task.status?.toLowerCase() === "completed" ||
-            task.status?.toLowerCase().includes("approve");
-          const completedDate = task.completedAt
-            ? new Date(task.completedAt)
-            : task.updatedAt
-              ? new Date(task.updatedAt)
-              : null;
-          if (isCompleted && completedDate && !isNaN(completedDate.getTime())) {
-            const completedStr = format(completedDate, "MMM dd, h:mm a");
-            const isToday_ = isSameDay(completedDate, new Date());
-            return (
-              <div className="pl-1.5">
-                <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-emerald-500 dark:bg-emerald-600 text-white border border-emerald-600/30 dark:border-emerald-500/40 shadow-sm w-full justify-center">
-                  <FiCheckCircle size={10} className="shrink-0" />
-                  <span>Completed: {completedStr}</span>
-                  {isToday_ && (
-                    <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
-                  )}
-                </span>
-              </div>
-            );
-          }
-          return null;
-        })()}
-        {/* Due Date & Deadline Badge — shown for non-completed tasks */}
-        {(() => {
-          const isCompleted =
-            task.status?.toLowerCase() === "completed" ||
-            task.status?.toLowerCase().includes("approve");
-          if (isCompleted) return null;
-          return task.dueDate ? (
-            <div className="pl-1.5 flex items-center justify-between gap-1">
-              <span
-                className={`shrink-0 flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${(() => {
-                  const days = getDaysRemaining(task.dueDate, selectedDate);
-                  if (days < 0)
-                    return "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15 border border-rose-200/60 dark:border-rose-500/20";
-                  if (days === 0)
-                    return "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15 border border-amber-200/60 dark:border-amber-500/20";
-                  if (days === 1)
-                    return "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 border border-blue-200/60 dark:border-blue-500/20";
-                  return "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700";
-                })()}`}
-              >
-                <FiClock size={10} />
-                <span>{format(parseISO(task.dueDate), "MMM dd")}</span>
-                <span className="opacity-40 font-normal">|</span>
-                <span className="truncate max-w-[90px]">
-                  {getDeadlineBadgeText(task.dueDate, task.status)}
-                </span>
-              </span>
-            </div>
-          ) : null;
-        })()}
-        {/* Project and Priority Info */}
-        <div className="flex items-center justify-between gap-1.5 pl-1.5">
-          <span
-            className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/40 px-2 py-0.5 rounded-md truncate max-w-[140px]"
-            title={clientName}
-          >
-            {clientName}
-          </span>
-          {task.priority && (
-            <span
-              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0 ${getPriorityStyle(task.priority)}`}
-            >
-              {task.priority}
-            </span>
-          )}
-        </div>
-        {/* Assigned User */}
-        {(assignedUser || assignedByName) && (
-          <div className="pl-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
-            {/* Assigned To — left */}
-            {assignedUser ? (
-              <div
-                className="flex items-center gap-1.5 min-w-0"
-                title={`Assigned to: ${assignedUser.name}`}
-              >
-                {profileImg ? (
-                  <img
-                    src={profileImg}
-                    alt={assignedUser.name}
-                    className="w-5 h-5 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[9px] font-bold ring-1 ring-indigo-400/30 shrink-0">
-                    {initials}
-                  </div>
-                )}
-                <span className="text-[10px] font-medium text-slate-700 dark:text-slate-300 truncate">
-                  {assignedUser.name}
-                </span>
-              </div>
-            ) : (
-              <div />
-            )}
-            {/* Assigned By — right */}
-            {assignedByName && (
-              <div
-                className="flex items-center gap-1.5 shrink-0"
-                title={`Assigned by: ${assignedByName}`}
-              >
-                <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[8.5px] font-bold ring-1 ring-amber-400/30 shrink-0">
-                  {creatorInitials || "SM"}
-                </div>
-                <span className="text-[9.5px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[70px]">
-                  {assignedByName}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-      </motion.div>
-    );
-  };
 
   const getRelativeDateLabel = (date) => {
     if (isToday(date)) return "Today";
@@ -3339,12 +2894,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 : `Assigned ${targetDept}`,
             value: metrics.designersWorking,
             icon: FiUsers,
-            glow: "hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)]",
-            bg: "bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-800 dark:to-blue-900 border border-blue-200/50 dark:border-blue-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
+            glow: "hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)] hover:border-blue-300 dark:hover:border-blue-500",
+            bg: "bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-800/40",
+            labelColor: "text-blue-700 dark:text-blue-300",
+            valueColor: "text-slate-900 dark:text-white",
             iconBg:
-              "bg-blue-100 dark:bg-blue-950 border border-blue-200 dark:border-blue-500",
+              "bg-blue-100/80 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700/60",
             iconColor: "text-blue-600 dark:text-blue-400",
             onClick: () => {
               performanceTableRef.current?.scrollIntoView({
@@ -3356,12 +2911,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             label: "Assigned",
             value: metrics.tasksAssigned,
             icon: FiLayers,
-            glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)]",
-            bg: "bg-gradient-to-br from-violet-400 to-violet-500 dark:from-red-950 dark:to-indigo-900 border border-indigo-200/50 dark:border-indigo-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
+            glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)] hover:border-indigo-300 dark:hover:border-indigo-500",
+            bg: "bg-indigo-50/70 dark:bg-indigo-950/20 border border-indigo-200/70 dark:border-indigo-800/40",
+            labelColor: "text-indigo-700 dark:text-indigo-300",
+            valueColor: "text-slate-900 dark:text-white",
             iconBg:
-              "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
+              "bg-indigo-100/80 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700/60",
             iconColor: "text-indigo-600 dark:text-indigo-400",
             onClick: () => handleMetricClick("All"),
           },
@@ -3369,25 +2924,25 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             label: "Not Started",
             value: metrics.pending,
             icon: FiClock,
-            glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
-            bg: "bg-slate-300 dark:bg-slate-300 border border-amber-200/50 dark:border-amber-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
+            glow: "hover:shadow-[0_4px_20px_rgba(20,184,166,0.15)] hover:border-teal-300 dark:hover:border-teal-500",
+            bg: "bg-teal-50/70 dark:bg-teal-950/20 border border-teal-200/70 dark:border-teal-800/40",
+            labelColor: "text-teal-700 dark:text-teal-300",
+            valueColor: "text-slate-900 dark:text-white",
             iconBg:
-              "bg-white dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
-            iconColor: "text-black dark:text-amber-400",
+              "bg-teal-100/80 dark:bg-teal-900/50 border border-teal-200 dark:border-teal-700/60",
+            iconColor: "text-teal-600 dark:text-teal-400",
             onClick: () => handleMetricClick("Not Started"),
           },
           {
             label: "In Progress",
             value: metrics.inProgress,
             icon: FiPlay,
-            glow: "hover:shadow-[0_4px_20px_rgba(14,165,233,0.15)]",
-            bg: "bg-gradient-to-br from-sky-400 to-sky-600 dark:from-sky-850 dark:to-sky-950 border border-sky-200/50 dark:border-sky-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
+            glow: "hover:shadow-[0_4px_20px_rgba(14,165,233,0.15)] hover:border-sky-300 dark:hover:border-sky-500",
+            bg: "bg-sky-50/70 dark:bg-sky-950/20 border border-sky-200/70 dark:border-sky-800/40",
+            labelColor: "text-sky-700 dark:text-sky-300",
+            valueColor: "text-slate-900 dark:text-white",
             iconBg:
-              "bg-sky-100 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-500/20",
+              "bg-sky-100/80 dark:bg-sky-900/50 border border-sky-200 dark:border-sky-700/60",
             iconColor: "text-sky-600 dark:text-sky-400",
             onClick: () => handleMetricClick("In Progress"),
           },
@@ -3395,12 +2950,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             label: "On Hold",
             value: metrics.onHold,
             icon: FiPauseCircle,
-            glow: "hover:shadow-[0_4px_20px_rgba(217,70,239,0.15)]",
-            bg: "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 dark:from-fuchsia-800 dark:to-fuchsia-900 border border-fuchsia-200/50 dark:border-fuchsia-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
+            glow: "hover:shadow-[0_4px_20px_rgba(217,70,239,0.15)] hover:border-fuchsia-300 dark:hover:border-fuchsia-500",
+            bg: "bg-fuchsia-50/70 dark:bg-fuchsia-950/20 border border-fuchsia-200/70 dark:border-fuchsia-800/40",
+            labelColor: "text-fuchsia-700 dark:text-fuchsia-300",
+            valueColor: "text-slate-900 dark:text-white",
             iconBg:
-              "bg-fuchsia-100 dark:bg-fuchsia-950/60 border border-fuchsia-200 dark:border-fuchsia-500/20",
+              "bg-fuchsia-100/80 dark:bg-fuchsia-900/50 border border-fuchsia-200 dark:border-fuchsia-700/60",
             iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
             onClick: () => handleMetricClick("On Hold"),
           },
@@ -3408,41 +2963,39 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             label: "In Review",
             value: metrics.inReview,
             icon: FiEye,
-            glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)]",
-            bg: "bg-yellow-400 dark:from-indigo-850 dark:to-indigo-950 border border-indigo-200/50 dark:border-indigo-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
+            glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)] hover:border-amber-300 dark:hover:border-amber-500",
+            bg: "bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40",
+            labelColor: "text-amber-700 dark:text-amber-300",
+            valueColor: "text-slate-900 dark:text-white",
             iconBg:
-              "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
-            iconColor: "text-indigo-600 dark:text-indigo-400",
+              "bg-amber-100/80 dark:bg-amber-900/50 border border-amber-200 dark:border-amber-700/60",
+            iconColor: "text-amber-600 dark:text-amber-400",
             onClick: () => handleMetricClick("In Review"),
           },
-
           {
             label: "Completed",
             value: metrics.completed,
             icon: FiCheckCircle,
-            glow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)]",
-            bg: "bg-gradient-to-br from-emerald-400 to-emerald-500 dark:from-emerald-700 dark:to-emerald-800 border border-emerald-200/50 dark:border-emerald-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
+            glow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)] hover:border-emerald-300 dark:hover:border-emerald-500",
+            bg: "bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/70 dark:border-emerald-800/40",
+            labelColor: "text-emerald-700 dark:text-emerald-300",
+            valueColor: "text-slate-900 dark:text-white",
             iconBg:
-              "bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/20",
+              "bg-emerald-100/80 dark:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-700/60",
             iconColor: "text-emerald-600 dark:text-emerald-400",
             onClick: () => handleMetricClick("Completed"),
           },
-
           {
             label: "Due Tasks",
             value: metrics.dueToday,
             icon: FiCalendar,
-            glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
-            bg: "bg-gradient-to-br from-amber-500 to-orange-500 dark:from-amber-700 dark:to-orange-800 border border-amber-200/50 dark:border-amber-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
+            glow: "hover:shadow-[0_4px_20px_rgba(244,63,94,0.15)] hover:border-rose-300 dark:hover:border-rose-500",
+            bg: "bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-800/40",
+            labelColor: "text-rose-700 dark:text-rose-300",
+            valueColor: "text-slate-900 dark:text-white",
             iconBg:
-              "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
-            iconColor: "text-amber-600 dark:text-amber-400",
+              "bg-rose-100/80 dark:bg-rose-900/50 border border-rose-200 dark:border-rose-700/60",
+            iconColor: "text-rose-600 dark:text-rose-400",
             onClick: () => handleMetricClick("Due Today"),
           },
         ].map((m, i) => {
@@ -3454,26 +3007,26 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               transition={{ delay: i * 0.05 }}
               key={i}
               onClick={m.onClick}
-              className={`flex flex-col text-left p-3 rounded-2xl ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-sm ${m.onClick ? "cursor-pointer" : ""}`}
+              className={`flex flex-col text-left p-3 rounded-2xl ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-2xs ${m.onClick ? "cursor-pointer" : ""}`}
             >
               {/* Decorative light reflection overlay */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full -mr-6 -mt-6 blur-md pointer-events-none" />
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/20 dark:from-white/5 to-transparent rounded-full -mr-6 -mt-6 blur-md pointer-events-none" />
 
-              <div className="flex items-center justify-between mb-3 relative z-10">
+              <div className="flex items-center justify-between mb-2 relative z-10">
                 <span
-                  className={`text-3xl font-black ${m.valueColor} tracking-tight`}
+                  className={`text-2xl lg:text-3xl font-black ${m.valueColor} tracking-tight`}
                 >
                   {m.value}
                 </span>
                 <div
-                  className={`p-2 rounded-xl ${m.iconBg} group-hover:scale-110 transition-transform duration-300`}
+                  className={`p-2 rounded-xl ${m.iconBg} group-hover:scale-110 transition-transform duration-300 shadow-2xs`}
                 >
-                  <IconComponent size={10} className={m.iconColor} />
+                  <IconComponent size={14} className={m.iconColor} />
                 </div>
               </div>
 
               <span
-                className={`text-[10px] font-black tracking-widest uppercase mt-1 leading-tight relative z-10 ${m.labelColor}`}
+                className={`text-[10px] font-black tracking-wider uppercase mt-1 leading-tight relative z-10 ${m.labelColor}`}
               >
                 {m.label}
               </span>
@@ -3482,434 +3035,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         })}
       </div>
 
-      {/* Live Task Board */}
-      <div className="relative z-10 space-y-3">
-        {/* Header & Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
-          <div className="flex items-center gap-3">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white tracking-wide flex items-center gap-2">
-              <FiLayers
-                className="text-indigo-500 dark:text-indigo-400"
-                size={18}
-              />
-              Live Task Board
-            </h3>
-            <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/20 shadow-2xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              LIVE SYNC
-            </span>
-            {/* Active filter count badge */}
-            {(() => {
-              const activeCount = [
-                boardFilter.search.trim() !== "",
-                boardFilter.assignee !== "All",
-                boardFilter.priority !== "All",
-                boardFilter.client !== "All",
-              ].filter(Boolean).length;
-              return activeCount > 0 ? (
-                <span className="flex items-center gap-1 text-[10px] font-black bg-indigo-500 text-white px-2.5 py-0.5 rounded-full shadow-sm">
-                  <FiFilter size={9} />
-                  {activeCount} filter{activeCount > 1 ? "s" : ""} active
-                </span>
-              ) : null;
-            })()}
-          </div>
-
-          {/* Filter toggle + Column Scroll Controls */}
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <button
-              onClick={() => setShowBoardFilter((v) => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl  text-xs font-bold transition-all cursor-pointer ${
-                showBoardFilter
-                  ? "bg-indigo-500 text-white border-indigo-600 shadow-md"
-                  : "sidebar-bg text-slate-600 dark:text-slate-300  hover:text-indigo-600"
-              }`}
-              title="Toggle Board Filters"
-            >
-              <FiFilter size={13} />
-              Filter
-            </button>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 sidebar-bg px-2.5 py-1 rounded-lg ">
-              {boardColumns.length} Columns
-            </span>
-          </div>
-        </div>
-        {/* Board Filter Panel */}
-        {showBoardFilter && (
-          <div className="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-md">
-            <div className="flex flex-wrap gap-3 items-end">
-              {/* Search */}
-              <div className="flex-1 min-w-[160px]">
-                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                  Search Task
-                </label>
-                <div className="relative">
-                  <FiSearch
-                    size={12}
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                  <input
-                    type="text"
-                    value={boardFilter.search}
-                    onChange={(e) =>
-                      setBoardFilter((f) => ({ ...f, search: e.target.value }))
-                    }
-                    placeholder="Search by task or project..."
-                    className="w-full pl-7 pr-3 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/60 rounded-lg text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Assignee */}
-              <div className="min-w-[140px]">
-                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                  Assignee
-                </label>
-                <select
-                  value={boardFilter.assignee}
-                  onChange={(e) =>
-                    setBoardFilter((f) => ({ ...f, assignee: e.target.value }))
-                  }
-                  className="w-full px-2.5 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/60 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
-                >
-                  <option value="All">All Designers</option>
-                  {designers.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Priority */}
-              <div className="min-w-[120px]">
-                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                  Priority
-                </label>
-                <select
-                  value={boardFilter.priority}
-                  onChange={(e) =>
-                    setBoardFilter((f) => ({ ...f, priority: e.target.value }))
-                  }
-                  className="w-full px-2.5 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/60 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
-                >
-                  <option value="All">All Priorities</option>
-                  <option value="Top High">🔴 Top High</option>
-                  <option value="High">🟠 High</option>
-                  <option value="Medium">🔵 Medium</option>
-                  <option value="Low">🟢 Low</option>
-                </select>
-              </div>
-
-              {/* Client */}
-              <div className="min-w-[140px]">
-                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
-                  Client
-                </label>
-                <select
-                  value={boardFilter.client}
-                  onChange={(e) =>
-                    setBoardFilter((f) => ({ ...f, client: e.target.value }))
-                  }
-                  className="w-full px-2.5 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/60 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
-                >
-                  <option value="All">All Clients</option>
-                  {clients?.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.companyName || c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Clear All */}
-              {(boardFilter.search ||
-                boardFilter.assignee !== "All" ||
-                boardFilter.priority !== "All" ||
-                boardFilter.client !== "All") && (
-                <button
-                  onClick={() =>
-                    setBoardFilter({
-                      search: "",
-                      assignee: "All",
-                      priority: "All",
-                      client: "All",
-                    })
-                  }
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-all cursor-pointer self-end"
-                >
-                  <FiX size={11} />
-                  Clear All
-                </button>
-              )}
-
-              {/* Task count indicator */}
-              <div className="self-end ml-auto">
-                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400">
-                  Showing{" "}
-                  <span className="text-indigo-600 dark:text-indigo-400">
-                    {boardFilteredTasks.length}
-                  </span>{" "}
-                  / {designerTasks.length} tasks
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Kanban Columns (Scrollable on Mobile, Stretched on Desktop) */}
-        <div className="flex flex-nowrap overflow-x-auto gap-4 pb-4 pt-1 px-0.5 custom-scrollbar w-full min-h-[400px]">
-          {boardColumns.map((col, i) => {
-            let colBg = "bg-slate-50 dark:bg-slate-800/80";
-            let boardBg = "bg-slate-50/60 dark:bg-[#0f172a]";
-            let colBorder = "border-slate-200 dark:border-slate-700/80";
-            let textCol = "text-slate-800 dark:text-white";
-            let countBg = "bg-slate-200 dark:bg-slate-700";
-            let countText = "text-slate-700 dark:text-slate-300";
-
-            const lowerCol = col.toLowerCase();
-            const isOverdueCol = lowerCol === "overall overdue";
-
-            if (isOverdueCol) {
-              colBg = "bg-red-500 dark:bg-red-650";
-              boardBg = "bg-red-50/15 dark:bg-[#0f172a]";
-              textCol = "text-white dark:text-white";
-              colBorder = "border-red-200 dark:border-red-800/50";
-              countBg = "bg-red-100 dark:bg-red-900/40";
-              countText = "text-red-800 dark:text-red-300";
-            } else if (lowerCol === "pending") {
-              colBg = "bg-black dark:bg-white";
-              boardBg = "bg-slate-50/50 dark:bg-[#0f172a]";
-              textCol = "text-white dark:text-black";
-              colBorder = "border-slate-300 dark:border-slate-600";
-              countBg = "bg-slate-200 dark:bg-slate-700";
-              countText = "text-slate-800 dark:text-slate-100";
-            } else if (lowerCol === "in progress") {
-              colBg = "bg-blue-500 dark:bg-blue-600";
-              boardBg = "bg-blue-50/30 dark:bg-[#0f172a]";
-              textCol = "text-white dark:text-white";
-              colBorder = "border-blue-200 dark:border-blue-800/50";
-              countBg = "bg-blue-100 dark:bg-blue-800/50";
-              countText = "text-blue-800 dark:text-blue-300";
-            } else if (lowerCol === "on hold") {
-              colBg = "bg-fuchsia-600 dark:bg-fuchsia-600";
-              boardBg = "bg-fuchsia-50/20 dark:bg-[#0f172a]";
-              textCol = "text-white dark:text-white";
-              colBorder = "border-fuchsia-200 dark:border-fuchsia-800/50";
-              countBg = "bg-fuchsia-100 dark:bg-fuchsia-800/50";
-              countText = "text-fuchsia-800 dark:text-fuchsia-300";
-            } else if (lowerCol === "in review") {
-              colBg = "bg-amber-400 dark:bg-amber-400";
-              boardBg = "bg-indigo-50/30 dark:bg-[#0f172a]";
-              textCol = "text-slate-900 dark:text-white";
-              colBorder = "border-indigo-200 dark:border-indigo-800/50";
-              countBg = "bg-amber-100 dark:bg-indigo-800/50";
-              countText = "text-amber-900 dark:text-indigo-300";
-            } else if (lowerCol === "completed") {
-              colBg = "bg-emerald-500 dark:bg-emerald-600";
-              boardBg = "bg-emerald-50/30 dark:bg-[#0f172a]";
-              textCol = "text-white dark:text-white";
-              colBorder = "border-emerald-200 dark:border-emerald-800/50";
-              countBg = "bg-emerald-100 dark:bg-emerald-800/50";
-              countText = "text-emerald-800 dark:text-emerald-300";
-            } else if (lowerCol === "rejected") {
-              colBg = "bg-rose-500 dark:bg-rose-600";
-              boardBg = "bg-rose-50/30 dark:bg-[#0f172a]";
-              textCol = "text-white dark:text-white";
-              colBorder = "border-rose-200 dark:border-rose-800/50";
-              countBg = "bg-rose-100 dark:bg-rose-800/50";
-              countText = "text-rose-800 dark:text-rose-300";
-            }
-
-            const columnTasks = tasksByColumn[col] || [];
-            const { previousTasks, todayTasks, upcomingTasks } =
-              splitTasksByDateCategory(columnTasks, col, selectedDate);
-
-            const prevConfig = getSectionConfig(col, "prev");
-            const todayConfig = getSectionConfig(col, "today");
-            const upcomingConfig = getSectionConfig(col, "upcoming");
-
-            const isCompletedCol = lowerCol === "completed";
-
-            if (!isCompletedCol) {
-              return (
-                <div
-                  key={i}
-                  className={`flex-1 min-w-[250px] shrink-0 ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
-                >
-                  <div
-                    className={`p-3 px-3.5 border-b flex flex-col gap-1.5 rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs font-black tracking-wider uppercase truncate max-w-[70%] ${textCol}`}
-                        title={col}
-                      >
-                        {col}
-                      </span>
-                      <span
-                        className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${countBg} ${countText}`}
-                      >
-                        {columnTasks.length}
-                      </span>
-                    </div>
-
-                    {/* Header breakdown pills */}
-                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-                      <span
-                        className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
-                        title={prevConfig.title}
-                      >
-                        Prev: {previousTasks.length}
-                      </span>
-                      <span
-                        className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
-                        title={todayConfig.title}
-                      >
-                        Today: {todayTasks.length}
-                      </span>
-                      <span
-                        className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
-                        title={upcomingConfig.title}
-                      >
-                        Upcoming: {upcomingTasks.length}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 overflow-y-auto space-y-3 flex-1 custom-scrollbar">
-                    <div className="space-y-3">
-                      {/* Previous Section */}
-                      <div className="space-y-1.5">
-                        <div
-                          className={`flex items-center justify-between px-2 py-1 rounded-lg border ${prevConfig.badgeContainer}`}
-                        >
-                          <span
-                            className={`text-[9px] font-black uppercase tracking-wider truncate ${prevConfig.titleColor}`}
-                          >
-                            {prevConfig.title}
-                          </span>
-                          <span
-                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${prevConfig.countBadge}`}
-                          >
-                            {previousTasks.length}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <AnimatePresence>
-                            {previousTasks.length > 0 ? (
-                              previousTasks.map((task) => renderTaskCard(task))
-                            ) : (
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                                {prevConfig.emptyText}
-                              </p>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </div>
-
-                      {/* Today Section */}
-                      <div className="space-y-1.5">
-                        <div
-                          className={`flex items-center justify-between px-2 py-1 rounded-lg border ${todayConfig.badgeContainer}`}
-                        >
-                          <span
-                            className={`text-[9px] font-black uppercase tracking-wider truncate ${todayConfig.titleColor}`}
-                          >
-                            {todayConfig.title}
-                          </span>
-                          <span
-                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${todayConfig.countBadge}`}
-                          >
-                            {todayTasks.length}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <AnimatePresence>
-                            {todayTasks.length > 0 ? (
-                              todayTasks.map((task) => renderTaskCard(task))
-                            ) : (
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                                {todayConfig.emptyText}
-                              </p>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </div>
-
-                      {/* Upcoming Section */}
-                      <div className="space-y-1.5">
-                        <div
-                          className={`flex items-center justify-between px-2 py-1 rounded-lg border ${upcomingConfig.badgeContainer}`}
-                        >
-                          <span
-                            className={`text-[9px] font-black uppercase tracking-wider truncate ${upcomingConfig.titleColor}`}
-                          >
-                            {upcomingConfig.title}
-                          </span>
-                          <span
-                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${upcomingConfig.countBadge}`}
-                          >
-                            {upcomingTasks.length}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <AnimatePresence>
-                            {upcomingTasks.length > 0 ? (
-                              upcomingTasks.map((task) => renderTaskCard(task))
-                            ) : (
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                                {upcomingConfig.emptyText}
-                              </p>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div
-                key={i}
-                className={`flex-1 min-w-[250px] shrink-0 ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
-              >
-                <div
-                  className={`p-3 px-3.5 border-b flex items-center justify-between rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
-                >
-                  <span
-                    className={`text-xs font-black tracking-wider uppercase truncate max-w-[75%] ${textCol}`}
-                    title={col}
-                  >
-                    {col}
-                  </span>
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${countBg} ${countText}`}
-                  >
-                    {todayTasks.length}
-                  </span>
-                </div>
-
-                <div className="p-2.5 overflow-y-auto space-y-2 flex-1 custom-scrollbar">
-                  <AnimatePresence>
-                    {todayTasks.length > 0 ? (
-                      todayTasks.map((task) => renderTaskCard(task))
-                    ) : (
-                      <div className="py-8 text-center space-y-1">
-                        <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 italic">
-                          {todayConfig.emptyText}
-                        </p>
-                      </div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Live Task Board Component */}
+      <LiveTaskBoard
+        designerTasks={designerTasks}
+        designers={designers}
+        projects={projects}
+        clients={clients}
+        selectedDate={selectedDate}
+        targetDept={targetDept}
+      />
       <div className="relative z-10 scroll-mt-6" ref={performanceTableRef}>
         {/* Merged Layout: Team Performance & Today's Productivity (Full Width Single Table) */}
         <div className="sidebar-bg rounded-2xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col w-full">
@@ -3965,57 +3099,54 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
           {/* Table */}
           <div className="overflow-x-auto flex-1">
-            <table className="w-full text-left border-collapse table-auto border border-slate-250 dark:border-slate-700/80">
+            <table className="w-full text-left border-collapse table-auto border border-slate-200 dark:border-[#223149]">
               <thead>
-                <tr className="h-[40px] bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                  <th className="h-[40px] py-1.5 px-2.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap min-w-[125px]">
+                <tr className="h-[42px] bg-slate-100/90 dark:bg-[#131d2e] border-b border-slate-200 dark:border-[#223149]">
+                  <th className="py-2 px-3 align-middle text-[10.5px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap min-w-[130px] border-r border-slate-200 dark:border-[#223149]">
                     Designer
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-slate-200/80 dark:bg-slate-700/60 text-slate-800 dark:text-slate-100 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-indigo-700 dark:text-indigo-300 whitespace-nowrap text-center bg-indigo-500/10 dark:bg-indigo-950/40 border-r border-indigo-200/60 dark:border-indigo-900/40">
                     Assigned
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-red-100/80 dark:bg-red-950/60 text-red-700 dark:text-red-300 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-rose-700 dark:text-rose-300 whitespace-nowrap text-center bg-rose-500/10 dark:bg-rose-950/40 border-r border-rose-200/60 dark:border-rose-900/40">
                     Not Started
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-violet-100/80 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-sky-700 dark:text-sky-300 whitespace-nowrap text-center bg-sky-500/10 dark:bg-sky-950/40 border-r border-sky-200/60 dark:border-sky-900/40">
                     In-progress
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-fuchsia-100/80 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-300 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-fuchsia-700 dark:text-fuchsia-300 whitespace-nowrap text-center bg-fuchsia-500/10 dark:bg-fuchsia-950/40 border-r border-fuchsia-200/60 dark:border-fuchsia-900/40">
                     On-Hold
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-amber-100/80 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-amber-700 dark:text-amber-300 whitespace-nowrap text-center bg-amber-500/10 dark:bg-amber-950/40 border-r border-amber-200/60 dark:border-amber-900/40">
                     IN-Review
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-emerald-700 dark:text-emerald-300 whitespace-nowrap text-center bg-emerald-500/10 dark:bg-emerald-950/40 border-r border-emerald-200/60 dark:border-emerald-900/40">
                     Done
                   </th>
-
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center border-r border-slate-200 dark:border-[#223149]">
                     Rev
                   </th>
-
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-amber-700 dark:text-amber-300 whitespace-nowrap text-center border-r border-slate-200 dark:border-[#223149]">
                     Unproductive Hours
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-emerald-700 dark:text-emerald-300 whitespace-nowrap text-center border-r border-slate-200 dark:border-[#223149]">
                     Productive Hours
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
-                    Efficieny
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-indigo-700 dark:text-indigo-300 whitespace-nowrap text-center border-r border-slate-200 dark:border-[#223149]">
+                    Efficiency
                   </th>
-
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider uppercase text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-950/60 whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider uppercase text-rose-700 dark:text-rose-300 whitespace-nowrap text-center border-r border-slate-200 dark:border-[#223149]">
                     Dly
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap text-center border-r border-slate-200 dark:border-[#223149]">
                     Submitted
                   </th>
-                  <th className="h-[40px] py-1.5 px-2 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[11px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap text-center">
+                  <th className="py-2 px-2 align-middle text-[10.5px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap text-center">
                     Action
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100 dark:divide-[#1a2538]">
                 {teamPerformance.map((tp, idx) => {
                   const isOnline =
                     onlineUserIds.includes(tp.id) ||
@@ -4052,10 +3183,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                   const efficiencyColor =
                     efficiency >= 80
-                      ? "bg-emerald-100 text-emerald-755 dark:bg-emerald-950/40 dark:text-emerald-400"
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-black"
                       : efficiency >= 50
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                        : "bg-slate-100 text-slate-500 dark:bg-slate-800/50 dark:text-slate-400";
+                        ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-black"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-bold";
 
                   const revVal =
                     tp.totalRevisions !== undefined
@@ -4079,35 +3210,38 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   }).length;
 
                   return (
-                    <tr key={tp.id} className="h-[42px]">
+                    <tr
+                      key={tp.id}
+                      className="h-[44px] hover:bg-slate-50/80 dark:hover:bg-[#162235] transition-colors"
+                    >
                       {/* Designer */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80">
-                        <div className="flex items-center gap-2">
+                      <td className="py-2 px-3 border-r border-slate-100 dark:border-[#1a2538]">
+                        <div className="flex items-center gap-2.5">
                           <div className="relative shrink-0">
                             {tp.profileImage ? (
                               <img
                                 src={tp.profileImage}
                                 alt={tp.name}
-                                className="w-6.5 h-6.5 rounded-full object-cover border border-white dark:border-slate-700 shadow-2xs"
+                                className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
                               />
                             ) : (
                               <div
-                                className={`w-6.5 h-6.5 rounded-full ${avatarBg} text-white text-[9.5px] font-black flex items-center justify-center shrink-0 shadow-2xs`}
+                                className={`w-7 h-7 rounded-full ${avatarBg} text-white text-[10px] font-black flex items-center justify-center shrink-0 shadow-2xs`}
                               >
                                 {getInitials(tp.name)}
                               </div>
                             )}
                             <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-slate-900 ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-500"}`}
+                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-[#131d2e] ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}
                               title={isOnline ? "Online" : "Offline"}
                             />
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[11.5px] font-black text-slate-800 dark:text-white truncate max-w-[110px] leading-tight">
+                            <span className="text-[12px] font-bold text-[#0f172a] dark:text-[#f8fafc] truncate max-w-[115px] leading-tight">
                               {tp.name}
                             </span>
                             <span
-                              className={`text-[8.5px] font-bold leading-none mt-0.5 ${isOnline ? "text-emerald-500" : "text-slate-400 dark:text-slate-400"}`}
+                              className={`text-[9px] font-medium leading-none mt-0.5 ${isOnline ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-slate-400 dark:text-slate-500"}`}
                             >
                               {isOnline ? "Online" : "Offline"}
                             </span>
@@ -4116,77 +3250,73 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* Today Assigned */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center">
+                      <td className="py-2 px-2 text-center bg-indigo-500/[0.04] dark:bg-indigo-950/20 border-r border-indigo-200/50 dark:border-indigo-900/30">
                         <StatusCellValue
                           todayVal={tp.assigned}
                           carryVal={tp.carryForward?.assigned || 0}
-                          activeTextClass="text-slate-800 dark:text-slate-200"
-                          badgeClass="bg-white dark:bg-slate-955 text-slate-650 dark:text-slate-350 border-slate-200 dark:border-slate-800/60 shadow-3xs"
+                          activeTextClass="text-indigo-600 dark:text-indigo-300 font-black text-sm"
+                          badgeClass="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/40"
                         />
                       </td>
 
-                      {/* Pending */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-slate-200 dark:bg-slate-800/60">
+                      {/* Pending / Not Started */}
+                      <td className="py-2 px-2 text-center bg-rose-500/[0.04] dark:bg-rose-950/20 border-r border-rose-200/50 dark:border-rose-900/30">
                         <StatusCellValue
                           todayVal={tp.pending}
                           carryVal={tp.carryForward?.pending || 0}
-                          activeTextClass="text-red-600 dark:text-red-400"
-                          badgeClass="bg-white dark:bg-slate-955 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/60 shadow-3xs"
+                          activeTextClass="text-rose-600 dark:text-rose-400 font-black text-sm"
+                          badgeClass="bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/40"
                         />
                       </td>
 
                       {/* In Progress */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-violet-200 dark:bg-violet-900/30">
+                      <td className="py-2 px-2 text-center bg-sky-500/[0.04] dark:bg-sky-950/20 border-r border-sky-200/50 dark:border-sky-900/30">
                         <StatusCellValue
                           todayVal={tp.inProgress}
                           carryVal={tp.carryForward?.inProgress || 0}
-                          activeTextClass="text-violet-600 dark:text-violet-300"
-                          badgeClass="bg-white dark:bg-slate-955 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-900/60 shadow-3xs"
+                          activeTextClass="text-sky-600 dark:text-sky-300 font-black text-sm"
+                          badgeClass="bg-sky-50 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-500/40"
                           showRunningIndicator={true}
                         />
                       </td>
 
                       {/* On Hold */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-orange-200 dark:bg-orange-900/30">
+                      <td className="py-2 px-2 text-center bg-fuchsia-500/[0.04] dark:bg-fuchsia-950/20 border-r border-fuchsia-200/50 dark:border-fuchsia-900/30">
                         <StatusCellValue
                           todayVal={tp.onHold}
                           carryVal={tp.carryForward?.onHold || 0}
-                          activeTextClass="text-orange-600 dark:text-orange-300"
-                          badgeClass="bg-white dark:bg-slate-955 text-orange-600 dark:text-orange-400 border-orange-200/50 dark:border-orange-900/60 shadow-3xs"
+                          activeTextClass="text-fuchsia-600 dark:text-fuchsia-300 font-black text-sm"
+                          badgeClass="bg-fuchsia-50 dark:bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-500/40"
                         />
                       </td>
 
                       {/* In Review */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-amber-200 dark:bg-amber-900/30">
+                      <td className="py-2 px-2 text-center bg-amber-500/[0.04] dark:bg-amber-950/20 border-r border-amber-200/50 dark:border-amber-900/30">
                         <StatusCellValue
                           todayVal={tp.inReview}
                           carryVal={tp.carryForward?.inReview || 0}
-                          activeTextClass="text-amber-600 dark:text-amber-300"
-                          badgeClass="bg-white dark:bg-slate-955 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/60 shadow-3xs"
+                          activeTextClass="text-amber-600 dark:text-amber-300 font-black text-sm"
+                          badgeClass="bg-amber-50 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-500/40"
                         />
                       </td>
 
                       {/* Completed */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center bg-emerald-200 dark:bg-emerald-900/30">
+                      <td className="py-2 px-2 text-center bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-r border-emerald-200/50 dark:border-emerald-900/30">
                         <StatusCellValue
                           todayVal={tp.completed}
                           carryVal={tp.carryForward?.completed || 0}
-                          activeTextClass="text-emerald-600 dark:text-emerald-300"
-                          badgeClass="bg-white dark:bg-slate-955 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60 shadow-3xs"
+                          activeTextClass="text-emerald-600 dark:text-emerald-300 font-black text-sm"
+                          badgeClass="bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/40"
                         />
                       </td>
 
                       {/* Revisions */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center">
+                      <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
                         <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black border ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border ${
                             revVal === 0
-                              ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700"
-                              : revVal <= 1
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
-                                : revVal <= 3
-                                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-955/30 dark:text-amber-400 dark:border-amber-800/40"
-                                  : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-955/30 dark:text-rose-400 dark:border-rose-800/40"
+                              ? "bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700"
+                              : "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40"
                           }`}
                         >
                           {revVal} rev
@@ -4194,7 +3324,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* Unproductive Time */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
+                      <td className="py-2 px-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
                         <div className="flex flex-col items-center">
                           <LiveUnproductiveCell
                             tp={tp}
@@ -4206,7 +3336,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* Productive Time — live when In Progress */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
+                      <td className="py-2 px-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
                         <LiveProductivityCell
                           tasks={tp.tasks}
                           initialLoggedMs={tp.totalLoggedMs}
@@ -4217,35 +3347,35 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* Efficiency */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center">
+                      <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black border-0 ${efficiencyColor}`}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] shadow-2xs ${efficiencyColor}`}
                         >
                           {efficiency}%
                         </span>
                       </td>
 
                       {/* Delays */}
-                      <td className="py-2 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
+                      <td className="py-2 px-1.5 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
                         {delayCount === 0 ? (
                           <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
                             0
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-xs text-[9.5px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40 shadow-3xs whitespace-nowrap">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9.5px] font-black bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-300/80 dark:border-rose-500/40 shadow-3xs whitespace-nowrap">
                             {delayCount} Dly
                           </span>
                         )}
                       </td>
 
                       {/* Last Submitted */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center">
+                      <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
                         {tp.lastSubmitted === "Not submitted" ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-400 dark:text-slate-500">
                             Nil
                           </span>
                         ) : tp.lastSubmitted === "Draft" ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-amber-500 dark:text-amber-400 animate-pulse">
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-amber-600 dark:text-amber-400 animate-pulse">
                             Draft
                           </span>
                         ) : (
@@ -4256,7 +3386,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </td>
 
                       {/* Action */}
-                      <td className="py-2 px-2 border-b border-slate-250 dark:border-slate-700/80 text-center">
+                      <td className="py-2 px-2 text-center">
                         <button
                           type="button"
                           onClick={() => {
@@ -4268,7 +3398,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             setTaskTab("all");
                             setTaskSearch("");
                           }}
-                          className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-805/40 transition-all cursor-pointer flex items-center justify-center mx-auto shadow-2xs"
+                          className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white dark:bg-indigo-500/15 dark:hover:bg-indigo-600 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 transition-all cursor-pointer flex items-center justify-center mx-auto shadow-2xs"
                           title="View Performance Tasks"
                         >
                           <FiEye size={13} />
@@ -4354,14 +3484,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                   return (
                     <tfoot>
-                      <tr className="h-[42px]">
+                      <tr className="h-[44px] bg-slate-100 dark:bg-[#131d2e] border-t-2 border-slate-300 dark:border-[#2a3a52] font-black">
                         {/* Designer / Total */}
-                        <td className="h-[42px]  bg-blue-600 py-2 px-2.5 align-middle text-[11.5px] font-black uppercase tracking-wider text-center border-r border-white/20 text-white">
-                          Total
+                        <td className="py-2 px-3 align-middle text-[12px] font-black uppercase tracking-wider text-center border-r border-slate-200 dark:border-[#223149] text-[#0f172a] dark:text-[#f8fafc]">
+                          TOTAL
                         </td>
 
                         {/* Assigned */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
+                        <td className="py-2 px-2 align-middle text-center bg-indigo-500/10 dark:bg-indigo-950/40 border-r border-indigo-200/70 dark:border-indigo-900/40">
                           <StatusCellValue
                             todayVal={teamPerformance.reduce(
                               (s, tp) => s + tp.assigned,
@@ -4371,14 +3501,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               (s, tp) => s + (tp.carryForward?.assigned || 0),
                               0,
                             )}
-                            activeTextClass="text-white font-black text-[14px]"
-                            inactiveTextClass="text-white font-black text-[14px]"
-                            badgeClass="bg-white/20 text-white border border-white/40 font-bold text-[9px]"
+                            activeTextClass="text-indigo-600 dark:text-indigo-300 font-black text-sm"
+                            badgeClass="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/40"
                           />
                         </td>
 
                         {/* Pend */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
+                        <td className="py-2 px-2 align-middle text-center bg-rose-500/10 dark:bg-rose-950/40 border-r border-rose-200/70 dark:border-rose-900/40">
                           <StatusCellValue
                             todayVal={teamPerformance.reduce(
                               (s, tp) => s + tp.pending,
@@ -4388,14 +3517,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               (s, tp) => s + (tp.carryForward?.pending || 0),
                               0,
                             )}
-                            activeTextClass="text-white font-black text-[14px]"
-                            inactiveTextClass="text-white font-black text-[14px]"
-                            badgeClass="bg-white/20 text-white border border-white/40 font-bold text-[9px]"
+                            activeTextClass="text-rose-600 dark:text-rose-400 font-black text-sm"
+                            badgeClass="bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/40"
                           />
                         </td>
 
                         {/* Prog */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
+                        <td className="py-2 px-2 align-middle text-center bg-sky-500/10 dark:bg-sky-950/40 border-r border-sky-200/70 dark:border-sky-900/40">
                           <StatusCellValue
                             todayVal={teamPerformance.reduce(
                               (s, tp) => s + tp.inProgress,
@@ -4405,14 +3533,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               (s, tp) => s + (tp.carryForward?.inProgress || 0),
                               0,
                             )}
-                            activeTextClass="text-white font-black text-[14px]"
-                            inactiveTextClass="text-white font-black text-[14px]"
-                            badgeClass="bg-white/20 text-white border border-white/40 font-bold text-[9px]"
+                            activeTextClass="text-sky-600 dark:text-sky-300 font-black text-sm"
+                            badgeClass="bg-sky-50 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-500/40"
                           />
                         </td>
 
                         {/* Hold */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
+                        <td className="py-2 px-2 align-middle text-center bg-fuchsia-500/10 dark:bg-fuchsia-950/40 border-r border-fuchsia-200/70 dark:border-fuchsia-900/40">
                           <StatusCellValue
                             todayVal={teamPerformance.reduce(
                               (s, tp) => s + tp.onHold,
@@ -4422,14 +3549,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               (s, tp) => s + (tp.carryForward?.onHold || 0),
                               0,
                             )}
-                            activeTextClass="text-white font-black text-[14px]"
-                            inactiveTextClass="text-white font-black text-[14px]"
-                            badgeClass="bg-white/20 text-white border border-white/40 font-bold text-[9px]"
+                            activeTextClass="text-fuchsia-600 dark:text-fuchsia-300 font-black text-sm"
+                            badgeClass="bg-fuchsia-50 dark:bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-500/40"
                           />
                         </td>
 
                         {/* Review */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
+                        <td className="py-2 px-2 align-middle text-center bg-amber-500/10 dark:bg-amber-950/40 border-r border-amber-200/70 dark:border-amber-900/40">
                           <StatusCellValue
                             todayVal={teamPerformance.reduce(
                               (s, tp) => s + tp.inReview,
@@ -4439,14 +3565,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               (s, tp) => s + (tp.carryForward?.inReview || 0),
                               0,
                             )}
-                            activeTextClass="text-white font-black text-[14px]"
-                            inactiveTextClass="text-white font-black text-[14px]"
-                            badgeClass="bg-white/20 text-white border border-white/40 font-bold text-[9px]"
+                            activeTextClass="text-amber-600 dark:text-amber-300 font-black text-sm"
+                            badgeClass="bg-amber-50 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-500/40"
                           />
                         </td>
 
                         {/* Done */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
+                        <td className="py-2 px-2 align-middle text-center bg-emerald-500/10 dark:bg-emerald-950/40 border-r border-emerald-200/70 dark:border-emerald-900/40">
                           <StatusCellValue
                             todayVal={teamPerformance.reduce(
                               (s, tp) => s + tp.completed,
@@ -4456,21 +3581,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               (s, tp) => s + (tp.carryForward?.completed || 0),
                               0,
                             )}
-                            activeTextClass="text-white font-black text-[14px]"
-                            inactiveTextClass="text-white font-black text-[14px]"
-                            badgeClass="bg-white/20 text-white border border-white/40 font-bold text-[9px]"
+                            activeTextClass="text-emerald-600 dark:text-emerald-300 font-black text-sm"
+                            badgeClass="bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/40"
                           />
                         </td>
 
                         {/* Revisions */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
-                          <span className="text-[11.5px] font-black text-white">
+                        <td className="py-2 px-2 align-middle text-center border-r border-slate-200 dark:border-[#223149]">
+                          <span className="text-[11.5px] font-black text-[#0f172a] dark:text-[#f8fafc]">
                             {totalRevisionsSum} rev
                           </span>
                         </td>
 
                         {/* Unproductive Time */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white whitespace-nowrap">
+                        <td className="py-2 px-2 align-middle text-center border-r border-slate-200 dark:border-[#223149] whitespace-nowrap">
                           {(() => {
                             const totalMs = teamPerformance.reduce(
                               (acc, tp) => acc + (tp.onHoldTimeMs || 0),
@@ -4478,7 +3602,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             );
                             if (totalMs === 0) {
                               return (
-                                <span className="text-[12px] font-black text-white/70">
+                                <span className="text-[11.5px] font-bold text-slate-400 dark:text-slate-500">
                                   0m
                                 </span>
                               );
@@ -4489,7 +3613,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             const h = Math.floor(totalMinutes / 60);
                             const m = totalMinutes % 60;
                             return (
-                              <span className="text-[12px] font-black">
+                              <span className="text-[11.5px] font-black text-amber-700 dark:text-amber-300">
                                 {h > 0 ? `${h}h ${m}m` : `${m}m`}
                               </span>
                             );
@@ -4497,7 +3621,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Productive Time */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white whitespace-nowrap">
+                        <td className="py-2 px-2 align-middle text-center border-r border-slate-200 dark:border-[#223149] whitespace-nowrap">
                           <LiveTotalProductivityCell
                             teamPerformance={teamPerformance}
                             selectedDate={selectedDate}
@@ -4507,15 +3631,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Efficiency */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-black shadow-2xs bg-white/20 text-white">
+                        <td className="py-2 px-2 align-middle text-center border-r border-slate-200 dark:border-[#223149]">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-black shadow-2xs bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
                             {avgEfficiency}%
                           </span>
                         </td>
 
                         {/* Delays Total */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-1.5 align-middle text-center border-r border-white/20 text-white whitespace-nowrap">
-                          <span className="text-[11px] font-black text-white whitespace-nowrap">
+                        <td className="py-2 px-1.5 align-middle text-center border-r border-slate-200 dark:border-[#223149] whitespace-nowrap">
+                          <span className="text-[11px] font-black text-rose-700 dark:text-rose-300 whitespace-nowrap">
                             {totalDelaysSum > 0
                               ? `${totalDelaysSum} Dly`
                               : "0 Dly"}
@@ -4523,9 +3647,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Submitted */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white whitespace-nowrap">
+                        <td className="py-2 px-2 align-middle text-center border-r border-slate-200 dark:border-[#223149] whitespace-nowrap">
                           <span
-                            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-black bg-white/20 text-white shadow-2xs whitespace-nowrap"
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shadow-2xs whitespace-nowrap"
                             title={`${submittedCount} out of ${totalUsers} users submitted report`}
                           >
                             {submittedCount}/{totalUsers}
@@ -4533,7 +3657,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Action */}
-                        <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center text-white" />
+                        <td className="py-2 px-2 align-middle text-center text-slate-400" />
                       </tr>
                     </tfoot>
                   );
@@ -5312,79 +4436,75 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       )}
                                     </td>
                                     <td className="py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-350">
-                                      <td className="py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-350">
-                                        {targetDate ? (
-                                          <div className="flex flex-col gap-0.5">
-                                            <span className="flex items-center gap-1 text-[11px]">
-                                              <FiClock
-                                                size={11}
-                                                className="text-slate-400 shrink-0"
-                                              />
-                                              {(() => {
-                                                try {
-                                                  const isDueDateCol =
-                                                    !taskTab ||
-                                                    taskTab === "all" ||
-                                                    targetDate === task.dueDate;
-                                                  const d =
-                                                    parseISO(targetDate);
-                                                  if (
-                                                    isDueDateCol &&
-                                                    (String(
+                                      {targetDate ? (
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="flex items-center gap-1 text-[11px]">
+                                            <FiClock
+                                              size={11}
+                                              className="text-slate-400 shrink-0"
+                                            />
+                                            {(() => {
+                                              try {
+                                                const isDueDateCol =
+                                                  !taskTab ||
+                                                  taskTab === "all" ||
+                                                  targetDate === task.dueDate;
+                                                const d = parseISO(targetDate);
+                                                if (
+                                                  isDueDateCol &&
+                                                  (String(
+                                                    targetDate,
+                                                  ).includes("00:00:00") ||
+                                                    !String(
                                                       targetDate,
-                                                    ).includes("00:00:00") ||
-                                                      !String(
-                                                        targetDate,
-                                                      ).includes("T"))
-                                                  ) {
-                                                    d.setHours(17, 30, 0, 0);
-                                                  }
-                                                  return format(
-                                                    d,
-                                                    "MMM dd, h:mm a",
-                                                  );
-                                                } catch (e) {
-                                                  return "—";
+                                                    ).includes("T"))
+                                                ) {
+                                                  d.setHours(17, 30, 0, 0);
                                                 }
-                                              })()}
-                                            </span>
-                                            {task.dueDate &&
-                                              (!taskTab ||
-                                                taskTab === "all" ||
-                                                targetDate === task.dueDate) &&
-                                              (() => {
-                                                const text =
-                                                  getDeadlineBadgeText(
-                                                    task.dueDate,
-                                                    task.status,
-                                                  );
-                                                if (!text) return null;
-                                                const isDelayed =
-                                                  text.includes("overdue");
-                                                const isDueToday =
-                                                  text === "Due Today";
-                                                const isCompleted =
-                                                  text === "Completed";
-                                                const colorClass = isCompleted
-                                                  ? "text-emerald-500 dark:text-emerald-400"
-                                                  : isDelayed
-                                                    ? "text-rose-500 dark:text-rose-400"
-                                                    : isDueToday
-                                                      ? "text-amber-500 dark:text-amber-400"
-                                                      : "text-slate-500 dark:text-slate-400";
-                                                return (
-                                                  <span
-                                                    className={`text-[9px] font-bold ${colorClass}`}
-                                                  >
-                                                    {text}
-                                                  </span>
+                                                return format(
+                                                  d,
+                                                  "MMM dd, h:mm a",
                                                 );
-                                              })()}
-                                          </div>
-                                        ) : (
-                                          "—"
-                                        )}
-                                      </td>
+                                              } catch (e) {
+                                                return "—";
+                                              }
+                                            })()}
+                                          </span>
+                                          {task.dueDate &&
+                                            (!taskTab ||
+                                              taskTab === "all" ||
+                                              targetDate === task.dueDate) &&
+                                            (() => {
+                                              const text = getDeadlineBadgeText(
+                                                task.dueDate,
+                                                task.status,
+                                              );
+                                              if (!text) return null;
+                                              const isDelayed =
+                                                text.includes("overdue");
+                                              const isDueToday =
+                                                text === "Due Today";
+                                              const isCompleted =
+                                                text === "Completed";
+                                              const colorClass = isCompleted
+                                                ? "text-emerald-500 dark:text-emerald-400"
+                                                : isDelayed
+                                                  ? "text-rose-500 dark:text-rose-400"
+                                                  : isDueToday
+                                                    ? "text-amber-500 dark:text-amber-400"
+                                                    : "text-slate-500 dark:text-slate-400";
+                                              return (
+                                                <span
+                                                  className={`text-[9px] font-bold ${colorClass}`}
+                                                >
+                                                  {text}
+                                                </span>
+                                              );
+                                            })()}
+                                        </div>
+                                      ) : (
+                                        "—"
+                                      )}
                                     </td>
                                     <td className="py-3 px-4">
                                       <div className="flex flex-col gap-1">
