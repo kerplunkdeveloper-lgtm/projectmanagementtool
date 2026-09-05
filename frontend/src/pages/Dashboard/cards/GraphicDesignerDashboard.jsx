@@ -9,6 +9,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../../context/ThemeContext";
 import {
+  apiSlice,
   useGetTasksQuery,
   useUpdateTaskMutation,
 } from "../../../features/api/apiSlice";
@@ -966,6 +967,265 @@ const StatusCellValue = React.memo(
   },
 );
 
+const DesignerPerformanceRow = React.memo(
+  ({
+    tp,
+    idx,
+    isOnline,
+    officeHours,
+    selectedDate,
+    productivityCache,
+    onViewTasks,
+  }) => {
+    const avatarColors = [
+      "bg-blue-500",
+      "bg-violet-500",
+      "bg-rose-500",
+      "bg-emerald-500",
+      "bg-amber-500",
+      "bg-cyan-500",
+      "bg-pink-500",
+      "bg-indigo-500",
+    ];
+    const avatarBg = avatarColors[idx % avatarColors.length];
+
+    const startTimeStr = officeHours?.startTime ?? "09:00";
+    const endTimeStr = officeHours?.endTime ?? "19:00";
+    const [startH, startM] = startTimeStr.split(":").map(Number);
+    const [endH, endM] = endTimeStr.split(":").map(Number);
+    const totalOfficeMs =
+      (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
+    const efficiency =
+      totalOfficeMs > 0
+        ? Math.min(100, Math.round((tp.totalLoggedMs / totalOfficeMs) * 100))
+        : 0;
+
+    const efficiencyColor =
+      efficiency >= 80
+        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-black"
+        : efficiency >= 50
+          ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-black"
+          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-bold";
+
+    const revVal =
+      tp.totalRevisions !== undefined
+        ? tp.totalRevisions
+        : Math.round(tp.avgRevisions || 0);
+
+    const delayCount = (tp.tasks || []).filter((t) => {
+      const s = (t.status || "").toLowerCase();
+      if (
+        s === "completed" ||
+        s.includes("approve") ||
+        s.includes("reject") ||
+        s.includes("cancel")
+      )
+        return false;
+      if (!t.dueDate) return false;
+      return isBefore(
+        startOfDay(parseISO(t.dueDate)),
+        startOfDay(selectedDate),
+      );
+    }).length;
+
+    const getInitials = (name) => {
+      if (!name) return "";
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    };
+
+    return (
+      <tr className="h-[44px] hover:bg-slate-50/80 dark:hover:bg-[#162235] transition-colors">
+        {/* Designer */}
+        <td className="py-2 px-3 border-r border-slate-100 dark:border-[#1a2538]">
+          <div className="flex items-center gap-2.5">
+            <div className="relative shrink-0">
+              {tp.profileImage ? (
+                <img
+                  src={tp.profileImage}
+                  alt={tp.name}
+                  className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
+                />
+              ) : (
+                <div
+                  className={`w-7 h-7 rounded-full ${avatarBg} text-white text-[10px] font-black flex items-center justify-center shrink-0 shadow-2xs`}
+                >
+                  {getInitials(tp.name)}
+                </div>
+              )}
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-[#131d2e] ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}
+                title={isOnline ? "Online" : "Offline"}
+              />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[12px] font-bold text-[#0f172a] dark:text-[#f8fafc] truncate max-w-[115px] leading-tight">
+                {tp.name}
+              </span>
+              <span
+                className={`text-[9px] font-medium leading-none mt-0.5 ${isOnline ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-slate-400 dark:text-slate-500"}`}
+              >
+                {isOnline ? "Online" : "Offline"}
+              </span>
+            </div>
+          </div>
+        </td>
+
+        {/* Today Assigned */}
+        <td className="py-2 px-2 text-center bg-indigo-500/[0.04] dark:bg-indigo-950/20 border-r border-indigo-200/50 dark:border-indigo-900/30">
+          <StatusCellValue
+            todayVal={tp.assigned}
+            carryVal={tp.carryForward?.assigned || 0}
+            activeTextClass="text-indigo-600 dark:text-indigo-300 font-black text-sm"
+            badgeClass="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/40"
+          />
+        </td>
+
+        {/* Pending / Not Started */}
+        <td className="py-2 px-2 text-center bg-rose-500/[0.04] dark:bg-rose-950/20 border-r border-rose-200/50 dark:border-rose-900/30">
+          <StatusCellValue
+            todayVal={tp.pending}
+            carryVal={tp.carryForward?.pending || 0}
+            activeTextClass="text-rose-600 dark:text-rose-400 font-black text-sm"
+            badgeClass="bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/40"
+          />
+        </td>
+
+        {/* In Progress */}
+        <td className="py-2 px-2 text-center bg-sky-500/[0.04] dark:bg-sky-950/20 border-r border-sky-200/50 dark:border-sky-900/30">
+          <StatusCellValue
+            todayVal={tp.inProgress}
+            carryVal={tp.carryForward?.inProgress || 0}
+            activeTextClass="text-sky-600 dark:text-sky-300 font-black text-sm"
+            badgeClass="bg-sky-50 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-500/40"
+            showRunningIndicator={true}
+          />
+        </td>
+
+        {/* On Hold */}
+        <td className="py-2 px-2 text-center bg-fuchsia-500/[0.04] dark:bg-fuchsia-950/20 border-r border-fuchsia-200/50 dark:border-fuchsia-900/30">
+          <StatusCellValue
+            todayVal={tp.onHold}
+            carryVal={tp.carryForward?.onHold || 0}
+            activeTextClass="text-fuchsia-600 dark:text-fuchsia-300 font-black text-sm"
+            badgeClass="bg-fuchsia-50 dark:bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-500/40"
+          />
+        </td>
+
+        {/* In Review */}
+        <td className="py-2 px-2 text-center bg-amber-500/[0.04] dark:bg-amber-950/20 border-r border-amber-200/50 dark:border-amber-900/30">
+          <StatusCellValue
+            todayVal={tp.inReview}
+            carryVal={tp.carryForward?.inReview || 0}
+            activeTextClass="text-amber-600 dark:text-amber-300 font-black text-sm"
+            badgeClass="bg-amber-50 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-500/40"
+          />
+        </td>
+
+        {/* Completed */}
+        <td className="py-2 px-2 text-center bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-r border-emerald-200/50 dark:border-emerald-900/30">
+          <StatusCellValue
+            todayVal={tp.completed}
+            carryVal={tp.carryForward?.completed || 0}
+            activeTextClass="text-emerald-600 dark:text-emerald-300 font-black text-sm"
+            badgeClass="bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/40"
+          />
+        </td>
+
+        {/* Revisions */}
+        <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border ${
+              revVal === 0
+                ? "bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700"
+                : "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40"
+            }`}
+          >
+            {revVal} rev
+          </span>
+        </td>
+
+        {/* Unproductive Time */}
+        <td className="py-2 px-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
+          <div className="flex flex-col items-center">
+            <LiveUnproductiveCell
+              tp={tp}
+              selectedDate={selectedDate}
+              officeHours={officeHours}
+              productivityCache={productivityCache}
+            />
+          </div>
+        </td>
+
+        {/* Productive Time — live when In Progress */}
+        <td className="py-2 px-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
+          <LiveProductivityCell
+            tasks={tp.tasks}
+            initialLoggedMs={tp.totalLoggedMs}
+            selectedDate={selectedDate}
+            officeHours={officeHours}
+            productivityCache={productivityCache}
+          />
+        </td>
+
+        {/* Efficiency */}
+        <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] shadow-2xs ${efficiencyColor}`}
+          >
+            {efficiency}%
+          </span>
+        </td>
+
+        {/* Delays */}
+        <td className="py-2 px-1.5 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
+          {delayCount === 0 ? (
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+              0
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9.5px] font-black bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-300/80 dark:border-rose-500/40 shadow-3xs whitespace-nowrap">
+              {delayCount} Dly
+            </span>
+          )}
+        </td>
+
+        {/* Last Submitted */}
+        <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
+          {tp.lastSubmitted === "Not submitted" ? (
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-400 dark:text-slate-500">
+              Nil
+            </span>
+          ) : tp.lastSubmitted === "Draft" ? (
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-amber-600 dark:text-amber-400 animate-pulse">
+              Draft
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-emerald-600 dark:text-emerald-400">
+              {tp.lastSubmitted}
+            </span>
+          )}
+        </td>
+
+        {/* Action */}
+        <td className="py-2 px-2 text-center">
+          <button
+            type="button"
+            onClick={() => onViewTasks(tp)}
+            className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white dark:bg-indigo-500/15 dark:hover:bg-indigo-600 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 transition-all cursor-pointer flex items-center justify-center mx-auto shadow-2xs"
+            title="View Performance Tasks"
+          >
+            <FiEye size={13} />
+          </button>
+        </td>
+      </tr>
+    );
+  }
+);
+
 const ApprovalTimelineCell = React.memo(({ task }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -1189,6 +1449,138 @@ const getPriorityStyle = (priority) => {
   return "bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
 };
 
+const GraphicDesignerDashboardSkeleton = ({ targetDept = "Graphic Designer" }) => {
+  return (
+    <div className="w-full space-y-6 animate-pulse select-none">
+      {/* Top Header Skeleton */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-xl">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 dark:bg-indigo-500/30 flex items-center justify-center">
+              <div className="w-4 h-4 rounded-md bg-indigo-500/40" />
+            </div>
+            <div className="h-6 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+            <div className="h-5 w-24 bg-indigo-100 dark:bg-indigo-950/60 rounded-full" />
+          </div>
+          <div className="h-3.5 w-64 bg-slate-100 dark:bg-slate-800/60 rounded-md" />
+        </div>
+
+        {/* Date Filter Skeletons */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="h-9 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          <div className="h-9 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          <div className="h-9 w-9 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+        </div>
+      </div>
+
+      {/* KPI Cards Skeleton (4 columns) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { color: "from-blue-500/10 to-indigo-500/10", border: "border-blue-500/20" },
+          { color: "from-amber-500/10 to-orange-500/10", border: "border-amber-500/20" },
+          { color: "from-violet-500/10 to-purple-500/10", border: "border-violet-500/20" },
+          { color: "from-emerald-500/10 to-teal-500/10", border: "border-emerald-500/20" },
+        ].map((item, idx) => (
+          <div
+            key={idx}
+            className={`p-4 rounded-2xl bg-gradient-to-br ${item.color} bg-white dark:bg-slate-900/80 border ${item.border} dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between h-28`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/60 rounded" />
+              <div className="w-8 h-8 rounded-xl bg-slate-200/80 dark:bg-slate-800" />
+            </div>
+            <div className="space-y-1.5 mt-auto">
+              <div className="h-7 w-16 bg-slate-300 dark:bg-slate-700 rounded-lg" />
+              <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full w-2/3 bg-slate-300/60 dark:bg-slate-700/60 rounded-full" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Team Performance Table Skeleton */}
+      <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden backdrop-blur-xl">
+        {/* Table Header Controls */}
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-lg bg-indigo-500/20" />
+            <div className="h-5 w-44 bg-slate-200 dark:bg-slate-800 rounded" />
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-28 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+            <div className="h-8 w-8 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Table Rows Skeleton */}
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+          {[1, 2, 3, 4, 5].map((row) => (
+            <div key={row} className="p-4 flex items-center justify-between gap-4">
+              {/* User Info */}
+              <div className="flex items-center gap-3 w-48 shrink-0">
+                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                <div className="space-y-1.5 min-w-0 flex-1">
+                  <div className="h-4 w-28 bg-slate-200 dark:bg-slate-750 rounded" />
+                  <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded" />
+                </div>
+              </div>
+
+              {/* Status Columns Skeletons */}
+              <div className="hidden sm:flex items-center gap-3 flex-1 justify-around">
+                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
+                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
+                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
+                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
+                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
+              </div>
+
+              {/* Right Stats & Eye Icon */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="h-7 w-20 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+                <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Live Board Columns Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        {[1, 2, 3, 4, 5].map((col) => (
+          <div
+            key={col}
+            className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 space-y-3"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800">
+              <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-5 w-7 bg-slate-200 dark:bg-slate-800 rounded-full" />
+            </div>
+            <div className="space-y-2.5">
+              {[1, 2].map((card) => (
+                <div
+                  key={card}
+                  className="p-3 bg-white dark:bg-slate-800/60 rounded-xl border border-slate-150 dark:border-slate-750 shadow-2xs space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                    <div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
+                  </div>
+                  <div className="h-4 w-3/4 bg-slate-300 dark:bg-slate-650 rounded" />
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="h-3 w-20 bg-slate-100 dark:bg-slate-800 rounded" />
+                    <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
@@ -1237,9 +1629,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     data: allTasks = [],
     isLoading,
     refetch: refetchTasks,
-  } = useGetTasksQuery({ active_only: true, department: targetDept });
+  } = useGetTasksQuery(
+    { active_only: true, department: targetDept },
+    {
+      pollingInterval: 12000,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    },
+  );
 
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const selectedDateRef = useRef(selectedDate);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
   const [showDropdown, setShowDropdown] = useState(false);
   const [approvalModal, setApprovalModal] = useState({
     open: false,
@@ -1279,15 +1683,37 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         }
       });
 
-      socket.on("task_updated", () => {
+      const handleRealtimeTaskSync = () => {
         refetchTasks();
+        dispatch(apiSlice.util.invalidateTags(["Task"]));
+        const curDate = selectedDateRef.current || new Date();
+        const year = curDate.getFullYear();
+        const month = String(curDate.getMonth() + 1).padStart(2, "0");
+        const day = String(curDate.getDate()).padStart(2, "0");
+        dispatch(getDesignerEodReports({ date: `${year}-${month}-${day}` }));
+      };
+
+      socket.on("task_updated", handleRealtimeTaskSync);
+      socket.on("task_created", handleRealtimeTaskSync);
+      socket.on("task_deleted", handleRealtimeTaskSync);
+      socket.on("task_status_updated", handleRealtimeTaskSync);
+      socket.on("productivity_resumed", handleRealtimeTaskSync);
+
+      socket.on("user:presence", (data) => {
+        if (data?.userId) {
+          setOnlineUserIds((prev) =>
+            data.status === "online"
+              ? Array.from(new Set([...prev, data.userId]))
+              : prev.filter((id) => id !== data.userId),
+          );
+        }
       });
 
       return () => {
         socket.disconnect();
       };
     } catch (err) {}
-  }, [user]);
+  }, [user, dispatch, refetchTasks]);
 
   const [officeHours, setOfficeHours] = useState({
     startTime: "09:00",
@@ -1317,6 +1743,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const [trendDesignerFilter, setTrendDesignerFilter] =
     useState("All Designers");
   const [updateTask] = useUpdateTaskMutation();
+
+  const handleViewTasksModal = useCallback((tp) => {
+    setViewTasksModal({
+      open: true,
+      designerId: tp.id,
+      designerName: tp.name,
+    });
+    setTaskTab("all");
+    setTaskSearch("");
+  }, []);
 
   useEffect(() => {
     const params = {};
@@ -2569,12 +3005,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     return counts;
   }, [activeModalTasksList]);
 
-  if (isLoading) {
-    return (
-      <div className="animate-pulse h-96 bg-slate-100 dark:bg-slate-800/50 rounded-2xl w-full flex items-center justify-center text-slate-400 font-mono text-sm tracking-widest uppercase shadow-inner border border-slate-200 dark:border-slate-800">
-        Initializing {targetDept} Board...
-      </div>
-    );
+  if (isLoading && (!allTasks || allTasks.length === 0)) {
+    return <GraphicDesignerDashboardSkeleton targetDept={targetDept} />;
   }
 
   const getInitials = (name) => {
@@ -3155,256 +3587,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     tp.status === "online" ||
                     tp.userStatus === "online";
 
-                  const avatarColors = [
-                    "bg-blue-500",
-                    "bg-violet-500",
-                    "bg-rose-500",
-                    "bg-emerald-500",
-                    "bg-amber-500",
-                    "bg-cyan-500",
-                    "bg-pink-500",
-                    "bg-indigo-500",
-                  ];
-                  const avatarBg = avatarColors[idx % avatarColors.length];
-
-                  const startTimeStr = officeHours?.startTime ?? "09:00";
-                  const endTimeStr = officeHours?.endTime ?? "19:00";
-                  const [startH, startM] = startTimeStr.split(":").map(Number);
-                  const [endH, endM] = endTimeStr.split(":").map(Number);
-                  const totalOfficeMs =
-                    (endH * 60 + endM - (startH * 60 + startM)) * 60 * 1000;
-                  const efficiency =
-                    totalOfficeMs > 0
-                      ? Math.min(
-                          100,
-                          Math.round((tp.totalLoggedMs / totalOfficeMs) * 100),
-                        )
-                      : 0;
-
-                  const efficiencyColor =
-                    efficiency >= 80
-                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-black"
-                      : efficiency >= 50
-                        ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-black"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-bold";
-
-                  const revVal =
-                    tp.totalRevisions !== undefined
-                      ? tp.totalRevisions
-                      : Math.round(tp.avgRevisions || 0);
-
-                  const delayCount = (tp.tasks || []).filter((t) => {
-                    const s = (t.status || "").toLowerCase();
-                    if (
-                      s === "completed" ||
-                      s.includes("approve") ||
-                      s.includes("reject") ||
-                      s.includes("cancel")
-                    )
-                      return false;
-                    if (!t.dueDate) return false;
-                    return isBefore(
-                      startOfDay(parseISO(t.dueDate)),
-                      startOfDay(selectedDate),
-                    );
-                  }).length;
-
                   return (
-                    <tr
+                    <DesignerPerformanceRow
                       key={tp.id}
-                      className="h-[44px] hover:bg-slate-50/80 dark:hover:bg-[#162235] transition-colors"
-                    >
-                      {/* Designer */}
-                      <td className="py-2 px-3 border-r border-slate-100 dark:border-[#1a2538]">
-                        <div className="flex items-center gap-2.5">
-                          <div className="relative shrink-0">
-                            {tp.profileImage ? (
-                              <img
-                                src={tp.profileImage}
-                                alt={tp.name}
-                                className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
-                              />
-                            ) : (
-                              <div
-                                className={`w-7 h-7 rounded-full ${avatarBg} text-white text-[10px] font-black flex items-center justify-center shrink-0 shadow-2xs`}
-                              >
-                                {getInitials(tp.name)}
-                              </div>
-                            )}
-                            <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-[#131d2e] ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}
-                              title={isOnline ? "Online" : "Offline"}
-                            />
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-[12px] font-bold text-[#0f172a] dark:text-[#f8fafc] truncate max-w-[115px] leading-tight">
-                              {tp.name}
-                            </span>
-                            <span
-                              className={`text-[9px] font-medium leading-none mt-0.5 ${isOnline ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-slate-400 dark:text-slate-500"}`}
-                            >
-                              {isOnline ? "Online" : "Offline"}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Today Assigned */}
-                      <td className="py-2 px-2 text-center bg-indigo-500/[0.04] dark:bg-indigo-950/20 border-r border-indigo-200/50 dark:border-indigo-900/30">
-                        <StatusCellValue
-                          todayVal={tp.assigned}
-                          carryVal={tp.carryForward?.assigned || 0}
-                          activeTextClass="text-indigo-600 dark:text-indigo-300 font-black text-sm"
-                          badgeClass="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/40"
-                        />
-                      </td>
-
-                      {/* Pending / Not Started */}
-                      <td className="py-2 px-2 text-center bg-rose-500/[0.04] dark:bg-rose-950/20 border-r border-rose-200/50 dark:border-rose-900/30">
-                        <StatusCellValue
-                          todayVal={tp.pending}
-                          carryVal={tp.carryForward?.pending || 0}
-                          activeTextClass="text-rose-600 dark:text-rose-400 font-black text-sm"
-                          badgeClass="bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/40"
-                        />
-                      </td>
-
-                      {/* In Progress */}
-                      <td className="py-2 px-2 text-center bg-sky-500/[0.04] dark:bg-sky-950/20 border-r border-sky-200/50 dark:border-sky-900/30">
-                        <StatusCellValue
-                          todayVal={tp.inProgress}
-                          carryVal={tp.carryForward?.inProgress || 0}
-                          activeTextClass="text-sky-600 dark:text-sky-300 font-black text-sm"
-                          badgeClass="bg-sky-50 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-500/40"
-                          showRunningIndicator={true}
-                        />
-                      </td>
-
-                      {/* On Hold */}
-                      <td className="py-2 px-2 text-center bg-fuchsia-500/[0.04] dark:bg-fuchsia-950/20 border-r border-fuchsia-200/50 dark:border-fuchsia-900/30">
-                        <StatusCellValue
-                          todayVal={tp.onHold}
-                          carryVal={tp.carryForward?.onHold || 0}
-                          activeTextClass="text-fuchsia-600 dark:text-fuchsia-300 font-black text-sm"
-                          badgeClass="bg-fuchsia-50 dark:bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-500/40"
-                        />
-                      </td>
-
-                      {/* In Review */}
-                      <td className="py-2 px-2 text-center bg-amber-500/[0.04] dark:bg-amber-950/20 border-r border-amber-200/50 dark:border-amber-900/30">
-                        <StatusCellValue
-                          todayVal={tp.inReview}
-                          carryVal={tp.carryForward?.inReview || 0}
-                          activeTextClass="text-amber-600 dark:text-amber-300 font-black text-sm"
-                          badgeClass="bg-amber-50 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-500/40"
-                        />
-                      </td>
-
-                      {/* Completed */}
-                      <td className="py-2 px-2 text-center bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-r border-emerald-200/50 dark:border-emerald-900/30">
-                        <StatusCellValue
-                          todayVal={tp.completed}
-                          carryVal={tp.carryForward?.completed || 0}
-                          activeTextClass="text-emerald-600 dark:text-emerald-300 font-black text-sm"
-                          badgeClass="bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/40"
-                        />
-                      </td>
-
-                      {/* Revisions */}
-                      <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border ${
-                            revVal === 0
-                              ? "bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700"
-                              : "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40"
-                          }`}
-                        >
-                          {revVal} rev
-                        </span>
-                      </td>
-
-                      {/* Unproductive Time */}
-                      <td className="py-2 px-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
-                        <div className="flex flex-col items-center">
-                          <LiveUnproductiveCell
-                            tp={tp}
-                            selectedDate={selectedDate}
-                            officeHours={officeHours}
-                            productivityCache={productivityCache}
-                          />
-                        </div>
-                      </td>
-
-                      {/* Productive Time — live when In Progress */}
-                      <td className="py-2 px-2 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
-                        <LiveProductivityCell
-                          tasks={tp.tasks}
-                          initialLoggedMs={tp.totalLoggedMs}
-                          selectedDate={selectedDate}
-                          officeHours={officeHours}
-                          productivityCache={productivityCache}
-                        />
-                      </td>
-
-                      {/* Efficiency */}
-                      <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] shadow-2xs ${efficiencyColor}`}
-                        >
-                          {efficiency}%
-                        </span>
-                      </td>
-
-                      {/* Delays */}
-                      <td className="py-2 px-1.5 text-center whitespace-nowrap border-r border-slate-100 dark:border-[#1a2538]">
-                        {delayCount === 0 ? (
-                          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
-                            0
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[9.5px] font-black bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-300/80 dark:border-rose-500/40 shadow-3xs whitespace-nowrap">
-                            {delayCount} Dly
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Last Submitted */}
-                      <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-[#1a2538]">
-                        {tp.lastSubmitted === "Not submitted" ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-400 dark:text-slate-500">
-                            Nil
-                          </span>
-                        ) : tp.lastSubmitted === "Draft" ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-amber-600 dark:text-amber-400 animate-pulse">
-                            Draft
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-black text-emerald-600 dark:text-emerald-400">
-                            {tp.lastSubmitted}
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-2 px-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setViewTasksModal({
-                              open: true,
-                              designerId: tp.id,
-                              designerName: tp.name,
-                            });
-                            setTaskTab("all");
-                            setTaskSearch("");
-                          }}
-                          className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 hover:text-white dark:bg-indigo-500/15 dark:hover:bg-indigo-600 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 transition-all cursor-pointer flex items-center justify-center mx-auto shadow-2xs"
-                          title="View Performance Tasks"
-                        >
-                          <FiEye size={13} />
-                        </button>
-                      </td>
-                    </tr>
+                      tp={tp}
+                      idx={idx}
+                      isOnline={isOnline}
+                      officeHours={officeHours}
+                      selectedDate={selectedDate}
+                      productivityCache={productivityCache}
+                      onViewTasks={handleViewTasksModal}
+                    />
                   );
                 })}
               </tbody>
@@ -4103,10 +4296,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="relative z-10 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl w-full max-w-6xl h-[92vh] sm:h-[88vh] overflow-hidden flex flex-col"
+              className="relative z-10 bg-white dark:bg-[#000000] backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl w-full max-w-[96vw] xl:max-w-[1450px] 2xl:max-w-[1650px] h-[94vh] sm:h-[90vh] overflow-hidden flex flex-col"
             >
               {/* Header */}
-              <div className="p-3.5 sm:p-5 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
+              <div className="p-3.5 sm:p-5 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-3">
                   {activeDesigner?.profileImage ? (
                     <img
@@ -4124,10 +4317,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       {activeDesigner?.name}'s Performance Details
                     </h3>
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-black font-extrabold text-[9.5px] border border-slate-300/50 dark:border-slate-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 font-extrabold text-[9.5px] border border-slate-200 dark:border-slate-700">
                         Today: {format(new Date(), "dd MMM yyyy")}
                       </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-500 text-white dark:text-white font-extrabold text-[9.5px] border border-red-500/20">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-600 dark:bg-indigo-600 text-white font-extrabold text-[9.5px] border border-indigo-500/30">
                         Assigned Today: {activeDesigner?.assigned || 0}
                       </span>
                       {(activeDesigner?.overdue || 0) > 0 && (
@@ -4371,7 +4564,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                     key={task._id}
                                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100 dark:border-slate-800/80 last:border-b-0"
                                   >
-                                    <td className="py-3 px-4 text-xs font-extrabold text-slate-850 dark:text-slate-100 max-w-xs break-words">
+                                    <td className="py-3 px-4 text-xs font-black text-slate-900 dark:text-slate-100 max-w-xs break-words">
                                       <span className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                         {task.title}
                                       </span>
@@ -4387,7 +4580,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                             );
                                           return (
                                             <span
-                                              className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isAssignedToday ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"}`}
+                                              className={`inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border shadow-3xs ${
+                                                isAssignedToday
+                                                  ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60"
+                                                  : "bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60"
+                                              }`}
                                             >
                                               {isAssignedToday
                                                 ? "Today Assigned"
@@ -4398,7 +4595,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       </div>
                                     </td>
                                     <td className="py-3 px-4">
-                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border text-[10px] font-extrabold bg-slate-100/70 text-slate-700 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700 shadow-2xs">
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border text-[10px] font-extrabold bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 shadow-2xs">
                                         <FiBriefcase
                                           size={10}
                                           className="text-slate-400 shrink-0"
@@ -4419,7 +4616,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                             {getInitials(creatorName)}
                                           </div>
                                         )}
-                                        <span className="text-[11px] font-bold text-slate-750 dark:text-slate-300">
+                                        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200">
                                           {creatorName}
                                         </span>
                                       </div>
@@ -4613,7 +4810,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                         );
                                       return (
                                         <span
-                                          className={`w-fit px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${isAssignedToday ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"}`}
+                                          className={`w-fit inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border shadow-3xs ${
+                                            isAssignedToday
+                                              ? "bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-200/80 dark:border-indigo-800/60"
+                                              : "bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60"
+                                          }`}
                                         >
                                           {isAssignedToday
                                             ? "Today Assigned"
@@ -4635,11 +4836,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                                 {/* Client & Creator Row */}
                                 <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                                  <span className="inline-flex items-center gap-1 font-bold text-slate-700 dark:text-slate-300">
+                                  <span className="inline-flex items-center gap-1 font-bold text-slate-700 dark:text-slate-200">
                                     <FiBriefcase size={10} />
                                     {clientName}
                                   </span>
-                                  <span className="font-semibold">
+                                  <span className="font-semibold text-slate-600 dark:text-slate-300">
                                     By: {creatorName}
                                   </span>
                                 </div>

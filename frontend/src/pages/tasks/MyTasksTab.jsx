@@ -3065,15 +3065,6 @@ const MyTasksTab = ({
             );
           })}
         </div>
-        
-        {officeHours?.breakStartTime && officeHours?.breakEndTime && (
-          <div className="flex items-center gap-1.5 ml-auto bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-3 py-1.5 rounded-xl self-center shrink-0">
-            <FiClock className="text-amber-500" size={13} />
-            <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
-            Lunch Time: {format12Hour(officeHours.breakStartTime)} - {format12Hour(officeHours.breakEndTime)} - Automatic paused
-            </span>
-          </div>
-        )}
       </div>
 
       {/* TASK LIST CONTAINER */}

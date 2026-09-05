@@ -74,6 +74,7 @@ export const apiSlice = createApi({
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],
+      keepUnusedDataFor: 300,
       transformResponse: (response) => response.data,
     }),
     createTask: builder.mutation({

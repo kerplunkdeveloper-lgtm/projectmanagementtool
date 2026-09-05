@@ -439,97 +439,6 @@ const calculateTotalLoggedTime = (
   return `${m}m`;
 };
 
-const calculateTotalUnproductivityMs = (tasks, allTasks = [], selectedDate, officeHours) => {
-  const selDateObjLocal = selectedDate ? parseISO(selectedDate) : new Date();
-  
-  const startTimeStr = officeHours?.startTime ?? "09:00";
-  const endTimeStr = officeHours?.endTime ?? "19:00";
-  
-  const officeStart = new Date(selDateObjLocal);
-  const [startH, startM] = startTimeStr.split(':').map(Number);
-  officeStart.setHours(startH, startM, 0, 0);
-
-  const officeEnd = new Date(selDateObjLocal);
-  const [endH, endM] = endTimeStr.split(':').map(Number);
-  officeEnd.setHours(endH, endM, 0, 0);
-
-  const now = new Date();
-  let endToUse = officeEnd;
-  const isSameDay = selDateObjLocal.toDateString() === now.toDateString();
-  if (isSameDay && now < officeEnd) {
-     endToUse = now > officeStart ? now : officeStart;
-  }
-  
-  const elapsedOfficeMs = calculateBusinessMsBetween(officeStart, endToUse, officeHours, null);
-  
-  let totalLoggedMs = 0;
-  let totalBlockerMs = 0;
-  
-  const selDateStr = selDateObjLocal.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-
-  (allTasks || []).forEach((t) => {
-    // 1. Productivity
-    totalLoggedMs += calculateTaskProductivityForDate(t, selDateObjLocal, officeHours);
-    
-    // 2. Blockers
-    let taskBlockerMs = 0;
-    if (Array.isArray(t.statusHistory)) {
-      t.statusHistory.forEach((h) => {
-        if (h.status === "Blocked") {
-          let hDate = h.date;
-          if (hDate && hDate.includes(",")) {
-            try { hDate = new Date(hDate).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); } catch (e) {}
-          }
-          if (!hDate || hDate.includes(",")) {
-            hDate = h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
-          }
-          if (hDate === selDateStr) {
-            taskBlockerMs += h.duration || 0;
-          }
-        }
-      });
-    }
-
-    if (t.status === "Blocked" && t.blockedStartedAt) {
-      const hDate = new Date(t.blockedStartedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-      if (hDate === selDateStr) {
-        const endMs = isSameDay ? Date.now() : officeEnd.getTime();
-        taskBlockerMs += Math.max(0, endMs - new Date(t.blockedStartedAt).getTime());
-      }
-    }
-    
-    if (Array.isArray(t.statusHistory)) {
-      t.statusHistory.forEach((h) => {
-        if (h.status === "On Hold") {
-          let hDate = h.date;
-          if (hDate && hDate.includes(",")) {
-            try { hDate = new Date(hDate).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); } catch (e) {}
-          }
-          if (!hDate || hDate.includes(",")) {
-            hDate = h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
-          }
-          if (hDate === selDateStr) {
-            if (h.reason === "Client Call" || h.reason === "Meeting") {
-              taskBlockerMs += h.duration || 0;
-            }
-          }
-        }
-      });
-    }
-    
-    totalBlockerMs += taskBlockerMs;
-  });
-  
-  let unproductivityMs = Math.max(0, elapsedOfficeMs - totalLoggedMs - totalBlockerMs);
-  
-  if (unproductivityMs <= 0) return "0m";
-  const totalMinutes = Math.floor(unproductivityMs / (1000 * 60));
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
-  return `${m}m`;
-};
-
 const calculateProductivityPercentage = (
   tasks,
   allTasks = [],
@@ -1716,7 +1625,7 @@ const EodReports = () => {
             </span>
           </div>{" "}
           {/* eod summary cards  */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mt-4 mb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-4 mb-5">
             {/* 1. In Review Card */}
             <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 hover:border-amber-500/30 dark:hover:border-amber-500/30 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-900/40 dark:to-amber-900/10 rounded-full -mr-6 -mt-6 blur-2xl group-hover:scale-150 transition-all duration-500" />
@@ -1765,7 +1674,7 @@ const EodReports = () => {
               </span>
             </div>
 
-            {/* 6. Total Logged Card */}
+            {/* 4. Total Logged Card */}
             <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-xl hover:shadow-purple-500/10 hover:border-purple-500/30 dark:hover:border-purple-500/30 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/40 dark:to-purple-900/10 rounded-full -mr-6 -mt-6 blur-2xl group-hover:scale-150 transition-all duration-500" />
               <div className="flex items-center justify-between relative z-10">
@@ -1783,28 +1692,6 @@ const EodReports = () => {
               </div>
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-3 block relative z-10">
                 Total Productivity
-              </span>
-            </div>
-
-
-            {/* Unproductivity Card */}
-            <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/40 dark:to-orange-900/10 rounded-full -mr-6 -mt-6 blur-2xl group-hover:scale-150 transition-all duration-500" />
-              <div className="flex items-center justify-between relative z-10">
-                <span className="text-2xl font-bold tracking-tight text-orange-600 dark:text-orange-400">
-                  {calculateTotalUnproductivityMs(
-                    tasksState,
-                    allTasks,
-                    selectedDate,
-                    officeHours,
-                  )}
-                </span>
-                <div className="p-2.5 bg-orange-50 dark:bg-orange-500/10 rounded-xl group-hover:bg-orange-100 dark:group-hover:bg-orange-500/20 transition-colors duration-300 shrink-0 ml-1">
-                  <FiClock className="text-orange-600 dark:text-orange-400 text-xl" />
-                </div>
-              </div>
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-3 block relative z-10">
-                Total Unproductivity
               </span>
             </div>
           </div>

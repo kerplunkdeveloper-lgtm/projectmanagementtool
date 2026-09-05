@@ -771,6 +771,12 @@ exports.createTask = async (req, res) => {
       }
     }
 
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("task_updated", { taskId: task._id, action: "create" });
+      io.emit("task_created", { taskId: task._id });
+    }
+
     res.status(201).json({
       success: true,
       data: populatedTask,
@@ -1383,7 +1389,14 @@ exports.deleteTask = async (req, res) => {
       return res.status(404).json({ success: false, message: "Task not found" });
     }
 
+    const deletedTaskId = task._id;
     await task.deleteOne();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("task_updated", { taskId: deletedTaskId, action: "delete" });
+      io.emit("task_deleted", { taskId: deletedTaskId });
+    }
 
     res.status(200).json({
       success: true,

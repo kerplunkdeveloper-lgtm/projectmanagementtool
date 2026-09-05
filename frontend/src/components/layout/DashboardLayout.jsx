@@ -10,7 +10,6 @@ import { apiSlice } from "../../features/api/apiSlice";
 import HorizontalSidebar from "./HorizontalSidebar";
 import { useTheme } from "../../context/ThemeContext";
 import { usePresence } from "../../hooks/usePresence";
-import PresenceWidget from "../common/PresenceWidget";
 
 const DashboardLayout = ({ role }) => {
   const { sidebarLayout } = useTheme();

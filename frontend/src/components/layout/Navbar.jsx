@@ -16,7 +16,6 @@ import {
 } from "../../features/api/apiSlice";
 import toast from "react-hot-toast";
 import { HiOutlineMenuAlt3 } from "react-icons/hi";
-import PresenceWidget from "../common/PresenceWidget";
 import {
   FiBell,
   FiSearch,
@@ -746,8 +745,6 @@ const Navbar = ({ setSidebarOpen, presence }) => {
             )}
           </AnimatePresence>
         </div>
-        
-        {presence && <PresenceWidget layout="navbar" presence={presence} />}
 
         {/* LIGHT/DARK MODE TOGGLE */}
         <button
