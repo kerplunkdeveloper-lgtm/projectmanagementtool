@@ -195,20 +195,28 @@ const Navbar = ({ setSidebarOpen, presence }) => {
     if (path.includes("settings")) return "Settings";
 
     if (path.includes("report") || path.includes("eod")) return "EOD Reports";
+    if (
+      path.includes("content-calendar") ||
+      path.includes("contentcalendar") ||
+      path.includes("contentcalendor")
+    )
+      return "Content Calendar";
     if (path.includes("calendar") || path.includes("calendor"))
       return "Calendar";
     return renderDashboardTitle();
   };
   const pageTitle = getPageTitle();
 
+  const fetchedProfileRef = useRef(false);
   useEffect(() => {
-    if (user && !profileLoading) {
+    if (user && !profileLoading && !fetchedProfileRef.current) {
       const profileUserId = profile?.user?._id || profile?.user;
       if (!profile || profileUserId !== (user.id || user._id)) {
+        fetchedProfileRef.current = true;
         dispatch(getProfile());
       }
     }
-  }, [dispatch, user]);
+  }, [dispatch, user, profileLoading, profile]);
 
   const categories = ["Navigation", "Projects", "Tasks", "Clients"];
 

@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import ScrollToTop from "../components/common/ScrollToTop";
 
 // Synchronous core wrappers
@@ -79,7 +80,9 @@ const ClientCalls = lazyWithRetry(
 const AllCalendar = lazyWithRetry(
   () => import("../pages/calendar/AllCalendar.jsx"),
 );
-import SMtasks from "../pages/smTasks/SMtasks.jsx";
+const ContentCalcendor = lazyWithRetry(
+  () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
+);
 
 // Dictionary of route preloading functions for hover-intent preloading
 export const routePreloaders = {
@@ -100,6 +103,7 @@ export const routePreloaders = {
   chat: () => import("../pages/chat/ChatPage.jsx"),
   workload: () => import("../pages/workload/Workload.jsx"),
   calendar: () => import("../pages/calendar/AllCalendar.jsx"),
+  contentCalendar: () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
 };
 
 export const preloadRoute = (path) => {
@@ -121,6 +125,7 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/chat")) routePreloaders.chat?.();
   else if (p.endsWith("/workload")) routePreloaders.workload?.();
   else if (p.endsWith("/calendar")) routePreloaders.calendar?.();
+  else if (p.endsWith("/content-calendar")) routePreloaders.contentCalendar?.();
   else routePreloaders.dashboard?.(); // Fallback for root paths like /admin, /team
 };
 
@@ -137,6 +142,12 @@ const PageLoader = () => (
   </div>
 );
 
+const ContentCalendarRedirect = () => {
+  const { user } = useSelector((state) => state.auth);
+  const role = user?.role || "admin";
+  return <Navigate to={`/${role}/content-calendar`} replace />;
+};
+
 const AppRoutes = () => {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -144,6 +155,32 @@ const AppRoutes = () => {
       <Routes>
         {/* LOGIN */}
         <Route path="/" element={<Login />} />
+
+        {/* DIRECT CONTENT CALENDAR REDIRECT */}
+        <Route
+          path="/content-calendar"
+          element={
+            <ProtectedRoute>
+              <ContentCalendarRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contentcalendar"
+          element={
+            <ProtectedRoute>
+              <ContentCalendarRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/contentcalendor"
+          element={
+            <ProtectedRoute>
+              <ContentCalendarRedirect />
+            </ProtectedRoute>
+          }
+        />
 
         {/* ADMIN ROUTES */}
         <Route
@@ -250,10 +287,10 @@ const AppRoutes = () => {
           <Route path="stickynotes" element={<Stickynotes />} />
 
           <Route path="all-calendar" element={<AllCalendar />} />
+          <Route path="content-calendar" element={<ContentCalcendor />} />
 
           <Route path="chat" element={<ChatPage />} />
           <Route path="client-calls" element={<ClientCalls />} />
-          <Route path="sm-tasks" element={<SMtasks />} />
         </Route>
 
         {/* OPERATION MANAGER ROUTES */}
@@ -270,6 +307,7 @@ const AppRoutes = () => {
           <Route path="stickynotes" element={<Stickynotes />} />
 
           <Route path="all-calendar" element={<AllCalendar />} />
+          <Route path="content-calendar" element={<ContentCalcendor />} />
 
           <Route
             path="social-accounts"
@@ -355,7 +393,6 @@ const AppRoutes = () => {
 
           <Route path="chat" element={<ChatPage />} />
           <Route path="client-calls" element={<ClientCalls />} />
-          <Route path="sm-tasks" element={<SMtasks />} />
         </Route>
 
         {/* TEAM ROUTES */}
@@ -372,6 +409,7 @@ const AppRoutes = () => {
           <Route path="stickynotes" element={<Stickynotes />} />
 
           <Route path="all-calendar" element={<AllCalendar />} />
+          <Route path="content-calendar" element={<ContentCalcendor />} />
 
           <Route
             path="social-accounts"
@@ -444,7 +482,6 @@ const AppRoutes = () => {
 
           <Route path="chat" element={<ChatPage />} />
           <Route path="client-calls" element={<ClientCalls />} />
-          <Route path="sm-tasks" element={<SMtasks />} />
 
           <Route path="workload" element={<Workload />} />
 

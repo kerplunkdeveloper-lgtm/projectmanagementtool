@@ -153,8 +153,9 @@ const stickyNoteRoutes = require("./routes/stickyNoteRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const socialAccountRoutes = require("./routes/socialAccountRoutes");
 const clientCallRoutes = require("./routes/clientCallRoutes");
-const smTaskRoutes = require("./routes/smTaskRoutes");
 const shootRoutes = require("./routes/shoot.routes");
+const contentCalendarRoutes = require("./routes/contentCalendarRoutes");
+
 
 
 app.get("/", (req, res) => {
@@ -196,7 +197,6 @@ app.use('/api/business-projects', businessProjectRoutes);
 app.use('/api/overheads', overheadRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
-app.use('/api/sm-tasks', smTaskRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/goals', goalRoutes);
@@ -205,6 +205,10 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/social-accounts', socialAccountRoutes);
 app.use('/api/client-calls', clientCallRoutes);
 app.use('/api/shoot-calendar', shootRoutes);
+app.use('/api/content-calendar', contentCalendarRoutes);
+
+
+
 
 
 const PORT = process.env.PORT || 5001;

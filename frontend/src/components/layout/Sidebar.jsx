@@ -274,16 +274,20 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         }
       }
 
-      // Show SM Tasks ONLY for Social Media Manager department
+      // Show Content Calendar ONLY for Social Media Manager department
       if (
-        item.name === "SM Tasks" ||
-        item.name === "SM tasks" ||
-        item.path?.includes("sm-tasks")
+        item.name === "Content Calendar" ||
+        item.path?.includes("content-calendar")
       ) {
         const deptLower = (currentUser?.department || "").toLowerCase();
-        const isSocialMediaManager = deptLower.includes("social media manager");
+        const roleLower = (currentUser?.role || role || "").toLowerCase();
 
-        if (!isSocialMediaManager) {
+        const isSocialMedia =
+          deptLower.includes("social media manager") ||
+          deptLower.includes("social media") ||
+          roleLower === "socialmediamanager";
+
+        if (!isSocialMedia) {
           return false;
         }
       }

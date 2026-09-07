@@ -2398,3 +2398,71 @@ td:first-child {
 .animate-leave {
   animation: toast-leave 0.22s ease-in forwards;
 }
+
+/* ==========================================================================
+   CONTENT CALENDAR MODERN TABLE & DARK MODE DESIGN
+   ========================================================================== */
+.content-calendar-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  width: 100% !important;
+}
+
+.content-calendar-table th {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.06em !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.dark .content-calendar-table th {
+  background: #111726 !important; /* Elegant dark navy/slate */
+  color: #94a3b8 !important; /* Clear silver/slate header text */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.content-calendar-table td {
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #1e293b !important;
+  background-color: transparent !important;
+}
+
+.dark .content-calendar-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  color: #f1f5f9 !important;
+  background-color: transparent !important;
+}
+
+.content-calendar-table tr.content-task-row {
+  background-color: #ffffff !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.content-calendar-table tr.content-task-row:hover {
+  background-color: #f8fafc !important;
+}
+
+.dark .content-calendar-table tr.content-task-row {
+  background-color: #0b0f19 !important;
+}
+
+.dark .content-calendar-table tr.content-task-row:hover {
+  background-color: #141b2d !important;
+}
+
+.content-calendar-table tr.content-task-row.is-expanded {
+  background-color: #f5f7ff !important;
+}
+
+.dark .content-calendar-table tr.content-task-row.is-expanded {
+  background-color: #11172a !important;
+}
+
+.dark .content-calendar-table tr.expanded-subtask-panel {
+  background-color: #070a12 !important;
+}
+
