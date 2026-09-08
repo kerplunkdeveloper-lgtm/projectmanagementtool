@@ -1336,24 +1336,24 @@ const Clients = () => {
                   <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[190px] border-r border-slate-200 dark:border-slate-700/60">
                     <div className="flex items-center justify-start gap-1.5">
                       <FaRegBuilding size={12} className="opacity-70" />
-                      Client Name
+                      Client
                     </div>
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-20">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center  w-20">
                     Status
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-14">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center  w-14">
                     Projects
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[380px] border-r border-slate-200 dark:border-slate-700/60">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[380px] ">
                     Service & Members
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[280px] border-r border-slate-200 dark:border-slate-700/60">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[280px] ">
                     Deliverables
                   </th>
 
                   {user?.role === "team" && (
-                    <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 last:border-r-0">
+                    <th className="px-4 py-3 font-extrabold bg-transparent text-center  last:border-r-0">
                       Assigned By
                     </th>
                   )}

@@ -239,11 +239,11 @@ const TableCredentialCell = ({
     <div className="space-y-2 min-w-[180px] max-w-[250px]">
       {/* Username Row */}
       {username && (
-        <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/[0.05]">
+        <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-slate-50/90 dark:bg-[#131d30] border border-slate-200/60 dark:border-white/[0.08]">
           <div className="flex items-center gap-1.5 min-w-0 truncate">
             {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${brandColor}`} />}
             <span
-              className="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate"
+              className="text-[11.5px] font-bold text-slate-900 dark:text-white truncate"
               title={username}
             >
               {username}
@@ -253,7 +253,7 @@ const TableCredentialCell = ({
                 href={link}
                 target="_blank"
                 rel="noreferrer"
-                className="text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 shrink-0 transition-colors"
+                className="text-slate-400 hover:text-indigo-500 dark:text-slate-400 dark:hover:text-indigo-300 shrink-0 transition-colors"
                 title={`Open ${brandName}`}
               >
                 <FiExternalLink className="w-3 h-3" />
@@ -263,7 +263,7 @@ const TableCredentialCell = ({
           <button
             type="button"
             onClick={() => handleCopy(username, "Username")}
-            className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+            className="text-slate-400 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white p-1 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
             title="Copy Username"
           >
             {copiedField === "Username" ? (
@@ -922,7 +922,7 @@ const SocialAccounts = () => {
   };
 
   return (
-    <div className="p-2 space-y-4 max-w-[1600px] mx-auto transition-all text-slate-800 dark:text-slate-100">
+    <div className="p-2 space-y-4 max-w-[1600px] mx-auto transition-all text-slate-800 dark:text-slate-200">
       {/* ======================================================== */}
       {/* HEADER                                                   */}
       {/* ======================================================== */}
@@ -1580,26 +1580,26 @@ const SocialAccounts = () => {
                   <th className="py-4 px-5 whitespace-nowrap min-w-[200px]">
                     <div className="flex items-center gap-2">
                       <FaInstagram className="w-4 h-4 text-pink-500 shrink-0" />
-                      <span className="text-slate-800 dark:text-slate-100 font-extrabold">Instagram</span>
+                      <span className="text-slate-800 dark:text-white font-extrabold">Instagram</span>
                     </div>
                   </th>
                   <th className="py-4 px-5 whitespace-nowrap min-w-[200px]">
                     <div className="flex items-center gap-2">
                       <FaFacebookF className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span className="text-slate-800 dark:text-slate-100 font-extrabold">Facebook</span>
+                      <span className="text-slate-800 dark:text-white font-extrabold">Facebook</span>
                     </div>
                   </th>
                   <th className="py-4 px-5 whitespace-nowrap min-w-[210px]">
                     <div className="flex items-center gap-2">
                       <FaGoogle className="w-4 h-4 text-[#4285F4] shrink-0" />
-                      <span className="text-slate-800 dark:text-slate-100 font-extrabold">Google My Business</span>
+                      <span className="text-slate-800 dark:text-white font-extrabold">Google My Business</span>
                     </div>
                   </th>
                   {hasAnyOtherPlatforms && (
                     <th className="py-4 px-5 whitespace-nowrap min-w-[170px]">
                       <div className="flex items-center gap-2 text-purple-500">
                         <FiGlobe className="w-4 h-4 shrink-0" />
-                        <span className="text-slate-800 dark:text-slate-100 font-extrabold">Other Platforms</span>
+                        <span className="text-slate-800 dark:text-white font-extrabold">Other Platforms</span>
                       </div>
                     </th>
                   )}
@@ -1829,7 +1829,7 @@ const SocialAccounts = () => {
                           className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full ${
                             acc.status === "Active"
                               ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-500/20"
-                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                              : "bg-slate-100 text-slate-600 dark:bg-[#1a2538] dark:text-slate-300 border border-slate-200 dark:border-[#2a3850]"
                           }`}
                         >
                           <span

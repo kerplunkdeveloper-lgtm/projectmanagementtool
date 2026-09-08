@@ -1005,7 +1005,11 @@ const DesignerPerformanceRow = React.memo(
         ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 font-black"
         : efficiency >= 50
           ? "bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30 font-black"
-          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-bold";
+          : efficiency >= 30
+            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-black"
+            : efficiency > 0
+              ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 font-black"
+              : "bg-slate-100 dark:bg-[#1a2538] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#2b3b52] font-bold";
 
     const revVal =
       tp.totalRevisions !== undefined
@@ -1140,7 +1144,7 @@ const DesignerPerformanceRow = React.memo(
           <span
             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border ${
               revVal === 0
-                ? "bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700"
+                ? "bg-slate-100 text-slate-500 border-slate-200 dark:bg-[#1a2538] dark:text-slate-300 dark:border-[#2a3850]"
                 : "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40"
             }`}
           >
@@ -3533,7 +3537,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   </span>
                   {m.cf !== undefined && m.cf !== null && (
                     <span
-                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black tracking-wide border shadow-2xs ${m.cfBadge || "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"}`}
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-black tracking-wide border shadow-2xs ${m.cfBadge || "bg-slate-100 dark:bg-[#1a2538] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#2a3850]"}`}
                       title={`${m.cf} Carry Forward`}
                     >
                       {m.cf} CF
