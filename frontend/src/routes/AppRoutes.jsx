@@ -121,11 +121,19 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/stickynotes")) routePreloaders.stickyNotes?.();
   else if (p.endsWith("/social-accounts")) routePreloaders.socialAccounts?.();
   else if (p.endsWith("/client-calls")) routePreloaders.clientCalls?.();
-  else if (p.endsWith("/mom-report")) routePreloaders.mom?.();
+  else if (p.endsWith("/mom-report") || p.endsWith("/mom-client-report")) routePreloaders.mom?.();
   else if (p.endsWith("/chat")) routePreloaders.chat?.();
   else if (p.endsWith("/workload")) routePreloaders.workload?.();
-  else if (p.endsWith("/calendar")) routePreloaders.calendar?.();
-  else if (p.endsWith("/content-calendar")) routePreloaders.contentCalendar?.();
+  else if (
+    p.endsWith("/calendar") ||
+    p.endsWith("/all-calendar") ||
+    p.endsWith("/shootcalendor") ||
+    p.endsWith("/shoot-calendar") ||
+    p.endsWith("/shootcalendar")
+  )
+    routePreloaders.calendar?.();
+  else if (p.endsWith("/content-calendar") || p.endsWith("/contentcalendor"))
+    routePreloaders.contentCalendar?.();
   else routePreloaders.dashboard?.(); // Fallback for root paths like /admin, /team
 };
 
@@ -146,6 +154,12 @@ const ContentCalendarRedirect = () => {
   const { user } = useSelector((state) => state.auth);
   const role = user?.role || "admin";
   return <Navigate to={`/${role}/content-calendar`} replace />;
+};
+
+const ShootCalendarRedirect = () => {
+  const { user } = useSelector((state) => state.auth);
+  const role = user?.role || "admin";
+  return <Navigate to={`/${role}/Shootcalendor`} replace />;
 };
 
 const AppRoutes = () => {
@@ -178,6 +192,48 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <ContentCalendarRedirect />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* DIRECT SHOOT CALENDAR REDIRECT */}
+        <Route
+          path="/shoot-calendar"
+          element={
+            <ProtectedRoute>
+              <ShootCalendarRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shootcalendar"
+          element={
+            <ProtectedRoute>
+              <ShootCalendarRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/Shootcalendor"
+          element={
+            <ProtectedRoute>
+              <ShootCalendarRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shootcalendor"
+          element={
+            <ProtectedRoute>
+              <ShootCalendarRedirect />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/all-calendar"
+          element={
+            <ProtectedRoute>
+              <ShootCalendarRedirect />
             </ProtectedRoute>
           }
         />
@@ -287,6 +343,9 @@ const AppRoutes = () => {
           <Route path="stickynotes" element={<Stickynotes />} />
 
           <Route path="all-calendar" element={<AllCalendar />} />
+          <Route path="Shootcalendor" element={<AllCalendar />} />
+          <Route path="shootcalendor" element={<AllCalendar />} />
+          <Route path="shoot-calendar" element={<AllCalendar />} />
           <Route path="content-calendar" element={<ContentCalcendor />} />
 
           <Route path="chat" element={<ChatPage />} />
@@ -307,6 +366,9 @@ const AppRoutes = () => {
           <Route path="stickynotes" element={<Stickynotes />} />
 
           <Route path="all-calendar" element={<AllCalendar />} />
+          <Route path="Shootcalendor" element={<AllCalendar />} />
+          <Route path="shootcalendor" element={<AllCalendar />} />
+          <Route path="shoot-calendar" element={<AllCalendar />} />
           <Route path="content-calendar" element={<ContentCalcendor />} />
 
           <Route
@@ -409,6 +471,9 @@ const AppRoutes = () => {
           <Route path="stickynotes" element={<Stickynotes />} />
 
           <Route path="all-calendar" element={<AllCalendar />} />
+          <Route path="Shootcalendor" element={<AllCalendar />} />
+          <Route path="shootcalendor" element={<AllCalendar />} />
+          <Route path="shoot-calendar" element={<AllCalendar />} />
           <Route path="content-calendar" element={<ContentCalcendor />} />
 
           <Route

@@ -201,6 +201,12 @@ const Navbar = ({ setSidebarOpen, presence }) => {
       path.includes("contentcalendor")
     )
       return "Content Calendar";
+    if (
+      path.includes("shootcalendor") ||
+      path.includes("shootcalendar") ||
+      path.includes("shoot-calendar")
+    )
+      return "Shoot Calendar";
     if (path.includes("calendar") || path.includes("calendor"))
       return "Calendar";
     return renderDashboardTitle();

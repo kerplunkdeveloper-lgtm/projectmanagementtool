@@ -20,7 +20,7 @@ export const sidebarConfig = {
   admin: [
     { name: "Home", path: "/admin", icon: FiHome },
     { name: "Sticky Notes", path: "/admin/stickynotes", icon: TbPencilHeart },
-    { name: "Calendar", path: "/admin/all-calendar", icon: LuCalendarDays },
+    { name: "Shoot Calendar", path: "/admin/Shootcalendor", icon: LuCalendarDays },
     { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
     { name: "Client Calls", path: "/admin/client-calls", icon: LuPhoneCall },
     { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
@@ -41,7 +41,7 @@ export const sidebarConfig = {
   operationmanager: [
     { name: "Home", path: "/operationmanager", icon: FiHome },
     { name: "Sticky Notes", path: "/operationmanager/stickynotes", icon: TbPencilHeart },
-    { name: "Calendar", path: "/operationmanager/all-calendar", icon: LuCalendarDays },
+    { name: "Shoot Calendar", path: "/operationmanager/Shootcalendor", icon: LuCalendarDays },
     { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
     { name: "Client Calls", path: "/operationmanager/client-calls", icon: LuPhoneCall },
     { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
@@ -61,7 +61,7 @@ export const sidebarConfig = {
   team: [
     { name: "Home", path: "/team", icon: FiHome },
     { name: "Sticky Notes", path: "/team/stickynotes", icon: TbPencilHeart},
-    { name: "Calendar", path: "/team/all-calendar", icon: LuCalendarDays },
+    { name: "Shoot Calendar", path: "/team/Shootcalendor", icon: LuCalendarDays },
     { name: "Content Calendar", path: "/team/content-calendar", icon: LuCalendarCheck },
     { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
     { name: "Client Calls", path: "/team/client-calls", icon: LuPhoneCall },
