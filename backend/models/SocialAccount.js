@@ -36,6 +36,60 @@ const platformCredentialSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const adminCredentialSchema = new mongoose.Schema(
+  {
+    email: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    password: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
+const adsAccountSchema = new mongoose.Schema(
+  {
+    accountName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    accountId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    admin1: {
+      type: adminCredentialSchema,
+      default: () => ({}),
+    },
+    admin2: {
+      type: adminCredentialSchema,
+      default: () => ({}),
+    },
+    admin3: {
+      type: adminCredentialSchema,
+      default: () => ({}),
+    },
+    authMethod: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    addedOn: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
 const customPlatformSchema = new mongoose.Schema(
   {
     platformName: {
@@ -109,6 +163,10 @@ const socialAccountSchema = new mongoose.Schema(
     },
     googleMyBusiness: {
       type: platformCredentialSchema,
+      default: () => ({}),
+    },
+    adsAccount: {
+      type: adsAccountSchema,
       default: () => ({}),
     },
     tiktok: {

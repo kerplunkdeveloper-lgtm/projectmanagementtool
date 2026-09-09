@@ -27,8 +27,9 @@ import {
   FiAlertCircle,
   FiCheckCircle,
   FiKey,
+  FiCalendar,
 } from "react-icons/fi";
-import { FaInstagram, FaFacebookF, FaGoogle } from "react-icons/fa";
+import { FaInstagram, FaFacebookF, FaGoogle, FaBullhorn } from "react-icons/fa";
 import {
   getSocialAccounts,
   createSocialAccount,
@@ -351,6 +352,210 @@ const TableCredentialCell = ({
   );
 };
 
+// Helper to check if ads account has any data
+const hasAdsAccountData = (ads) => {
+  if (!ads) return false;
+  return Boolean(
+    ads.accountName?.trim() ||
+    ads.accountId?.trim() ||
+    ads.authMethod?.trim() ||
+    ads.addedOn?.trim() ||
+    ads.admin1?.email?.trim() ||
+    ads.admin1?.password?.trim() ||
+    ads.admin2?.email?.trim() ||
+    ads.admin2?.password?.trim() ||
+    ads.admin3?.email?.trim() ||
+    ads.admin3?.password?.trim()
+  );
+};
+
+// Custom Table Cell for Ads Accounts
+const TableAdsAccountCell = ({ adsAccount }) => {
+  const [copiedField, setCopiedField] = useState(null);
+  const [showAdminPass, setShowAdminPass] = useState({
+    admin1: false,
+    admin2: false,
+    admin3: false,
+  });
+
+  const handleCopy = (text, fieldName, e) => {
+    if (e) e.stopPropagation();
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    toast.success(`${fieldName} copied!`, {
+      duration: 1200,
+      id: `copy-${fieldName}-${text}`,
+    });
+    setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  const togglePass = (adminKey, e) => {
+    if (e) e.stopPropagation();
+    setShowAdminPass((prev) => ({
+      ...prev,
+      [adminKey]: !prev[adminKey],
+    }));
+  };
+
+  if (!hasAdsAccountData(adsAccount)) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-white/[0.02] text-slate-400 dark:text-slate-500 text-[10px] font-medium border border-dashed border-slate-200 dark:border-white/10">
+        None
+      </span>
+    );
+  }
+
+  const admins = [
+    { key: "admin1", label: "Admin 1", data: adsAccount.admin1 },
+    { key: "admin2", label: "Admin 2", data: adsAccount.admin2 },
+    { key: "admin3", label: "Admin 3", data: adsAccount.admin3 },
+  ].filter((a) => a.data?.email?.trim() || a.data?.password?.trim());
+
+  return (
+    <div className="space-y-2 min-w-[230px] max-w-[280px]">
+      {/* Account Name & ID */}
+      {(adsAccount.accountName || adsAccount.accountId) && (
+        <div className="p-2 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-500/20">
+          <div className="flex items-center justify-between gap-1.5">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <FaBullhorn className="w-3 h-3 text-amber-500 shrink-0" />
+              <span
+                className="text-[11.5px] font-bold text-slate-900 dark:text-white truncate"
+                title={adsAccount.accountName || "Ads Account"}
+              >
+                {adsAccount.accountName || "Ads Account"}
+              </span>
+            </div>
+            {adsAccount.accountId && (
+              <button
+                type="button"
+                onClick={(e) => handleCopy(adsAccount.accountId, "Account ID", e)}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-mono text-[10px] font-bold hover:bg-amber-200 dark:hover:bg-amber-900/60 transition-colors shrink-0 cursor-pointer"
+                title="Click to copy Account ID"
+              >
+                <span>{adsAccount.accountId}</span>
+                {copiedField === "Account ID" ? (
+                  <FiCheck className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <FiCopy className="w-2.5 h-2.5 opacity-60" />
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Badges: Auth Method & Added On Date */}
+          {(adsAccount.authMethod || adsAccount.addedOn) && (
+            <div className="flex items-center gap-1.5 flex-wrap mt-1.5 pt-1 border-t border-amber-200/40 dark:border-amber-500/10 text-[9.5px]">
+              {adsAccount.authMethod && (
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-semibold border border-indigo-200/60 dark:border-indigo-800/40 truncate max-w-[150px]"
+                  title={`Auth: ${adsAccount.authMethod}`}
+                >
+                  <FiKey className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{adsAccount.authMethod}</span>
+                </span>
+              )}
+              {adsAccount.addedOn && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 font-medium">
+                  <FiCalendar className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                  <span>{adsAccount.addedOn}</span>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Admins Credential Rows */}
+      {admins.length > 0 ? (
+        <div className="space-y-1.5">
+          {admins.map(({ key, label, data }) => {
+            const hasPass = Boolean(data.password);
+            const isVisible = showAdminPass[key];
+
+            return (
+              <div
+                key={key}
+                className="p-1.5 rounded-lg bg-slate-50/90 dark:bg-[#131d30] border border-slate-200/60 dark:border-white/[0.08] text-[10.5px]"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[9px] font-black uppercase tracking-wider px-1 py-0.2 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                    {label}
+                  </span>
+                  {data.email && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleCopy(data.email, `${label} Email`, e)}
+                      className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium truncate max-w-[150px] cursor-pointer"
+                      title={`Click to copy: ${data.email}`}
+                    >
+                      <FiMail className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{data.email}</span>
+                      {copiedField === `${label} Email` ? (
+                        <FiCheck className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <FiCopy className="w-2.5 h-2.5 opacity-40 shrink-0" />
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {hasPass && (
+                  <div className="flex items-center justify-between gap-1 px-2 py-1 rounded bg-slate-100/90 dark:bg-[#11192a] border border-slate-200/50 dark:border-white/5 font-mono text-[10px]">
+                    <div className="flex items-center gap-1 truncate min-w-0">
+                      <FiLock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+                      <span
+                        className={`truncate font-bold ${
+                          isVisible
+                            ? "text-slate-900 dark:text-white"
+                            : "text-amber-600 dark:text-amber-400 tracking-widest"
+                        }`}
+                      >
+                        {isVisible ? data.password : "••••••••"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => togglePass(key, e)}
+                        className="p-0.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                        title={isVisible ? "Hide" : "Show"}
+                      >
+                        {isVisible ? (
+                          <FiEyeOff className="w-3 h-3" />
+                        ) : (
+                          <FiEye className="w-3 h-3" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleCopy(data.password, `${label} Password`, e)}
+                        className="p-0.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                        title="Copy Password"
+                      >
+                        {copiedField === `${label} Password` ? (
+                          <FiCheck className="w-2.5 h-2.5 text-emerald-500" />
+                        ) : (
+                          <FiCopy className="w-2.5 h-2.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        !adsAccount.accountName && !adsAccount.accountId && (
+          <span className="text-[10px] text-slate-400 italic">No admin credentials set</span>
+        )
+      )}
+    </div>
+  );
+};
+
 const initialFormData = {
   client: "",
   clientName: "",
@@ -380,6 +585,24 @@ const initialFormData = {
     phoneNumber: "",
     profileUrl: "",
     notes: "",
+  },
+  adsAccount: {
+    accountName: "",
+    accountId: "",
+    admin1: {
+      email: "",
+      password: "",
+    },
+    admin2: {
+      email: "",
+      password: "",
+    },
+    admin3: {
+      email: "",
+      password: "",
+    },
+    authMethod: "",
+    addedOn: "",
   },
   otherPlatforms: [],
   spoc: "",
@@ -416,6 +639,11 @@ const SocialAccounts = () => {
   const [activeTab, setActiveTab] = useState("instagram");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState(null);
+  const [showModalAdminPass, setShowModalAdminPass] = useState({
+    admin1: false,
+    admin2: false,
+    admin3: false,
+  });
 
   useEffect(() => {
     dispatch(getSocialAccounts());
@@ -607,7 +835,13 @@ const SocialAccounts = () => {
           (p) =>
             p.username?.toLowerCase().includes(term) ||
             p.platformName?.toLowerCase().includes(term),
-        );
+        ) ||
+        acc.adsAccount?.accountName?.toLowerCase().includes(term) ||
+        acc.adsAccount?.accountId?.toLowerCase().includes(term) ||
+        acc.adsAccount?.authMethod?.toLowerCase().includes(term) ||
+        acc.adsAccount?.admin1?.email?.toLowerCase().includes(term) ||
+        acc.adsAccount?.admin2?.email?.toLowerCase().includes(term) ||
+        acc.adsAccount?.admin3?.email?.toLowerCase().includes(term);
 
       let matchPlatform = true;
       if (platformFilter === "instagram") {
@@ -617,6 +851,8 @@ const SocialAccounts = () => {
       } else if (platformFilter === "gmb" || platformFilter === "google") {
         matchPlatform =
           hasPlatformData(acc.googleMyBusiness) || hasPlatformData(acc.tiktok);
+      } else if (platformFilter === "adsAccounts" || platformFilter === "ads") {
+        matchPlatform = hasAdsAccountData(acc.adsAccount);
       } else if (platformFilter === "other") {
         matchPlatform = acc.otherPlatforms?.some((p) => hasPlatformData(p));
       }
@@ -660,8 +896,10 @@ const SocialAccounts = () => {
       socialAccounts?.filter(
         (a) => hasPlatformData(a.googleMyBusiness) || hasPlatformData(a.tiktok),
       ).length || 0;
+    const adsCount =
+      socialAccounts?.filter((a) => hasAdsAccountData(a.adsAccount)).length || 0;
 
-    return { total, active, igCount, fbCount, gmbCount };
+    return { total, active, igCount, fbCount, gmbCount, adsCount };
   }, [socialAccounts]);
 
   // Handlers for Add/Edit
@@ -669,6 +907,7 @@ const SocialAccounts = () => {
     setEditingId(null);
     setFormData(initialFormData);
     setActiveTab("instagram");
+    setShowModalAdminPass({ admin1: false, admin2: false, admin3: false });
     setIsModalOpen(true);
   };
 
@@ -732,6 +971,28 @@ const SocialAccounts = () => {
         profileUrl: gmb.profileUrl || "",
         notes: gmb.notes || "",
       },
+      adsAccount: {
+        accountName: acc.adsAccount?.accountName || "",
+        accountId: acc.adsAccount?.accountId || "",
+        admin1: {
+          email: acc.adsAccount?.admin1?.email || "",
+          password: acc.adsAccount?.admin1?.password || "",
+        },
+        admin2: {
+          email: acc.adsAccount?.admin2?.email || "",
+          password: acc.adsAccount?.admin2?.password || "",
+        },
+        admin3: {
+          email: acc.adsAccount?.admin3?.email || "",
+          password: acc.adsAccount?.admin3?.password || "",
+        },
+        authMethod: acc.adsAccount?.authMethod || "",
+        addedOn: acc.adsAccount?.addedOn
+          ? (typeof acc.adsAccount.addedOn === "string"
+              ? acc.adsAccount.addedOn.split("T")[0]
+              : new Date(acc.adsAccount.addedOn).toISOString().split("T")[0])
+          : "",
+      },
       otherPlatforms: (acc.otherPlatforms || []).map((op) => ({
         platformName: op.platformName || "YouTube",
         username: op.username || "",
@@ -746,6 +1007,7 @@ const SocialAccounts = () => {
       status: acc.status || "Active",
     });
     setActiveTab("instagram");
+    setShowModalAdminPass({ admin1: false, admin2: false, admin3: false });
     setIsModalOpen(true);
   };
 
@@ -874,6 +1136,16 @@ const SocialAccounts = () => {
       "Facebook Pass",
       "Google My Business User",
       "Google My Business Pass",
+      "Ads Account Name",
+      "Ads Account ID",
+      "Ads Auth Method",
+      "Ads Added On",
+      "Ads Admin 1 Email",
+      "Ads Admin 1 Pass",
+      "Ads Admin 2 Email",
+      "Ads Admin 2 Pass",
+      "Ads Admin 3 Email",
+      "Ads Admin 3 Pass",
       "2FA Notes",
       "General Notes",
     ];
@@ -886,6 +1158,7 @@ const SocialAccounts = () => {
           .filter(Boolean)
           .join("; ") || "Unassigned";
       const gmb = acc.googleMyBusiness || acc.tiktok || {};
+      const ads = acc.adsAccount || {};
 
       return [
         `"${managerNames}"`,
@@ -899,6 +1172,16 @@ const SocialAccounts = () => {
         `"${acc.facebook?.password || ""}"`,
         `"${gmb.username || ""}"`,
         `"${gmb.password || ""}"`,
+        `"${ads.accountName || ""}"`,
+        `"${ads.accountId || ""}"`,
+        `"${ads.authMethod || ""}"`,
+        `"${ads.addedOn || ""}"`,
+        `"${ads.admin1?.email || ""}"`,
+        `"${ads.admin1?.password || ""}"`,
+        `"${ads.admin2?.email || ""}"`,
+        `"${ads.admin2?.password || ""}"`,
+        `"${ads.admin3?.email || ""}"`,
+        `"${ads.admin3?.password || ""}"`,
         `"${(acc.twoFactorNotes || "").replace(/"/g, '""')}"`,
         `"${(acc.generalNotes || "").replace(/"/g, '""')}"`,
       ];
@@ -975,7 +1258,7 @@ const SocialAccounts = () => {
       </div>
 
       {/* STATS OVERVIEW CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
         {/* Total Clients */}
         <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-50/90 via-indigo-50/30 to-white dark:from-indigo-950/40 dark:via-indigo-950/20 dark:to-[#0c1322] border border-indigo-100/90 dark:border-indigo-500/20 shadow-xs hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
@@ -1037,10 +1320,10 @@ const SocialAccounts = () => {
         </div>
 
         {/* Google My Business */}
-        <div className="p-3 rounded-xl bg-gradient-to-br from-amber-50/90 via-orange-50/30 to-white dark:from-amber-950/40 dark:via-orange-950/20 dark:to-[#0c1322] border border-amber-200/80 dark:border-amber-500/20 shadow-xs hover:shadow-md transition-all duration-200">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-blue-50/90 via-indigo-50/30 to-white dark:from-blue-950/40 dark:via-indigo-950/20 dark:to-[#0c1322] border border-blue-200/80 dark:border-blue-500/20 shadow-xs hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
             <span
-              className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300/90 truncate mr-1"
+              className="text-[10px] font-extrabold uppercase tracking-wider text-blue-700 dark:text-blue-300/90 truncate mr-1"
               title="Google My Business"
             >
               Google Business
@@ -1053,6 +1336,29 @@ const SocialAccounts = () => {
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.gmbCount}
             </span>
+            <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400/90">
+              linked
+            </span>
+          </div>
+        </div>
+
+        {/* Ads Accounts */}
+        <div className="p-3 rounded-xl bg-gradient-to-br from-amber-50/90 via-yellow-50/30 to-white dark:from-amber-950/40 dark:via-yellow-950/20 dark:to-[#0c1322] border border-amber-200/80 dark:border-amber-500/20 shadow-xs hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-between">
+            <span
+              className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300/90 truncate mr-1"
+              title="Ads Accounts"
+            >
+              Ads Accounts
+            </span>
+            <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs border border-amber-500/30">
+              <FaBullhorn className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="mt-1.5 flex items-baseline gap-1.5">
+            <span className="text-xl font-black text-slate-900 dark:text-white">
+              {stats.adsCount}
+            </span>
             <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400/90">
               linked
             </span>
@@ -1060,7 +1366,7 @@ const SocialAccounts = () => {
         </div>
 
         {/* Vault Status */}
-        <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-50/90 via-teal-50/30 to-white dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-[#0c1322] border border-emerald-100/90 dark:border-emerald-500/20 shadow-xs hover:shadow-md transition-all duration-200 col-span-2 sm:col-span-4 lg:col-span-1">
+        <div className="p-3 rounded-xl bg-gradient-to-br from-emerald-50/90 via-teal-50/30 to-white dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-[#0c1322] border border-emerald-100/90 dark:border-emerald-500/20 shadow-xs hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700/80 dark:text-emerald-300/80">
               Security
@@ -1143,6 +1449,7 @@ const SocialAccounts = () => {
             <option value="instagram">Instagram</option>
             <option value="facebook">Facebook</option>
             <option value="gmb">Google My Business</option>
+            <option value="adsAccounts">Ads Accounts</option>
             <option value="other">Other Platforms</option>
           </select>
 
@@ -1227,11 +1534,12 @@ const SocialAccounts = () => {
             const hasFb = hasPlatformData(acc.facebook);
             const gmbData = acc.googleMyBusiness || acc.tiktok;
             const hasGmb = hasPlatformData(gmbData);
+            const hasAds = hasAdsAccountData(acc.adsAccount);
             const validOtherPlatforms = (acc.otherPlatforms || []).filter(
               hasPlatformData,
             );
             const hasAnyPlatform =
-              hasIg || hasFb || hasGmb || validOtherPlatforms.length > 0;
+              hasIg || hasFb || hasGmb || hasAds || validOtherPlatforms.length > 0;
 
             return (
               <motion.div
@@ -1477,6 +1785,87 @@ const SocialAccounts = () => {
                     </div>
                   )}
 
+                  {/* ADS ACCOUNTS SECTION (Only if has data) */}
+                  {hasAds && (
+                    <div className="p-2.5 rounded-xl bg-amber-500/5 dark:bg-amber-950/20 border border-amber-500/20 dark:border-amber-500/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-md bg-white dark:bg-slate-800 flex items-center justify-center text-[10px] shadow-2xs border border-slate-200 dark:border-white/10">
+                            <FaBullhorn className="text-amber-500" />
+                          </div>
+                          <span className="text-[11px] font-bold text-slate-900 dark:text-white">
+                            Ads Account
+                          </span>
+                        </div>
+                        {acc.adsAccount?.accountId && (
+                          <span className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">
+                            {acc.adsAccount.accountId}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5">
+                        {acc.adsAccount?.accountName && (
+                          <CredentialPill
+                            label="Account Name"
+                            value={acc.adsAccount.accountName}
+                            icon={FiBriefcase}
+                          />
+                        )}
+                        {acc.adsAccount?.authMethod && (
+                          <div className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 px-1 py-0.5">
+                            Auth Method: {acc.adsAccount.authMethod}
+                          </div>
+                        )}
+                        {acc.adsAccount?.admin1?.email && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            <CredentialPill
+                              label="Admin 1 Email"
+                              value={acc.adsAccount.admin1.email}
+                              icon={FiMail}
+                            />
+                            <CredentialPill
+                              label="Admin 1 Pass"
+                              value={acc.adsAccount.admin1.password}
+                              isPassword={true}
+                              icon={FiLock}
+                            />
+                          </div>
+                        )}
+                        {acc.adsAccount?.admin2?.email && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            <CredentialPill
+                              label="Admin 2 Email"
+                              value={acc.adsAccount.admin2.email}
+                              icon={FiMail}
+                            />
+                            <CredentialPill
+                              label="Admin 2 Pass"
+                              value={acc.adsAccount.admin2.password}
+                              isPassword={true}
+                              icon={FiLock}
+                            />
+                          </div>
+                        )}
+                        {acc.adsAccount?.admin3?.email && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            <CredentialPill
+                              label="Admin 3 Email"
+                              value={acc.adsAccount.admin3.email}
+                              icon={FiMail}
+                            />
+                            <CredentialPill
+                              label="Admin 3 Pass"
+                              value={acc.adsAccount.admin3.password}
+                              isPassword={true}
+                              icon={FiLock}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* OTHER PLATFORMS (Only if has valid data) */}
                   {validOtherPlatforms.length > 0 && (
                     <div className="space-y-1.5">
@@ -1593,6 +1982,12 @@ const SocialAccounts = () => {
                     <div className="flex items-center gap-2">
                       <FaGoogle className="w-4 h-4 text-[#4285F4] shrink-0" />
                       <span className="text-slate-800 dark:text-white font-extrabold">Google My Business</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[240px]">
+                    <div className="flex items-center gap-2">
+                      <FaBullhorn className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span className="text-slate-800 dark:text-white font-extrabold">Ads Accounts</span>
                     </div>
                   </th>
                   {hasAnyOtherPlatforms && (
@@ -1788,6 +2183,13 @@ const SocialAccounts = () => {
                           icon={FaGoogle}
                           brandColor="text-[#4285F4]"
                           brandName="Google My Business"
+                        />
+                      </td>
+
+                      {/* Ads Accounts Cell */}
+                      <td className="py-4 px-5 align-top">
+                        <TableAdsAccountCell
+                          adsAccount={acc.adsAccount}
                         />
                       </td>
 
@@ -2098,6 +2500,19 @@ const SocialAccounts = () => {
                     >
                       <FaGoogle className="w-3 h-3 text-[#4285F4]" />
                       <span>Google My Business</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("adsAccounts")}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 cursor-pointer ${
+                        activeTab === "adsAccounts"
+                          ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30"
+                          : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      <FaBullhorn className="w-3 h-3 text-amber-500" />
+                      <span>Ads Accounts</span>
                     </button>
 
                     <button
@@ -2416,6 +2831,344 @@ const SocialAccounts = () => {
                           placeholder="+91..."
                           className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* TAB: ADS ACCOUNTS */}
+                {activeTab === "adsAccounts" && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-4 pt-1"
+                  >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Account Name
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.adsAccount?.accountName || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              adsAccount: {
+                                ...formData.adsAccount,
+                                accountName: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="Enter a Account name"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Account ID
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.adsAccount?.accountId || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              adsAccount: {
+                                ...formData.adsAccount,
+                                accountId: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="Enter Account ID"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Authentication Method
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.adsAccount?.authMethod || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              adsAccount: {
+                                ...formData.adsAccount,
+                                authMethod: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="Enter Authentication Method"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Added On Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.adsAccount?.addedOn || ""}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              adsAccount: {
+                                ...formData.adsAccount,
+                                addedOn: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Admins Credential Settings */}
+                    <div className="pt-3 border-t border-slate-200/80 dark:border-white/10 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <FiUser className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="text-xs font-bold text-slate-800 dark:text-white">
+                            Admins Access
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          Set Email ID & Password for Admin 1, Admin 2, and Admin 3
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {/* Admin 1 */}
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                              Admin 1
+                            </span>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                              Email ID
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.adsAccount?.admin1?.email || ""}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  adsAccount: {
+                                    ...formData.adsAccount,
+                                    admin1: {
+                                      ...formData.adsAccount.admin1,
+                                      email: e.target.value,
+                                    },
+                                  },
+                                })
+                              }
+                              placeholder="admin1@example.com"
+                              className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                              Password
+                            </label>
+                            <div className="relative">
+                              <input
+                                type={showModalAdminPass.admin1 ? "text" : "password"}
+                                value={formData.adsAccount?.admin1?.password || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    adsAccount: {
+                                      ...formData.adsAccount,
+                                      admin1: {
+                                        ...formData.adsAccount.admin1,
+                                        password: e.target.value,
+                                      },
+                                    },
+                                  })
+                                }
+                                placeholder="Admin 1 Password"
+                                className="w-full px-2.5 py-1.5 pr-8 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setShowModalAdminPass((p) => ({
+                                    ...p,
+                                    admin1: !p.admin1,
+                                  }))
+                                }
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                              >
+                                {showModalAdminPass.admin1 ? (
+                                  <FiEyeOff className="w-3.5 h-3.5" />
+                                ) : (
+                                  <FiEye className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Admin 2 */}
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                              Admin 2
+                            </span>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                              Email ID
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.adsAccount?.admin2?.email || ""}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  adsAccount: {
+                                    ...formData.adsAccount,
+                                    admin2: {
+                                      ...formData.adsAccount.admin2,
+                                      email: e.target.value,
+                                    },
+                                  },
+                                })
+                              }
+                              placeholder="admin2@example.com"
+                              className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                              Password
+                            </label>
+                            <div className="relative">
+                              <input
+                                type={showModalAdminPass.admin2 ? "text" : "password"}
+                                value={formData.adsAccount?.admin2?.password || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    adsAccount: {
+                                      ...formData.adsAccount,
+                                      admin2: {
+                                        ...formData.adsAccount.admin2,
+                                        password: e.target.value,
+                                      },
+                                    },
+                                  })
+                                }
+                                placeholder="Admin 2 Password"
+                                className="w-full px-2.5 py-1.5 pr-8 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setShowModalAdminPass((p) => ({
+                                    ...p,
+                                    admin2: !p.admin2,
+                                  }))
+                                }
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                              >
+                                {showModalAdminPass.admin2 ? (
+                                  <FiEyeOff className="w-3.5 h-3.5" />
+                                ) : (
+                                  <FiEye className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Admin 3 */}
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                              Admin 3
+                            </span>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                              Email ID
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.adsAccount?.admin3?.email || ""}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  adsAccount: {
+                                    ...formData.adsAccount,
+                                    admin3: {
+                                      ...formData.adsAccount.admin3,
+                                      email: e.target.value,
+                                    },
+                                  },
+                                })
+                              }
+                              placeholder="admin3@example.com"
+                              className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                              Password
+                            </label>
+                            <div className="relative">
+                              <input
+                                type={showModalAdminPass.admin3 ? "text" : "password"}
+                                value={formData.adsAccount?.admin3?.password || ""}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    adsAccount: {
+                                      ...formData.adsAccount,
+                                      admin3: {
+                                        ...formData.adsAccount.admin3,
+                                        password: e.target.value,
+                                      },
+                                    },
+                                  })
+                                }
+                                placeholder="Admin 3 Password"
+                                className="w-full px-2.5 py-1.5 pr-8 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setShowModalAdminPass((p) => ({
+                                    ...p,
+                                    admin3: !p.admin3,
+                                  }))
+                                }
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
+                              >
+                                {showModalAdminPass.admin3 ? (
+                                  <FiEyeOff className="w-3.5 h-3.5" />
+                                ) : (
+                                  <FiEye className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </motion.div>

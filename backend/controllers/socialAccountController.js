@@ -29,6 +29,12 @@ exports.getSocialAccounts = async (req, res) => {
           { "googleMyBusiness.username": searchRegex },
           { "googleMyBusiness.email": searchRegex },
           { "googleMyBusiness.phoneNumber": searchRegex },
+          { "adsAccount.accountName": searchRegex },
+          { "adsAccount.accountId": searchRegex },
+          { "adsAccount.authMethod": searchRegex },
+          { "adsAccount.admin1.email": searchRegex },
+          { "adsAccount.admin2.email": searchRegex },
+          { "adsAccount.admin3.email": searchRegex },
           { "tiktok.username": searchRegex },
           { "tiktok.email": searchRegex },
           { "tiktok.phoneNumber": searchRegex },
@@ -159,6 +165,7 @@ exports.createSocialAccount = async (req, res) => {
       instagram,
       facebook,
       googleMyBusiness,
+      adsAccount,
       tiktok,
       otherPlatforms,
       twoFactorNotes,
@@ -208,6 +215,7 @@ exports.createSocialAccount = async (req, res) => {
       instagram: instagram || {},
       facebook: facebook || {},
       googleMyBusiness: googleMyBusiness || {},
+      adsAccount: adsAccount || {},
       tiktok: tiktok || {},
       otherPlatforms: Array.isArray(otherPlatforms) ? otherPlatforms : [],
       twoFactorNotes: twoFactorNotes || "",
@@ -289,6 +297,7 @@ exports.updateSocialAccount = async (req, res) => {
       instagram,
       facebook,
       googleMyBusiness,
+      adsAccount,
       tiktok,
       otherPlatforms,
       twoFactorNotes,
@@ -315,6 +324,7 @@ exports.updateSocialAccount = async (req, res) => {
     if (instagram !== undefined) socialAccount.instagram = instagram;
     if (facebook !== undefined) socialAccount.facebook = facebook;
     if (googleMyBusiness !== undefined) socialAccount.googleMyBusiness = googleMyBusiness;
+    if (adsAccount !== undefined) socialAccount.adsAccount = adsAccount;
     if (tiktok !== undefined) socialAccount.tiktok = tiktok;
     if (otherPlatforms !== undefined) socialAccount.otherPlatforms = otherPlatforms;
     if (twoFactorNotes !== undefined) socialAccount.twoFactorNotes = twoFactorNotes;
