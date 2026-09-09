@@ -1059,10 +1059,7 @@ const ShootCalendor = () => {
         <div className="flex items-center gap-3 flex-wrap flex-1 min-w-[280px]">
           {/* Live Search */}
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <FiSearch
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-400"
-            />
+            
             <input
               type="text"
               value={searchQuery}
