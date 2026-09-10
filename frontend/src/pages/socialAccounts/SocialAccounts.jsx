@@ -1349,7 +1349,7 @@ const SocialAccounts = () => {
               className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300/90 truncate mr-1"
               title="Ads Accounts"
             >
-              Ads Accounts
+             Google Ads Accounts
             </span>
             <div className="w-6 h-6 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-2xs border border-amber-500/30">
               <FaBullhorn className="w-3.5 h-3.5" />
@@ -1449,7 +1449,7 @@ const SocialAccounts = () => {
             <option value="instagram">Instagram</option>
             <option value="facebook">Facebook</option>
             <option value="gmb">Google My Business</option>
-            <option value="adsAccounts">Ads Accounts</option>
+            <option value="adsAccounts">Google Ads Accounts</option>
             <option value="other">Other Platforms</option>
           </select>
 
@@ -1987,7 +1987,7 @@ const SocialAccounts = () => {
                   <th className="py-4 px-5 whitespace-nowrap min-w-[240px]">
                     <div className="flex items-center gap-2">
                       <FaBullhorn className="w-4 h-4 text-amber-500 shrink-0" />
-                      <span className="text-slate-800 dark:text-white font-extrabold">Ads Accounts</span>
+                      <span className="text-slate-800 dark:text-white font-extrabold">Google Ads Accounts</span>
                     </div>
                   </th>
                   {hasAnyOtherPlatforms && (
@@ -2512,7 +2512,7 @@ const SocialAccounts = () => {
                       }`}
                     >
                       <FaBullhorn className="w-3 h-3 text-amber-500" />
-                      <span>Ads Accounts</span>
+                      <span>Google Ads Accounts</span>
                     </button>
 
                     <button

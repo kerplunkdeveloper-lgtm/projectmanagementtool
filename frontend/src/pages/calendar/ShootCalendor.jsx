@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import io from "socket.io-client";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay, isSameDay } from "date-fns";
 import { enUS } from "date-fns/locale/en-US";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
+import { useTheme } from "../../context/ThemeContext";
 import {
   FiPlus,
   FiX,
   FiTrash2,
   FiMapPin,
   FiUser,
+  FiUsers,
   FiVideo,
   FiCamera,
   FiChevronLeft,
@@ -29,7 +32,51 @@ import {
   FiGrid,
   FiSearch,
   FiList,
+  FiSun,
+  FiCloudRain,
+  FiWind,
+  FiRefreshCw,
+  FiCloud,
+  FiDroplet,
 } from "react-icons/fi";
+
+// Weather code decoder for Open-Meteo free API
+const getWeatherCodeInfo = (code) => {
+  switch (code) {
+    case 0:
+      return { label: "Clear Sky", emoji: "☀️" };
+    case 1:
+    case 2:
+      return { label: "Partly Cloudy", emoji: "⛅" };
+    case 3:
+      return { label: "Overcast", emoji: "☁️" };
+    case 45:
+    case 48:
+      return { label: "Foggy / Mist", emoji: "🌫️" };
+    case 51:
+    case 53:
+    case 55:
+      return { label: "Light Drizzle", emoji: "🌦️" };
+    case 61:
+    case 63:
+    case 65:
+      return { label: "Rainy", emoji: "🌧️" };
+    case 71:
+    case 73:
+    case 75:
+      return { label: "Snow", emoji: "🌨️" };
+    case 80:
+    case 81:
+    case 82:
+      return { label: "Heavy Rain Showers", emoji: "🌧️" };
+    case 95:
+    case 96:
+    case 99:
+      return { label: "Thunderstorm", emoji: "⛈️" };
+    default:
+      return { label: "Clear / Pleasant", emoji: "☀️" };
+  }
+};
 
 const locales = {
   "en-US": enUS,
@@ -91,6 +138,8 @@ const getStatusStyles = (status) => {
         dot: "bg-emerald-500",
         pill: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 font-semibold",
         borderLeft: "border-l-emerald-500",
+        cardBorder: "border-emerald-300/80 dark:border-emerald-500/35 hover:border-emerald-400 dark:hover:border-emerald-400/80 shadow-emerald-500/5",
+        cardBg: "bg-emerald-50/20 dark:bg-emerald-950/15",
         chipBg:
           "bg-emerald-50/90 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-500/30 shadow-xs",
       };
@@ -101,6 +150,8 @@ const getStatusStyles = (status) => {
         dot: "bg-blue-500",
         pill: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30 font-semibold",
         borderLeft: "border-l-blue-500",
+        cardBorder: "border-blue-300/80 dark:border-blue-500/35 hover:border-blue-400 dark:hover:border-blue-400/80 shadow-blue-500/5",
+        cardBg: "bg-blue-50/20 dark:bg-blue-950/15",
         chipBg:
           "bg-blue-50/90 dark:bg-blue-500/15 hover:bg-blue-100 dark:hover:bg-blue-500/25 text-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-500/30 shadow-xs",
       };
@@ -111,6 +162,8 @@ const getStatusStyles = (status) => {
         dot: "bg-purple-500",
         pill: "bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30 font-semibold",
         borderLeft: "border-l-purple-500",
+        cardBorder: "border-purple-300/80 dark:border-purple-500/35 hover:border-purple-400 dark:hover:border-purple-400/80 shadow-purple-500/5",
+        cardBg: "bg-purple-50/20 dark:bg-purple-950/15",
         chipBg:
           "bg-purple-50/90 dark:bg-purple-500/15 hover:bg-purple-100 dark:hover:bg-purple-500/25 text-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-500/30 shadow-xs",
       };
@@ -121,6 +174,8 @@ const getStatusStyles = (status) => {
         dot: "bg-amber-500",
         pill: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30 font-semibold",
         borderLeft: "border-l-amber-500",
+        cardBorder: "border-amber-300/80 dark:border-amber-500/35 hover:border-amber-400 dark:hover:border-amber-400/80 shadow-amber-500/5",
+        cardBg: "bg-amber-50/20 dark:bg-amber-950/15",
         chipBg:
           "bg-amber-50/90 dark:bg-amber-500/15 hover:bg-amber-100 dark:hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-500/30 shadow-xs",
       };
@@ -131,6 +186,8 @@ const getStatusStyles = (status) => {
         dot: "bg-rose-500",
         pill: "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/30 font-semibold",
         borderLeft: "border-l-rose-500",
+        cardBorder: "border-rose-300/80 dark:border-rose-500/35 hover:border-rose-400 dark:hover:border-rose-400/80 shadow-rose-500/5",
+        cardBg: "bg-rose-50/20 dark:bg-rose-950/15",
         chipBg:
           "bg-rose-50/90 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-500/30 shadow-xs",
       };
@@ -141,6 +198,8 @@ const getStatusStyles = (status) => {
         dot: "bg-teal-500",
         pill: "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-500/30 font-semibold",
         borderLeft: "border-l-teal-500",
+        cardBorder: "border-teal-300/80 dark:border-teal-500/35 hover:border-teal-400 dark:hover:border-teal-400/80 shadow-teal-500/5",
+        cardBg: "bg-teal-50/20 dark:bg-teal-950/15",
         chipBg:
           "bg-teal-50/90 dark:bg-teal-500/15 hover:bg-teal-100 dark:hover:bg-teal-500/25 text-teal-900 dark:text-teal-200 border-teal-200 dark:border-teal-500/30 shadow-xs",
       };
@@ -151,6 +210,8 @@ const getStatusStyles = (status) => {
         dot: "bg-slate-400 dark:bg-slate-500",
         pill: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600",
         borderLeft: "border-l-slate-400 dark:border-l-slate-500",
+        cardBorder: "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
+        cardBg: "bg-slate-100/40 dark:bg-slate-800/30",
         chipBg:
           "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-600",
       };
@@ -161,6 +222,8 @@ const getStatusStyles = (status) => {
         dot: "bg-emerald-500",
         pill: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 font-semibold",
         borderLeft: "border-l-emerald-500",
+        cardBorder: "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
+        cardBg: "bg-slate-50/20 dark:bg-slate-800/20",
         chipBg:
           "bg-emerald-50/90 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-500/30 shadow-xs",
       };
@@ -170,11 +233,37 @@ const getStatusStyles = (status) => {
 // Custom Toolbar with Month, Agenda, and List view switcher + Controls
 const CustomToolbar = ({
   label,
+  date,
+  currentDate,
   onNavigate,
   onView,
   view,
-  totalEventsCount,
+  shoots = [],
 }) => {
+  const activeDate = date || currentDate || new Date();
+  const targetYear = activeDate.getFullYear();
+  const targetMonth = activeDate.getMonth();
+
+  // Count how many shoots are in this specific month
+  const monthShootsCount = React.useMemo(() => {
+    if (!Array.isArray(shoots)) return 0;
+    return shoots.filter((shoot) => {
+      const rawDate = shoot?.schedule?.shootDate;
+      if (!rawDate) return false;
+      if (typeof rawDate === "string") {
+        const parts = rawDate.split("T")[0].split("-");
+        if (parts.length === 3) {
+          const y = parseInt(parts[0], 10);
+          const m = parseInt(parts[1], 10) - 1;
+          return y === targetYear && m === targetMonth;
+        }
+      }
+      const d = new Date(rawDate);
+      if (isNaN(d.getTime())) return false;
+      return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
+    }).length;
+  }, [shoots, targetYear, targetMonth]);
+
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-100 dark:border-slate-800">
       {/* Left: Navigation and Date Heading */}
@@ -210,9 +299,12 @@ const CustomToolbar = ({
           <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
             {label}
           </h2>
-          <span className="text-xs font-bold px-2.5 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-500/30 rounded-full shadow-xs">
-            {totalEventsCount} {totalEventsCount === 1 ? "shoot" : "shoots"}
-          </span>
+          {monthShootsCount > 0 && (
+            <span className="text-xs font-bold px-2.5 py-0.5 theme-bg-accent-subtle theme-text-accent border theme-border-accent rounded-full shadow-xs flex items-center gap-1.5 transition-all">
+              <span className="w-1.5 h-1.5 rounded-full theme-bg-accent" />
+              {monthShootsCount} {monthShootsCount === 1 ? "shoot" : "shoots"}
+            </span>
+          )}
         </div>
       </div>
 
@@ -224,7 +316,7 @@ const CustomToolbar = ({
             onClick={() => onView("month")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
               view === "month"
-                ? "bg-emerald-500 text-white shadow-sm"
+                ? "theme-bg-accent text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800"
             }`}
           >
@@ -237,7 +329,7 @@ const CustomToolbar = ({
             onClick={() => onView("agenda")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
               view === "agenda"
-                ? "bg-emerald-500 text-white shadow-sm"
+                ? "theme-bg-accent text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800"
             }`}
           >
@@ -250,7 +342,7 @@ const CustomToolbar = ({
             onClick={() => onView("list")}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
               view === "list"
-                ? "bg-emerald-500 text-white shadow-sm"
+                ? "theme-bg-accent text-white shadow-sm"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800"
             }`}
           >
@@ -263,58 +355,134 @@ const CustomToolbar = ({
   );
 };
 
-// Event component in month view
+// Event component in month view - Full Overview Rich Card
 const CustomEvent = ({ event }) => {
   const { resource } = event;
   const statusStyle = getStatusStyles(resource.status);
 
+  const startTime = resource.schedule?.startTime || "";
+  const endTime = resource.schedule?.endTime || "";
+  const timeStr =
+    startTime && endTime ? `${startTime} - ${endTime}` : startTime || "All Day";
+
+  const leadName =
+    resource.assignedTo?.name ||
+    (typeof resource.assignedTo === "string" ? resource.assignedTo : "") ||
+    "Unassigned";
+
+  const teamNames =
+    Array.isArray(resource.shootTeam) && resource.shootTeam.length > 0
+      ? resource.shootTeam
+          .map((m) => m?.name || (typeof m === "string" ? m : ""))
+          .filter(Boolean)
+          .join(", ")
+      : "";
+
   return (
     <div
-      className={`group relative flex items-center justify-between gap-1.5 px-2 py-1 rounded-md border text-xs font-medium transition-all shadow-xs overflow-hidden ${statusStyle.chipBg}`}
-      title={`${resource.shootTitle} (${resource.schedule?.startTime || ""}) - ${resource.client?.companyName || ""}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        resource.onView && resource.onView();
+      }}
+      className={`group relative flex flex-col gap-1.5 p-2 rounded-xl border text-xs transition-all duration-200 shadow-2xs hover:shadow-md cursor-pointer mb-2 overflow-hidden bg-white/95 dark:bg-[#0e1726]/95 ${
+        statusStyle.cardBorder || "border-slate-200 dark:border-slate-700"
+      } hover:-translate-y-0.5`}
     >
-      <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        <div className={`w-2 h-2 rounded-full shrink-0 ${statusStyle.dot}`} />
-        <span className="text-[10px] font-bold opacity-80 shrink-0">
-          {resource.schedule?.startTime?.replace(":00", "") || ""}
-        </span>
-        <span className="font-semibold truncate text-[11px]">
-          {resource.shootTitle}
-        </span>
+      {/* Top Header: Time & Shoot Type */}
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className={`w-2 h-2 rounded-full shrink-0 ${statusStyle.dot}`} />
+          <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 truncate">
+            {timeStr}
+          </span>
+        </div>
+        {resource.shootType && (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#192338] text-slate-600 dark:text-slate-300 shrink-0 border border-slate-200/50 dark:border-slate-700/50">
+            {resource.shootType}
+          </span>
+        )}
       </div>
 
-      {/* Action icons on hover */}
-      <div className="hidden group-hover:flex items-center gap-0.5 shrink-0 bg-white/95 dark:bg-slate-800 px-1 py-0.5 rounded shadow-xs border border-gray-100 dark:border-slate-700">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            resource.onView && resource.onView();
-          }}
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-0.5 cursor-pointer"
-          title="View Details"
+      {/* Full Shoot Title View */}
+      <div className="text-left">
+        <h4 className="font-black text-[11px] sm:text-xs text-slate-900 dark:text-white leading-snug break-words">
+          {resource.shootTitle}
+        </h4>
+        {resource.client?.companyName && (
+          <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate mt-0.5">
+            {resource.client.companyName}
+          </p>
+        )}
+      </div>
+
+      {/* Team Info: Lead & Shoot Team */}
+      <div className="flex flex-col gap-0.5 pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[10px]">
+        <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+          <FiUser size={11} className="text-emerald-500 shrink-0" />
+          <span className="font-bold text-slate-400 dark:text-slate-500">Lead:</span>
+          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+            {leadName}
+          </span>
+        </div>
+
+        {teamNames && (
+          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+            <FiUsers size={11} className="text-blue-500 shrink-0" />
+            <span className="font-bold text-slate-400 dark:text-slate-500">Crew:</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+              {teamNames}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Action Row: Status Pill & View/Edit/Delete Actions */}
+      <div
+        className="flex items-center justify-between pt-1 mt-0.5 border-t border-slate-100 dark:border-slate-800/80"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span
+          className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${statusStyle.pill}`}
         >
-          <FiEye size={11} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            resource.onEdit && resource.onEdit();
-          }}
-          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 p-0.5 cursor-pointer"
-          title="Edit Shoot"
-        >
-          <FiEdit2 size={11} />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            resource.onDelete && resource.onDelete();
-          }}
-          className="text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 p-0.5 cursor-pointer"
-          title="Delete Shoot"
-        >
-          <FiTrash2 size={11} />
-        </button>
+          {resource.status}
+        </span>
+
+        {/* View, Edit, Delete icon buttons */}
+        <div className="flex items-center gap-1 bg-slate-50 dark:bg-[#141d2e] px-1.5 py-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              resource.onView && resource.onView();
+            }}
+            className="p-1 rounded text-blue-600 dark:text-blue-400 hover:bg-blue-100/60 dark:hover:bg-blue-950/60 transition-colors cursor-pointer"
+            title="View Details"
+          >
+            <FiEye size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              resource.onEdit && resource.onEdit();
+            }}
+            className="p-1 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/60 transition-colors cursor-pointer"
+            title="Edit Shoot"
+          >
+            <FiEdit2 size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              resource.onDelete && resource.onDelete();
+            }}
+            className="p-1 rounded text-rose-600 dark:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
+            title="Delete Shoot"
+          >
+            <FiTrash2 size={12} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -354,7 +522,7 @@ const ShootListView = ({
           )}
           <button
             onClick={() => onAddNew()}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl theme-bg-accent text-white shadow-md hover:opacity-95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
           >
             <FiPlus size={16} /> Schedule Shoot
           </button>
@@ -454,9 +622,16 @@ const ShootListView = ({
                     <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold flex items-center justify-center text-[10px]">
                       {shoot.assignedTo?.name ? shoot.assignedTo.name.charAt(0).toUpperCase() : "U"}
                     </div>
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
-                      {shoot.assignedTo?.name || "Unassigned"}
-                    </span>
+                    <div>
+                      <span className="font-medium text-slate-800 dark:text-slate-200 block">
+                        {shoot.assignedTo?.name || "Unassigned"}
+                      </span>
+                      {shoot.shootTeam && shoot.shootTeam.length > 0 && (
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          +{shoot.shootTeam.length} team {shoot.shootTeam.length === 1 ? "member" : "members"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </td>
 
@@ -527,8 +702,8 @@ const CustomMonthDateHeader = ({ date, label, onAddForDate }) => {
       <span
         className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full transition-all ${
           isToday
-            ? "bg-emerald-500 text-white shadow-xs font-black ring-2 ring-emerald-400/30"
-            : "text-slate-700 dark:text-slate-300 group-hover/header:text-emerald-500 dark:group-hover/header:text-emerald-400"
+            ? "theme-bg-accent text-white shadow-xs font-black ring-2 ring-current/25"
+            : "text-slate-700 dark:text-slate-300 group-hover/header:theme-text-accent"
         }`}
       >
         {label}
@@ -539,7 +714,7 @@ const CustomMonthDateHeader = ({ date, label, onAddForDate }) => {
           e.stopPropagation();
           onAddForDate && onAddForDate(date);
         }}
-        className="opacity-0 group-hover/header:opacity-100 text-slate-400 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 p-1 rounded transition-all cursor-pointer"
+        className="opacity-0 group-hover/header:opacity-100 text-slate-400 dark:text-slate-400 hover:theme-text-accent hover:theme-bg-accent-subtle p-1 rounded transition-all cursor-pointer"
         title="Add shoot for this date"
       >
         <FiPlus size={12} />
@@ -566,6 +741,20 @@ const ShootCalendor = () => {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewShoot, setViewShoot] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [liveWeather, setLiveWeather] = useState(null);
+  const [isFetchingWeather, setIsFetchingWeather] = useState(false);
+  const [isCustomShootType, setIsCustomShootType] = useState(false);
+
+  // Dynamically compute all shoot types including custom types from existing shoots
+  const allShootTypes = React.useMemo(() => {
+    const set = new Set(SHOOT_TYPES);
+    shoots.forEach((s) => {
+      if (s.shootType && s.shootType.trim()) {
+        set.add(s.shootType.trim());
+      }
+    });
+    return Array.from(set);
+  }, [shoots]);
 
   const [formData, setFormData] = useState({
     client: "",
@@ -592,11 +781,121 @@ const ShootCalendor = () => {
     specialInstructions: "",
   });
 
+  const fetchLiveWeather = async (customLoc = null) => {
+    setIsFetchingWeather(true);
+    try {
+      let lat = 13.0827; // Default Chennai latitude
+      let lon = 80.2707; // Default Chennai longitude
+      let locName = "Current Location";
+
+      const searchLoc = customLoc || formData.location;
+
+      if (searchLoc && searchLoc.trim()) {
+        try {
+          const geoRes = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+              searchLoc.trim()
+            )}&count=1&language=en&format=json`
+          );
+          const geoData = await geoRes.json();
+          if (geoData.results && geoData.results.length > 0) {
+            lat = geoData.results[0].latitude;
+            lon = geoData.results[0].longitude;
+            locName = geoData.results[0].name;
+          }
+        } catch (geoErr) {
+          console.warn("Geocoding failed, using fallback coordinates", geoErr);
+        }
+      } else if (navigator.geolocation) {
+        try {
+          const pos = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              timeout: 5000,
+            });
+          });
+          lat = pos.coords.latitude;
+          lon = pos.coords.longitude;
+          locName = "Your GPS Location";
+        } catch (posErr) {
+          // fallback
+        }
+      }
+
+      const weatherRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`
+      );
+      const weatherData = await weatherRes.json();
+
+      if (weatherData && weatherData.current) {
+        const { temperature_2m, relative_humidity_2m, weather_code, wind_speed_10m } =
+          weatherData.current;
+        const info = getWeatherCodeInfo(weather_code);
+        const weatherString = `${info.emoji} ${Math.round(
+          temperature_2m
+        )}°C ${info.label} (${locName} - Hum: ${relative_humidity_2m}%, Wind: ${Math.round(
+          wind_speed_10m
+        )} km/h)`;
+
+        setLiveWeather({
+          temp: Math.round(temperature_2m),
+          label: info.label,
+          emoji: info.emoji,
+          humidity: relative_humidity_2m,
+          wind: Math.round(wind_speed_10m),
+          location: locName,
+          fullString: weatherString,
+        });
+
+        setFormData((prev) => ({
+          ...prev,
+          weather: weatherString,
+        }));
+        toast.success(`Live weather: ${info.emoji} ${Math.round(temperature_2m)}°C ${info.label}`);
+      }
+    } catch (err) {
+      console.error("Failed to fetch live weather", err);
+      toast.error("Could not fetch real-time weather. Please check connection.");
+    } finally {
+      setIsFetchingWeather(false);
+    }
+  };
+
   useEffect(() => {
     fetchShoots();
     fetchClients();
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    const socketUrl = baseUrl
+      ? baseUrl
+      : typeof window !== "undefined"
+        ? window.location.origin
+        : "http://localhost:5001";
+
+    const socket = io(socketUrl, {
+      transports: ["polling", "websocket"],
+      withCredentials: true,
+    });
+
+    const currentUserId = currentUser?._id || currentUser?.id;
+    if (currentUserId) {
+      socket.emit("join", currentUserId.toString());
+    }
+
+    socket.on("shoot_created", () => {
+      fetchShoots();
+    });
+
+    socket.on("shoot_updated", () => {
+      fetchShoots();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [currentUser]);
 
   const fetchUsers = async () => {
     try {
@@ -639,10 +938,13 @@ const ShootCalendor = () => {
   const openModal = (shoot = null, prefilledDate = null) => {
     if (shoot) {
       setSelectedShoot(shoot);
+      setIsCustomShootType(
+        shoot.shootType && !SHOOT_TYPES.includes(shoot.shootType) ? true : false
+      );
       setFormData({
         client: shoot.client?._id || shoot.client || "",
         shootTitle: shoot.shootTitle,
-        shootType: shoot.shootType,
+        shootType: shoot.shootType || "Food Shoot",
         description: shoot.description || "",
         shootDate: shoot.schedule?.shootDate
           ? new Date(shoot.schedule.shootDate).toISOString().split("T")[0]
@@ -671,6 +973,7 @@ const ShootCalendor = () => {
       });
     } else {
       setSelectedShoot(null);
+      setIsCustomShootType(false);
       const defaultDateStr = prefilledDate
         ? format(prefilledDate, "yyyy-MM-dd")
         : new Date().toISOString().split("T")[0];
@@ -706,6 +1009,7 @@ const ShootCalendor = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedShoot(null);
+    setIsCustomShootType(false);
   };
 
   const handleSelectSlot = ({ start }) => {
@@ -743,7 +1047,7 @@ const ShootCalendor = () => {
       checklist: formData.checklist.filter((c) => c.task),
       notes: formData.notes,
       specialInstructions: formData.specialInstructions,
-      createdBy: currentUser?._id,
+      createdBy: currentUser?._id || currentUser?.id,
     };
 
     try {
@@ -805,8 +1109,40 @@ const ShootCalendor = () => {
     setViewShoot(null);
   };
 
-  // Filter shoots based on client, status, shoot type, search query, and user permissions
-  const filteredShoots = shoots.filter((shoot) => {
+  // Helper to extract id safely from object or string
+  const getEntityId = (entity) => {
+    if (!entity) return "";
+    if (typeof entity === "object") {
+      return String(entity._id || entity.id || "");
+    }
+    return String(entity);
+  };
+
+  const currentUserId = String(currentUser?._id || currentUser?.id || "");
+  const isSuperOrAdmin =
+    currentUser?.role === "admin" ||
+    currentUser?.role === "operationmanager";
+
+  // Shoots allowed for current user role:
+  // Admins & Operation Managers see all shoots.
+  // Team members see shoots where they are Assigned To (Lead), in the Shoot Team, or Creator.
+  const userAllowedShoots = shoots.filter((shoot) => {
+    if (!isSuperOrAdmin && currentUserId) {
+      const isCreator = getEntityId(shoot.createdBy) === currentUserId;
+      const isAssigned = getEntityId(shoot.assignedTo) === currentUserId;
+      const inTeam =
+        Array.isArray(shoot.shootTeam) &&
+        shoot.shootTeam.some((member) => getEntityId(member) === currentUserId);
+
+      if (!isCreator && !isAssigned && !inTeam) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Filter shoots based on client, status, shoot type, and search query
+  const filteredShoots = userAllowedShoots.filter((shoot) => {
     // Client filter
     if (
       selectedClientFilter &&
@@ -826,7 +1162,7 @@ const ShootCalendor = () => {
       return false;
     }
 
-    // Search query filter
+    // Search query filter (matches title, client, location, type, lead, or team members)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const titleMatch = shoot.shootTitle?.toLowerCase().includes(q);
@@ -834,28 +1170,14 @@ const ShootCalendor = () => {
       const locationMatch = shoot.location?.toLowerCase().includes(q);
       const typeMatch = shoot.shootType?.toLowerCase().includes(q);
       const leadMatch = shoot.assignedTo?.name?.toLowerCase().includes(q);
-      if (!titleMatch && !clientMatch && !locationMatch && !typeMatch && !leadMatch) {
-        return false;
-      }
-    }
-
-    // Role-based visibility
-    if (
-      currentUser?.role &&
-      currentUser.role !== "admin" &&
-      currentUser.role !== "operationmanager"
-    ) {
-      const currentUserId = String(currentUser._id);
-
-      const isCreator =
-        String(shoot.createdBy?._id || shoot.createdBy) === currentUserId;
-      const isAssigned =
-        String(shoot.assignedTo?._id || shoot.assignedTo) === currentUserId;
-      const inTeam = shoot.shootTeam?.some(
-        (member) => String(member?._id || member) === currentUserId,
-      );
-
-      if (!isCreator && !isAssigned && !inTeam) {
+      const teamMatch =
+        Array.isArray(shoot.shootTeam) &&
+        shoot.shootTeam.some((m) =>
+          (m?.name || (typeof m === "string" ? m : ""))
+            .toLowerCase()
+            .includes(q)
+        );
+      if (!titleMatch && !clientMatch && !locationMatch && !typeMatch && !leadMatch && !teamMatch) {
         return false;
       }
     }
@@ -908,69 +1230,111 @@ const ShootCalendor = () => {
   const maxTime = new Date();
   maxTime.setHours(21, 0, 0);
 
-  const totalShoots = shoots.length;
+  const totalShoots = userAllowedShoots.length;
   const getCount = (status) =>
-    shoots.filter((s) => s.status === status).length;
+    userAllowedShoots.filter((s) => s.status === status).length;
   const getPercentage = (count) =>
     totalShoots === 0 ? "0%" : `${((count / totalShoots) * 100).toFixed(0)}%`;
 
-  // Professional Metric cards with crisp tinted icons, clean dark backgrounds, and subtle borders
+  // Premium Gradient Metric cards with glowing top accents and interactive status filtering
   const statsCards = [
     {
       title: "Total Shoots",
       value: totalShoots,
       statusKey: "",
       subtitle: "All recorded",
-      icon: <FiCalendar size={18} className="text-indigo-500" />,
-      iconBg: "bg-indigo-500/10 border-indigo-500/20",
+      icon: <FiCalendar size={18} />,
+      gradientLight: "from-indigo-500/10 via-purple-500/5 to-white/95 border-indigo-200/80 hover:border-indigo-400/80",
+      gradientDark: "dark:from-indigo-950/45 dark:via-purple-950/25 dark:to-[#0c1322] dark:border-indigo-500/30 dark:hover:border-indigo-400/60",
+      topHighlight: "before:via-indigo-400/70",
+      iconContainer: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+      badgeClass: "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-500/30",
+      glowHover: "hover:shadow-lg hover:shadow-indigo-500/10",
+      activeRing: "ring-2 ring-indigo-500/90 shadow-md shadow-indigo-500/15",
     },
     {
       title: "Confirmed",
       value: getCount("Confirmed"),
       statusKey: "Confirmed",
       subtitle: getPercentage(getCount("Confirmed")),
-      icon: <FiCheckCircle size={18} className="text-emerald-500" />,
-      iconBg: "bg-emerald-500/10 border-emerald-500/20",
+      icon: <FiCheckCircle size={18} />,
+      gradientLight: "from-emerald-500/10 via-teal-500/5 to-white/95 border-emerald-200/80 hover:border-emerald-400/80",
+      gradientDark: "dark:from-emerald-950/45 dark:via-teal-950/25 dark:to-[#0c1322] dark:border-emerald-500/30 dark:hover:border-emerald-400/60",
+      topHighlight: "before:via-emerald-400/70",
+      iconContainer: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      badgeClass: "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-500/30",
+      glowHover: "hover:shadow-lg hover:shadow-emerald-500/10",
+      activeRing: "ring-2 ring-emerald-500/90 shadow-md shadow-emerald-500/15",
     },
     {
       title: "In Progress",
       value: getCount("In Progress"),
       statusKey: "In Progress",
       subtitle: getPercentage(getCount("In Progress")),
-      icon: <FiClock size={18} className="text-blue-500" />,
-      iconBg: "bg-blue-500/10 border-blue-500/20",
+      icon: <FiClock size={18} />,
+      gradientLight: "from-sky-500/10 via-blue-500/5 to-white/95 border-sky-200/80 hover:border-sky-400/80",
+      gradientDark: "dark:from-sky-950/45 dark:via-blue-950/25 dark:to-[#0c1322] dark:border-sky-500/30 dark:hover:border-sky-400/60",
+      topHighlight: "before:via-sky-400/70",
+      iconContainer: "bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/20",
+      badgeClass: "bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-200/70 dark:border-sky-500/30",
+      glowHover: "hover:shadow-lg hover:shadow-sky-500/10",
+      activeRing: "ring-2 ring-sky-500/90 shadow-md shadow-sky-500/15",
     },
     {
       title: "Planned",
       value: getCount("Planned"),
       statusKey: "Planned",
       subtitle: getPercentage(getCount("Planned")),
-      icon: <FiClipboard size={18} className="text-purple-500" />,
-      iconBg: "bg-purple-500/10 border-purple-500/20",
+      icon: <FiClipboard size={18} />,
+      gradientLight: "from-purple-500/10 via-fuchsia-500/5 to-white/95 border-purple-200/80 hover:border-purple-400/80",
+      gradientDark: "dark:from-purple-950/45 dark:via-fuchsia-950/25 dark:to-[#0c1322] dark:border-purple-500/30 dark:hover:border-purple-400/60",
+      topHighlight: "before:via-purple-400/70",
+      iconContainer: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/20",
+      badgeClass: "bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200/70 dark:border-purple-500/30",
+      glowHover: "hover:shadow-lg hover:shadow-purple-500/10",
+      activeRing: "ring-2 ring-purple-500/90 shadow-md shadow-purple-500/15",
     },
     {
       title: "Completed",
       value: getCount("Completed"),
       statusKey: "Completed",
       subtitle: getPercentage(getCount("Completed")),
-      icon: <FiCheckSquare size={18} className="text-teal-500" />,
-      iconBg: "bg-teal-500/10 border-teal-500/20",
+      icon: <FiCheckSquare size={18} />,
+      gradientLight: "from-teal-500/10 via-emerald-500/5 to-white/95 border-teal-200/80 hover:border-teal-400/80",
+      gradientDark: "dark:from-teal-950/45 dark:via-emerald-950/25 dark:to-[#0c1322] dark:border-teal-500/30 dark:hover:border-teal-400/60",
+      topHighlight: "before:via-teal-400/70",
+      iconContainer: "bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/20",
+      badgeClass: "bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-200/70 dark:border-teal-500/30",
+      glowHover: "hover:shadow-lg hover:shadow-teal-500/10",
+      activeRing: "ring-2 ring-teal-500/90 shadow-md shadow-teal-500/15",
     },
     {
       title: "Pending Approval",
       value: getCount("Pending Approval"),
       statusKey: "Pending Approval",
       subtitle: getPercentage(getCount("Pending Approval")),
-      icon: <FiAlertCircle size={18} className="text-amber-500" />,
-      iconBg: "bg-amber-500/10 border-amber-500/20",
+      icon: <FiAlertCircle size={18} />,
+      gradientLight: "from-amber-500/10 via-orange-500/5 to-white/95 border-amber-200/80 hover:border-amber-400/80",
+      gradientDark: "dark:from-amber-950/45 dark:via-orange-950/25 dark:to-[#0c1322] dark:border-amber-500/30 dark:hover:border-amber-400/60",
+      topHighlight: "before:via-amber-400/70",
+      iconContainer: "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      badgeClass: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-500/30",
+      glowHover: "hover:shadow-lg hover:shadow-amber-500/10",
+      activeRing: "ring-2 ring-amber-500/90 shadow-md shadow-amber-500/15",
     },
     {
       title: "At Risk",
       value: getCount("At Risk"),
       statusKey: "At Risk",
       subtitle: getPercentage(getCount("At Risk")),
-      icon: <FiAlertTriangle size={18} className="text-rose-500" />,
-      iconBg: "bg-rose-500/10 border-rose-500/20",
+      icon: <FiAlertTriangle size={18} />,
+      gradientLight: "from-rose-500/10 via-red-500/5 to-white/95 border-rose-200/80 hover:border-rose-400/80",
+      gradientDark: "dark:from-rose-950/45 dark:via-red-950/25 dark:to-[#0c1322] dark:border-rose-500/30 dark:hover:border-rose-400/60",
+      topHighlight: "before:via-rose-400/70",
+      iconContainer: "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20",
+      badgeClass: "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-200/70 dark:border-rose-500/30",
+      glowHover: "hover:shadow-lg hover:shadow-rose-500/10",
+      activeRing: "ring-2 ring-rose-500/90 shadow-md shadow-rose-500/15",
     },
   ];
 
@@ -990,54 +1354,54 @@ const ShootCalendor = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 px-5 shrink-0">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-            <span className="p-2 bg-emerald-500 text-white rounded-xl shadow-xs shadow-emerald-500/30">
+            <span className="p-2.5 theme-bg-accent text-white rounded-xl shadow-md transition-all">
               <FiCalendar size={22} />
             </span>
             Shoot Calendar
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            Manage, schedule and monitor video & photography shoots across clients
-          </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
           <button
             onClick={() => openModal()}
-            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm shadow-emerald-500/25 text-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="flex items-center gap-2 theme-bg-accent text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm hover:opacity-95 text-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <FiPlus size={18} /> Schedule Shoot
           </button>
         </div>
       </div>
 
-      {/* Interactive Stats Cards (Clickable to Filter) */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5 px-5 shrink-0">
         {statsCards.map((card, idx) => {
           const isSelected =
-            selectedStatusFilter === card.statusKey &&
-            (card.statusKey !== "" || (!selectedStatusFilter && card.statusKey === ""));
+            card.statusKey && selectedStatusFilter === card.statusKey;
+
           return (
-            <button
+            <div
               key={idx}
-              type="button"
               onClick={() => {
-                setSelectedStatusFilter((prev) =>
-                  prev === card.statusKey ? "" : card.statusKey,
-                );
+                if (card.statusKey) {
+                  setSelectedStatusFilter((prev) =>
+                    prev === card.statusKey ? "" : card.statusKey
+                  );
+                } else {
+                  setSelectedStatusFilter("");
+                }
               }}
-              className={`text-left rounded-2xl p-3.5 shadow-xs border transition-all duration-200 cursor-pointer hover:shadow-md hover:-translate-y-0.5 bg-white dark:bg-[#0c1322] ${
-                isSelected
-                  ? "border-emerald-500 dark:border-emerald-400 ring-2 ring-emerald-400/40 dark:ring-emerald-500/50 bg-emerald-50/20 dark:bg-emerald-950/25"
-                  : "border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700"
+              className={`relative overflow-hidden text-left rounded-2xl p-3.5 border transition-all duration-300 cursor-pointer bg-gradient-to-br ${card.gradientLight} ${card.gradientDark} ${card.glowHover} hover:-translate-y-0.5 before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-gradient-to-r before:from-transparent ${card.topHighlight} before:to-transparent ${
+                isSelected ? card.activeRing : "hover:shadow-sm"
               }`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div
-                  className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 ${card.iconBg}`}
+                  className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs ${card.iconContainer}`}
                 >
                   {card.icon}
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#131b2e] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/80 shadow-xs">
+                <span
+                  className={`text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs ${card.badgeClass}`}
+                >
                   {card.subtitle}
                 </span>
               </div>
@@ -1045,17 +1409,22 @@ const ShootCalendor = () => {
                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 truncate uppercase tracking-wider">
                   {card.title}
                 </p>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white leading-none mt-1">
-                  {card.value}
-                </h3>
+                <div className="flex items-baseline justify-between mt-1">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white leading-none tracking-tight">
+                    {card.value}
+                  </h3>
+                  {isSelected && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                  )}
+                </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white dark:bg-[#0c1322] mx-5 mb-4 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white dark:bg-[#0c1322] mx-5 mb-4 p-2 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap flex-1 min-w-[280px]">
           {/* Live Search */}
           <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -1098,7 +1467,7 @@ const ShootCalendor = () => {
             className="border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#131b2e] hover:bg-slate-100/70 dark:hover:bg-[#162038] focus:bg-white dark:focus:bg-[#131b2e] text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-w-[140px] cursor-pointer"
           >
             <option value="" className="dark:bg-[#131b2e] dark:text-slate-100">All Shoot Types</option>
-            {SHOOT_TYPES.map((type) => (
+            {allShootTypes.map((type) => (
               <option key={type} value={type} className="dark:bg-[#131b2e] dark:text-slate-100">
                 {type}
               </option>
@@ -1131,22 +1500,25 @@ const ShootCalendor = () => {
       </div>
 
       {/* Main Calendar Card */}
-      <div className="flex-1 bg-white dark:bg-[#0c1322] p-5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 flex flex-col mx-5 mb-5 min-h-[750px]">
+      <div className="flex-1 bg-white dark:bg-[#0c1322] p-5 rounded-2xl  flex flex-col mx-5 mb-5 min-h-[1300px]">
         <div className="w-full flex flex-col h-full">
           <style
             dangerouslySetInnerHTML={{
               __html: `
             /* Calendar Global Reset */
-            .rbc-calendar { font-family: inherit; }
-            .rbc-month-view { border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #ffffff; }
+            .rbc-calendar { font-family: inherit; min-height: 1200px !important; height: auto !important; }
+            .rbc-month-view { border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #ffffff; min-height: 1200px !important; height: auto !important; }
             .rbc-month-header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-            .rbc-header { padding: 10px 4px !important; font-size: 11px !important; font-weight: 700 !important; color: #64748b !important; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: none !important; border-left: 1px solid #e2e8f0 !important; }
+            .rbc-header { padding: 12px 6px !important; font-size: 11px !important; font-weight: 800 !important; color: #64748b !important; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: none !important; border-left: 1px solid #e2e8f0 !important; }
             .rbc-header:first-child { border-left: none !important; }
-            .rbc-day-bg { border-left: 1px solid #e2e8f0 !important; transition: background 0.15s ease; }
+            .rbc-day-bg { border-left: 1px solid #e2e8f0 !important; transition: background 0.15s ease; min-height: 240px !important; }
             .rbc-day-bg:hover { background-color: #f8fafc; }
-            .rbc-month-row { border-top: 1px solid #e2e8f0 !important; min-height: 110px !important; }
+            .rbc-month-row { border-top: 1px solid #e2e8f0 !important; min-height: 240px !important; flex: 1 0 240px !important; overflow: visible !important; }
+            .rbc-row-content { min-height: 240px !important; z-index: 4; }
             .rbc-off-range-bg { background: #fafafa !important; opacity: 0.6; }
             .rbc-today { background-color: rgba(16, 185, 129, 0.04) !important; }
+            .rbc-event { background: transparent !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+            .rbc-event:focus { outline: none !important; }
             
             /* Agenda View */
             .rbc-agenda-view { border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #ffffff; }
@@ -1155,16 +1527,17 @@ const ShootCalendor = () => {
             .rbc-agenda-event-cell { padding: 12px 16px !important; }
             
             /* Event row formatting in month */
-            .rbc-row-segment { padding: 2px 4px !important; }
-            .rbc-show-more { font-size: 11px !important; font-weight: 700 !important; color: #10b981 !important; padding: 2px 6px; border-radius: 6px; background: rgba(16, 185, 129, 0.1); margin-top: 2px; display: inline-block; }
+            .rbc-row-segment { padding: 2px 4px !important; overflow: visible !important; }
+            .rbc-show-more { font-size: 11px !important; font-weight: 800 !important; color: #10b981 !important; padding: 3px 8px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); margin-top: 4px; display: inline-block; cursor: pointer; }
             
             /* ================= DARK MODE STYLING ================= */
-            .dark .rbc-month-view { border: 1px solid #1e293b; background: #0c1322; }
+            .dark .rbc-month-view { border: 1px solid #1e293b; background: #0c1322; min-height: 1200px !important; height: auto !important; }
             .dark .rbc-month-header { background: #111a2e; border-bottom: 1px solid #1e293b; }
-            .dark .rbc-header { color: #94a3b8 !important; background: #111a2e !important; font-size: 11px !important; font-weight: 700 !important; border-left: 1px solid #1e293b !important; }
-            .dark .rbc-day-bg { border-left: 1px solid #1e293b !important; }
+            .dark .rbc-header { color: #94a3b8 !important; background: #111a2e !important; font-size: 11px !important; font-weight: 800 !important; border-left: 1px solid #1e293b !important; }
+            .dark .rbc-day-bg { border-left: 1px solid #1e293b !important; min-height: 240px !important; }
             .dark .rbc-day-bg:hover { background-color: rgba(30, 41, 59, 0.45); }
-            .dark .rbc-month-row { border-top: 1px solid #1e293b !important; }
+            .dark .rbc-month-row { border-top: 1px solid #1e293b !important; min-height: 240px !important; flex: 1 0 240px !important; }
+            .dark .rbc-row-content { min-height: 240px !important; }
             .dark .rbc-off-range-bg { background: #080d1a !important; opacity: 0.6; }
             .dark .rbc-today { background-color: rgba(16, 185, 129, 0.08) !important; }
             
@@ -1182,6 +1555,8 @@ const ShootCalendor = () => {
             <div className="flex flex-col h-full">
               <CustomToolbar
                 label={format(currentDate, "MMMM yyyy")}
+                date={currentDate}
+                currentDate={currentDate}
                 onNavigate={(action) => {
                   if (action === "TODAY") {
                     setCurrentDate(new Date());
@@ -1197,7 +1572,7 @@ const ShootCalendor = () => {
                 }}
                 onView={(v) => setCurrentView(v)}
                 view={currentView}
-                totalEventsCount={filteredShoots.length}
+                shoots={filteredShoots}
               />
               <ShootListView
                 shoots={filteredShoots}
@@ -1226,15 +1601,16 @@ const ShootCalendor = () => {
               max={maxTime}
               selectable={true}
               onSelectSlot={handleSelectSlot}
-              style={{ height: "100%", minHeight: "680px", border: "none" }}
+              style={{ height: "auto", minHeight: "1200px", border: "none" }}
               onSelectEvent={(event) => openViewOffcanvas(event.resource)}
               eventPropGetter={eventStyleGetter}
               components={{
                 toolbar: (toolbarProps) => (
                   <CustomToolbar
                     {...toolbarProps}
+                    currentDate={currentDate}
+                    shoots={filteredShoots}
                     onView={(v) => setCurrentView(v)}
-                    totalEventsCount={filteredShoots.length}
                   />
                 ),
                 event: (eventProps) => <CustomEvent {...eventProps} />,
@@ -1403,7 +1779,7 @@ const ShootCalendor = () => {
                         required
                         value={formData.client}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                       >
                         <option value="" className="dark:bg-[#131b2e]">Select a client</option>
                         {clients.map((client) => (
@@ -1424,28 +1800,77 @@ const ShootCalendor = () => {
                         required
                         value={formData.shootTitle}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Diwali Special Video"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Shoot Type <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        name="shootType"
-                        required
-                        value={formData.shootType}
-                        onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                      >
-                        {SHOOT_TYPES.map((type) => (
-                          <option key={type} value={type} className="dark:bg-[#131b2e]">
-                            {type}
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                          Shoot Type <span className="text-red-500">*</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomShootType(!isCustomShootType);
+                            if (
+                              !isCustomShootType &&
+                              (!formData.shootType ||
+                                SHOOT_TYPES.includes(formData.shootType))
+                            ) {
+                              setFormData((prev) => ({ ...prev, shootType: "" }));
+                            }
+                          }}
+                          className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          {isCustomShootType
+                            ? "← Choose from list"
+                            : "+ Add Custom Type"}
+                        </button>
+                      </div>
+
+                      {isCustomShootType ? (
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="shootType"
+                            required
+                            value={formData.shootType}
+                            onChange={handleInputChange}
+                            className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                            placeholder="Enter custom shoot type (e.g. Reels Shoot, Podcast, Drone)"
+                            autoFocus
+                          />
+                        </div>
+                      ) : (
+                        <select
+                          name="shootType"
+                          required
+                          value={formData.shootType}
+                          onChange={(e) => {
+                            if (e.target.value === "__CUSTOM__") {
+                              setIsCustomShootType(true);
+                              setFormData((prev) => ({ ...prev, shootType: "" }));
+                            } else {
+                              handleInputChange(e);
+                            }
+                          }}
+                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
+                        >
+                          {allShootTypes.map((type) => (
+                            <option key={type} value={type} className="dark:bg-[#131b2e]">
+                              {type}
+                            </option>
+                          ))}
+                          <option
+                            value="__CUSTOM__"
+                            className="dark:bg-[#131b2e] font-bold text-emerald-600 dark:text-emerald-400"
+                          >
+                            + Custom Shoot Type...
                           </option>
-                        ))}
-                      </select>
+                        </select>
+                      )}
                     </div>
 
                     {selectedShoot && (
@@ -1457,7 +1882,7 @@ const ShootCalendor = () => {
                           name="status"
                           value={formData.status}
                           onChange={handleInputChange}
-                          className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                         >
                           {SHOOT_STATUSES.map((status) => (
                             <option key={status} value={status} className="dark:bg-[#131b2e]">
@@ -1486,7 +1911,7 @@ const ShootCalendor = () => {
                         required
                         value={formData.shootDate}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                       />
                     </div>
 
@@ -1495,13 +1920,12 @@ const ShootCalendor = () => {
                         Start Time <span className="text-red-500">*</span>
                       </label>
                       <input
-                        type="text"
+                        type="time"
                         name="startTime"
                         required
                         value={formData.startTime}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                        placeholder="09:00 AM"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                       />
                     </div>
 
@@ -1510,13 +1934,12 @@ const ShootCalendor = () => {
                         End Time <span className="text-red-500">*</span>
                       </label>
                       <input
-                        type="text"
+                        type="time"
                         name="endTime"
                         required
                         value={formData.endTime}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                        placeholder="01:00 PM"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                       />
                     </div>
 
@@ -1529,7 +1952,7 @@ const ShootCalendor = () => {
                         name="location"
                         value={formData.location}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Studio A, ECR Road, Chennai"
                       />
                     </div>
@@ -1550,7 +1973,7 @@ const ShootCalendor = () => {
                         name="assignedTo"
                         value={formData.assignedTo}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                       >
                         <option value="" className="dark:bg-[#131b2e]">Select Assignee</option>
                         {users.map((user) => (
@@ -1573,19 +1996,51 @@ const ShootCalendor = () => {
                         multiple
                         value={formData.shootTeam}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all custom-scrollbar"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm custom-scrollbar"
                         size="3"
                       >
                         {users.map((user) => (
                           <option
                             key={user._id}
                             value={user._id}
-                            className="p-1.5 mb-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-[#131b2e]"
+                            className="p-1.5 mb-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-[#131b2e]"
                           >
-                            {user.name}
+                            {user.name} ({user.role})
                           </option>
                         ))}
                       </select>
+                      {formData.shootTeam?.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {formData.shootTeam.map((userId) => {
+                            const u = users.find(
+                              (usr) => String(usr._id || usr.id) === String(userId)
+                            );
+                            return (
+                              <span
+                                key={userId}
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 shadow-2xs"
+                              >
+                                {u ? u.name : "Member"}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      shootTeam: prev.shootTeam.filter(
+                                        (id) => String(id) !== String(userId)
+                                      ),
+                                    }))
+                                  }
+                                  className="text-emerald-700/60 dark:text-emerald-400 hover:text-rose-600 dark:hover:text-rose-400 ml-0.5 cursor-pointer font-bold"
+                                  title="Remove member"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -1597,7 +2052,7 @@ const ShootCalendor = () => {
                         name="transport"
                         value={formData.transport}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Agency Vehicle required"
                       />
                     </div>
@@ -1611,7 +2066,7 @@ const ShootCalendor = () => {
                         name="estimatedBudget"
                         value={formData.estimatedBudget}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="8500"
                       />
                     </div>
@@ -1633,7 +2088,7 @@ const ShootCalendor = () => {
                         name="purpose"
                         value={formData.purpose}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Menu Photos & Reels"
                       />
                     </div>
@@ -1647,23 +2102,70 @@ const ShootCalendor = () => {
                         name="contentUse"
                         value={formData.contentUse}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Instagram, Facebook"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Weather / Environment
-                      </label>
-                      <input
-                        type="text"
-                        name="weather"
-                        value={formData.weather}
-                        onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
-                        placeholder="e.g. Indoor / Outdoor Clear"
-                      />
+                    {/* Weather / Environment with Live Weather integration */}
+                    <div className="md:col-span-2">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                          Weather / Environment
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => fetchLiveWeather()}
+                          disabled={isFetchingWeather}
+                          className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200/70 dark:border-amber-800/60 px-3 py-1 rounded-xl transition-all shadow-2xs cursor-pointer active:scale-95 disabled:opacity-60"
+                          title="Fetch current live weather for your location"
+                        >
+                          <FiRefreshCw
+                            size={12}
+                            className={isFetchingWeather ? "animate-spin" : ""}
+                          />
+                          <span>{isFetchingWeather ? "Detecting Live Weather..." : "Detect Live Weather"}</span>
+                        </button>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="weather"
+                          value={formData.weather}
+                          onChange={handleInputChange}
+                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                          placeholder="e.g. ☀️ 32°C Clear Sky (Indoor AC / Outdoor Clear)"
+                        />
+                      </div>
+
+                      {/* Quick Weather Preset Chips */}
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 mr-1">
+                          Quick Presets:
+                        </span>
+                        {[
+                          { label: "☀️ Sunny / Clear", val: "☀️ Clear & Sunny (Outdoor)" },
+                          { label: "⛅ Partly Cloudy", val: "⛅ Partly Cloudy (Soft Light)" },
+                          { label: "🌧️ Rainy / Drizzle", val: "🌧️ Rainy / Overcast (Cover Needed)" },
+                          { label: "🏢 Studio AC", val: "🏢 Indoor AC Studio" },
+                          { label: "🌅 Golden Hour", val: "🌅 Golden Hour Outdoor (5 PM - 6:30 PM)" },
+                        ].map((preset) => (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                weather: preset.val,
+                              }))
+                            }
+                            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#151f33] dark:hover:bg-[#1e2a44] text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 transition-all cursor-pointer shadow-2xs active:scale-95"
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1683,7 +2185,7 @@ const ShootCalendor = () => {
                         name="clientContactName"
                         value={formData.clientContactName}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="Name of SPOC"
                       />
                     </div>
@@ -1696,7 +2198,7 @@ const ShootCalendor = () => {
                         name="clientContactPhone"
                         value={formData.clientContactPhone}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-2.5 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="+91 9876543210"
                       />
                     </div>
@@ -1714,7 +2216,7 @@ const ShootCalendor = () => {
                       value={formData.description}
                       onChange={handleInputChange}
                       rows="3"
-                      className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-3 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none transition-all"
+                      className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3.5 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none transition-all shadow-2xs text-sm"
                       placeholder="Additional details about the shoot..."
                     ></textarea>
                   </div>
@@ -1727,7 +2229,7 @@ const ShootCalendor = () => {
                       value={formData.notes}
                       onChange={handleInputChange}
                       rows="3"
-                      className="w-full border border-slate-200 dark:border-slate-700/80 rounded-xl px-4 py-3 bg-white dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-400 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none transition-all"
+                      className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3.5 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none transition-all shadow-2xs text-sm"
                       placeholder="e.g. Focus on new menu items. Capture close-ups for reels."
                     ></textarea>
                   </div>
@@ -1761,7 +2263,7 @@ const ShootCalendor = () => {
                   type="submit"
                   form="shoot-form"
                   disabled={loading}
-                  className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold transition-all shadow-md shadow-emerald-500/20 disabled:opacity-70 flex items-center gap-2 text-sm cursor-pointer"
+                  className="px-6 py-2.5 theme-bg-accent text-white rounded-xl font-bold transition-all shadow-md hover:opacity-95 disabled:opacity-70 flex items-center gap-2 text-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {loading ? "Saving..." : "Save Shoot Details"}
                 </button>

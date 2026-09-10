@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
 import DashboardCards from "./cards/DashboardCards";
+import ShootCalendarOverview from "./cards/ShootCalendarOverview";
 const GraphicDesignerDashboard = React.lazy(
   () => import("./cards/GraphicDesignerDashboard"),
 );
@@ -2016,6 +2017,11 @@ const Dashboardmain = () => {
             )}
           </div>
         )}
+      </div>
+
+      {/* ─── SHOOT CALENDAR OVERVIEW (Visible to ALL users with real-time sync & high-end UI/UX) ─── */}
+      <div className="w-full mt-4 mb-4">
+        <ShootCalendarOverview />
       </div>
 
       {/* .................................................Dashboard Cards / Assigned Clients.............................. */}

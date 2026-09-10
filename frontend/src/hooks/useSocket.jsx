@@ -240,6 +240,13 @@ const useSocket = () => {
                 onClick={() => {
                   toast.dismiss(t.id);
                   if (
+                    notification.type === "shoot_assigned" ||
+                    notification.shoot ||
+                    (notification.message &&
+                      notification.message.toLowerCase().includes("shoot"))
+                  ) {
+                    navigate(`/${user?.role}/Shootcalendor`);
+                  } else if (
                     notification.type === "client_assigned" ||
                     (notification.message &&
                       notification.message.toLowerCase().includes("client:"))
@@ -281,7 +288,7 @@ const useSocket = () => {
                         {notification.sender.name}
                       </span>
                       <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                        • {notification.type === "task_assigned" ? "Assigned task" : "Alert"}
+                        • {notification.type === "shoot_assigned" ? "Shoot Assigned" : notification.type === "task_assigned" ? "Assigned task" : "Alert"}
                       </span>
                     </div>
                   ) : (

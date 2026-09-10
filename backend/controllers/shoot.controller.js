@@ -1,4 +1,5 @@
 const Shoot = require('../models/Shoot');
+const Notification = require('../models/Notification');
 
 // Helper to convert "hh:mm AM/PM" to comparable number (e.g. "09:00 AM" -> 900, "01:00 PM" -> 1300)
 const parseTime = (timeStr) => {
@@ -11,6 +12,66 @@ const parseTime = (timeStr) => {
   if (period.toUpperCase() === 'PM' && hours < 12) hours += 12;
   if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
   return hours * 100 + minutes;
+};
+
+// Helper to send real-time and DB notifications to assigned users for a shoot
+const sendShootAssignmentNotifications = async (io, shoot, recipientsWithRole, sender) => {
+  if (!recipientsWithRole || recipientsWithRole.length === 0) return;
+
+  const shootDateStr = shoot.schedule?.shootDate
+    ? new Date(shoot.schedule.shootDate).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '';
+  const timeStr = shoot.schedule?.startTime ? ` at ${shoot.schedule.startTime}` : '';
+  const clientName = shoot.client?.companyName ? ` for ${shoot.client.companyName}` : '';
+
+  const notificationsToCreate = [];
+  const senderId = (sender._id || sender.id).toString();
+
+  for (const item of recipientsWithRole) {
+    const recipientId = item.recipientId ? item.recipientId.toString() : null;
+    if (!recipientId || recipientId === senderId) continue;
+
+    let message = '';
+    if (item.role === 'lead') {
+      message = `You have been assigned as Lead for shoot: "${shoot.shootTitle}"${clientName}${shootDateStr ? ` on ${shootDateStr}` : ''}${timeStr}.`;
+    } else {
+      message = `You have been added to the shoot team for: "${shoot.shootTitle}"${clientName}${shootDateStr ? ` on ${shootDateStr}` : ''}${timeStr}.`;
+    }
+
+    notificationsToCreate.push({
+      recipient: recipientId,
+      sender: sender._id || sender.id,
+      type: 'shoot_assigned',
+      message,
+      shoot: shoot._id,
+    });
+  }
+
+  if (notificationsToCreate.length === 0) return;
+
+  try {
+    const createdNotifications = await Notification.insertMany(notificationsToCreate);
+    if (io) {
+      for (const notif of createdNotifications) {
+        try {
+          const populated = await Notification.findById(notif._id).populate({
+            path: 'sender',
+            select: 'name profile',
+            populate: { path: 'profile', select: 'profileImage' },
+          });
+          io.to(notif.recipient.toString()).emit('notification', populated);
+        } catch (err) {
+          console.error('Failed to emit single shoot notification:', err);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to create shoot notifications:', err);
+  }
 };
 
 // @desc    Create new shoot
@@ -34,6 +95,28 @@ exports.createShoot = async (req, res) => {
     req.body.status = 'Planned'; // Force default
 
     const shoot = await Shoot.create(req.body);
+    const populatedShoot = await Shoot.findById(shoot._id).populate('client', 'companyName');
+
+    const recipients = [];
+    if (populatedShoot.assignedTo) {
+      recipients.push({ recipientId: populatedShoot.assignedTo, role: 'lead' });
+    }
+    if (Array.isArray(populatedShoot.shootTeam)) {
+      populatedShoot.shootTeam.forEach((memberId) => {
+        if (
+          memberId &&
+          (!populatedShoot.assignedTo || memberId.toString() !== populatedShoot.assignedTo.toString())
+        ) {
+          recipients.push({ recipientId: memberId, role: 'team' });
+        }
+      });
+    }
+
+    const io = req.app.get('io');
+    await sendShootAssignmentNotifications(io, populatedShoot, recipients, req.user);
+    if (io) {
+      io.emit('shoot_created', { shootId: shoot._id });
+    }
 
     res.status(201).json({
       success: true,
@@ -64,6 +147,20 @@ exports.getShoots = async (req, res) => {
     if (status) query.status = status;
     if (shootType) query.shootType = shootType;
     if (client) query.client = client;
+
+    // Role-based visibility:
+    // Non-admin and non-operationmanager users only see shoots where they are:
+    // - Assigned To (Lead)
+    // - In the Shoot Team
+    // - Creator
+    if (req.user && req.user.role !== 'admin' && req.user.role !== 'operationmanager') {
+      const userId = req.user._id;
+      query.$or = [
+        { assignedTo: userId },
+        { shootTeam: userId },
+        { createdBy: userId }
+      ];
+    }
 
     const shoots = await Shoot.find(query)
       .populate('client', 'companyName color icon')
@@ -108,29 +205,31 @@ exports.getShoots = async (req, res) => {
 exports.getShoot = async (req, res) => {
   try {
     const shoot = await Shoot.findById(req.params.id)
-      .populate('client', 'companyName color icon')
-      .populate({
-        path: 'assignedTo',
-        select: 'name role',
-        populate: {
-          path: 'profile',
-          select: 'profileImage'
-        }
-      })
-      .populate({
-        path: 'shootTeam',
-        select: 'name role',
-        populate: {
-          path: 'profile',
-          select: 'profileImage'
-        }
-      });
+      .populate('client', 'companyName color icon email phone address')
+      .populate('assignedTo', 'name email role')
+      .populate('shootTeam', 'name email role')
+      .populate('createdBy', 'name email');
 
     if (!shoot) {
       return res.status(404).json({
         success: false,
         message: 'Shoot not found',
       });
+    }
+
+    // Role-based authorization for single shoot
+    if (req.user && req.user.role !== 'admin' && req.user.role !== 'operationmanager') {
+      const userId = (req.user._id || req.user.id).toString();
+      const isAssigned = shoot.assignedTo && (shoot.assignedTo._id || shoot.assignedTo).toString() === userId;
+      const inTeam = shoot.shootTeam && shoot.shootTeam.some(m => (m._id || m).toString() === userId);
+      const isCreator = shoot.createdBy && (shoot.createdBy._id || shoot.createdBy).toString() === userId;
+
+      if (!isAssigned && !inTeam && !isCreator) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to view this shoot',
+        });
+      }
     }
 
     res.status(200).json({
@@ -181,8 +280,8 @@ exports.updateShoot = async (req, res) => {
     if (description !== undefined) updateData.description = description;
     if (status !== undefined) updateData.status = status;
     if (location !== undefined) updateData.location = location;
-    if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
-    if (shootTeam !== undefined) updateData.shootTeam = shootTeam;
+    if (assignedTo !== undefined) updateData.assignedTo = assignedTo ? assignedTo : null;
+    if (shootTeam !== undefined) updateData.shootTeam = Array.isArray(shootTeam) ? shootTeam.filter(Boolean) : [];
     if (purpose !== undefined) updateData.purpose = purpose;
     if (contentUse !== undefined) updateData.contentUse = contentUse;
     if (weather !== undefined) updateData.weather = weather;
@@ -209,10 +308,32 @@ exports.updateShoot = async (req, res) => {
       }
     }
 
+    const previousAssignedTo = shoot.assignedTo ? shoot.assignedTo.toString() : null;
+    const previousTeam = (shoot.shootTeam || []).map((m) => m.toString());
+
     shoot = await Shoot.findByIdAndUpdate(req.params.id, updateData, {
       returnDocument: 'after',
       runValidators: true,
+    }).populate('client', 'companyName');
+
+    const newAssignedTo = shoot.assignedTo ? shoot.assignedTo.toString() : null;
+    const newTeam = (shoot.shootTeam || []).map((m) => m.toString());
+
+    const recipients = [];
+    if (newAssignedTo && newAssignedTo !== previousAssignedTo) {
+      recipients.push({ recipientId: newAssignedTo, role: 'lead' });
+    }
+    newTeam.forEach((mId) => {
+      if (!previousTeam.includes(mId) && mId !== newAssignedTo) {
+        recipients.push({ recipientId: mId, role: 'team' });
+      }
     });
+
+    const io = req.app.get('io');
+    await sendShootAssignmentNotifications(io, shoot, recipients, req.user);
+    if (io) {
+      io.emit('shoot_updated', { shootId: shoot._id });
+    }
 
     res.status(200).json({
       success: true,

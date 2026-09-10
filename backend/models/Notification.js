@@ -13,7 +13,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['task_assigned', 'task_updated', 'project_assigned', 'client_assigned', 'general', 'message_received', 'mention_received', 'reaction_received', 'report_submitted', 'client_call_created'],
+    enum: ['task_assigned', 'task_updated', 'project_assigned', 'client_assigned', 'general', 'message_received', 'mention_received', 'reaction_received', 'report_submitted', 'client_call_created', 'shoot_assigned'],
     default: 'general',
   },
   message: {
@@ -27,6 +27,10 @@ const NotificationSchema = new mongoose.Schema({
   project: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project',
+  },
+  shoot: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Shoot',
   },
   messageId: {
     type: mongoose.Schema.Types.ObjectId,

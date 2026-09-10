@@ -36,6 +36,7 @@ import {
   FiArrowLeft,
   FiX,
   FiFileText,
+  FiVideo,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -113,6 +114,12 @@ const Navbar = ({ setSidebarOpen, presence }) => {
           icon: FiBriefcase,
           bgColor:
             "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30",
+        };
+      case "shoot_assigned":
+        return {
+          icon: FiVideo,
+          bgColor:
+            "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30",
         };
       case "task_assigned":
         return {
@@ -628,6 +635,13 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                             ) {
                               navigate(`/${user?.role}/eod-reports`);
                             } else if (
+                              n.type === "shoot_assigned" ||
+                              n.shoot ||
+                              (n.message &&
+                                n.message.toLowerCase().includes("shoot"))
+                            ) {
+                              navigate(`/${user?.role}/Shootcalendor`);
+                            } else if (
                               n.type === "client_assigned" ||
                               (n.message &&
                                 n.message.toLowerCase().includes("client:"))
@@ -697,7 +711,7 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                                 </span>
                                 <span className="text-[9px] text-slate-400 font-semibold">•</span>
                                 <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                                  {n.type === "task_assigned" ? "Assigner" : "Sender"}
+                                  {n.type === "task_assigned" || n.type === "shoot_assigned" ? "Assigner" : "Sender"}
                                 </span>
                               </div>
                             )}

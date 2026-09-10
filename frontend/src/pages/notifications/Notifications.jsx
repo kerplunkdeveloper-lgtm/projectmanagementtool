@@ -13,6 +13,7 @@ import {
   FiMail,
   FiUser,
   FiFileText,
+  FiVideo,
 } from "react-icons/fi";
 import {
   useGetNotificationsQuery,
@@ -87,6 +88,11 @@ const Notifications = () => {
         return {
           icon: FiCheckSquare,
           bgColor: "bg-blue-50 text-blue-600 border-blue-100",
+        };
+      case "shoot_assigned":
+        return {
+          icon: FiVideo,
+          bgColor: "bg-emerald-50 text-emerald-600 border-emerald-100",
         };
       case "task_completed":
         return {
@@ -224,6 +230,12 @@ const Notifications = () => {
                     ) {
                       navigate(`/${user?.role}/eod-reports`);
                     } else if (
+                      n.type === "shoot_assigned" ||
+                      n.shoot ||
+                      (n.message && n.message.toLowerCase().includes("shoot"))
+                    ) {
+                      navigate(`/${user?.role}/Shootcalendor`);
+                    } else if (
                       n.type === "client_assigned" ||
                       (n.message && n.message.toLowerCase().includes("client:"))
                     ) {
@@ -294,7 +306,7 @@ const Notifications = () => {
                           {n.sender.name}
                         </span>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          {n.type === "task_assigned" ? "Assigned task" : "Notification sent"}
+                          {n.type === "shoot_assigned" ? "Assigned Shoot" : n.type === "task_assigned" ? "Assigned task" : "Notification sent"}
                         </span>
                       </div>
                     )}

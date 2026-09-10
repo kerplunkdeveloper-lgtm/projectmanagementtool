@@ -14,15 +14,7 @@ const shootSchema = new mongoose.Schema({
   shootType: {
     type: String,
     required: true,
-    enum: [
-      'Food Shoot',
-      'Product Shoot',
-      'Fashion Shoot',
-      'Event Shoot',
-      'Video Shoot',
-      'Photo Shoot',
-      'Other'
-    ],
+    trim: true,
   },
   description: {
     type: String,
