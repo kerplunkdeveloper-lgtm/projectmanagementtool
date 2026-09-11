@@ -155,6 +155,7 @@ const socialAccountRoutes = require("./routes/socialAccountRoutes");
 const clientCallRoutes = require("./routes/clientCallRoutes");
 const shootRoutes = require("./routes/shoot.routes");
 const contentCalendarRoutes = require("./routes/contentCalendarRoutes");
+const calendarEventRoutes = require("./routes/calendarEventRoutes");
 
 
 
@@ -206,6 +207,7 @@ app.use('/api/social-accounts', socialAccountRoutes);
 app.use('/api/client-calls', clientCallRoutes);
 app.use('/api/shoot-calendar', shootRoutes);
 app.use('/api/content-calendar', contentCalendarRoutes);
+app.use('/api/calendar-events', calendarEventRoutes);
 
 
 

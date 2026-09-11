@@ -83,6 +83,9 @@ const AllCalendar = lazyWithRetry(
 const ContentCalcendor = lazyWithRetry(
   () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
 );
+const EventCalendar = lazyWithRetry(
+  () => import("../pages/calendar/EventCalendar.jsx"),
+);
 
 // Dictionary of route preloading functions for hover-intent preloading
 export const routePreloaders = {
@@ -104,6 +107,7 @@ export const routePreloaders = {
   workload: () => import("../pages/workload/Workload.jsx"),
   calendar: () => import("../pages/calendar/AllCalendar.jsx"),
   contentCalendar: () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
+  eventCalendar: () => import("../pages/calendar/EventCalendar.jsx"),
 };
 
 export const preloadRoute = (path) => {
@@ -134,6 +138,8 @@ export const preloadRoute = (path) => {
     routePreloaders.calendar?.();
   else if (p.endsWith("/content-calendar") || p.endsWith("/contentcalendor"))
     routePreloaders.contentCalendar?.();
+  else if (p.endsWith("/event-calendar"))
+    routePreloaders.eventCalendar?.();
   else routePreloaders.dashboard?.(); // Fallback for root paths like /admin, /team
 };
 
@@ -347,6 +353,7 @@ const AppRoutes = () => {
           <Route path="shootcalendor" element={<AllCalendar />} />
           <Route path="shoot-calendar" element={<AllCalendar />} />
           <Route path="content-calendar" element={<ContentCalcendor />} />
+          <Route path="event-calendar" element={<EventCalendar />} />
 
           <Route path="chat" element={<ChatPage />} />
           <Route path="client-calls" element={<ClientCalls />} />
@@ -370,6 +377,7 @@ const AppRoutes = () => {
           <Route path="shootcalendor" element={<AllCalendar />} />
           <Route path="shoot-calendar" element={<AllCalendar />} />
           <Route path="content-calendar" element={<ContentCalcendor />} />
+          <Route path="event-calendar" element={<EventCalendar />} />
 
           <Route
             path="social-accounts"
@@ -503,6 +511,7 @@ const AppRoutes = () => {
             }
           />
           <Route path="content-calendar" element={<ContentCalcendor />} />
+          <Route path="event-calendar" element={<EventCalendar />} />
 
           <Route
             path="social-accounts"
