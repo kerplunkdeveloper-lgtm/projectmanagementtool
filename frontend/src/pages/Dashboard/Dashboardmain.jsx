@@ -655,6 +655,24 @@ const Dashboardmain = () => {
   const { clients } = useSelector((state) => state.clients);
   const { users } = useSelector((state) => state.users);
 
+  // Shoot Calendar permission check
+  const userRole = (user?.role?.name || user?.role || "")
+    .toString()
+    .toLowerCase()
+    .trim();
+  const isSuperOrAdmin =
+    userRole === "admin" ||
+    userRole === "operationmanager" ||
+    userRole === "operation manager";
+  const shootPerms =
+    user?.permissions?.manage_shoots ||
+    user?.permissions?.shoot_calendar ||
+    {};
+  const isLegacyTrue =
+    user?.permissions?.manage_shoots === true ||
+    user?.permissions?.shoot_calendar === true;
+  const canReadShootCalendar = isSuperOrAdmin || isLegacyTrue || !!shootPerms.read;
+
   // Goals logic
   const { data: goals = [] } = useGetGoalsQuery();
   const [createGoal] = useCreateGoalMutation();
@@ -2019,10 +2037,12 @@ const Dashboardmain = () => {
         )}
       </div>
 
-      {/* ─── SHOOT CALENDAR OVERVIEW (Visible to ALL users with real-time sync & high-end UI/UX) ─── */}
-      <div className="w-full mt-4 mb-4">
-        <ShootCalendarOverview />
-      </div>
+      {/* ─── SHOOT CALENDAR OVERVIEW (Visible when user has Read access or is Admin / Operation Manager) ─── */}
+      {canReadShootCalendar && (
+        <div className="w-full mt-4 mb-4">
+          <ShootCalendarOverview />
+        </div>
+      )}
 
       {/* .................................................Dashboard Cards / Assigned Clients.............................. */}
       {(() => {

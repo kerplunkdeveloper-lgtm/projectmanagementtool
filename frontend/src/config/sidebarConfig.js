@@ -61,7 +61,7 @@ export const sidebarConfig = {
   team: [
     { name: "Home", path: "/team", icon: FiHome },
     { name: "Sticky Notes", path: "/team/stickynotes", icon: TbPencilHeart},
-    { name: "Shoot Calendar", path: "/team/Shootcalendor", icon: LuCalendarDays },
+    { name: "Shoot Calendar", path: "/team/Shootcalendor", icon: LuCalendarDays, permissionKey: "manage_shoots" },
     { name: "Content Calendar", path: "/team/content-calendar", icon: LuCalendarCheck },
     { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
     { name: "Client Calls", path: "/team/client-calls", icon: LuPhoneCall },

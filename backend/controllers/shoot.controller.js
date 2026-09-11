@@ -1,17 +1,27 @@
 const Shoot = require('../models/Shoot');
 const Notification = require('../models/Notification');
 
-// Helper to convert "hh:mm AM/PM" to comparable number (e.g. "09:00 AM" -> 900, "01:00 PM" -> 1300)
+// Helper to convert "hh:mm AM/PM" or "HH:mm" (24-hr) to comparable number (e.g. "09:00 AM" or "09:00" -> 900, "01:00 PM" or "13:00" -> 1300)
 const parseTime = (timeStr) => {
   if (!timeStr) return 0;
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) return 0;
-  let [ , hours, minutes, period ] = match;
-  hours = parseInt(hours, 10);
-  minutes = parseInt(minutes, 10);
-  if (period.toUpperCase() === 'PM' && hours < 12) hours += 12;
-  if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
-  return hours * 100 + minutes;
+  // 12-hour format with AM/PM
+  const match12 = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (match12) {
+    let [ , hours, minutes, period ] = match12;
+    let h = parseInt(hours, 10);
+    let m = parseInt(minutes, 10);
+    if (period.toUpperCase() === 'PM' && h < 12) h += 12;
+    if (period.toUpperCase() === 'AM' && h === 12) h = 0;
+    return h * 100 + m;
+  }
+  // 24-hour format (e.g. "09:00", "13:00")
+  const match24 = timeStr.match(/^(\d{1,2}):(\d{2})/);
+  if (match24) {
+    let h = parseInt(match24[1], 10);
+    let m = parseInt(match24[2], 10);
+    return h * 100 + m;
+  }
+  return 0;
 };
 
 // Helper to send real-time and DB notifications to assigned users for a shoot
@@ -79,6 +89,27 @@ const sendShootAssignmentNotifications = async (io, shoot, recipientsWithRole, s
 // @access  Private
 exports.createShoot = async (req, res) => {
   try {
+    const isSuperOrAdmin =
+      req.user &&
+      (req.user.role === 'admin' ||
+        req.user.role === 'operationmanager' ||
+        req.user.role === 'operation manager');
+
+    const hasWritePerm =
+      isSuperOrAdmin ||
+      req.user?.permissions?.manage_shoots?.write ||
+      req.user?.permissions?.shoot_calendar?.write ||
+      req.user?.permissions?.manage_shoots === true ||
+      req.user?.permissions?.shoot_calendar === true;
+
+    // Only Admin, Operations Manager, and users with write permission can schedule shoots
+    if (!hasWritePerm) {
+      return res.status(403).json({
+        success: false,
+        message: 'Permission denied: You do not have permission to schedule shoots',
+      });
+    }
+
     const { schedule } = req.body;
     
     // Validate end time > start time if schedule is provided
@@ -93,6 +124,12 @@ exports.createShoot = async (req, res) => {
 
     req.body.createdBy = req.user.id;
     req.body.status = 'Planned'; // Force default
+    if (!req.body.assignedTo) req.body.assignedTo = null;
+    if (!Array.isArray(req.body.shootTeam)) {
+      req.body.shootTeam = [];
+    } else {
+      req.body.shootTeam = req.body.shootTeam.filter(Boolean);
+    }
 
     const shoot = await Shoot.create(req.body);
     const populatedShoot = await Shoot.findById(shoot._id).populate('client', 'companyName');
@@ -148,13 +185,27 @@ exports.getShoots = async (req, res) => {
     if (shootType) query.shootType = shootType;
     if (client) query.client = client;
 
+    const isSuperOrAdmin =
+      req.user &&
+      (req.user.role === 'admin' ||
+        req.user.role === 'operationmanager' ||
+        req.user.role === 'operation manager');
+
+    const hasReadPerm =
+      isSuperOrAdmin ||
+      req.user?.permissions?.manage_shoots?.read ||
+      req.user?.permissions?.shoot_calendar?.read ||
+      req.user?.permissions?.manage_shoots === true ||
+      req.user?.permissions?.shoot_calendar === true;
+
     // Role-based visibility:
-    // Non-admin and non-operationmanager users only see shoots where they are:
+    // Admin, Operations Manager, and users with read permission see all shoots.
+    // Otherwise, users only see shoots where they are:
     // - Assigned To (Lead)
     // - In the Shoot Team
     // - Creator
-    if (req.user && req.user.role !== 'admin' && req.user.role !== 'operationmanager') {
-      const userId = req.user._id;
+    if (!hasReadPerm) {
+      const userId = req.user._id || req.user.id;
       query.$or = [
         { assignedTo: userId },
         { shootTeam: userId },
@@ -166,7 +217,7 @@ exports.getShoots = async (req, res) => {
       .populate('client', 'companyName color icon')
       .populate({
         path: 'assignedTo',
-        select: 'name role',
+        select: 'name role department',
         populate: {
           path: 'profile',
           select: 'profileImage'
@@ -174,7 +225,7 @@ exports.getShoots = async (req, res) => {
       })
       .populate({
         path: 'shootTeam',
-        select: 'name role',
+        select: 'name role department',
         populate: {
           path: 'profile',
           select: 'profileImage'
@@ -206,8 +257,8 @@ exports.getShoot = async (req, res) => {
   try {
     const shoot = await Shoot.findById(req.params.id)
       .populate('client', 'companyName color icon email phone address')
-      .populate('assignedTo', 'name email role')
-      .populate('shootTeam', 'name email role')
+      .populate('assignedTo', 'name email role department')
+      .populate('shootTeam', 'name email role department')
       .populate('createdBy', 'name email');
 
     if (!shoot) {
@@ -217,8 +268,21 @@ exports.getShoot = async (req, res) => {
       });
     }
 
+    const isSuperOrAdmin =
+      req.user &&
+      (req.user.role === 'admin' ||
+        req.user.role === 'operationmanager' ||
+        req.user.role === 'operation manager');
+
+    const hasReadPerm =
+      isSuperOrAdmin ||
+      req.user?.permissions?.manage_shoots?.read ||
+      req.user?.permissions?.shoot_calendar?.read ||
+      req.user?.permissions?.manage_shoots === true ||
+      req.user?.permissions?.shoot_calendar === true;
+
     // Role-based authorization for single shoot
-    if (req.user && req.user.role !== 'admin' && req.user.role !== 'operationmanager') {
+    if (!hasReadPerm) {
       const userId = (req.user._id || req.user.id).toString();
       const isAssigned = shoot.assignedTo && (shoot.assignedTo._id || shoot.assignedTo).toString() === userId;
       const inTeam = shoot.shootTeam && shoot.shootTeam.some(m => (m._id || m).toString() === userId);
@@ -265,6 +329,37 @@ exports.updateShoot = async (req, res) => {
       });
     }
 
+    // Role-based authorization for update:
+    // - Admin & Operation Manager can update all shoots.
+    // - Users with update permission can update all shoots.
+    // - Otherwise, team members can only update if they are Assigned Lead or Creator.
+    const isSuperOrAdmin =
+      req.user &&
+      (req.user.role === 'admin' ||
+        req.user.role === 'operationmanager' ||
+        req.user.role === 'operation manager');
+
+    const hasUpdatePerm =
+      isSuperOrAdmin ||
+      req.user?.permissions?.manage_shoots?.update ||
+      req.user?.permissions?.shoot_calendar?.update ||
+      req.user?.permissions?.manage_shoots === true ||
+      req.user?.permissions?.shoot_calendar === true;
+
+    const userId = (req.user._id || req.user.id).toString();
+
+    if (!hasUpdatePerm) {
+      const isAssignedLead = shoot.assignedTo && (shoot.assignedTo._id || shoot.assignedTo).toString() === userId;
+      const isCreator = shoot.createdBy && (shoot.createdBy._id || shoot.createdBy).toString() === userId;
+
+      if (!isAssignedLead && !isCreator) {
+        return res.status(403).json({
+          success: false,
+          message: 'Permission denied: You do not have permission to edit this shoot',
+        });
+      }
+    }
+
     // Only allow updating certain fields to avoid overwriting accidentally
     const { 
       client, shootTitle, shootType, description, schedule, status,
@@ -286,7 +381,12 @@ exports.updateShoot = async (req, res) => {
     if (contentUse !== undefined) updateData.contentUse = contentUse;
     if (weather !== undefined) updateData.weather = weather;
     if (transport !== undefined) updateData.transport = transport;
-    if (estimatedBudget !== undefined) updateData.estimatedBudget = estimatedBudget;
+
+    // Only Admin & Operation Manager can update estimatedBudget
+    if (isSuperOrAdmin && estimatedBudget !== undefined) {
+      updateData.estimatedBudget = estimatedBudget;
+    }
+
     if (clientContact !== undefined) updateData.clientContact = clientContact;
     if (shootSchedule !== undefined) updateData.shootSchedule = shootSchedule;
     if (checklist !== undefined) updateData.checklist = checklist;
@@ -378,18 +478,47 @@ exports.updateShootStatus = async (req, res) => {
       });
     }
 
-    const shoot = await Shoot.findByIdAndUpdate(
-      req.params.id,
-      { status, updatedBy: req.user.id },
-      { returnDocument: 'after', runValidators: true }
-    );
-
-    if (!shoot) {
+    const existingShoot = await Shoot.findById(req.params.id);
+    if (!existingShoot) {
       return res.status(404).json({
         success: false,
         message: 'Shoot not found',
       });
     }
+
+    const isSuperOrAdmin =
+      req.user &&
+      (req.user.role === 'admin' ||
+        req.user.role === 'operationmanager' ||
+        req.user.role === 'operation manager');
+
+    const hasUpdatePerm =
+      isSuperOrAdmin ||
+      req.user?.permissions?.manage_shoots?.update ||
+      req.user?.permissions?.shoot_calendar?.update ||
+      req.user?.permissions?.manage_shoots === true ||
+      req.user?.permissions?.shoot_calendar === true;
+
+    // Role-based authorization for status update
+    if (!hasUpdatePerm) {
+      const userId = (req.user._id || req.user.id).toString();
+      const isAssigned = existingShoot.assignedTo && (existingShoot.assignedTo._id || existingShoot.assignedTo).toString() === userId;
+      const inTeam = existingShoot.shootTeam && existingShoot.shootTeam.some(m => (m._id || m).toString() === userId);
+      const isCreator = existingShoot.createdBy && (existingShoot.createdBy._id || existingShoot.createdBy).toString() === userId;
+
+      if (!isAssigned && !inTeam && !isCreator) {
+        return res.status(403).json({
+          success: false,
+          message: 'Permission denied: You are not authorized to update status for this shoot',
+        });
+      }
+    }
+
+    const shoot = await Shoot.findByIdAndUpdate(
+      req.params.id,
+      { status, updatedBy: req.user.id },
+      { returnDocument: 'after', runValidators: true }
+    );
 
     res.status(200).json({
       success: true,
@@ -414,6 +543,27 @@ exports.updateShootStatus = async (req, res) => {
 // @access  Private
 exports.deleteShoot = async (req, res) => {
   try {
+    const isSuperOrAdmin =
+      req.user &&
+      (req.user.role === 'admin' ||
+        req.user.role === 'operationmanager' ||
+        req.user.role === 'operation manager');
+
+    const hasDeletePerm =
+      isSuperOrAdmin ||
+      req.user?.permissions?.manage_shoots?.delete ||
+      req.user?.permissions?.shoot_calendar?.delete ||
+      req.user?.permissions?.manage_shoots === true ||
+      req.user?.permissions?.shoot_calendar === true;
+
+    // Only Admin, Operations Manager, and users with delete permission can delete shoots
+    if (!hasDeletePerm) {
+      return res.status(403).json({
+        success: false,
+        message: 'Permission denied: You do not have permission to delete shoots',
+      });
+    }
+
     const shoot = await Shoot.findById(req.params.id);
 
     if (!shoot) {

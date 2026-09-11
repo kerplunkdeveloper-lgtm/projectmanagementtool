@@ -97,6 +97,24 @@ const ShootCalendarOverview = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedShootForModal, setSelectedShootForModal] = useState(null);
 
+  const userRole = (currentUser?.role?.name || currentUser?.role || "")
+    .toString()
+    .toLowerCase()
+    .trim();
+  const isSuperOrAdmin =
+    userRole === "admin" ||
+    userRole === "operationmanager" ||
+    userRole === "operation manager";
+
+  const shootPerms =
+    currentUser?.permissions?.manage_shoots ||
+    currentUser?.permissions?.shoot_calendar ||
+    {};
+  const isLegacyTrue =
+    currentUser?.permissions?.manage_shoots === true ||
+    currentUser?.permissions?.shoot_calendar === true;
+  const hasReadPerm = isSuperOrAdmin || isLegacyTrue || !!shootPerms.read;
+
   const fetchShoots = async () => {
     try {
       const { data } = await axiosInstance.get("/shoot-calendar");
@@ -109,11 +127,15 @@ const ShootCalendarOverview = () => {
   };
 
   useEffect(() => {
-    fetchShoots();
-  }, []);
+    if (hasReadPerm) {
+      fetchShoots();
+    }
+  }, [hasReadPerm]);
 
   // Real-time live update listener
   useEffect(() => {
+    if (!hasReadPerm) return;
+
     const baseUrl = import.meta.env.VITE_API_BASE_URL;
     const socketUrl = baseUrl
       ? baseUrl
@@ -137,34 +159,12 @@ const ShootCalendarOverview = () => {
     return () => {
       socket.disconnect();
     };
-  }, [currentUser]);
+  }, [currentUser, hasReadPerm]);
 
   // Filter shoots allowed for the user's role
   const allowedShoots = useMemo(() => {
-    const isSuperOrAdmin =
-      currentUser?.role === "admin" ||
-      currentUser?.role === "operationmanager";
-
-    const currentUserId = String(currentUser?._id || currentUser?.id || "");
-
-    return shoots.filter((shoot) => {
-      if (!isSuperOrAdmin && currentUserId) {
-        const creatorId = String(shoot.createdBy?._id || shoot.createdBy?.id || shoot.createdBy || "");
-        const assignedId = String(shoot.assignedTo?._id || shoot.assignedTo?.id || shoot.assignedTo || "");
-        const inTeam =
-          Array.isArray(shoot.shootTeam) &&
-          shoot.shootTeam.some((m) => {
-            const mId = String(m?._id || m?.id || m || "");
-            return mId === currentUserId;
-          });
-
-        if (creatorId !== currentUserId && assignedId !== currentUserId && !inTeam) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [shoots, currentUser]);
+    return shoots;
+  }, [shoots]);
 
   // Calculate high-level metrics
   const metrics = useMemo(() => {
@@ -260,8 +260,13 @@ const ShootCalendarOverview = () => {
   }, [allowedShoots, activeTab, searchQuery]);
 
   const canCreate =
-    currentUser?.role === "admin" ||
-    currentUser?.role === "operationmanager";
+    isSuperOrAdmin ||
+    isLegacyTrue ||
+    !!shootPerms.write;
+
+  if (!hasReadPerm) {
+    return null;
+  }
 
   return (
     <div className="w-full sidebar-bg rounded-2xl border border-slate-200 dark:border-[#223149] shadow-xs p-4 sm:p-6 transition-all">

@@ -30,6 +30,11 @@ const PERMISSION_MODULES = [
     desc: "Create, assign, and update tasks",
   },
   {
+    id: "manage_shoots",
+    label: "Shoot Calendar",
+    desc: "Schedule, manage, edit, and delete shoots",
+  },
+  {
     id: "view_reports",
     label: "View Reports",
     desc: "Access EOD reports and analytics",

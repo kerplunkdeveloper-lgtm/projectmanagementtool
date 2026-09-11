@@ -26,11 +26,15 @@ const ProtectedRoute = ({
   }
 
   // Strict permission check based only on current viewing user role
-  if (user.role !== "admin" && requiredPermission) {
+  if (user.role !== "admin" && user.role !== "operationmanager" && requiredPermission) {
     if (requiredPermission === "manage_clients") {
       return children;
     }
-    const perm = user.permissions?.[requiredPermission];
+    const perm =
+      requiredPermission === "manage_shoots"
+        ? user.permissions?.manage_shoots || user.permissions?.shoot_calendar
+        : user.permissions?.[requiredPermission];
+
     if (perm !== true && !perm?.read) {
       return <Navigate to={`/${user.role}`} />;
     }

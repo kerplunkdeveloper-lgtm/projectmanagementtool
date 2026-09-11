@@ -57,8 +57,8 @@ exports.protect = async (req, res, next) => {
 // Grant access to specific roles or users with appropriate permissions
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    // Admin always has full access
-    if (req.user.role === 'admin') {
+    // Admin & Operation Manager always have full access
+    if (req.user.role === 'admin' || req.user.role === 'operationmanager' || req.user.role === 'operation manager') {
       return next();
     }
 
@@ -90,6 +90,9 @@ exports.authorize = (...roles) => {
     } else if (url.includes('/eod-reports')) {
       const perm = permissions.view_reports;
       hasPermission = perm === true || perm?.read || perm?.write;
+    } else if (url.includes('/shoot-calendar') || url.includes('/shoots')) {
+      const perm = permissions.manage_shoots || permissions.shoot_calendar;
+      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete;
     }
 
     if (hasPermission) {

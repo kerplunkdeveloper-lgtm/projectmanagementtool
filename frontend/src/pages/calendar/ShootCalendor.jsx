@@ -110,21 +110,67 @@ const SHOOT_STATUSES = [
   "Cancelled",
 ];
 
-// Helper to parse time string like "09:00 AM" and apply to a date
+// Helper to convert any time string (12-hr AM/PM or 24-hr) to 24-hour format "HH:mm" for <input type="time" />
+const to24Hour = (timeStr) => {
+  if (!timeStr) return "09:00";
+  const match12 = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (match12) {
+    let [, hours, minutes, period] = match12;
+    let h = parseInt(hours, 10);
+    const m = String(minutes).padStart(2, "0");
+    if (period.toUpperCase() === "PM" && h < 12) h += 12;
+    if (period.toUpperCase() === "AM" && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${m}`;
+  }
+  const match24 = timeStr.match(/^(\d{1,2}):(\d{2})/);
+  if (match24) {
+    return `${String(match24[1]).padStart(2, "0")}:${match24[2]}`;
+  }
+  return "09:00";
+};
+
+// Helper to convert 24-hour "HH:mm" to 12-hour "hh:mm AM/PM" for storage & display
+const formatTimeTo12Hour = (timeStr) => {
+  if (!timeStr) return "";
+  const match12 = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (match12) return timeStr;
+  const match24 = timeStr.match(/^(\d{1,2}):(\d{2})/);
+  if (match24) {
+    let h = parseInt(match24[1], 10);
+    const m = String(match24[2]).padStart(2, "0");
+    const period = h >= 12 ? "PM" : "AM";
+    if (h > 12) h -= 12;
+    if (h === 0) h = 12;
+    return `${String(h).padStart(2, "0")}:${m} ${period}`;
+  }
+  return timeStr;
+};
+
+// Helper to parse time string (12-hr or 24-hr) and apply to a Date
 const parseDateTime = (dateStr, timeStr) => {
   if (!dateStr) return new Date();
   const date = new Date(dateStr);
   if (!timeStr) return date;
 
-  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if (!match) return date;
-  let [, hours, minutes, period] = match;
-  hours = parseInt(hours, 10);
-  minutes = parseInt(minutes, 10);
-  if (period.toUpperCase() === "PM" && hours < 12) hours += 12;
-  if (period.toUpperCase() === "AM" && hours === 12) hours = 0;
+  const match12 = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (match12) {
+    let [, hours, minutes, period] = match12;
+    let h = parseInt(hours, 10);
+    let m = parseInt(minutes, 10);
+    if (period.toUpperCase() === "PM" && h < 12) h += 12;
+    if (period.toUpperCase() === "AM" && h === 12) h = 0;
+    date.setHours(h, m, 0, 0);
+    return date;
+  }
 
-  date.setHours(hours, minutes, 0, 0);
+  const match24 = timeStr.match(/^(\d{1,2}):(\d{2})/);
+  if (match24) {
+    let h = parseInt(match24[1], 10);
+    let m = parseInt(match24[2], 10);
+    date.setHours(h, m, 0, 0);
+    return date;
+  }
+
   return date;
 };
 
@@ -138,7 +184,8 @@ const getStatusStyles = (status) => {
         dot: "bg-emerald-500",
         pill: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 font-semibold",
         borderLeft: "border-l-emerald-500",
-        cardBorder: "border-emerald-300/80 dark:border-emerald-500/35 hover:border-emerald-400 dark:hover:border-emerald-400/80 shadow-emerald-500/5",
+        cardBorder:
+          "border-emerald-300/80 dark:border-emerald-500/35 hover:border-emerald-400 dark:hover:border-emerald-400/80 shadow-emerald-500/5",
         cardBg: "bg-emerald-50/20 dark:bg-emerald-950/15",
         chipBg:
           "bg-emerald-50/90 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-500/30 shadow-xs",
@@ -150,7 +197,8 @@ const getStatusStyles = (status) => {
         dot: "bg-blue-500",
         pill: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30 font-semibold",
         borderLeft: "border-l-blue-500",
-        cardBorder: "border-blue-300/80 dark:border-blue-500/35 hover:border-blue-400 dark:hover:border-blue-400/80 shadow-blue-500/5",
+        cardBorder:
+          "border-blue-300/80 dark:border-blue-500/35 hover:border-blue-400 dark:hover:border-blue-400/80 shadow-blue-500/5",
         cardBg: "bg-blue-50/20 dark:bg-blue-950/15",
         chipBg:
           "bg-blue-50/90 dark:bg-blue-500/15 hover:bg-blue-100 dark:hover:bg-blue-500/25 text-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-500/30 shadow-xs",
@@ -162,7 +210,8 @@ const getStatusStyles = (status) => {
         dot: "bg-purple-500",
         pill: "bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30 font-semibold",
         borderLeft: "border-l-purple-500",
-        cardBorder: "border-purple-300/80 dark:border-purple-500/35 hover:border-purple-400 dark:hover:border-purple-400/80 shadow-purple-500/5",
+        cardBorder:
+          "border-purple-300/80 dark:border-purple-500/35 hover:border-purple-400 dark:hover:border-purple-400/80 shadow-purple-500/5",
         cardBg: "bg-purple-50/20 dark:bg-purple-950/15",
         chipBg:
           "bg-purple-50/90 dark:bg-purple-500/15 hover:bg-purple-100 dark:hover:bg-purple-500/25 text-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-500/30 shadow-xs",
@@ -174,7 +223,8 @@ const getStatusStyles = (status) => {
         dot: "bg-amber-500",
         pill: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30 font-semibold",
         borderLeft: "border-l-amber-500",
-        cardBorder: "border-amber-300/80 dark:border-amber-500/35 hover:border-amber-400 dark:hover:border-amber-400/80 shadow-amber-500/5",
+        cardBorder:
+          "border-amber-300/80 dark:border-amber-500/35 hover:border-amber-400 dark:hover:border-amber-400/80 shadow-amber-500/5",
         cardBg: "bg-amber-50/20 dark:bg-amber-950/15",
         chipBg:
           "bg-amber-50/90 dark:bg-amber-500/15 hover:bg-amber-100 dark:hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-500/30 shadow-xs",
@@ -186,7 +236,8 @@ const getStatusStyles = (status) => {
         dot: "bg-rose-500",
         pill: "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/30 font-semibold",
         borderLeft: "border-l-rose-500",
-        cardBorder: "border-rose-300/80 dark:border-rose-500/35 hover:border-rose-400 dark:hover:border-rose-400/80 shadow-rose-500/5",
+        cardBorder:
+          "border-rose-300/80 dark:border-rose-500/35 hover:border-rose-400 dark:hover:border-rose-400/80 shadow-rose-500/5",
         cardBg: "bg-rose-50/20 dark:bg-rose-950/15",
         chipBg:
           "bg-rose-50/90 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-500/30 shadow-xs",
@@ -198,7 +249,8 @@ const getStatusStyles = (status) => {
         dot: "bg-teal-500",
         pill: "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-500/30 font-semibold",
         borderLeft: "border-l-teal-500",
-        cardBorder: "border-teal-300/80 dark:border-teal-500/35 hover:border-teal-400 dark:hover:border-teal-400/80 shadow-teal-500/5",
+        cardBorder:
+          "border-teal-300/80 dark:border-teal-500/35 hover:border-teal-400 dark:hover:border-teal-400/80 shadow-teal-500/5",
         cardBg: "bg-teal-50/20 dark:bg-teal-950/15",
         chipBg:
           "bg-teal-50/90 dark:bg-teal-500/15 hover:bg-teal-100 dark:hover:bg-teal-500/25 text-teal-900 dark:text-teal-200 border-teal-200 dark:border-teal-500/30 shadow-xs",
@@ -210,7 +262,8 @@ const getStatusStyles = (status) => {
         dot: "bg-slate-400 dark:bg-slate-500",
         pill: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600",
         borderLeft: "border-l-slate-400 dark:border-l-slate-500",
-        cardBorder: "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
+        cardBorder:
+          "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
         cardBg: "bg-slate-100/40 dark:bg-slate-800/30",
         chipBg:
           "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-600",
@@ -222,7 +275,8 @@ const getStatusStyles = (status) => {
         dot: "bg-emerald-500",
         pill: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 font-semibold",
         borderLeft: "border-l-emerald-500",
-        cardBorder: "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
+        cardBorder:
+          "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
         cardBg: "bg-slate-50/20 dark:bg-slate-800/20",
         chipBg:
           "bg-emerald-50/90 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-500/30 shadow-xs",
@@ -355,10 +409,12 @@ const CustomToolbar = ({
   );
 };
 
-// Event component in month view - Full Overview Rich Card
+// Custom Event in month view - Full Overview Rich Card
 const CustomEvent = ({ event }) => {
   const { resource } = event;
   const statusStyle = getStatusStyles(resource.status);
+  const canEdit = resource.canEdit;
+  const canDelete = resource.canDelete;
 
   const startTime = resource.schedule?.startTime || "";
   const endTime = resource.schedule?.endTime || "";
@@ -419,7 +475,9 @@ const CustomEvent = ({ event }) => {
       <div className="flex flex-col gap-0.5 pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[10px]">
         <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
           <FiUser size={11} className="text-emerald-500 shrink-0" />
-          <span className="font-bold text-slate-400 dark:text-slate-500">Lead:</span>
+          <span className="font-bold text-slate-400 dark:text-slate-500">
+            Lead:
+          </span>
           <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
             {leadName}
           </span>
@@ -428,7 +486,9 @@ const CustomEvent = ({ event }) => {
         {teamNames && (
           <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
             <FiUsers size={11} className="text-blue-500 shrink-0" />
-            <span className="font-bold text-slate-400 dark:text-slate-500">Crew:</span>
+            <span className="font-bold text-slate-400 dark:text-slate-500">
+              Crew:
+            </span>
             <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
               {teamNames}
             </span>
@@ -447,7 +507,7 @@ const CustomEvent = ({ event }) => {
           {resource.status}
         </span>
 
-        {/* View, Edit, Delete icon buttons */}
+        {/* View, Edit, Delete icon buttons based on roles & permissions */}
         <div className="flex items-center gap-1 bg-slate-50 dark:bg-[#141d2e] px-1.5 py-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
           <button
             type="button"
@@ -456,37 +516,42 @@ const CustomEvent = ({ event }) => {
               resource.onView && resource.onView();
             }}
             className="p-1 rounded text-blue-600 dark:text-blue-400 hover:bg-blue-100/60 dark:hover:bg-blue-950/60 transition-colors cursor-pointer"
-            title="View Details"
+            title="View Details (Read)"
           >
             <FiEye size={12} />
           </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              resource.onEdit && resource.onEdit();
-            }}
-            className="p-1 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/60 transition-colors cursor-pointer"
-            title="Edit Shoot"
-          >
-            <FiEdit2 size={12} />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              resource.onDelete && resource.onDelete();
-            }}
-            className="p-1 rounded text-rose-600 dark:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
-            title="Delete Shoot"
-          >
-            <FiTrash2 size={12} />
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resource.onEdit && resource.onEdit();
+              }}
+              className="p-1 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/60 transition-colors cursor-pointer"
+              title="Edit Shoot (Update)"
+            >
+              <FiEdit2 size={12} />
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resource.onDelete && resource.onDelete();
+              }}
+              className="p-1 rounded text-rose-600 dark:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
+              title="Delete Shoot (Delete)"
+            >
+              <FiTrash2 size={12} />
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 };
+
 // Rich Shoot List View Component for 'list' view
 const ShootListView = ({
   shoots,
@@ -496,6 +561,9 @@ const ShootListView = ({
   onAddNew,
   hasActiveFilters,
   onResetFilters,
+  canCreate = false,
+  canEditShoot = () => false,
+  canDeleteShoot = () => false,
 }) => {
   if (shoots.length === 0) {
     return (
@@ -520,12 +588,14 @@ const ShootListView = ({
               Clear Filters
             </button>
           )}
-          <button
-            onClick={() => onAddNew()}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl theme-bg-accent text-white shadow-md hover:opacity-95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <FiPlus size={16} /> Schedule Shoot
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => onAddNew()}
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl theme-bg-accent text-white shadow-md hover:opacity-95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <FiPlus size={16} /> Schedule Shoot
+            </button>
+          )}
         </div>
       </div>
     );
@@ -560,6 +630,8 @@ const ShootListView = ({
             const formattedDate = shoot.schedule?.shootDate
               ? format(new Date(shoot.schedule.shootDate), "EEE, MMM d, yyyy")
               : "Date TBD";
+            const canEdit = canEditShoot(shoot);
+            const canDelete = canDeleteShoot(shoot);
 
             return (
               <tr
@@ -580,7 +652,8 @@ const ShootListView = ({
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                         <FiClock size={10} />
                         {shoot.schedule?.startTime || "Time TBD"}
-                        {shoot.schedule?.endTime && ` - ${shoot.schedule.endTime}`}
+                        {shoot.schedule?.endTime &&
+                          ` - ${shoot.schedule.endTime}`}
                       </p>
                     </div>
                   </div>
@@ -592,7 +665,10 @@ const ShootListView = ({
                     {shoot.shootTitle}
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                    Client: <span className="font-semibold text-slate-700 dark:text-slate-300">{shoot.client?.companyName || "Unknown"}</span>
+                    Client:{" "}
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      {shoot.client?.companyName || "Unknown"}
+                    </span>
                   </p>
                 </td>
 
@@ -620,7 +696,9 @@ const ShootListView = ({
                 <td className="py-3.5 px-4 whitespace-nowrap">
                   <div className="flex items-center gap-1.5">
                     <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold flex items-center justify-center text-[10px]">
-                      {shoot.assignedTo?.name ? shoot.assignedTo.name.charAt(0).toUpperCase() : "U"}
+                      {shoot.assignedTo?.name
+                        ? shoot.assignedTo.name.charAt(0).toUpperCase()
+                        : "U"}
                     </div>
                     <div>
                       <span className="font-medium text-slate-800 dark:text-slate-200 block">
@@ -628,7 +706,8 @@ const ShootListView = ({
                       </span>
                       {shoot.shootTeam && shoot.shootTeam.length > 0 && (
                         <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                          +{shoot.shootTeam.length} team {shoot.shootTeam.length === 1 ? "member" : "members"}
+                          +{shoot.shootTeam.length} team{" "}
+                          {shoot.shootTeam.length === 1 ? "member" : "members"}
                         </span>
                       )}
                     </div>
@@ -642,7 +721,9 @@ const ShootListView = ({
                       ₹{shoot.estimatedBudget}
                     </span>
                   ) : (
-                    <span className="text-slate-400 dark:text-slate-500">-</span>
+                    <span className="text-slate-400 dark:text-slate-500">
+                      -
+                    </span>
                   )}
                 </td>
 
@@ -651,7 +732,9 @@ const ShootListView = ({
                   <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${statusStyle.badgeBg}`}
                   >
-                    <div className={`w-2 h-2 rounded-full ${statusStyle.dot}`} />
+                    <div
+                      className={`w-2 h-2 rounded-full ${statusStyle.dot}`}
+                    />
                     {shoot.status}
                   </span>
                 </td>
@@ -665,24 +748,28 @@ const ShootListView = ({
                     <button
                       onClick={() => onView(shoot)}
                       className="p-1.5 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="View Details"
+                      title="View Details (Read)"
                     >
                       <FiEye size={15} />
                     </button>
-                    <button
-                      onClick={() => onEdit(shoot)}
-                      className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="Edit Shoot"
-                    >
-                      <FiEdit2 size={15} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(shoot)}
-                      className="p-1.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="Delete Shoot"
-                    >
-                      <FiTrash2 size={15} />
-                    </button>
+                    {canEdit && (
+                      <button
+                        onClick={() => onEdit(shoot)}
+                        className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        title="Edit Shoot (Update)"
+                      >
+                        <FiEdit2 size={15} />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => onDelete(shoot)}
+                        className="p-1.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        title="Delete Shoot (Delete)"
+                      >
+                        <FiTrash2 size={15} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -695,7 +782,7 @@ const ShootListView = ({
 };
 
 // Custom Month Date Header Component with clean day number and hover "+ Add"
-const CustomMonthDateHeader = ({ date, label, onAddForDate }) => {
+const CustomMonthDateHeader = ({ date, label, onAddForDate, canCreate }) => {
   const isToday = isSameDay(date, new Date());
   return (
     <div className="flex items-center justify-between px-2 py-1 group/header">
@@ -708,22 +795,22 @@ const CustomMonthDateHeader = ({ date, label, onAddForDate }) => {
       >
         {label}
       </span>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onAddForDate && onAddForDate(date);
-        }}
-        className="opacity-0 group-hover/header:opacity-100 text-slate-400 dark:text-slate-400 hover:theme-text-accent hover:theme-bg-accent-subtle p-1 rounded transition-all cursor-pointer"
-        title="Add shoot for this date"
-      >
-        <FiPlus size={12} />
-      </button>
+      {canCreate && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddForDate && onAddForDate(date);
+          }}
+          className="opacity-0 group-hover/header:opacity-100 text-slate-400 dark:text-slate-400 hover:theme-text-accent hover:theme-bg-accent-subtle p-1 rounded transition-all cursor-pointer"
+          title="Add shoot for this date (Write)"
+        >
+          <FiPlus size={12} />
+        </button>
+      )}
     </div>
   );
 };
-
-
 
 const ShootCalendor = () => {
   const currentUser = useSelector((state) => state.auth?.user);
@@ -762,8 +849,8 @@ const ShootCalendor = () => {
     shootType: "Food Shoot",
     description: "",
     shootDate: "",
-    startTime: "09:00 AM",
-    endTime: "01:00 PM",
+    startTime: "09:00",
+    endTime: "13:00",
     status: "Planned",
     location: "",
     assignedTo: "",
@@ -794,8 +881,8 @@ const ShootCalendor = () => {
         try {
           const geoRes = await fetch(
             `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
-              searchLoc.trim()
-            )}&count=1&language=en&format=json`
+              searchLoc.trim(),
+            )}&count=1&language=en&format=json`,
           );
           const geoData = await geoRes.json();
           if (geoData.results && geoData.results.length > 0) {
@@ -822,18 +909,22 @@ const ShootCalendor = () => {
       }
 
       const weatherRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=auto`,
       );
       const weatherData = await weatherRes.json();
 
       if (weatherData && weatherData.current) {
-        const { temperature_2m, relative_humidity_2m, weather_code, wind_speed_10m } =
-          weatherData.current;
+        const {
+          temperature_2m,
+          relative_humidity_2m,
+          weather_code,
+          wind_speed_10m,
+        } = weatherData.current;
         const info = getWeatherCodeInfo(weather_code);
         const weatherString = `${info.emoji} ${Math.round(
-          temperature_2m
+          temperature_2m,
         )}°C ${info.label} (${locName} - Hum: ${relative_humidity_2m}%, Wind: ${Math.round(
-          wind_speed_10m
+          wind_speed_10m,
         )} km/h)`;
 
         setLiveWeather({
@@ -850,11 +941,15 @@ const ShootCalendor = () => {
           ...prev,
           weather: weatherString,
         }));
-        toast.success(`Live weather: ${info.emoji} ${Math.round(temperature_2m)}°C ${info.label}`);
+        toast.success(
+          `Live weather: ${info.emoji} ${Math.round(temperature_2m)}°C ${info.label}`,
+        );
       }
     } catch (err) {
       console.error("Failed to fetch live weather", err);
-      toast.error("Could not fetch real-time weather. Please check connection.");
+      toast.error(
+        "Could not fetch real-time weather. Please check connection.",
+      );
     } finally {
       setIsFetchingWeather(false);
     }
@@ -925,6 +1020,85 @@ const ShootCalendor = () => {
     }
   };
 
+  // Helper to extract id safely from object or string
+  const getEntityId = (entity) => {
+    if (!entity) return "";
+    if (typeof entity === "object") {
+      return String(entity._id || entity.id || "");
+    }
+    return String(entity);
+  };
+
+  const currentUserId = String(currentUser?._id || currentUser?.id || "");
+  const userRole = (currentUser?.role?.name || currentUser?.role || "")
+    .toString()
+    .toLowerCase()
+    .trim();
+
+  // Roles Definition:
+  // admin: Full Access (Read All, Write/Create, Update All, Delete All)
+  // operationmanager: Full Access (Read All, Write/Create, Update All, Delete All)
+  // team: Role-restricted Access:
+  //   - Read: View shoots where assigned as Lead, in shootTeam, or Creator
+  //   - Write/Create: Restricted to Admin and Operations Manager
+  //   - Update/Edit: Assigned Lead or Creator can update shoot details
+  //   - Delete: Restricted to Admin and Operations Manager
+  const isSuperOrAdmin =
+    userRole === "admin" ||
+    userRole === "operationmanager" ||
+    userRole === "operation manager";
+
+  // Granular permissions from User Permissions modal
+  const shootPerms =
+    currentUser?.permissions?.manage_shoots ||
+    currentUser?.permissions?.shoot_calendar;
+
+  const hasFullShootsPerm =
+    isSuperOrAdmin ||
+    currentUser?.permissions?.manage_shoots === true ||
+    currentUser?.permissions?.shoot_calendar === true;
+
+  const hasReadPerm =
+    hasFullShootsPerm ||
+    Boolean(shootPerms?.read) ||
+    Boolean(shootPerms?.write) ||
+    Boolean(shootPerms?.update) ||
+    Boolean(shootPerms?.delete);
+
+  const hasWritePerm =
+    hasFullShootsPerm || Boolean(shootPerms?.write);
+
+  const hasUpdatePerm =
+    hasFullShootsPerm || Boolean(shootPerms?.update);
+
+  const hasDeletePerm =
+    hasFullShootsPerm || Boolean(shootPerms?.delete);
+
+  // Permissions
+  const canCreate = hasWritePerm;
+
+  const canEditShoot = (shoot) => {
+    if (!shoot) return false;
+    return hasUpdatePerm;
+  };
+
+  const canDeleteShoot = (shoot) => {
+    if (!shoot) return false;
+    return hasDeletePerm;
+  };
+
+  const canReadShoot = (shoot) => {
+    if (!shoot) return false;
+    if (hasReadPerm) return true;
+    if (!currentUserId) return false;
+    const isCreator = getEntityId(shoot.createdBy) === currentUserId;
+    const isAssigned = getEntityId(shoot.assignedTo) === currentUserId;
+    const inTeam =
+      Array.isArray(shoot.shootTeam) &&
+      shoot.shootTeam.some((member) => getEntityId(member) === currentUserId);
+    return isCreator || isAssigned || inTeam;
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, selectedOptions } = e.target;
     if (type === "select-multiple") {
@@ -937,9 +1111,17 @@ const ShootCalendor = () => {
 
   const openModal = (shoot = null, prefilledDate = null) => {
     if (shoot) {
+      if (!canEditShoot(shoot)) {
+        toast.error(
+          "Permission denied: You do not have permission to edit this shoot",
+        );
+        return;
+      }
       setSelectedShoot(shoot);
       setIsCustomShootType(
-        shoot.shootType && !SHOOT_TYPES.includes(shoot.shootType) ? true : false
+        shoot.shootType && !SHOOT_TYPES.includes(shoot.shootType)
+          ? true
+          : false,
       );
       setFormData({
         client: shoot.client?._id || shoot.client || "",
@@ -949,8 +1131,8 @@ const ShootCalendor = () => {
         shootDate: shoot.schedule?.shootDate
           ? new Date(shoot.schedule.shootDate).toISOString().split("T")[0]
           : "",
-        startTime: shoot.schedule?.startTime || "09:00 AM",
-        endTime: shoot.schedule?.endTime || "01:00 PM",
+        startTime: to24Hour(shoot.schedule?.startTime || "09:00"),
+        endTime: to24Hour(shoot.schedule?.endTime || "13:00"),
         status: shoot.status || "Planned",
         location: shoot.location || "",
         assignedTo: shoot.assignedTo?._id || shoot.assignedTo || "",
@@ -972,6 +1154,12 @@ const ShootCalendor = () => {
         specialInstructions: shoot.specialInstructions || "",
       });
     } else {
+      if (!canCreate) {
+        toast.error(
+          "Permission denied: You do not have permission to schedule shoots",
+        );
+        return;
+      }
       setSelectedShoot(null);
       setIsCustomShootType(false);
       const defaultDateStr = prefilledDate
@@ -984,8 +1172,8 @@ const ShootCalendor = () => {
         shootType: "Food Shoot",
         description: "",
         shootDate: defaultDateStr,
-        startTime: "09:00 AM",
-        endTime: "01:00 PM",
+        startTime: "09:00",
+        endTime: "13:00",
         status: "Planned",
         location: "",
         assignedTo: "",
@@ -1013,40 +1201,83 @@ const ShootCalendor = () => {
   };
 
   const handleSelectSlot = ({ start }) => {
+    if (!canCreate) {
+      toast.error(
+        "Permission denied: You do not have permission to schedule shoots",
+      );
+      return;
+    }
     openModal(null, start);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (selectedShoot && !canEditShoot(selectedShoot)) {
+      toast.error(
+        "Permission denied: You do not have permission to edit this shoot",
+      );
+      return;
+    }
+    if (!selectedShoot && !canCreate) {
+      toast.error(
+        "Permission denied: You do not have permission to schedule shoots",
+      );
+      return;
+    }
+
+    if (!formData.client) {
+      toast.error("Please select a client for this shoot");
+      return;
+    }
+
+    if (!formData.shootTitle || !formData.shootTitle.trim()) {
+      toast.error("Please enter a shoot title");
+      return;
+    }
+
+    if (!formData.shootDate) {
+      toast.error("Please select a shoot date");
+      return;
+    }
+
     setLoading(true);
+
+    const formattedStartTime =
+      formatTimeTo12Hour(formData.startTime) || "09:00 AM";
+    const formattedEndTime =
+      formatTimeTo12Hour(formData.endTime) || "01:00 PM";
 
     const payload = {
       client: formData.client,
-      shootTitle: formData.shootTitle,
-      shootType: formData.shootType,
-      description: formData.description,
+      shootTitle: formData.shootTitle.trim(),
+      shootType: formData.shootType || "Food Shoot",
+      description: formData.description || "",
       schedule: {
         shootDate: formData.shootDate,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
+        startTime: formattedStartTime,
+        endTime: formattedEndTime,
       },
-      status: formData.status,
-      location: formData.location,
-      assignedTo: formData.assignedTo,
-      shootTeam: formData.shootTeam,
-      purpose: formData.purpose,
-      contentUse: formData.contentUse,
-      weather: formData.weather,
-      transport: formData.transport,
-      estimatedBudget: formData.estimatedBudget,
+      status: formData.status || "Planned",
+      location: formData.location || "",
+      assignedTo: formData.assignedTo ? formData.assignedTo : null,
+      shootTeam: Array.isArray(formData.shootTeam)
+        ? formData.shootTeam.filter(Boolean)
+        : [],
+      purpose: formData.purpose || "",
+      contentUse: formData.contentUse || "",
+      weather: formData.weather || "",
+      transport: formData.transport || "",
+      estimatedBudget: isSuperOrAdmin
+        ? (formData.estimatedBudget !== "" && formData.estimatedBudget !== undefined ? Number(formData.estimatedBudget) : undefined)
+        : selectedShoot?.estimatedBudget,
       clientContact: {
-        name: formData.clientContactName,
-        phone: formData.clientContactPhone,
+        name: formData.clientContactName || "",
+        phone: formData.clientContactPhone || "",
       },
-      shootSchedule: formData.shootSchedule.filter((s) => s.time || s.task),
-      checklist: formData.checklist.filter((c) => c.task),
-      notes: formData.notes,
-      specialInstructions: formData.specialInstructions,
+      shootSchedule: (formData.shootSchedule || []).filter((s) => s.time || s.task),
+      checklist: (formData.checklist || []).filter((c) => c.task),
+      notes: formData.notes || "",
+      specialInstructions: formData.specialInstructions || "",
       createdBy: currentUser?._id || currentUser?.id,
     };
 
@@ -1073,6 +1304,12 @@ const ShootCalendor = () => {
 
   const handleDelete = async () => {
     if (!selectedShoot) return;
+    if (!canDeleteShoot(selectedShoot)) {
+      toast.error(
+        "Permission denied: You do not have permission to delete shoots",
+      );
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this shoot?")) return;
 
     try {
@@ -1081,12 +1318,18 @@ const ShootCalendor = () => {
       fetchShoots();
       closeModal();
     } catch (error) {
-      toast.error("Failed to delete shoot");
+      toast.error(error.response?.data?.message || "Failed to delete shoot");
       console.error(error);
     }
   };
 
   const handleDeleteShoot = async (shoot) => {
+    if (!canDeleteShoot(shoot)) {
+      toast.error(
+        "Permission denied: You do not have permission to delete shoots",
+      );
+      return;
+    }
     if (!window.confirm("Are you sure you want to delete this shoot?")) return;
 
     try {
@@ -1094,7 +1337,7 @@ const ShootCalendor = () => {
       toast.success("Shoot deleted");
       fetchShoots();
     } catch (error) {
-      toast.error("Failed to delete shoot");
+      toast.error(error.response?.data?.message || "Failed to delete shoot");
       console.error(error);
     }
   };
@@ -1109,37 +1352,10 @@ const ShootCalendor = () => {
     setViewShoot(null);
   };
 
-  // Helper to extract id safely from object or string
-  const getEntityId = (entity) => {
-    if (!entity) return "";
-    if (typeof entity === "object") {
-      return String(entity._id || entity.id || "");
-    }
-    return String(entity);
-  };
-
-  const currentUserId = String(currentUser?._id || currentUser?.id || "");
-  const isSuperOrAdmin =
-    currentUser?.role === "admin" ||
-    currentUser?.role === "operationmanager";
-
   // Shoots allowed for current user role:
   // Admins & Operation Managers see all shoots.
   // Team members see shoots where they are Assigned To (Lead), in the Shoot Team, or Creator.
-  const userAllowedShoots = shoots.filter((shoot) => {
-    if (!isSuperOrAdmin && currentUserId) {
-      const isCreator = getEntityId(shoot.createdBy) === currentUserId;
-      const isAssigned = getEntityId(shoot.assignedTo) === currentUserId;
-      const inTeam =
-        Array.isArray(shoot.shootTeam) &&
-        shoot.shootTeam.some((member) => getEntityId(member) === currentUserId);
-
-      if (!isCreator && !isAssigned && !inTeam) {
-        return false;
-      }
-    }
-    return true;
-  });
+  const userAllowedShoots = shoots.filter((shoot) => canReadShoot(shoot));
 
   // Filter shoots based on client, status, shoot type, and search query
   const filteredShoots = userAllowedShoots.filter((shoot) => {
@@ -1158,7 +1374,10 @@ const ShootCalendor = () => {
     }
 
     // Shoot Type filter
-    if (selectedShootTypeFilter && shoot.shootType !== selectedShootTypeFilter) {
+    if (
+      selectedShootTypeFilter &&
+      shoot.shootType !== selectedShootTypeFilter
+    ) {
       return false;
     }
 
@@ -1175,9 +1394,16 @@ const ShootCalendor = () => {
         shoot.shootTeam.some((m) =>
           (m?.name || (typeof m === "string" ? m : ""))
             .toLowerCase()
-            .includes(q)
+            .includes(q),
         );
-      if (!titleMatch && !clientMatch && !locationMatch && !typeMatch && !leadMatch && !teamMatch) {
+      if (
+        !titleMatch &&
+        !clientMatch &&
+        !locationMatch &&
+        !typeMatch &&
+        !leadMatch &&
+        !teamMatch
+      ) {
         return false;
       }
     }
@@ -1185,7 +1411,7 @@ const ShootCalendor = () => {
     return true;
   });
 
-  // Transform data for react-big-calendar
+  // Transform data for react-big-calendar with attached permissions
   const events = filteredShoots.map((shoot) => {
     const dateStr = shoot.schedule?.shootDate
       ? new Date(shoot.schedule.shootDate).toISOString().split("T")[0]
@@ -1199,6 +1425,9 @@ const ShootCalendor = () => {
       end = parseDateTime(dateStr, shoot.schedule?.endTime);
     }
 
+    const canEdit = canEditShoot(shoot);
+    const canDelete = canDeleteShoot(shoot);
+
     return {
       id: shoot._id,
       title: shoot.shootTitle,
@@ -1207,6 +1436,8 @@ const ShootCalendor = () => {
       allDay: currentView === "month",
       resource: {
         ...shoot,
+        canEdit,
+        canDelete,
         onEdit: () => openModal(shoot),
         onDelete: () => handleDeleteShoot(shoot),
         onView: () => openViewOffcanvas(shoot),
@@ -1244,11 +1475,15 @@ const ShootCalendor = () => {
       statusKey: "",
       subtitle: "All recorded",
       icon: <FiCalendar size={18} />,
-      gradientLight: "from-indigo-500/10 via-purple-500/5 to-white/95 border-indigo-200/80 hover:border-indigo-400/80",
-      gradientDark: "dark:from-indigo-950/45 dark:via-purple-950/25 dark:to-[#0c1322] dark:border-indigo-500/30 dark:hover:border-indigo-400/60",
+      gradientLight:
+        "from-indigo-500/10 via-purple-500/5 to-white/95 border-indigo-200/80 hover:border-indigo-400/80",
+      gradientDark:
+        "dark:from-indigo-950/45 dark:via-purple-950/25 dark:to-[#0c1322] dark:border-indigo-500/30 dark:hover:border-indigo-400/60",
       topHighlight: "before:via-indigo-400/70",
-      iconContainer: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-      badgeClass: "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-500/30",
+      iconContainer:
+        "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+      badgeClass:
+        "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-500/30",
       glowHover: "hover:shadow-lg hover:shadow-indigo-500/10",
       activeRing: "ring-2 ring-indigo-500/90 shadow-md shadow-indigo-500/15",
     },
@@ -1258,11 +1493,15 @@ const ShootCalendor = () => {
       statusKey: "Confirmed",
       subtitle: getPercentage(getCount("Confirmed")),
       icon: <FiCheckCircle size={18} />,
-      gradientLight: "from-emerald-500/10 via-teal-500/5 to-white/95 border-emerald-200/80 hover:border-emerald-400/80",
-      gradientDark: "dark:from-emerald-950/45 dark:via-teal-950/25 dark:to-[#0c1322] dark:border-emerald-500/30 dark:hover:border-emerald-400/60",
+      gradientLight:
+        "from-emerald-500/10 via-teal-500/5 to-white/95 border-emerald-200/80 hover:border-emerald-400/80",
+      gradientDark:
+        "dark:from-emerald-950/45 dark:via-teal-950/25 dark:to-[#0c1322] dark:border-emerald-500/30 dark:hover:border-emerald-400/60",
       topHighlight: "before:via-emerald-400/70",
-      iconContainer: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-      badgeClass: "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-500/30",
+      iconContainer:
+        "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      badgeClass:
+        "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-500/30",
       glowHover: "hover:shadow-lg hover:shadow-emerald-500/10",
       activeRing: "ring-2 ring-emerald-500/90 shadow-md shadow-emerald-500/15",
     },
@@ -1272,11 +1511,15 @@ const ShootCalendor = () => {
       statusKey: "In Progress",
       subtitle: getPercentage(getCount("In Progress")),
       icon: <FiClock size={18} />,
-      gradientLight: "from-sky-500/10 via-blue-500/5 to-white/95 border-sky-200/80 hover:border-sky-400/80",
-      gradientDark: "dark:from-sky-950/45 dark:via-blue-950/25 dark:to-[#0c1322] dark:border-sky-500/30 dark:hover:border-sky-400/60",
+      gradientLight:
+        "from-sky-500/10 via-blue-500/5 to-white/95 border-sky-200/80 hover:border-sky-400/80",
+      gradientDark:
+        "dark:from-sky-950/45 dark:via-blue-950/25 dark:to-[#0c1322] dark:border-sky-500/30 dark:hover:border-sky-400/60",
       topHighlight: "before:via-sky-400/70",
-      iconContainer: "bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/20",
-      badgeClass: "bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-200/70 dark:border-sky-500/30",
+      iconContainer:
+        "bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/20",
+      badgeClass:
+        "bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-200/70 dark:border-sky-500/30",
       glowHover: "hover:shadow-lg hover:shadow-sky-500/10",
       activeRing: "ring-2 ring-sky-500/90 shadow-md shadow-sky-500/15",
     },
@@ -1286,11 +1529,15 @@ const ShootCalendor = () => {
       statusKey: "Planned",
       subtitle: getPercentage(getCount("Planned")),
       icon: <FiClipboard size={18} />,
-      gradientLight: "from-purple-500/10 via-fuchsia-500/5 to-white/95 border-purple-200/80 hover:border-purple-400/80",
-      gradientDark: "dark:from-purple-950/45 dark:via-fuchsia-950/25 dark:to-[#0c1322] dark:border-purple-500/30 dark:hover:border-purple-400/60",
+      gradientLight:
+        "from-purple-500/10 via-fuchsia-500/5 to-white/95 border-purple-200/80 hover:border-purple-400/80",
+      gradientDark:
+        "dark:from-purple-950/45 dark:via-fuchsia-950/25 dark:to-[#0c1322] dark:border-purple-500/30 dark:hover:border-purple-400/60",
       topHighlight: "before:via-purple-400/70",
-      iconContainer: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/20",
-      badgeClass: "bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200/70 dark:border-purple-500/30",
+      iconContainer:
+        "bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/20",
+      badgeClass:
+        "bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200/70 dark:border-purple-500/30",
       glowHover: "hover:shadow-lg hover:shadow-purple-500/10",
       activeRing: "ring-2 ring-purple-500/90 shadow-md shadow-purple-500/15",
     },
@@ -1300,11 +1547,15 @@ const ShootCalendor = () => {
       statusKey: "Completed",
       subtitle: getPercentage(getCount("Completed")),
       icon: <FiCheckSquare size={18} />,
-      gradientLight: "from-teal-500/10 via-emerald-500/5 to-white/95 border-teal-200/80 hover:border-teal-400/80",
-      gradientDark: "dark:from-teal-950/45 dark:via-emerald-950/25 dark:to-[#0c1322] dark:border-teal-500/30 dark:hover:border-teal-400/60",
+      gradientLight:
+        "from-teal-500/10 via-emerald-500/5 to-white/95 border-teal-200/80 hover:border-teal-400/80",
+      gradientDark:
+        "dark:from-teal-950/45 dark:via-emerald-950/25 dark:to-[#0c1322] dark:border-teal-500/30 dark:hover:border-teal-400/60",
       topHighlight: "before:via-teal-400/70",
-      iconContainer: "bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/20",
-      badgeClass: "bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-200/70 dark:border-teal-500/30",
+      iconContainer:
+        "bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/20",
+      badgeClass:
+        "bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-200/70 dark:border-teal-500/30",
       glowHover: "hover:shadow-lg hover:shadow-teal-500/10",
       activeRing: "ring-2 ring-teal-500/90 shadow-md shadow-teal-500/15",
     },
@@ -1314,11 +1565,15 @@ const ShootCalendor = () => {
       statusKey: "Pending Approval",
       subtitle: getPercentage(getCount("Pending Approval")),
       icon: <FiAlertCircle size={18} />,
-      gradientLight: "from-amber-500/10 via-orange-500/5 to-white/95 border-amber-200/80 hover:border-amber-400/80",
-      gradientDark: "dark:from-amber-950/45 dark:via-orange-950/25 dark:to-[#0c1322] dark:border-amber-500/30 dark:hover:border-amber-400/60",
+      gradientLight:
+        "from-amber-500/10 via-orange-500/5 to-white/95 border-amber-200/80 hover:border-amber-400/80",
+      gradientDark:
+        "dark:from-amber-950/45 dark:via-orange-950/25 dark:to-[#0c1322] dark:border-amber-500/30 dark:hover:border-amber-400/60",
       topHighlight: "before:via-amber-400/70",
-      iconContainer: "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      badgeClass: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-500/30",
+      iconContainer:
+        "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      badgeClass:
+        "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-500/30",
       glowHover: "hover:shadow-lg hover:shadow-amber-500/10",
       activeRing: "ring-2 ring-amber-500/90 shadow-md shadow-amber-500/15",
     },
@@ -1328,18 +1583,25 @@ const ShootCalendor = () => {
       statusKey: "At Risk",
       subtitle: getPercentage(getCount("At Risk")),
       icon: <FiAlertTriangle size={18} />,
-      gradientLight: "from-rose-500/10 via-red-500/5 to-white/95 border-rose-200/80 hover:border-rose-400/80",
-      gradientDark: "dark:from-rose-950/45 dark:via-red-950/25 dark:to-[#0c1322] dark:border-rose-500/30 dark:hover:border-rose-400/60",
+      gradientLight:
+        "from-rose-500/10 via-red-500/5 to-white/95 border-rose-200/80 hover:border-rose-400/80",
+      gradientDark:
+        "dark:from-rose-950/45 dark:via-red-950/25 dark:to-[#0c1322] dark:border-rose-500/30 dark:hover:border-rose-400/60",
       topHighlight: "before:via-rose-400/70",
-      iconContainer: "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20",
-      badgeClass: "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-200/70 dark:border-rose-500/30",
+      iconContainer:
+        "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20",
+      badgeClass:
+        "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-200/70 dark:border-rose-500/30",
       glowHover: "hover:shadow-lg hover:shadow-rose-500/10",
       activeRing: "ring-2 ring-rose-500/90 shadow-md shadow-rose-500/15",
     },
   ];
 
   const hasActiveFilters =
-    selectedClientFilter || selectedStatusFilter || selectedShootTypeFilter || searchQuery;
+    selectedClientFilter ||
+    selectedStatusFilter ||
+    selectedShootTypeFilter ||
+    searchQuery;
 
   const handleResetFilters = () => {
     setSelectedClientFilter("");
@@ -1361,14 +1623,16 @@ const ShootCalendor = () => {
           </h1>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
-          <button
-            onClick={() => openModal()}
-            className="flex items-center gap-2 theme-bg-accent text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm hover:opacity-95 text-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            <FiPlus size={18} /> Schedule Shoot
-          </button>
-        </div>
+        {canCreate && (
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
+            <button
+              onClick={() => openModal()}
+              className="flex items-center gap-2 theme-bg-accent text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-sm hover:opacity-95 text-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <FiPlus size={18} /> Schedule Shoot
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -1383,7 +1647,7 @@ const ShootCalendor = () => {
               onClick={() => {
                 if (card.statusKey) {
                   setSelectedStatusFilter((prev) =>
-                    prev === card.statusKey ? "" : card.statusKey
+                    prev === card.statusKey ? "" : card.statusKey,
                   );
                 } else {
                   setSelectedStatusFilter("");
@@ -1428,7 +1692,6 @@ const ShootCalendor = () => {
         <div className="flex items-center gap-3 flex-wrap flex-1 min-w-[280px]">
           {/* Live Search */}
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            
             <input
               type="text"
               value={searchQuery}
@@ -1452,9 +1715,15 @@ const ShootCalendor = () => {
             onChange={(e) => setSelectedClientFilter(e.target.value)}
             className="border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#131b2e] hover:bg-slate-100/70 dark:hover:bg-[#162038] focus:bg-white dark:focus:bg-[#131b2e] text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-w-[150px] cursor-pointer"
           >
-            <option value="" className="dark:bg-[#131b2e] dark:text-slate-100">All Clients</option>
+            <option value="" className="dark:bg-[#131b2e] dark:text-slate-100">
+              All Clients
+            </option>
             {clients.map((client) => (
-              <option key={client._id} value={client._id} className="dark:bg-[#131b2e] dark:text-slate-100">
+              <option
+                key={client._id}
+                value={client._id}
+                className="dark:bg-[#131b2e] dark:text-slate-100"
+              >
                 {client.companyName}
               </option>
             ))}
@@ -1466,9 +1735,15 @@ const ShootCalendor = () => {
             onChange={(e) => setSelectedShootTypeFilter(e.target.value)}
             className="border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#131b2e] hover:bg-slate-100/70 dark:hover:bg-[#162038] focus:bg-white dark:focus:bg-[#131b2e] text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-w-[140px] cursor-pointer"
           >
-            <option value="" className="dark:bg-[#131b2e] dark:text-slate-100">All Shoot Types</option>
+            <option value="" className="dark:bg-[#131b2e] dark:text-slate-100">
+              All Shoot Types
+            </option>
             {allShootTypes.map((type) => (
-              <option key={type} value={type} className="dark:bg-[#131b2e] dark:text-slate-100">
+              <option
+                key={type}
+                value={type}
+                className="dark:bg-[#131b2e] dark:text-slate-100"
+              >
                 {type}
               </option>
             ))}
@@ -1480,9 +1755,15 @@ const ShootCalendor = () => {
             onChange={(e) => setSelectedStatusFilter(e.target.value)}
             className="border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#131b2e] hover:bg-slate-100/70 dark:hover:bg-[#162038] focus:bg-white dark:focus:bg-[#131b2e] text-slate-900 dark:text-slate-100 rounded-xl px-3 py-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all min-w-[130px] cursor-pointer"
           >
-            <option value="" className="dark:bg-[#131b2e] dark:text-slate-100">All Statuses</option>
+            <option value="" className="dark:bg-[#131b2e] dark:text-slate-100">
+              All Statuses
+            </option>
             {SHOOT_STATUSES.map((status) => (
-              <option key={status} value={status} className="dark:bg-[#131b2e] dark:text-slate-100">
+              <option
+                key={status}
+                value={status}
+                className="dark:bg-[#131b2e] dark:text-slate-100"
+              >
                 {status}
               </option>
             ))}
@@ -1582,6 +1863,9 @@ const ShootCalendor = () => {
                 onAddNew={() => openModal()}
                 hasActiveFilters={hasActiveFilters}
                 onResetFilters={handleResetFilters}
+                canCreate={canCreate}
+                canEditShoot={canEditShoot}
+                canDeleteShoot={canDeleteShoot}
               />
             </div>
           ) : (
@@ -1599,7 +1883,7 @@ const ShootCalendor = () => {
               timeslots={2}
               min={minTime}
               max={maxTime}
-              selectable={true}
+              selectable={canCreate}
               onSelectSlot={handleSelectSlot}
               style={{ height: "auto", minHeight: "1200px", border: "none" }}
               onSelectEvent={(event) => openViewOffcanvas(event.resource)}
@@ -1618,6 +1902,7 @@ const ShootCalendor = () => {
                   dateHeader: (dateHeaderProps) => (
                     <CustomMonthDateHeader
                       {...dateHeaderProps}
+                      canCreate={canCreate}
                       onAddForDate={(date) => openModal(null, date)}
                     />
                   ),
@@ -1709,8 +1994,8 @@ const ShootCalendor = () => {
                     : "bg-slate-50 dark:bg-[#131b2e] border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
-                <div className="w-2 h-2 rounded-full bg-rose-500"></div> At
-                Risk ({getCount("At Risk")})
+                <div className="w-2 h-2 rounded-full bg-rose-500"></div> At Risk
+                ({getCount("At Risk")})
               </button>
               <button
                 type="button"
@@ -1731,7 +2016,8 @@ const ShootCalendor = () => {
             </div>
 
             <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-              💡 Tip: Click any date slot to quickly schedule a shoot for that day
+              💡 Tip: Click any date slot to quickly schedule a shoot for that
+              day
             </div>
           </div>
         </div>
@@ -1767,7 +2053,8 @@ const ShootCalendor = () => {
                 {/* Core Details */}
                 <div>
                   <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div> Core Details
+                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
+                    Core Details
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -1781,9 +2068,15 @@ const ShootCalendor = () => {
                         onChange={handleInputChange}
                         className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                       >
-                        <option value="" className="dark:bg-[#131b2e]">Select a client</option>
+                        <option value="" className="dark:bg-[#131b2e]">
+                          Select a client
+                        </option>
                         {clients.map((client) => (
-                          <option key={client._id} value={client._id} className="dark:bg-[#131b2e]">
+                          <option
+                            key={client._id}
+                            value={client._id}
+                            className="dark:bg-[#131b2e]"
+                          >
                             {client.companyName}
                           </option>
                         ))}
@@ -1819,7 +2112,10 @@ const ShootCalendor = () => {
                               (!formData.shootType ||
                                 SHOOT_TYPES.includes(formData.shootType))
                             ) {
-                              setFormData((prev) => ({ ...prev, shootType: "" }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                shootType: "",
+                              }));
                             }
                           }}
                           className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
@@ -1851,7 +2147,10 @@ const ShootCalendor = () => {
                           onChange={(e) => {
                             if (e.target.value === "__CUSTOM__") {
                               setIsCustomShootType(true);
-                              setFormData((prev) => ({ ...prev, shootType: "" }));
+                              setFormData((prev) => ({
+                                ...prev,
+                                shootType: "",
+                              }));
                             } else {
                               handleInputChange(e);
                             }
@@ -1859,7 +2158,11 @@ const ShootCalendor = () => {
                           className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                         >
                           {allShootTypes.map((type) => (
-                            <option key={type} value={type} className="dark:bg-[#131b2e]">
+                            <option
+                              key={type}
+                              value={type}
+                              className="dark:bg-[#131b2e]"
+                            >
                               {type}
                             </option>
                           ))}
@@ -1885,7 +2188,11 @@ const ShootCalendor = () => {
                           className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                         >
                           {SHOOT_STATUSES.map((status) => (
-                            <option key={status} value={status} className="dark:bg-[#131b2e]">
+                            <option
+                              key={status}
+                              value={status}
+                              className="dark:bg-[#131b2e]"
+                            >
                               {status}
                             </option>
                           ))}
@@ -1898,7 +2205,8 @@ const ShootCalendor = () => {
                 {/* Schedule & Location */}
                 <div>
                   <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div> Schedule & Location
+                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
+                    Schedule & Location
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
@@ -1962,7 +2270,8 @@ const ShootCalendor = () => {
                 {/* Team & Resources */}
                 <div>
                   <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div> Team & Resources
+                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
+                    Team & Resources
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -1975,10 +2284,16 @@ const ShootCalendor = () => {
                         onChange={handleInputChange}
                         className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                       >
-                        <option value="" className="dark:bg-[#131b2e]">Select Assignee</option>
+                        <option value="" className="dark:bg-[#131b2e]">
+                          Select Assignee
+                        </option>
                         {users.map((user) => (
-                          <option key={user._id} value={user._id} className="dark:bg-[#131b2e]">
-                            {user.name} ({user.role})
+                          <option
+                            key={user._id}
+                            value={user._id}
+                            className="dark:bg-[#131b2e]"
+                          >
+                            {user.name} {user.department ? `(${user.department})` : user.role ? `(${user.role})` : ""}
                           </option>
                         ))}
                       </select>
@@ -2005,7 +2320,7 @@ const ShootCalendor = () => {
                             value={user._id}
                             className="p-1.5 mb-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 dark:bg-[#131b2e]"
                           >
-                            {user.name} ({user.role})
+                            {user.name} {user.department ? `(${user.department})` : user.role ? `(${user.role})` : ""}
                           </option>
                         ))}
                       </select>
@@ -2013,21 +2328,27 @@ const ShootCalendor = () => {
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {formData.shootTeam.map((userId) => {
                             const u = users.find(
-                              (usr) => String(usr._id || usr.id) === String(userId)
+                              (usr) =>
+                                String(usr._id || usr.id) === String(userId),
                             );
                             return (
                               <span
                                 key={userId}
-                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 shadow-2xs"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 shadow-2xs"
                               >
-                                {u ? u.name : "Member"}
+                                <span>{u ? u.name : "Member"}</span>
+                                {u?.department && (
+                                  <span className="text-[10px] font-normal opacity-80">
+                                    ({u.department})
+                                  </span>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() =>
                                     setFormData((prev) => ({
                                       ...prev,
                                       shootTeam: prev.shootTeam.filter(
-                                        (id) => String(id) !== String(userId)
+                                        (id) => String(id) !== String(userId),
                                       ),
                                     }))
                                   }
@@ -2058,15 +2379,27 @@ const ShootCalendor = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Estimated Budget (₹)
-                      </label>
+                      <div className="flex items-center justify-between gap-1 mb-1.5">
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                          Estimated Budget (₹)
+                        </label>
+                        {!isSuperOrAdmin && (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                            (Admin / Op. Manager Only)
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="number"
                         name="estimatedBudget"
                         value={formData.estimatedBudget}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        disabled={!isSuperOrAdmin}
+                        className={`w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm ${
+                          !isSuperOrAdmin
+                            ? "opacity-60 cursor-not-allowed bg-slate-100/90 dark:bg-slate-800/80"
+                            : ""
+                        }`}
                         placeholder="8500"
                       />
                     </div>
@@ -2076,7 +2409,8 @@ const ShootCalendor = () => {
                 {/* Scope & Details */}
                 <div>
                   <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div> Scope & Details
+                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
+                    Scope & Details
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -2124,7 +2458,11 @@ const ShootCalendor = () => {
                             size={12}
                             className={isFetchingWeather ? "animate-spin" : ""}
                           />
-                          <span>{isFetchingWeather ? "Detecting Live Weather..." : "Detect Live Weather"}</span>
+                          <span>
+                            {isFetchingWeather
+                              ? "Detecting Live Weather..."
+                              : "Detect Live Weather"}
+                          </span>
                         </button>
                       </div>
 
@@ -2145,11 +2483,23 @@ const ShootCalendor = () => {
                           Quick Presets:
                         </span>
                         {[
-                          { label: "☀️ Sunny / Clear", val: "☀️ Clear & Sunny (Outdoor)" },
-                          { label: "⛅ Partly Cloudy", val: "⛅ Partly Cloudy (Soft Light)" },
-                          { label: "🌧️ Rainy / Drizzle", val: "🌧️ Rainy / Overcast (Cover Needed)" },
+                          {
+                            label: "☀️ Sunny / Clear",
+                            val: "☀️ Clear & Sunny (Outdoor)",
+                          },
+                          {
+                            label: "⛅ Partly Cloudy",
+                            val: "⛅ Partly Cloudy (Soft Light)",
+                          },
+                          {
+                            label: "🌧️ Rainy / Drizzle",
+                            val: "🌧️ Rainy / Overcast (Cover Needed)",
+                          },
                           { label: "🏢 Studio AC", val: "🏢 Indoor AC Studio" },
-                          { label: "🌅 Golden Hour", val: "🌅 Golden Hour Outdoor (5 PM - 6:30 PM)" },
+                          {
+                            label: "🌅 Golden Hour",
+                            val: "🌅 Golden Hour Outdoor (5 PM - 6:30 PM)",
+                          },
                         ].map((preset) => (
                           <button
                             key={preset.label}
@@ -2173,7 +2523,8 @@ const ShootCalendor = () => {
                 {/* Client Contact */}
                 <div>
                   <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
-                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div> Client Contact
+                    <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
+                    Client Contact
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -2239,7 +2590,7 @@ const ShootCalendor = () => {
 
             {/* Footer */}
             <div className="px-8 py-5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] flex justify-between items-center shrink-0">
-              {selectedShoot ? (
+              {selectedShoot && canDeleteShoot(selectedShoot) ? (
                 <button
                   type="button"
                   onClick={handleDelete}
@@ -2307,18 +2658,24 @@ const ShootCalendor = () => {
                   {viewShoot.shootTitle}
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 text-sm">
-                  Client: <span className="font-semibold text-slate-700 dark:text-slate-200">{viewShoot.client?.companyName || "Unknown"}</span>
+                  Client:{" "}
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                    {viewShoot.client?.companyName || "Unknown"}
+                  </span>
                 </p>
               </div>
 
               {/* Schedule */}
               <div className="bg-slate-50 dark:bg-[#131b2e] rounded-xl p-4 border border-slate-200/80 dark:border-slate-700/80">
                 <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-                  <FiClock className="text-emerald-500 dark:text-emerald-400" /> Schedule
+                  <FiClock className="text-emerald-500 dark:text-emerald-400" />{" "}
+                  Schedule
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-0.5">Date</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-0.5">
+                      Date
+                    </p>
                     <p className="font-semibold text-slate-800 dark:text-slate-100">
                       {viewShoot.schedule?.shootDate
                         ? new Date(
@@ -2328,7 +2685,9 @@ const ShootCalendor = () => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-0.5">Time</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mb-0.5">
+                      Time
+                    </p>
                     <p className="font-semibold text-slate-800 dark:text-slate-100">
                       {viewShoot.schedule?.startTime} -{" "}
                       {viewShoot.schedule?.endTime}
@@ -2377,9 +2736,16 @@ const ShootCalendor = () => {
                 </h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500 dark:text-slate-400">Assigned To (Lead)</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-100">
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Assigned To (Lead)
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
                       {viewShoot.assignedTo?.name || "Unassigned"}
+                      {viewShoot.assignedTo?.department && (
+                        <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                          ({viewShoot.assignedTo.department})
+                        </span>
+                      )}
                     </span>
                   </div>
                   {viewShoot.shootTeam?.length > 0 && (
@@ -2391,9 +2757,14 @@ const ShootCalendor = () => {
                         {viewShoot.shootTeam.map((member, idx) => (
                           <span
                             key={idx}
-                            className="px-2.5 py-1 bg-slate-100 dark:bg-[#131b2e] border border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 rounded-full text-xs font-medium"
+                            className="px-2.5 py-1 bg-slate-100 dark:bg-[#131b2e] border border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 rounded-full text-xs font-medium inline-flex items-center gap-1"
                           >
-                            {member.name || member}
+                            <span>{member.name || member}</span>
+                            {member.department && (
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                ({member.department})
+                              </span>
+                            )}
                           </span>
                         ))}
                       </div>
@@ -2433,15 +2804,22 @@ const ShootCalendor = () => {
             </div>
 
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] flex gap-3 sticky bottom-0">
-              <button
-                onClick={() => {
-                  closeViewOffcanvas();
-                  openModal(viewShoot);
-                }}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20"
-              >
-                <FiEdit2 size={16} /> Edit Shoot
-              </button>
+              {canEditShoot(viewShoot) ? (
+                <button
+                  onClick={() => {
+                    const s = viewShoot;
+                    closeViewOffcanvas();
+                    openModal(s);
+                  }}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-500/20"
+                >
+                  <FiEdit2 size={16} /> Edit Shoot
+                </button>
+              ) : (
+                <div className="w-full py-2.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-[#131b2e] rounded-xl border border-slate-200 dark:border-slate-800">
+                  👁️ View-only mode (Read Permission)
+                </div>
+              )}
             </div>
           </div>
         </div>

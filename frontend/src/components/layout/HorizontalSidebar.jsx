@@ -236,7 +236,7 @@ const HorizontalSidebar = ({ role }) => {
       }
     }
 
-    if (role === "admin") return true;
+    if (role === "admin" || role === "operationmanager" || role === "operation manager") return true;
     if (item.permissionKey === "manage_clients") return true;
     if (!item.permissionKey) return true;
     const perm = currentUser?.permissions?.[item.permissionKey];

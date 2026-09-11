@@ -470,10 +470,38 @@ const AppRoutes = () => {
 
           <Route path="stickynotes" element={<Stickynotes />} />
 
-          <Route path="all-calendar" element={<AllCalendar />} />
-          <Route path="Shootcalendor" element={<AllCalendar />} />
-          <Route path="shootcalendor" element={<AllCalendar />} />
-          <Route path="shoot-calendar" element={<AllCalendar />} />
+          <Route
+            path="all-calendar"
+            element={
+              <ProtectedRoute requiredPermission="manage_shoots">
+                <AllCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="Shootcalendor"
+            element={
+              <ProtectedRoute requiredPermission="manage_shoots">
+                <AllCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="shootcalendor"
+            element={
+              <ProtectedRoute requiredPermission="manage_shoots">
+                <AllCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="shoot-calendar"
+            element={
+              <ProtectedRoute requiredPermission="manage_shoots">
+                <AllCalendar />
+              </ProtectedRoute>
+            }
+          />
           <Route path="content-calendar" element={<ContentCalcendor />} />
 
           <Route
