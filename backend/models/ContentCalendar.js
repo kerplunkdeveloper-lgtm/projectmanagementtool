@@ -157,4 +157,12 @@ const contentCalendarSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for performance optimization
+contentCalendarSchema.index({ dueDate: 1, createdAt: -1 });
+contentCalendarSchema.index({ client: 1 });
+contentCalendarSchema.index({ assignedTo: 1 });
+contentCalendarSchema.index({ status: 1 });
+contentCalendarSchema.index({ createdBy: 1 });
+contentCalendarSchema.index({ "subtasks.assigneeUser": 1 });
+
 module.exports = mongoose.model("ContentCalendar", contentCalendarSchema);

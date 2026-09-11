@@ -122,7 +122,8 @@ exports.getClients = async (req, res) => {
         "assignedTo",
         "name email role"
       )
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -147,7 +148,8 @@ exports.getClient = async (req, res) => {
       req.params.id
     )
       .populate("createdBy", "name email role")
-      .populate("assignedTo", "name email role");
+      .populate("assignedTo", "name email role")
+      .lean();
 
     if (!client) {
       return res.status(404).json({

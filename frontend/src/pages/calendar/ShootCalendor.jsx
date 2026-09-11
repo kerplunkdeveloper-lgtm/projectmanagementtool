@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSelector } from "react-redux";
 import io from "socket.io-client";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay, isSameDay } from "date-fns";
-import { enUS } from "date-fns/locale/en-US";
+import { enUS } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
@@ -285,7 +285,7 @@ const getStatusStyles = (status) => {
 };
 
 // Custom Toolbar with Month, Agenda, and List view switcher + Controls
-const CustomToolbar = ({
+const CustomToolbar = React.memo(({
   label,
   date,
   currentDate,
@@ -407,10 +407,10 @@ const CustomToolbar = ({
       </div>
     </div>
   );
-};
+});
 
 // Custom Event in month view - Full Overview Rich Card
-const CustomEvent = ({ event }) => {
+const CustomEvent = React.memo(({ event }) => {
   const { resource } = event;
   const statusStyle = getStatusStyles(resource.status);
   const canEdit = resource.canEdit;
@@ -550,10 +550,10 @@ const CustomEvent = ({ event }) => {
       </div>
     </div>
   );
-};
+});
 
 // Rich Shoot List View Component for 'list' view
-const ShootListView = ({
+const ShootListView = React.memo(({
   shoots,
   onView,
   onEdit,
@@ -779,10 +779,10 @@ const ShootListView = ({
       </table>
     </div>
   );
-};
+});
 
 // Custom Month Date Header Component with clean day number and hover "+ Add"
-const CustomMonthDateHeader = ({ date, label, onAddForDate, canCreate }) => {
+const CustomMonthDateHeader = React.memo(({ date, label, onAddForDate, canCreate }) => {
   const isToday = isSameDay(date, new Date());
   return (
     <div className="flex items-center justify-between px-2 py-1 group/header">
@@ -810,7 +810,7 @@ const CustomMonthDateHeader = ({ date, label, onAddForDate, canCreate }) => {
       )}
     </div>
   );
-};
+});
 
 const ShootCalendor = () => {
   const currentUser = useSelector((state) => state.auth?.user);
@@ -955,11 +955,53 @@ const ShootCalendor = () => {
     }
   };
 
-  useEffect(() => {
-    fetchShoots();
-    fetchClients();
-    fetchUsers();
+  const fetchShoots = useCallback(async () => {
+    try {
+      const { data } = await axiosInstance.get("/shoot-calendar");
+      setShoots(data.data || []);
+    } catch (error) {
+      toast.error("Failed to fetch shoots");
+      console.error(error);
+    }
   }, []);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const { data } = await axiosInstance.get("/users");
+      setUsers(data.data || []);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    }
+  }, []);
+
+  const fetchClients = useCallback(async () => {
+    try {
+      const { data } = await axiosInstance.get("/clients");
+      setClients(data.data || []);
+    } catch (error) {
+      console.error("Failed to fetch clients:", error);
+    }
+  }, []);
+
+  const fetchAllData = useCallback(async () => {
+    try {
+      const [shootsRes, clientsRes, usersRes] = await Promise.all([
+        axiosInstance.get("/shoot-calendar"),
+        axiosInstance.get("/clients"),
+        axiosInstance.get("/users"),
+      ]);
+      setShoots(shootsRes.data?.data || []);
+      setClients(clientsRes.data?.data || []);
+      setUsers(usersRes.data?.data || []);
+    } catch (error) {
+      console.error("Failed to fetch calendar data:", error);
+      toast.error("Failed to fetch shoot calendar data");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
 
   useEffect(() => {
     const baseUrl = import.meta.env.VITE_API_BASE_URL;
@@ -979,46 +1021,13 @@ const ShootCalendor = () => {
       socket.emit("join", currentUserId.toString());
     }
 
-    socket.on("shoot_created", () => {
-      fetchShoots();
-    });
-
-    socket.on("shoot_updated", () => {
-      fetchShoots();
-    });
+    socket.on("shoot_created", fetchShoots);
+    socket.on("shoot_updated", fetchShoots);
 
     return () => {
       socket.disconnect();
     };
-  }, [currentUser]);
-
-  const fetchUsers = async () => {
-    try {
-      const { data } = await axiosInstance.get("/users");
-      setUsers(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-    }
-  };
-
-  const fetchClients = async () => {
-    try {
-      const { data } = await axiosInstance.get("/clients");
-      setClients(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch clients:", error);
-    }
-  };
-
-  const fetchShoots = async () => {
-    try {
-      const { data } = await axiosInstance.get("/shoot-calendar");
-      setShoots(data.data || []);
-    } catch (error) {
-      toast.error("Failed to fetch shoots");
-      console.error(error);
-    }
-  };
+  }, [currentUser, fetchShoots]);
 
   // Helper to extract id safely from object or string
   const getEntityId = (entity) => {
@@ -1077,17 +1086,17 @@ const ShootCalendor = () => {
   // Permissions
   const canCreate = hasWritePerm;
 
-  const canEditShoot = (shoot) => {
+  const canEditShoot = useCallback((shoot) => {
     if (!shoot) return false;
     return hasUpdatePerm;
-  };
+  }, [hasUpdatePerm]);
 
-  const canDeleteShoot = (shoot) => {
+  const canDeleteShoot = useCallback((shoot) => {
     if (!shoot) return false;
     return hasDeletePerm;
-  };
+  }, [hasDeletePerm]);
 
-  const canReadShoot = (shoot) => {
+  const canReadShoot = useCallback((shoot) => {
     if (!shoot) return false;
     if (hasReadPerm) return true;
     if (!currentUserId) return false;
@@ -1097,7 +1106,7 @@ const ShootCalendor = () => {
       Array.isArray(shoot.shootTeam) &&
       shoot.shootTeam.some((member) => getEntityId(member) === currentUserId);
     return isCreator || isAssigned || inTeam;
-  };
+  }, [hasReadPerm, currentUserId]);
 
   const handleInputChange = (e) => {
     const { name, value, type, selectedOptions } = e.target;
@@ -1109,7 +1118,7 @@ const ShootCalendor = () => {
     }
   };
 
-  const openModal = (shoot = null, prefilledDate = null) => {
+  const openModal = useCallback((shoot = null, prefilledDate = null) => {
     if (shoot) {
       if (!canEditShoot(shoot)) {
         toast.error(
@@ -1192,15 +1201,15 @@ const ShootCalendor = () => {
       });
     }
     setIsModalOpen(true);
-  };
+  }, [canEditShoot, canCreate]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedShoot(null);
     setIsCustomShootType(false);
-  };
+  }, []);
 
-  const handleSelectSlot = ({ start }) => {
+  const handleSelectSlot = useCallback(({ start }) => {
     if (!canCreate) {
       toast.error(
         "Permission denied: You do not have permission to schedule shoots",
@@ -1208,7 +1217,7 @@ const ShootCalendor = () => {
       return;
     }
     openModal(null, start);
-  };
+  }, [canCreate, openModal]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1323,7 +1332,7 @@ const ShootCalendor = () => {
     }
   };
 
-  const handleDeleteShoot = async (shoot) => {
+  const handleDeleteShoot = useCallback(async (shoot) => {
     if (!canDeleteShoot(shoot)) {
       toast.error(
         "Permission denied: You do not have permission to delete shoots",
@@ -1340,112 +1349,118 @@ const ShootCalendor = () => {
       toast.error(error.response?.data?.message || "Failed to delete shoot");
       console.error(error);
     }
-  };
+  }, [canDeleteShoot, fetchShoots]);
 
-  const openViewOffcanvas = (shoot) => {
+  const openViewOffcanvas = useCallback((shoot) => {
     setViewShoot(shoot);
     setIsViewOpen(true);
-  };
+  }, []);
 
-  const closeViewOffcanvas = () => {
+  const closeViewOffcanvas = useCallback(() => {
     setIsViewOpen(false);
     setViewShoot(null);
-  };
+  }, []);
 
   // Shoots allowed for current user role:
   // Admins & Operation Managers see all shoots.
   // Team members see shoots where they are Assigned To (Lead), in the Shoot Team, or Creator.
-  const userAllowedShoots = shoots.filter((shoot) => canReadShoot(shoot));
+  const userAllowedShoots = useMemo(() => {
+    return shoots.filter(canReadShoot);
+  }, [shoots, canReadShoot]);
 
   // Filter shoots based on client, status, shoot type, and search query
-  const filteredShoots = userAllowedShoots.filter((shoot) => {
-    // Client filter
-    if (
-      selectedClientFilter &&
-      shoot.client?._id !== selectedClientFilter &&
-      shoot.client !== selectedClientFilter
-    ) {
-      return false;
-    }
-
-    // Status filter
-    if (selectedStatusFilter && shoot.status !== selectedStatusFilter) {
-      return false;
-    }
-
-    // Shoot Type filter
-    if (
-      selectedShootTypeFilter &&
-      shoot.shootType !== selectedShootTypeFilter
-    ) {
-      return false;
-    }
-
-    // Search query filter (matches title, client, location, type, lead, or team members)
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const titleMatch = shoot.shootTitle?.toLowerCase().includes(q);
-      const clientMatch = shoot.client?.companyName?.toLowerCase().includes(q);
-      const locationMatch = shoot.location?.toLowerCase().includes(q);
-      const typeMatch = shoot.shootType?.toLowerCase().includes(q);
-      const leadMatch = shoot.assignedTo?.name?.toLowerCase().includes(q);
-      const teamMatch =
-        Array.isArray(shoot.shootTeam) &&
-        shoot.shootTeam.some((m) =>
-          (m?.name || (typeof m === "string" ? m : ""))
-            .toLowerCase()
-            .includes(q),
-        );
+  const filteredShoots = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return userAllowedShoots.filter((shoot) => {
+      // Client filter
       if (
-        !titleMatch &&
-        !clientMatch &&
-        !locationMatch &&
-        !typeMatch &&
-        !leadMatch &&
-        !teamMatch
+        selectedClientFilter &&
+        shoot.client?._id !== selectedClientFilter &&
+        shoot.client !== selectedClientFilter
       ) {
         return false;
       }
-    }
 
-    return true;
-  });
+      // Status filter
+      if (selectedStatusFilter && shoot.status !== selectedStatusFilter) {
+        return false;
+      }
+
+      // Shoot Type filter
+      if (
+        selectedShootTypeFilter &&
+        shoot.shootType !== selectedShootTypeFilter
+      ) {
+        return false;
+      }
+
+      // Search query filter (matches title, client, location, type, lead, or team members)
+      if (q) {
+        const titleMatch = shoot.shootTitle?.toLowerCase().includes(q);
+        const clientMatch = shoot.client?.companyName?.toLowerCase().includes(q);
+        const locationMatch = shoot.location?.toLowerCase().includes(q);
+        const typeMatch = shoot.shootType?.toLowerCase().includes(q);
+        const leadMatch = shoot.assignedTo?.name?.toLowerCase().includes(q);
+        const teamMatch =
+          Array.isArray(shoot.shootTeam) &&
+          shoot.shootTeam.some((m) =>
+            (m?.name || (typeof m === "string" ? m : ""))
+              .toLowerCase()
+              .includes(q),
+          );
+        if (
+          !titleMatch &&
+          !clientMatch &&
+          !locationMatch &&
+          !typeMatch &&
+          !leadMatch &&
+          !teamMatch
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [userAllowedShoots, selectedClientFilter, selectedStatusFilter, selectedShootTypeFilter, searchQuery]);
 
   // Transform data for react-big-calendar with attached permissions
-  const events = filteredShoots.map((shoot) => {
-    const dateStr = shoot.schedule?.shootDate
-      ? new Date(shoot.schedule.shootDate).toISOString().split("T")[0]
-      : "";
+  const events = useMemo(() => {
+    return filteredShoots.map((shoot) => {
+      const dateStr = shoot.schedule?.shootDate
+        ? new Date(shoot.schedule.shootDate).toISOString().split("T")[0]
+        : "";
 
-    let start = new Date();
-    let end = new Date();
+      let start = new Date();
+      let end = new Date();
 
-    if (dateStr) {
-      start = parseDateTime(dateStr, shoot.schedule?.startTime);
-      end = parseDateTime(dateStr, shoot.schedule?.endTime);
-    }
+      if (dateStr) {
+        start = parseDateTime(dateStr, shoot.schedule?.startTime);
+        end = parseDateTime(dateStr, shoot.schedule?.endTime);
+      }
 
-    const canEdit = canEditShoot(shoot);
-    const canDelete = canDeleteShoot(shoot);
+      const canEdit = canEditShoot(shoot);
+      const canDelete = canDeleteShoot(shoot);
 
-    return {
-      id: shoot._id,
-      title: shoot.shootTitle,
-      start,
-      end,
-      allDay: currentView === "month",
-      resource: {
-        ...shoot,
-        canEdit,
-        canDelete,
-        onEdit: () => openModal(shoot),
-        onDelete: () => handleDeleteShoot(shoot),
-        onView: () => openViewOffcanvas(shoot),
-      },
-    };
-  });
+      return {
+        id: shoot._id,
+        title: shoot.shootTitle,
+        start,
+        end,
+        allDay: currentView === "month",
+        resource: {
+          ...shoot,
+          canEdit,
+          canDelete,
+          onEdit: () => openModal(shoot),
+          onDelete: () => handleDeleteShoot(shoot),
+          onView: () => openViewOffcanvas(shoot),
+        },
+      };
+    });
+  }, [filteredShoots, currentView, canEditShoot, canDeleteShoot, openModal, handleDeleteShoot, openViewOffcanvas]);
 
-  const eventStyleGetter = () => {
+  const eventStyleGetter = useCallback(() => {
     return {
       style: {
         backgroundColor: "transparent",
@@ -1453,149 +1468,178 @@ const ShootCalendor = () => {
         padding: "1px",
       },
     };
-  };
+  }, []);
 
-  const minTime = new Date();
-  minTime.setHours(7, 0, 0);
+  const minTime = useMemo(() => {
+    const t = new Date();
+    t.setHours(7, 0, 0);
+    return t;
+  }, []);
 
-  const maxTime = new Date();
-  maxTime.setHours(21, 0, 0);
+  const maxTime = useMemo(() => {
+    const t = new Date();
+    t.setHours(21, 0, 0);
+    return t;
+  }, []);
+
+  const statusCounts = useMemo(() => {
+    const counts = {
+      Confirmed: 0,
+      "In Progress": 0,
+      Planned: 0,
+      Completed: 0,
+      "Pending Approval": 0,
+      "At Risk": 0,
+    };
+    userAllowedShoots.forEach((s) => {
+      if (counts[s.status] !== undefined) {
+        counts[s.status]++;
+      }
+    });
+    return counts;
+  }, [userAllowedShoots]);
+
+  const getCount = useCallback(
+    (status) => statusCounts[status] || 0,
+    [statusCounts]
+  );
 
   const totalShoots = userAllowedShoots.length;
-  const getCount = (status) =>
-    userAllowedShoots.filter((s) => s.status === status).length;
-  const getPercentage = (count) =>
-    totalShoots === 0 ? "0%" : `${((count / totalShoots) * 100).toFixed(0)}%`;
 
   // Premium Gradient Metric cards with glowing top accents and interactive status filtering
-  const statsCards = [
-    {
-      title: "Total Shoots",
-      value: totalShoots,
-      statusKey: "",
-      subtitle: "All recorded",
-      icon: <FiCalendar size={18} />,
-      gradientLight:
-        "from-indigo-500/10 via-purple-500/5 to-white/95 border-indigo-200/80 hover:border-indigo-400/80",
-      gradientDark:
-        "dark:from-indigo-950/45 dark:via-purple-950/25 dark:to-[#0c1322] dark:border-indigo-500/30 dark:hover:border-indigo-400/60",
-      topHighlight: "before:via-indigo-400/70",
-      iconContainer:
-        "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-      badgeClass:
-        "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-500/30",
-      glowHover: "hover:shadow-lg hover:shadow-indigo-500/10",
-      activeRing: "ring-2 ring-indigo-500/90 shadow-md shadow-indigo-500/15",
-    },
-    {
-      title: "Confirmed",
-      value: getCount("Confirmed"),
-      statusKey: "Confirmed",
-      subtitle: getPercentage(getCount("Confirmed")),
-      icon: <FiCheckCircle size={18} />,
-      gradientLight:
-        "from-emerald-500/10 via-teal-500/5 to-white/95 border-emerald-200/80 hover:border-emerald-400/80",
-      gradientDark:
-        "dark:from-emerald-950/45 dark:via-teal-950/25 dark:to-[#0c1322] dark:border-emerald-500/30 dark:hover:border-emerald-400/60",
-      topHighlight: "before:via-emerald-400/70",
-      iconContainer:
-        "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-      badgeClass:
-        "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-500/30",
-      glowHover: "hover:shadow-lg hover:shadow-emerald-500/10",
-      activeRing: "ring-2 ring-emerald-500/90 shadow-md shadow-emerald-500/15",
-    },
-    {
-      title: "In Progress",
-      value: getCount("In Progress"),
-      statusKey: "In Progress",
-      subtitle: getPercentage(getCount("In Progress")),
-      icon: <FiClock size={18} />,
-      gradientLight:
-        "from-sky-500/10 via-blue-500/5 to-white/95 border-sky-200/80 hover:border-sky-400/80",
-      gradientDark:
-        "dark:from-sky-950/45 dark:via-blue-950/25 dark:to-[#0c1322] dark:border-sky-500/30 dark:hover:border-sky-400/60",
-      topHighlight: "before:via-sky-400/70",
-      iconContainer:
-        "bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/20",
-      badgeClass:
-        "bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-200/70 dark:border-sky-500/30",
-      glowHover: "hover:shadow-lg hover:shadow-sky-500/10",
-      activeRing: "ring-2 ring-sky-500/90 shadow-md shadow-sky-500/15",
-    },
-    {
-      title: "Planned",
-      value: getCount("Planned"),
-      statusKey: "Planned",
-      subtitle: getPercentage(getCount("Planned")),
-      icon: <FiClipboard size={18} />,
-      gradientLight:
-        "from-purple-500/10 via-fuchsia-500/5 to-white/95 border-purple-200/80 hover:border-purple-400/80",
-      gradientDark:
-        "dark:from-purple-950/45 dark:via-fuchsia-950/25 dark:to-[#0c1322] dark:border-purple-500/30 dark:hover:border-purple-400/60",
-      topHighlight: "before:via-purple-400/70",
-      iconContainer:
-        "bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/20",
-      badgeClass:
-        "bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200/70 dark:border-purple-500/30",
-      glowHover: "hover:shadow-lg hover:shadow-purple-500/10",
-      activeRing: "ring-2 ring-purple-500/90 shadow-md shadow-purple-500/15",
-    },
-    {
-      title: "Completed",
-      value: getCount("Completed"),
-      statusKey: "Completed",
-      subtitle: getPercentage(getCount("Completed")),
-      icon: <FiCheckSquare size={18} />,
-      gradientLight:
-        "from-teal-500/10 via-emerald-500/5 to-white/95 border-teal-200/80 hover:border-teal-400/80",
-      gradientDark:
-        "dark:from-teal-950/45 dark:via-emerald-950/25 dark:to-[#0c1322] dark:border-teal-500/30 dark:hover:border-teal-400/60",
-      topHighlight: "before:via-teal-400/70",
-      iconContainer:
-        "bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/20",
-      badgeClass:
-        "bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-200/70 dark:border-teal-500/30",
-      glowHover: "hover:shadow-lg hover:shadow-teal-500/10",
-      activeRing: "ring-2 ring-teal-500/90 shadow-md shadow-teal-500/15",
-    },
-    {
-      title: "Pending Approval",
-      value: getCount("Pending Approval"),
-      statusKey: "Pending Approval",
-      subtitle: getPercentage(getCount("Pending Approval")),
-      icon: <FiAlertCircle size={18} />,
-      gradientLight:
-        "from-amber-500/10 via-orange-500/5 to-white/95 border-amber-200/80 hover:border-amber-400/80",
-      gradientDark:
-        "dark:from-amber-950/45 dark:via-orange-950/25 dark:to-[#0c1322] dark:border-amber-500/30 dark:hover:border-amber-400/60",
-      topHighlight: "before:via-amber-400/70",
-      iconContainer:
-        "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      badgeClass:
-        "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-500/30",
-      glowHover: "hover:shadow-lg hover:shadow-amber-500/10",
-      activeRing: "ring-2 ring-amber-500/90 shadow-md shadow-amber-500/15",
-    },
-    {
-      title: "At Risk",
-      value: getCount("At Risk"),
-      statusKey: "At Risk",
-      subtitle: getPercentage(getCount("At Risk")),
-      icon: <FiAlertTriangle size={18} />,
-      gradientLight:
-        "from-rose-500/10 via-red-500/5 to-white/95 border-rose-200/80 hover:border-rose-400/80",
-      gradientDark:
-        "dark:from-rose-950/45 dark:via-red-950/25 dark:to-[#0c1322] dark:border-rose-500/30 dark:hover:border-rose-400/60",
-      topHighlight: "before:via-rose-400/70",
-      iconContainer:
-        "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20",
-      badgeClass:
-        "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-200/70 dark:border-rose-500/30",
-      glowHover: "hover:shadow-lg hover:shadow-rose-500/10",
-      activeRing: "ring-2 ring-rose-500/90 shadow-md shadow-rose-500/15",
-    },
-  ];
+  const statsCards = useMemo(() => {
+    const getPercentage = (count) =>
+      totalShoots === 0 ? "0%" : `${((count / totalShoots) * 100).toFixed(0)}%`;
+
+    return [
+      {
+        title: "Total Shoots",
+        value: totalShoots,
+        statusKey: "",
+        subtitle: "All recorded",
+        icon: <FiCalendar size={18} />,
+        gradientLight:
+          "from-indigo-500/10 via-purple-500/5 to-white/95 border-indigo-200/80 hover:border-indigo-400/80",
+        gradientDark:
+          "dark:from-indigo-950/45 dark:via-purple-950/25 dark:to-[#0c1322] dark:border-indigo-500/30 dark:hover:border-indigo-400/60",
+        topHighlight: "before:via-indigo-400/70",
+        iconContainer:
+          "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+        badgeClass:
+          "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200/70 dark:border-indigo-500/30",
+        glowHover: "hover:shadow-lg hover:shadow-indigo-500/10",
+        activeRing: "ring-2 ring-indigo-500/90 shadow-md shadow-indigo-500/15",
+      },
+      {
+        title: "Confirmed",
+        value: statusCounts["Confirmed"] || 0,
+        statusKey: "Confirmed",
+        subtitle: getPercentage(statusCounts["Confirmed"] || 0),
+        icon: <FiCheckCircle size={18} />,
+        gradientLight:
+          "from-emerald-500/10 via-teal-500/5 to-white/95 border-emerald-200/80 hover:border-emerald-400/80",
+        gradientDark:
+          "dark:from-emerald-950/45 dark:via-teal-950/25 dark:to-[#0c1322] dark:border-emerald-500/30 dark:hover:border-emerald-400/60",
+        topHighlight: "before:via-emerald-400/70",
+        iconContainer:
+          "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+        badgeClass:
+          "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200/70 dark:border-emerald-500/30",
+        glowHover: "hover:shadow-lg hover:shadow-emerald-500/10",
+        activeRing: "ring-2 ring-emerald-500/90 shadow-md shadow-emerald-500/15",
+      },
+      {
+        title: "In Progress",
+        value: statusCounts["In Progress"] || 0,
+        statusKey: "In Progress",
+        subtitle: getPercentage(statusCounts["In Progress"] || 0),
+        icon: <FiClock size={18} />,
+        gradientLight:
+          "from-sky-500/10 via-blue-500/5 to-white/95 border-sky-200/80 hover:border-sky-400/80",
+        gradientDark:
+          "dark:from-sky-950/45 dark:via-blue-950/25 dark:to-[#0c1322] dark:border-sky-500/30 dark:hover:border-sky-400/60",
+        topHighlight: "before:via-sky-400/70",
+        iconContainer:
+          "bg-sky-500/10 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 border-sky-500/20",
+        badgeClass:
+          "bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-200/70 dark:border-sky-500/30",
+        glowHover: "hover:shadow-lg hover:shadow-sky-500/10",
+        activeRing: "ring-2 ring-sky-500/90 shadow-md shadow-sky-500/15",
+      },
+      {
+        title: "Planned",
+        value: statusCounts["Planned"] || 0,
+        statusKey: "Planned",
+        subtitle: getPercentage(statusCounts["Planned"] || 0),
+        icon: <FiClipboard size={18} />,
+        gradientLight:
+          "from-purple-500/10 via-fuchsia-500/5 to-white/95 border-purple-200/80 hover:border-purple-400/80",
+        gradientDark:
+          "dark:from-purple-950/45 dark:via-fuchsia-950/25 dark:to-[#0c1322] dark:border-purple-500/30 dark:hover:border-purple-400/60",
+        topHighlight: "before:via-purple-400/70",
+        iconContainer:
+          "bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/20",
+        badgeClass:
+          "bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200/70 dark:border-purple-500/30",
+        glowHover: "hover:shadow-lg hover:shadow-purple-500/10",
+        activeRing: "ring-2 ring-purple-500/90 shadow-md shadow-purple-500/15",
+      },
+      {
+        title: "Completed",
+        value: statusCounts["Completed"] || 0,
+        statusKey: "Completed",
+        subtitle: getPercentage(statusCounts["Completed"] || 0),
+        icon: <FiCheckSquare size={18} />,
+        gradientLight:
+          "from-teal-500/10 via-emerald-500/5 to-white/95 border-teal-200/80 hover:border-teal-400/80",
+        gradientDark:
+          "dark:from-teal-950/45 dark:via-emerald-950/25 dark:to-[#0c1322] dark:border-teal-500/30 dark:hover:border-teal-400/60",
+        topHighlight: "before:via-teal-400/70",
+        iconContainer:
+          "bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border-teal-500/20",
+        badgeClass:
+          "bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-200/70 dark:border-teal-500/30",
+        glowHover: "hover:shadow-lg hover:shadow-teal-500/10",
+        activeRing: "ring-2 ring-teal-500/90 shadow-md shadow-teal-500/15",
+      },
+      {
+        title: "Pending Approval",
+        value: statusCounts["Pending Approval"] || 0,
+        statusKey: "Pending Approval",
+        subtitle: getPercentage(statusCounts["Pending Approval"] || 0),
+        icon: <FiAlertCircle size={18} />,
+        gradientLight:
+          "from-amber-500/10 via-orange-500/5 to-white/95 border-amber-200/80 hover:border-amber-400/80",
+        gradientDark:
+          "dark:from-amber-950/45 dark:via-orange-950/25 dark:to-[#0c1322] dark:border-amber-500/30 dark:hover:border-amber-400/60",
+        topHighlight: "before:via-amber-400/70",
+        iconContainer:
+          "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20",
+        badgeClass:
+          "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200/70 dark:border-amber-500/30",
+        glowHover: "hover:shadow-lg hover:shadow-amber-500/10",
+        activeRing: "ring-2 ring-amber-500/90 shadow-md shadow-amber-500/15",
+      },
+      {
+        title: "At Risk",
+        value: statusCounts["At Risk"] || 0,
+        statusKey: "At Risk",
+        subtitle: getPercentage(statusCounts["At Risk"] || 0),
+        icon: <FiAlertTriangle size={18} />,
+        gradientLight:
+          "from-rose-500/10 via-red-500/5 to-white/95 border-rose-200/80 hover:border-rose-400/80",
+        gradientDark:
+          "dark:from-rose-950/45 dark:via-red-950/25 dark:to-[#0c1322] dark:border-rose-500/30 dark:hover:border-rose-400/60",
+        topHighlight: "before:via-rose-400/70",
+        iconContainer:
+          "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20",
+        badgeClass:
+          "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-200/70 dark:border-rose-500/30",
+        glowHover: "hover:shadow-lg hover:shadow-rose-500/10",
+        activeRing: "ring-2 ring-rose-500/90 shadow-md shadow-rose-500/15",
+      },
+    ];
+  }, [totalShoots, statusCounts]);
 
   const hasActiveFilters =
     selectedClientFilter ||
@@ -1603,12 +1647,54 @@ const ShootCalendor = () => {
     selectedShootTypeFilter ||
     searchQuery;
 
-  const handleResetFilters = () => {
+  const handleResetFilters = useCallback(() => {
     setSelectedClientFilter("");
     setSelectedStatusFilter("");
     setSelectedShootTypeFilter("");
     setSearchQuery("");
-  };
+  }, []);
+
+  const handleToolbarNavigate = useCallback((action) => {
+    if (action === "TODAY") {
+      setCurrentDate(new Date());
+    } else if (action === "PREV") {
+      setCurrentDate((prev) => {
+        const next = new Date(prev);
+        next.setMonth(next.getMonth() - 1);
+        return next;
+      });
+    } else if (action === "NEXT") {
+      setCurrentDate((prev) => {
+        const next = new Date(prev);
+        next.setMonth(next.getMonth() + 1);
+        return next;
+      });
+    }
+  }, []);
+
+  const calendarComponents = useMemo(
+    () => ({
+      toolbar: (toolbarProps) => (
+        <CustomToolbar
+          {...toolbarProps}
+          currentDate={currentDate}
+          shoots={filteredShoots}
+          onView={(v) => setCurrentView(v)}
+        />
+      ),
+      event: (eventProps) => <CustomEvent {...eventProps} />,
+      month: {
+        dateHeader: (dateHeaderProps) => (
+          <CustomMonthDateHeader
+            {...dateHeaderProps}
+            canCreate={canCreate}
+            onAddForDate={(date) => openModal(null, date)}
+          />
+        ),
+      },
+    }),
+    [currentDate, filteredShoots, canCreate, openModal]
+  );
 
   return (
     <div className="max-w-8xl mx-auto min-h-[calc(100vh-64px)] flex flex-col pt-5 pb-6 text-slate-900 dark:text-slate-100">
@@ -1838,19 +1924,7 @@ const ShootCalendor = () => {
                 label={format(currentDate, "MMMM yyyy")}
                 date={currentDate}
                 currentDate={currentDate}
-                onNavigate={(action) => {
-                  if (action === "TODAY") {
-                    setCurrentDate(new Date());
-                  } else if (action === "PREV") {
-                    const prev = new Date(currentDate);
-                    prev.setMonth(prev.getMonth() - 1);
-                    setCurrentDate(prev);
-                  } else if (action === "NEXT") {
-                    const next = new Date(currentDate);
-                    next.setMonth(next.getMonth() + 1);
-                    setCurrentDate(next);
-                  }
-                }}
+                onNavigate={handleToolbarNavigate}
                 onView={(v) => setCurrentView(v)}
                 view={currentView}
                 shoots={filteredShoots}
@@ -1888,26 +1962,7 @@ const ShootCalendor = () => {
               style={{ height: "auto", minHeight: "1200px", border: "none" }}
               onSelectEvent={(event) => openViewOffcanvas(event.resource)}
               eventPropGetter={eventStyleGetter}
-              components={{
-                toolbar: (toolbarProps) => (
-                  <CustomToolbar
-                    {...toolbarProps}
-                    currentDate={currentDate}
-                    shoots={filteredShoots}
-                    onView={(v) => setCurrentView(v)}
-                  />
-                ),
-                event: (eventProps) => <CustomEvent {...eventProps} />,
-                month: {
-                  dateHeader: (dateHeaderProps) => (
-                    <CustomMonthDateHeader
-                      {...dateHeaderProps}
-                      canCreate={canCreate}
-                      onAddForDate={(date) => openModal(null, date)}
-                    />
-                  ),
-                },
-              }}
+              components={calendarComponents}
             />
           )}
 

@@ -25,7 +25,8 @@ exports.getContentTasks = async (req, res) => {
       .populate("assignedTo", "name email role profile profileImage avatar")
       .populate("createdBy", "name email role profile profileImage avatar")
       .populate("subtasks.assigneeUser", "name email role profile profileImage avatar")
-      .sort({ dueDate: 1, createdAt: -1 });
+      .sort({ dueDate: 1, createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,

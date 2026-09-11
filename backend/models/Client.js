@@ -149,6 +149,12 @@ const clientSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for performance optimization
+clientSchema.index({ assignedTo: 1 });
+clientSchema.index({ status: 1 });
+clientSchema.index({ companyName: 1 });
+clientSchema.index({ createdBy: 1 });
+
 module.exports = mongoose.model(
   "Client",
   clientSchema

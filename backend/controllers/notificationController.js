@@ -15,7 +15,8 @@ exports.getNotifications = async (req, res) => {
           select: 'profileImage',
         },
       })
-      .limit(20);
+      .limit(20)
+      .lean();
 
     res.status(200).json({
       success: true,

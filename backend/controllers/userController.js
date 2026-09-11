@@ -10,7 +10,7 @@ const bcrypt = require('bcryptjs');
 exports.getUsers = async (req, res) => {
   try {
     let query = {};
-    const users = await User.find(query).populate('profile');
+    const users = await User.find(query).populate('profile').lean();
 
     res.status(200).json({
       success: true,
@@ -33,7 +33,7 @@ exports.getUsers = async (req, res) => {
 // .....................................................get user.................................
 exports.getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).populate('profile');
+    const user = await User.findById(req.params.id).populate('profile').lean();
 
     if (!user) {
       return res.status(404).json({

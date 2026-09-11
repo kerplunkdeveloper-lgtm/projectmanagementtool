@@ -54,6 +54,7 @@ const NotificationSchema = new mongoose.Schema({
 
 // Optimize queries for finding user notifications, sorting by date, and checking unread counts
 NotificationSchema.index({ recipient: 1, isRead: 1 });
+NotificationSchema.index({ recipient: 1, createdAt: -1 });
 NotificationSchema.index({ createdAt: -1 });
 
 NotificationSchema.pre('save', async function () {

@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
-import format from "date-fns/format";
-import parse from "date-fns/parse";
-import startOfWeek from "date-fns/startOfWeek";
-import getDay from "date-fns/getDay";
-import enIN from "date-fns/locale/en-IN";
+import { format, parse, startOfWeek, getDay } from "date-fns";
+import { enIN } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useDispatch, useSelector } from "react-redux";
 import {

@@ -235,7 +235,7 @@ exports.getShoots = async (req, res) => {
       .sort({
       'schedule.shootDate': 1,
       'schedule.startTime': 1
-    });
+    }).lean();
 
     res.status(200).json({
       success: true,
@@ -259,7 +259,8 @@ exports.getShoot = async (req, res) => {
       .populate('client', 'companyName color icon email phone address')
       .populate('assignedTo', 'name email role department')
       .populate('shootTeam', 'name email role department')
-      .populate('createdBy', 'name email');
+      .populate('createdBy', 'name email')
+      .lean();
 
     if (!shoot) {
       return res.status(404).json({

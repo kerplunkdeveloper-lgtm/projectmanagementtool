@@ -118,5 +118,11 @@ shootSchema.index({ 'schedule.shootDate': 1 });
 shootSchema.index({ status: 1 });
 shootSchema.index({ shootType: 1 });
 shootSchema.index({ client: 1 });
+shootSchema.index({ assignedTo: 1 });
+shootSchema.index({ shootTeam: 1 });
+shootSchema.index({ createdBy: 1 });
+shootSchema.index({ 'schedule.shootDate': 1, status: 1 });
+shootSchema.index({ assignedTo: 1, 'schedule.shootDate': 1 });
 
 module.exports = mongoose.model('Shoot', shootSchema);
+
