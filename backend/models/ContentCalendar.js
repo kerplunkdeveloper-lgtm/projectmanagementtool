@@ -87,6 +87,11 @@ const contentCalendarSchema = new mongoose.Schema(
       required: true,
       default: "Publishing",
     },
+    contentType: {
+      type: String,
+      enum: ["Post", "Reels", "Stories"],
+      default: "Post",
+    },
     platform: {
       type: String,
       default: "Instagram",
@@ -163,6 +168,7 @@ contentCalendarSchema.index({ client: 1 });
 contentCalendarSchema.index({ assignedTo: 1 });
 contentCalendarSchema.index({ status: 1 });
 contentCalendarSchema.index({ createdBy: 1 });
+contentCalendarSchema.index({ contentType: 1 });
 contentCalendarSchema.index({ "subtasks.assigneeUser": 1 });
 
 module.exports = mongoose.model("ContentCalendar", contentCalendarSchema);

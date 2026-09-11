@@ -37,6 +37,8 @@ import {
   FiGrid,
   FiMove,
   FiArrowDown,
+  FiImage,
+  FiFilm,
 } from "react-icons/fi";
 import {
   FaInstagram,
@@ -233,6 +235,49 @@ export const getStatusConfig = (status) => {
         label: status || "To Do",
         bg: "bg-slate-100 dark:bg-[#131b2e] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10",
         dot: "bg-slate-400",
+      };
+  }
+};
+
+// Content Type styling and icons config (Post, Reels, Stories)
+export const getContentTypeConfig = (type) => {
+  const t = (type || "").toLowerCase();
+  switch (t) {
+    case "reels":
+    case "reel":
+      return {
+        label: "Reels",
+        value: "Reels",
+        icon: FiFilm,
+        bg: "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200/80 dark:border-purple-800/50",
+        badgeBg: "bg-gradient-to-r from-purple-600 to-pink-600 text-white",
+        dot: "bg-purple-500",
+        color: "text-purple-600 dark:text-purple-400",
+        ring: "ring-purple-500",
+      };
+    case "stories":
+    case "story":
+      return {
+        label: "Stories",
+        value: "Stories",
+        icon: FiClock,
+        bg: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/50",
+        badgeBg: "bg-gradient-to-r from-amber-500 to-orange-500 text-white",
+        dot: "bg-amber-500",
+        color: "text-amber-600 dark:text-amber-400",
+        ring: "ring-amber-500",
+      };
+    case "post":
+    default:
+      return {
+        label: "Post",
+        value: "Post",
+        icon: FiImage,
+        bg: "bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-200/80 dark:border-sky-800/50",
+        badgeBg: "bg-sky-600 text-white",
+        dot: "bg-sky-500",
+        color: "text-sky-600 dark:text-sky-400",
+        ring: "ring-sky-500",
       };
   }
 };
@@ -492,6 +537,7 @@ const ContentCalcendor = () => {
   const [statusFilter, setStatusFilter] = useState("All");
   const [platformFilter, setPlatformFilter] = useState("All");
   const [clientFilter, setClientFilter] = useState("All");
+  const [contentTypeFilter, setContentTypeFilter] = useState("All");
   const [userFilter, setUserFilter] = useState("All");
   const [sortOption, setSortOption] = useState("dueDateSoonest");
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -527,6 +573,7 @@ const ContentCalcendor = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [modalPlatforms, setModalPlatforms] = useState(["Instagram"]);
+  const [modalContentType, setModalContentType] = useState("Post");
   const [modalAssignedUserId, setModalAssignedUserId] = useState("");
   const [modalClientName, setModalClientName] = useState("");
 
@@ -542,6 +589,7 @@ const ContentCalcendor = () => {
               ? [editingTask.platform]
               : ["Instagram"];
         setModalPlatforms(initialPlatforms);
+        setModalContentType(editingTask.contentType || "Post");
 
         const initialUserId =
           (editingTask.assignedTo &&
@@ -559,6 +607,7 @@ const ContentCalcendor = () => {
         setModalClientName(initialClient);
       } else {
         setModalPlatforms(["Instagram"]);
+        setModalContentType("Post");
         const initialUserId = authUser?._id || "";
         setModalAssignedUserId(initialUserId);
 
@@ -725,6 +774,9 @@ const ContentCalcendor = () => {
             task.clientName?.toLowerCase().includes(q) ||
             task.client?.companyName?.toLowerCase().includes(q);
           const matchCat = task.taskCategory?.toLowerCase().includes(q);
+          const matchContentType = (task.contentType || "Post")
+            .toLowerCase()
+            .includes(q);
           const tPlatforms =
             Array.isArray(task.platforms) && task.platforms.length > 0
               ? task.platforms
@@ -739,6 +791,7 @@ const ContentCalcendor = () => {
             !matchName &&
             !matchClient &&
             !matchCat &&
+            !matchContentType &&
             !matchPlatform &&
             !matchTag
           ) {
@@ -749,6 +802,14 @@ const ContentCalcendor = () => {
         // Status Filter Pill
         if (statusFilter !== "All" && task.status !== statusFilter) {
           return false;
+        }
+
+        // Content Type Filter
+        if (contentTypeFilter !== "All") {
+          const cType = task.contentType || "Post";
+          if (cType !== contentTypeFilter) {
+            return false;
+          }
         }
 
         // Platform Filter
@@ -808,6 +869,7 @@ const ContentCalcendor = () => {
     tasks,
     searchQuery,
     statusFilter,
+    contentTypeFilter,
     platformFilter,
     clientFilter,
     userFilter,
@@ -898,6 +960,8 @@ const ContentCalcendor = () => {
     "Documentation",
     "Performance Support",
   ];
+
+  const contentTypeOptions = ["Post", "Reels", "Stories"];
 
   // Multi-select row handling
   const handleSelectAll = (e) => {
@@ -1568,6 +1632,7 @@ const ContentCalcendor = () => {
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
                     platformFilter !== "All" ||
                     clientFilter !== "All" ||
+                    contentTypeFilter !== "All" ||
                     userFilter !== "All" ||
                     statusFilter !== "All"
                       ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 font-bold"
@@ -1578,6 +1643,7 @@ const ContentCalcendor = () => {
                   <span>Filter</span>
                   {(platformFilter !== "All" ||
                     clientFilter !== "All" ||
+                    contentTypeFilter !== "All" ||
                     userFilter !== "All" ||
                     statusFilter !== "All") && (
                     <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
@@ -1605,7 +1671,7 @@ const ContentCalcendor = () => {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0d1322]  grid grid-cols-1 sm:grid-cols-3 gap-3"
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0d1322] grid grid-cols-1 sm:grid-cols-4 gap-3"
                 >
                   <div>
                     <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
@@ -1620,6 +1686,24 @@ const ContentCalcendor = () => {
                       {platformOptions.map((p) => (
                         <option key={p} value={p}>
                           {p}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                      Content Type
+                    </label>
+                    <select
+                      value={contentTypeFilter}
+                      onChange={(e) => setContentTypeFilter(e.target.value)}
+                      className="w-full p-2 bg-white dark:bg-[#111728] border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="All">All Content Types</option>
+                      {contentTypeOptions.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
                         </option>
                       ))}
                     </select>
@@ -1648,11 +1732,12 @@ const ContentCalcendor = () => {
                       onClick={() => {
                         setPlatformFilter("All");
                         setClientFilter("All");
+                        setContentTypeFilter("All");
                         setUserFilter("All");
                         setStatusFilter("All");
                         setShowFilterModal(false);
                       }}
-                      className="w-full py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-black rounded-xl text-xs font-semibold transition-all"
+                      className="w-full py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-white rounded-xl text-xs font-semibold transition-all"
                     >
                       Reset Filters
                     </button>
@@ -1712,10 +1797,10 @@ const ContentCalcendor = () => {
 
                 {/* DATA TABLE */}
                 <div className="overflow-x-auto rounded-2xl">
-                  <table className="content-calendar-table w-full text-left text-xs border-collapse">
+                  <table className="content-calendar-table w-full text-left text-[11px] border-collapse">
                     <thead className="sidebar-bg">
-                      <tr className="border-b border-[var(--accent-color)]/20 dark:border-[var(--accent-color-dark)]/20 text-[10.5px] font-extrabold text-[var(--accent-color)] dark:text-[var(--accent-color-dark)] uppercase tracking-wider">
-                        <th className="py-3 px-3 w-8 text-center">
+                      <tr className="border-b border-[var(--accent-color)]/20 dark:border-[var(--accent-color-dark)]/20 text-[9.5px] font-extrabold text-[var(--accent-color)] dark:text-[var(--accent-color-dark)] uppercase tracking-wider">
+                        <th className="py-2.5 px-2.5 w-8 text-center">
                           <button
                             type="button"
                             onClick={() => {
@@ -1757,6 +1842,7 @@ const ContentCalcendor = () => {
                         <th className="py-3 px-3 font-extrabold">Client</th>
                         <th className="py-3 px-3 font-extrabold">Poster</th>
                         <th className="py-3 px-3 font-extrabold">Category</th>
+                        <th className="py-3 px-3 font-extrabold">Content Type</th>
                         <th className="py-3 px-3 font-extrabold">Platform</th>
                         <th className="py-3 px-3 font-extrabold">Due Date</th>
                         <th className="py-3 px-3 font-extrabold">Priority</th>
@@ -1771,7 +1857,7 @@ const ContentCalcendor = () => {
                       {loading ? (
                         <tr>
                           <td
-                            colSpan={11}
+                            colSpan={12}
                             className="py-12 text-center text-slate-400"
                           >
                             <div className="flex flex-col items-center justify-center space-y-2.5">
@@ -1785,7 +1871,7 @@ const ContentCalcendor = () => {
                       ) : filteredTasks.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={11}
+                            colSpan={12}
                             className="py-12 text-center text-slate-400"
                           >
                             <div className="flex flex-col items-center justify-center space-y-2">
@@ -1912,18 +1998,18 @@ const ContentCalcendor = () => {
                                 </td>
 
                                 {/* Task Name */}
-                                <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white max-w-[180px] truncate text-xs leading-tight">
+                                <td className="py-2 px-2.5 font-bold text-slate-900 dark:text-white max-w-[180px] truncate text-[11px] leading-tight">
                                   {task.taskName}
                                 </td>
 
                                 {/* Client Name */}
-                                <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 font-medium text-xs truncate max-w-[120px]">
+                                <td className="py-2 px-2.5 text-slate-600 dark:text-slate-300 font-medium text-[11px] truncate max-w-[120px]">
                                   {displayClientName}
                                 </td>
 
                                 {/* Poster / Member */}
                                 <td
-                                  className="py-2.5 px-3"
+                                  className="py-2 px-2.5"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <div
@@ -1934,14 +2020,14 @@ const ContentCalcendor = () => {
                                       <img
                                         src={posterAvatar}
                                         alt={posterName}
-                                        className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs shrink-0"
+                                        className="w-4.5 h-4.5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs shrink-0"
                                       />
                                     ) : (
-                                      <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-[9px] flex items-center justify-center shrink-0 shadow-2xs">
+                                      <div className="w-4.5 h-4.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-[8.5px] flex items-center justify-center shrink-0 shadow-2xs">
                                         {posterInitials}
                                       </div>
                                     )}
-                                    <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200 truncate max-w-[85px]">
+                                    <span className="text-[10px] font-medium text-slate-700 dark:text-slate-200 truncate max-w-[85px]">
                                       {posterName}
                                     </span>
                                   </div>
@@ -1949,7 +2035,7 @@ const ContentCalcendor = () => {
 
                                 {/* Task Category (Editable Dropdown) */}
                                 <td
-                                  className="py-2.5 px-3"
+                                  className="py-2 px-2.5"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <div className="relative inline-block">
@@ -1961,7 +2047,7 @@ const ContentCalcendor = () => {
                                         })
                                       }
                                       aria-label="Edit Task Category"
-                                      className="appearance-none cursor-pointer pl-2.5 pr-5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100/90 dark:bg-[#111728] hover:bg-slate-200/80 dark:hover:bg-[#161f36] text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                      className="appearance-none cursor-pointer pl-2 pr-4 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100/90 dark:bg-[#111728] hover:bg-slate-200/80 dark:hover:bg-[#161f36] text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 transition-all focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                     >
                                       {categoryOptions.map((cat) => (
                                         <option
@@ -1977,8 +2063,53 @@ const ContentCalcendor = () => {
                                   </div>
                                 </td>
 
+                                {/* Content Type (Editable Dropdown) */}
+                                <td
+                                  className="py-2 px-2.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="relative inline-block">
+                                    {(() => {
+                                      const ctCfg = getContentTypeConfig(
+                                        task.contentType || "Post",
+                                      );
+                                      const CtIcon = ctCfg.icon;
+                                      return (
+                                        <div className="relative inline-flex items-center">
+                                          <span
+                                            className={`absolute left-1.5 pointer-events-none ${ctCfg.color}`}
+                                          >
+                                            <CtIcon className="w-2.5 h-2.5" />
+                                          </span>
+                                          <select
+                                            value={task.contentType || "Post"}
+                                            onChange={(e) =>
+                                              handleUpdateTask(task._id, {
+                                                contentType: e.target.value,
+                                              })
+                                            }
+                                            aria-label="Edit Content Type"
+                                            className={`appearance-none cursor-pointer pl-5 pr-4 py-0.5 rounded-lg text-[10px] font-bold border shadow-2xs transition-all hover:opacity-90 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${ctCfg.bg}`}
+                                          >
+                                            {contentTypeOptions.map((type) => (
+                                              <option
+                                                key={type}
+                                                value={type}
+                                                className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100"
+                                              >
+                                                {type}
+                                              </option>
+                                            ))}
+                                          </select>
+                                          <FiChevronDown className="w-2.5 h-2.5 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </td>
+
                                 {/* Platform Badges (Icons Only) */}
-                                <td className="py-2.5 px-3">
+                                <td className="py-2 px-2.5">
                                   <div className="flex flex-wrap items-center gap-1">
                                     {tPlatforms.map((pName, pIdx) => {
                                       const pCfg = getPlatformConfig(pName);
@@ -1986,7 +2117,7 @@ const ContentCalcendor = () => {
                                         <span
                                           key={`${pName}-${pIdx}`}
                                           title={`Platform: ${pName}`}
-                                          className={`w-5 h-5 rounded-md flex items-center justify-center text-xs border shadow-2xs transition-transform hover:scale-110 ${pCfg.bg}`}
+                                          className={`w-4.5 h-4.5 rounded-md flex items-center justify-center text-xs border shadow-2xs transition-transform hover:scale-110 ${pCfg.bg}`}
                                         >
                                           <pCfg.icon className="w-2.5 h-2.5 shrink-0" />
                                         </span>
@@ -1996,10 +2127,10 @@ const ContentCalcendor = () => {
                                 </td>
 
                                 {/* Due Date & Time */}
-                                <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300 text-[11px] font-medium whitespace-nowrap leading-tight">
+                                <td className="py-2 px-2.5 text-slate-600 dark:text-slate-300 text-[10px] font-medium whitespace-nowrap leading-tight">
                                   <div>{formatDate(task.dueDate)}</div>
                                   {task.dueTime && (
-                                    <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-0.5 mt-0.5">
+                                    <div className="text-[9px] text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-0.5 mt-0.5">
                                       <FiClock className="w-2.5 h-2.5" />
                                       <span>{formatTime(task.dueTime)}</span>
                                     </div>
@@ -2007,9 +2138,9 @@ const ContentCalcendor = () => {
                                 </td>
 
                                 {/* Priority Badge */}
-                                <td className="py-2.5 px-3">
+                                <td className="py-2 px-2.5">
                                   <span
-                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${priorityCfg.bg}`}
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold border ${priorityCfg.bg}`}
                                   >
                                     <priorityCfg.icon
                                       className={`w-2.5 h-2.5 ${priorityCfg.color}`}
@@ -2020,7 +2151,7 @@ const ContentCalcendor = () => {
 
                                 {/* Status (Editable Dropdown) */}
                                 <td
-                                  className="py-2.5 px-3"
+                                  className="py-2 px-2.5"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <div className="relative inline-flex items-center">
@@ -2032,7 +2163,7 @@ const ContentCalcendor = () => {
                                         })
                                       }
                                       aria-label="Edit Status"
-                                      className={`appearance-none cursor-pointer pl-5 pr-5 py-1 rounded-lg text-[11px] font-bold border shadow-2xs transition-all hover:opacity-90 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${statusCfg.bg}`}
+                                      className={`appearance-none cursor-pointer pl-4 pr-4 py-0.5 rounded-lg text-[10px] font-bold border shadow-2xs transition-all hover:opacity-90 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${statusCfg.bg}`}
                                     >
                                       <option
                                         value="To Do"
@@ -2066,7 +2197,7 @@ const ContentCalcendor = () => {
                                       </option>
                                     </select>
                                     <span
-                                      className={`w-1.5 h-1.5 rounded-full absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none ${statusCfg.dot}`}
+                                      className={`w-1.5 h-1.5 rounded-full absolute left-1.5 top-1/2 -translate-y-1/2 pointer-events-none ${statusCfg.dot}`}
                                     />
                                     <FiChevronDown className="w-2.5 h-2.5 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
                                   </div>
@@ -2074,7 +2205,7 @@ const ContentCalcendor = () => {
 
                                 {/* Subtasks Interactive Dropdown Button */}
                                 <td
-                                  className="py-2.5 px-3 min-w-[130px]"
+                                  className="py-2 px-2.5 min-w-[115px]"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <button
@@ -2082,7 +2213,7 @@ const ContentCalcendor = () => {
                                     onClick={(e) =>
                                       toggleExpandSubtasks(task._id, e)
                                     }
-                                    className={`group/sub inline-flex items-center justify-between gap-2 px-2.5 py-1 rounded-xl border text-[11px] font-semibold transition-all duration-150 ${
+                                    className={`group/sub inline-flex items-center justify-between gap-1.5 px-2 py-0.5 rounded-lg border text-[10px] font-semibold transition-all duration-150 ${
                                       isExpanded
                                         ? "bg-indigo-600 text-white border-indigo-500 shadow-sm shadow-indigo-600/30 font-bold"
                                         : totalSubs === 0
@@ -2149,7 +2280,7 @@ const ContentCalcendor = () => {
                               {isExpanded && (
                                 <tr className="expanded-subtask-panel bg-slate-50/60 dark:bg-[#070a12] border-b border-indigo-100/50 dark:border-indigo-950/60">
                                   <td
-                                    colSpan={11}
+                                    colSpan={12}
                                     className="py-3 px-3 sm:px-6"
                                   >
                                     <motion.div
@@ -2495,6 +2626,7 @@ const ContentCalcendor = () => {
                                 priority: "Medium",
                                 platform: "Instagram",
                                 taskCategory: "Publishing",
+                                contentType: "Post",
                               });
                               setIsTaskModalOpen(true);
                             }}
@@ -2528,6 +2660,7 @@ const ContentCalcendor = () => {
                                     priority: "Medium",
                                     platform: "Instagram",
                                     taskCategory: "Publishing",
+                                    contentType: "Post",
                                   });
                                   setIsTaskModalOpen(true);
                                 }}
@@ -2625,6 +2758,21 @@ const ContentCalcendor = () => {
                                       <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold text-[10px] border border-indigo-100 dark:border-indigo-900/40">
                                         {task.taskCategory || "Publishing"}
                                       </span>
+                                      {(() => {
+                                        const ctCfg = getContentTypeConfig(
+                                          task.contentType || "Post",
+                                        );
+                                        const CtIcon = ctCfg.icon;
+                                        return (
+                                          <span
+                                            title={`Content Type: ${ctCfg.label}`}
+                                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-bold border shadow-2xs ${ctCfg.bg}`}
+                                          >
+                                            <CtIcon className="w-2.5 h-2.5" />
+                                            <span>{ctCfg.label}</span>
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
 
                                     <div className="flex items-center gap-1.5">
@@ -2996,6 +3144,7 @@ const ContentCalcendor = () => {
                                       priority: "Medium",
                                       platform: "Instagram",
                                       taskCategory: "Publishing",
+                                      contentType: "Post",
                                     });
                                     setIsTaskModalOpen(true);
                                   }}
@@ -3015,17 +3164,17 @@ const ContentCalcendor = () => {
 
                               {/* Post Badges on this day - stacked one by one without inner scroll */}
                               <div className="space-y-2.5 my-1 w-full flex-1 flex flex-col">
-                                {dayTasks.map((t, tIndex) => {
+                                {dayTasks.map((t, tIdx) => {
+                                  const cardTheme = getCalendarCardTheme(
+                                    t,
+                                    tIdx,
+                                  );
                                   const tPlatforms =
                                     Array.isArray(t.platforms) &&
                                     t.platforms.length > 0
                                       ? t.platforms
                                       : [t.platform || "Instagram"];
                                   const statusCfg = getStatusConfig(t.status);
-                                  const cardTheme = getCalendarCardTheme(
-                                    t,
-                                    tIndex,
-                                  );
                                   const isTaskSelected =
                                     selectedTaskId === t._id;
                                   const clientName =
@@ -3108,15 +3257,30 @@ const ContentCalcendor = () => {
                                         {t.taskName}
                                       </div>
 
-                                      {/* Row 3: Category Badge & Poster By Info */}
+                                      {/* Row 3: Content Type + Category Badge & Poster By Info */}
                                       <div className="flex items-center justify-between gap-1 flex-wrap">
-                                        {t.taskCategory ? (
-                                          <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md bg-white/90 dark:bg-[#131b2e] text-slate-700 dark:text-indigo-200 border border-slate-200/80 dark:border-indigo-500/30 shadow-2xs">
-                                            {t.taskCategory}
-                                          </span>
-                                        ) : (
-                                          <span />
-                                        )}
+                                        <div className="flex items-center gap-1 flex-wrap">
+                                          {(() => {
+                                            const ctCfg = getContentTypeConfig(
+                                              t.contentType || "Post",
+                                            );
+                                            const CtIcon = ctCfg.icon;
+                                            return (
+                                              <span
+                                                title={`Content Type: ${ctCfg.label}`}
+                                                className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border flex items-center gap-1 shadow-2xs ${ctCfg.bg}`}
+                                              >
+                                                <CtIcon className="w-2.5 h-2.5" />
+                                                <span>{ctCfg.label}</span>
+                                              </span>
+                                            );
+                                          })()}
+                                          {t.taskCategory && (
+                                            <span className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md bg-white/90 dark:bg-[#131b2e] text-slate-700 dark:text-indigo-200 border border-slate-200/80 dark:border-indigo-500/30 shadow-2xs">
+                                              {t.taskCategory}
+                                            </span>
+                                          )}
+                                        </div>
 
                                         {/* Poster By */}
                                         <div
@@ -3439,6 +3603,7 @@ const ContentCalcendor = () => {
                                         priority: "Medium",
                                         platform: "Instagram",
                                         taskCategory: "Publishing",
+                                        contentType: "Post",
                                       });
                                       setIsTaskModalOpen(true);
                                     }}
@@ -3532,18 +3697,34 @@ const ContentCalcendor = () => {
                                           {t.taskName}
                                         </div>
 
-                                        {/* Row 3: Category Badge & Poster By */}
+                                        {/* Row 3: Content Type + Category Badge & Poster By */}
                                         <div className="flex items-center justify-between gap-1 flex-wrap">
-                                          {t.taskCategory ? (
-                                            <span
-                                              className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md bg-white/90 dark:bg-[#131b2e] text-slate-700 dark:text-indigo-200 border border-slate-200/80 dark:border-indigo-500/30 shadow-2xs leading-tight break-words max-w-full"
-                                              title={t.taskCategory}
-                                            >
-                                              {t.taskCategory}
-                                            </span>
-                                          ) : (
-                                            <span />
-                                          )}
+                                          <div className="flex items-center gap-1 flex-wrap">
+                                            {(() => {
+                                              const ctCfg =
+                                                getContentTypeConfig(
+                                                  t.contentType || "Post",
+                                                );
+                                              const CtIcon = ctCfg.icon;
+                                              return (
+                                                <span
+                                                  title={`Content Type: ${ctCfg.label}`}
+                                                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border flex items-center gap-1 shadow-2xs ${ctCfg.bg}`}
+                                                >
+                                                  <CtIcon className="w-2.5 h-2.5" />
+                                                  <span>{ctCfg.label}</span>
+                                                </span>
+                                              );
+                                            })()}
+                                            {t.taskCategory && (
+                                              <span
+                                                className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md bg-white/90 dark:bg-[#131b2e] text-slate-700 dark:text-indigo-200 border border-slate-200/80 dark:border-indigo-500/30 shadow-2xs leading-tight break-words max-w-full"
+                                                title={t.taskCategory}
+                                              >
+                                                {t.taskCategory}
+                                              </span>
+                                            )}
+                                          </div>
 
                                           {/* Poster By */}
                                           <div
@@ -3924,11 +4105,31 @@ const ContentCalcendor = () => {
                                                     },
                                                   )}
                                                 </div>
-                                                {t.taskCategory && (
-                                                  <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-md bg-white/90 dark:bg-[#131b2e] text-slate-700 dark:text-indigo-200 border border-slate-200/80 dark:border-indigo-500/30 shadow-2xs whitespace-nowrap">
-                                                    {t.taskCategory}
-                                                  </span>
-                                                )}
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                  {(() => {
+                                                    const ctCfg =
+                                                      getContentTypeConfig(
+                                                        t.contentType || "Post",
+                                                      );
+                                                    const CtIcon = ctCfg.icon;
+                                                    return (
+                                                      <span
+                                                        title={`Content Type: ${ctCfg.label}`}
+                                                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 shadow-2xs whitespace-nowrap ${ctCfg.bg}`}
+                                                      >
+                                                        <CtIcon className="w-3 h-3" />
+                                                        <span>
+                                                          {ctCfg.label}
+                                                        </span>
+                                                      </span>
+                                                    );
+                                                  })()}
+                                                  {t.taskCategory && (
+                                                    <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-md bg-white/90 dark:bg-[#131b2e] text-slate-700 dark:text-indigo-200 border border-slate-200/80 dark:border-indigo-500/30 shadow-2xs whitespace-nowrap">
+                                                      {t.taskCategory}
+                                                    </span>
+                                                  )}
+                                                </div>
                                               </div>
 
                                               {t.dueTime && (
@@ -4039,6 +4240,7 @@ const ContentCalcendor = () => {
                                           priority: "Medium",
                                           platform: "Instagram",
                                           taskCategory: "Publishing",
+                                          contentType: "Post",
                                         });
                                         setIsTaskModalOpen(true);
                                       }}
@@ -4098,6 +4300,8 @@ const ContentCalcendor = () => {
                     taskName: form.taskName.value,
                     clientName: form.clientName.value,
                     taskCategory: form.taskCategory.value,
+                    contentType:
+                      modalContentType || form.contentType?.value || "Post",
                     assignedUserId: form.assignedUserId?.value || authUser?._id,
                     assignedTo: form.assignedUserId?.value
                       ? [form.assignedUserId.value]
@@ -4254,6 +4458,52 @@ const ContentCalcendor = () => {
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Content Type Selector (Post, Reels, Stories) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block font-bold text-slate-700 dark:text-slate-300">
+                      Content Type *
+                    </label>
+                    <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400">
+                      {modalContentType || "Post"} selected
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {contentTypeOptions.map((type) => {
+                      const cfg = getContentTypeConfig(type);
+                      const isSelected = (modalContentType || "Post") === type;
+                      const Icon = cfg.icon;
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setModalContentType(type)}
+                          className={`flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold border transition-all duration-150 ${
+                            isSelected
+                              ? `${cfg.bg} ring-2 ring-indigo-500 shadow-xs font-extrabold scale-[1.01]`
+                              : "bg-slate-50 dark:bg-[#111728] border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          <Icon
+                            className={`w-4 h-4 shrink-0 ${
+                              isSelected ? cfg.color : "text-slate-400"
+                            }`}
+                          />
+                          <span>{type}</span>
+                          {isSelected && (
+                            <FiCheck className="w-3.5 h-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input
+                    type="hidden"
+                    name="contentType"
+                    value={modalContentType || "Post"}
+                  />
                 </div>
 
                 {/* Multiple Platforms Selector */}
