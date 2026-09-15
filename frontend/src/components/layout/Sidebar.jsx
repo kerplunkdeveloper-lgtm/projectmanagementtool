@@ -552,7 +552,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             <img
               src={isDark ? darkSortedLogo : sortedLogo}
               alt="Sorted Logo"
-              className="h-13 w-auto object-contain drop-shadow-sm"
+              className="h-15 w-auto object-contain drop-shadow-sm"
             />
           </div>
 
