@@ -1,4 +1,4 @@
-name: Deploy Project to VPS
+name: Deploy Project to AWS EC2
 
 on:
   push:
@@ -12,16 +12,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to VPS
+      - name: Deploy to AWS EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
+
           script: |
             cd /var/www/projectmanagementtool
 
+            echo "===== Pull Latest Code ====="
             git pull origin main
 
             echo "===== Backend ====="
@@ -35,6 +37,7 @@ jobs:
             npm install
             npm run build
 
+            echo "===== Reload Nginx ====="
             sudo systemctl reload nginx
 
-            echo "Deployment completed successfully!"
+            echo "===== Deployment Completed ====="
