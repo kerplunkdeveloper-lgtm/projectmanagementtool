@@ -150,7 +150,7 @@ const UserTable = ({
   const { user: currentUser } = useSelector((state) => state.auth);
   const [copiedId, setCopiedId] = useState(null);
   // Online presence from shared SocketContext (no duplicate socket)
-  const { isOnline } = useSocketContext() || { isOnline: () => false };
+  const { onlineUserIds } = useSocketContext() || { onlineUserIds: [] };
 
 
   const handleEdit = (u) => {
@@ -279,7 +279,7 @@ const UserTable = ({
                           {/* Online dot */}
                           {!isRelieved && (
                             <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 transition-colors duration-300 ${isOnline(user._id) ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-slate-400"}`}
+                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 transition-colors duration-300 ${onlineUserIds.includes(user._id) ? "bg-emerald-500" : "bg-slate-400"}`}
                             />
                           )}
                         </div>

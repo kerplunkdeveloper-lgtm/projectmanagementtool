@@ -25,48 +25,26 @@ export const SocketProvider = ({ children }) => {
     const userId = user?._id || user?.id;
     if (!user || !userId) return;
 
-    const getSocketUrl = () => {
-      if (typeof window !== "undefined") {
-        const isLocalhost =
-          window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1";
-
-        // In production / live site, NEVER connect to localhost!
-        if (!isLocalhost) {
-          const envUrl = import.meta.env.VITE_API_BASE_URL;
-          if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
-            return envUrl;
-          }
-          // Default to current live domain (HTTPS / WSS)
-          return window.location.origin;
-        }
-      }
-      return import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
-    };
-
-    const socketUrl = getSocketUrl();
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    const socketUrl = baseUrl
+      ? baseUrl
+      : typeof window !== "undefined"
+      ? window.location.origin
+      : "http://localhost:5001";
 
     // Create socket only once per user session
     const socketInstance = io(socketUrl, {
       transports: ["websocket", "polling"],
       withCredentials: true,
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
     });
 
     // Store in state → triggers re-render so children can access it
     setSocket(socketInstance);
 
-    const emitJoin = () => {
-      socketInstance.emit("join", userId.toString());
-    };
-
-    if (socketInstance.connected) {
-      emitJoin();
-    }
-    socketInstance.on("connect", emitJoin);
-    socketInstance.on("reconnect", emitJoin);
+    // Emit join only after connected (correct timing)
+    socketInstance.on("connect", () => {
+      socketInstance.emit("join", userId);
+    });
 
     // Full online list broadcast
     socketInstance.on("online_users_list", (userIds) => {

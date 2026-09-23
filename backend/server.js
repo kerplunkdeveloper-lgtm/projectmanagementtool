@@ -102,31 +102,14 @@ app.use(cookieParser());
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "http://localhost:3000",
   "https://demotask-seven.vercel.app",
   "https://tasks.kerplunkmedia.com",
-  "http://tasks.kerplunkmedia.com",
-  "https://www.tasks.kerplunkmedia.com",
-  "http://www.tasks.kerplunkmedia.com",
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-const corsOriginHandler = (origin, callback) => {
-  if (!origin) return callback(null, true);
-  if (
-    allowedOrigins.includes(origin) ||
-    origin.includes("kerplunkmedia.com") ||
-    origin.includes("localhost") ||
-    origin.includes("127.0.0.1") ||
-    origin.includes("vercel.app")
-  ) {
-    return callback(null, true);
-  }
-  return callback(null, true);
-};
 
 app.use(cors({
-  origin: corsOriginHandler,
+  origin: allowedOrigins,
   credentials: true,
 }));
 
@@ -237,10 +220,10 @@ const server = require('http').createServer(app);
 
 const io = require('socket.io')(server, {
   cors: {
-    origin: corsOriginHandler,
+    origin: allowedOrigins,
     credentials: true,
   },
-  transports: ['websocket', 'polling']
+  transports: ['polling', 'websocket']
 });
 
 app.set('io', io);

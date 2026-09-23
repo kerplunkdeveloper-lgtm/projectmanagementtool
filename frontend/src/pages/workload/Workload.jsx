@@ -388,7 +388,7 @@ const Workload = () => {
   });
 
   // Real-time Online / Offline state from shared SocketContext (no duplicate socket)
-  const { onlineUserIds, isOnline: checkIsOnline } = useSocketContext() || { onlineUserIds: [], isOnline: () => false };
+  const { onlineUserIds, isOnline } = useSocketContext() || { onlineUserIds: [], isOnline: () => false };
 
   // State
   const [selectedRole, setSelectedRole] = useState("Graphic Designer"); // Default Graphic Designer user
@@ -479,7 +479,7 @@ const Workload = () => {
       const userIdStr = u._id?.toString();
 
       // Real-time Online / Offline status
-      const isOnline = checkIsOnline ? checkIsOnline(userIdStr) : onlineUserIds.includes(userIdStr);
+      const isOnline = onlineUserIds.includes(userIdStr);
 
       // Find all tasks assigned to this user
       const assignedTasks = (tasksData || []).filter((t) =>
