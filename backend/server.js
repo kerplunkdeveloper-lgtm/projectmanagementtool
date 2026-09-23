@@ -87,7 +87,22 @@ connectDB().then(() => {
       console.error('[Database Repair] Error normalizing task statuses:', err);
     }
   };
-  normalizeTaskStatuses();
+  // Reset any stale 'online' / 'away' statuses to 'offline' on server startup
+  const resetStalePresenceOnStartup = async () => {
+    try {
+      const User = require('./models/User');
+      const res = await User.updateMany(
+        { presenceStatus: { $in: ['online', 'away'] } },
+        { $set: { presenceStatus: 'offline', lastSeen: new Date() } }
+      );
+      if (res.modifiedCount > 0) {
+        console.log(`[Database Startup] Reset ${res.modifiedCount} stale online users to offline.`);
+      }
+    } catch (err) {
+      console.error('[Database Startup] Error resetting stale presence:', err);
+    }
+  };
+  resetStalePresenceOnStartup();
 });
 
 const app = express();
@@ -100,16 +115,37 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
 
-const allowedOrigins = [
+const rawOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:3000",
+  "http://localhost:5001",
   "https://demotask-seven.vercel.app",
   "https://tasks.kerplunkmedia.com",
-  process.env.FRONTEND_URL
+  "http://tasks.kerplunkmedia.com",
+  "https://www.tasks.kerplunkmedia.com",
+  "http://www.tasks.kerplunkmedia.com",
+  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/+$/, "") : null,
 ].filter(Boolean);
 
+const allowedOrigins = [...new Set(rawOrigins)];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const cleanOrigin = origin.replace(/\/+$/, "");
+    if (
+      allowedOrigins.includes(cleanOrigin) ||
+      cleanOrigin.endsWith(".kerplunkmedia.com") ||
+      cleanOrigin.endsWith(".vercel.app") ||
+      cleanOrigin.includes("localhost") ||
+      process.env.NODE_ENV !== "production"
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true,
 }));
 
@@ -220,10 +256,12 @@ const server = require('http').createServer(app);
 
 const io = require('socket.io')(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: true,
     credentials: true,
   },
-  transports: ['polling', 'websocket']
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 app.set('io', io);

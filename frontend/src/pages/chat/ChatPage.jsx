@@ -443,10 +443,12 @@ const ChatPage = () => {
       if (!memberId) return false;
       const idStr = memberId.toString();
       return (
-        onlineUsers.includes(idStr) || userPresence[idStr]?.status === "online"
+        (typeof isOnline === "function" && isOnline(idStr)) ||
+        onlineUsers.some((id) => id.toString() === idStr) ||
+        userPresence[idStr]?.status === "online"
       );
     },
-    [onlineUsers, userPresence],
+    [onlineUsers, userPresence, isOnline],
   );
 
   const formatMemberLastSeen = useCallback(

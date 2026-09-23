@@ -136,12 +136,19 @@ const ShootCalendarOverview = () => {
   useEffect(() => {
     if (!hasReadPerm) return;
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    const socketUrl = baseUrl
-      ? baseUrl
-      : typeof window !== "undefined"
-        ? window.location.origin
-        : "http://localhost:5001";
+    let baseUrl = import.meta.env.VITE_API_BASE_URL;
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1"
+    ) {
+      if (!baseUrl || baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+        baseUrl = window.location.origin;
+      }
+    }
+    const socketUrl = (baseUrl || (typeof window !== "undefined" ? window.location.origin : "http://localhost:5001"))
+      .replace(/\/api\/?$/, "")
+      .replace(/\/+$/, "");
 
     const socket = io(socketUrl, {
       transports: ["polling", "websocket"],

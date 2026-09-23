@@ -4,6 +4,30 @@ import { useSelector } from "react-redux";
 
 const SocketContext = createContext(null);
 
+// Helper to compute clean socket URL
+const getSocketUrl = () => {
+  let baseUrl = import.meta.env.VITE_API_BASE_URL;
+
+  // In live production browser environment (not running on localhost):
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    // If baseUrl is pointing to localhost or missing, fallback to current origin
+    if (!baseUrl || baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+      return window.location.origin;
+    }
+  }
+
+  if (!baseUrl) {
+    return typeof window !== "undefined" ? window.location.origin : "http://localhost:5001";
+  }
+
+  // Strip trailing /api and trailing slashes so Socket.io connects to root namespace
+  return baseUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
+};
+
 /**
  * SocketProvider — App-level single socket connection.
  * DashboardLayout-ல் wrap பண்ணு → எல்லா pages-லயும் same socket use ஆகும்.
@@ -13,6 +37,7 @@ const SocketContext = createContext(null);
  */
 export const SocketProvider = ({ children }) => {
   const { user } = useSelector((state) => state.auth);
+  const userId = user?._id || user?.id;
 
   // socket stored in STATE so children re-render when it's ready
   const [socket, setSocket] = useState(null);
@@ -22,29 +47,34 @@ export const SocketProvider = ({ children }) => {
   const [userPresence, setUserPresence] = useState({}); // userId -> { status, lastSeen }
 
   useEffect(() => {
-    const userId = user?._id || user?.id;
-    if (!user || !userId) return;
+    if (!userId) return;
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    const socketUrl = baseUrl
-      ? baseUrl
-      : typeof window !== "undefined"
-      ? window.location.origin
-      : "http://localhost:5001";
+    const socketUrl = getSocketUrl();
 
     // Create socket only once per user session
     const socketInstance = io(socketUrl, {
       transports: ["websocket", "polling"],
       withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     // Store in state → triggers re-render so children can access it
     setSocket(socketInstance);
 
-    // Emit join only after connected (correct timing)
+    // Emit join when connected (and on reconnect)
     socketInstance.on("connect", () => {
-      socketInstance.emit("join", userId);
+      socketInstance.emit("join", userId.toString());
     });
+
+    if (socketInstance.io) {
+      socketInstance.io.on("reconnect", () => {
+        socketInstance.emit("join", userId.toString());
+      });
+    }
 
     // Full online list broadcast
     socketInstance.on("online_users_list", (userIds) => {
@@ -83,7 +113,7 @@ export const SocketProvider = ({ children }) => {
       socketInstance.disconnect();
       setSocket(null);
     };
-  }, [user]);
+  }, [userId]);
 
   return (
     <SocketContext.Provider
@@ -91,13 +121,13 @@ export const SocketProvider = ({ children }) => {
         socket,          // STATE-based → children re-render when socket is ready ✅
         onlineUserIds,
         userPresence,
-        isOnline: (userId) => {
-          if (!userId) return false;
-          const idStr = userId.toString();
+        isOnline: (targetId) => {
+          if (!targetId) return false;
+          const idStr = targetId.toString();
           const presenceStatus = userPresence[idStr]?.status;
           // "away" is still treated as online
           return (
-            onlineUserIds.includes(idStr) ||
+            onlineUserIds.some((id) => id.toString() === idStr) ||
             presenceStatus === "online" ||
             presenceStatus === "away"
           );

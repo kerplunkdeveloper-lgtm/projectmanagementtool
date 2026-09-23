@@ -58,7 +58,24 @@ if (typeof window !== "undefined") {
   });
 }
 
-const useSocket = () => {
+const getSocketUrl = () => {
+  let baseUrl = import.meta.env.VITE_API_BASE_URL;
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    if (!baseUrl || baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+      return window.location.origin;
+    }
+  }
+  if (!baseUrl) {
+    return typeof window !== "undefined" ? window.location.origin : "http://localhost:5001";
+  }
+  return baseUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
+};
+
+const useSocket = (externalSocket = null) => {
   const socket = useRef();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -67,22 +84,33 @@ const useSocket = () => {
   useEffect(() => {
     const userId = user?._id || user?.id;
     if (user && userId) {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const socketUrl = baseUrl ? baseUrl : (typeof window !== 'undefined' ? window.location.origin : "http://localhost:5001");
-      socket.current = io(socketUrl, {
-        transports: ["websocket", "polling"],
-        withCredentials: true
-      });
+      const isExternal = Boolean(externalSocket);
+      if (isExternal) {
+        socket.current = externalSocket;
+      } else {
+        const socketUrl = getSocketUrl();
+        socket.current = io(socketUrl, {
+          transports: ["websocket", "polling"],
+          withCredentials: true,
+          reconnection: true,
+          reconnectionAttempts: Infinity,
+          reconnectionDelay: 1000,
+        });
 
-      socket.current.on("connect", () => {
-        socket.current.emit("join", userId);
-      });
+        socket.current.on("connect", () => {
+          socket.current.emit("join", userId.toString());
+        });
+      }
 
-      socket.current.on("task_updated", () => {
+      if (!socket.current) return;
+
+      const currentSocket = socket.current;
+
+      const handleTaskUpdated = () => {
         dispatch(apiSlice.util.invalidateTags(["Task"]));
-      });
+      };
 
-      socket.current.on("account_deactivated", (data) => {
+      const handleAccountDeactivated = (data) => {
         toast.error(
           data?.message || "Your account has been deactivated. Please contact your administrator.",
           { duration: 6000, id: "account-deactivated-toast" }
@@ -94,7 +122,10 @@ const useSocket = () => {
         localStorage.removeItem("originalAdminUser");
         localStorage.removeItem("originalAdminToken");
         window.location.href = "/";
-      });
+      };
+
+      currentSocket.on("task_updated", handleTaskUpdated);
+      currentSocket.on("account_deactivated", handleAccountDeactivated);
 
       socket.current.on("notification", (notification) => {
         // Play premium audio chime
@@ -321,12 +352,12 @@ const useSocket = () => {
       });
 
       return () => {
-        if (socket.current) {
+        if (!isExternal && socket.current) {
           socket.current.disconnect();
         }
       };
     }
-  }, [user, dispatch]);
+  }, [user, dispatch, externalSocket]);
 
   return socket.current;
 };

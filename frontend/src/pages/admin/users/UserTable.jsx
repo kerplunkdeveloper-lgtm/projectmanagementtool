@@ -150,7 +150,16 @@ const UserTable = ({
   const { user: currentUser } = useSelector((state) => state.auth);
   const [copiedId, setCopiedId] = useState(null);
   // Online presence from shared SocketContext (no duplicate socket)
-  const { onlineUserIds } = useSocketContext() || { onlineUserIds: [] };
+  const { onlineUserIds, isOnline } = useSocketContext() || { onlineUserIds: [], isOnline: () => false };
+
+  const checkUserOnline = (u) => {
+    if (!u) return false;
+    const uid = (u._id || u.id)?.toString();
+    if (!uid) return false;
+    if (isOnline && isOnline(uid)) return true;
+    if (onlineUserIds && onlineUserIds.some((id) => id.toString() === uid)) return true;
+    return u.presenceStatus === "online";
+  };
 
 
   const handleEdit = (u) => {
@@ -279,7 +288,7 @@ const UserTable = ({
                           {/* Online dot */}
                           {!isRelieved && (
                             <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 transition-colors duration-300 ${onlineUserIds.includes(user._id) ? "bg-emerald-500" : "bg-slate-400"}`}
+                              className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 transition-colors duration-300 ${checkUserOnline(user) ? "bg-emerald-500" : "bg-slate-400"}`}
                             />
                           )}
                         </div>
@@ -375,7 +384,7 @@ const UserTable = ({
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-slate-400" />
                           Relieved
                         </span>
-                      ) : onlineUserIds.includes(user._id) ? (
+                      ) : checkUserOnline(user) ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-transparent">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           Online

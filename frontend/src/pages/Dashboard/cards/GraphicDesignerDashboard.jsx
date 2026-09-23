@@ -1661,7 +1661,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   });
 
   // Online presence from shared SocketContext (no duplicate socket)
-  const { socket: ctxSocket, onlineUserIds: ctxOnlineUserIds } = useSocketContext() || {};
+  const { socket: ctxSocket, onlineUserIds: ctxOnlineUserIds, isOnline: ctxIsOnline } = useSocketContext() || {};
   const [onlineUserIds, setOnlineUserIds] = useState([]);
 
   // Sync from context
@@ -3655,8 +3655,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#1a2538]">
                 {teamPerformance.map((tp, idx) => {
+                  const tpIdStr = tp.id?.toString();
                   const isOnline =
-                    onlineUserIds.includes(tp.id) ||
+                    (ctxIsOnline && ctxIsOnline(tpIdStr)) ||
+                    onlineUserIds.some((id) => id.toString() === tpIdStr) ||
                     tp.isOnline ||
                     tp.isUserOnline ||
                     tp.status === "online" ||

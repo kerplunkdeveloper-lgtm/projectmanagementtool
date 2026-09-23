@@ -15,8 +15,8 @@ import { SocketProvider, useSocketContext } from "../../context/SocketContext";
 // Inner layout — has access to SocketProvider
 const DashboardLayoutInner = ({ role }) => {
   const { sidebarLayout } = useTheme();
-  const notifSocket = useSocket();      // handles notifications, task_updated etc.
   const { socket: sharedSocket } = useSocketContext() || {};
+  const notifSocket = useSocket(sharedSocket);      // handles notifications, task_updated etc. on shared single socket
   const { user, originalAdminUser } = useSelector((state) => state.auth);
   // usePresence uses sharedSocket so heartbeat goes on the correct connection
   usePresence(sharedSocket, user?._id || user?.id);

@@ -388,7 +388,7 @@ const Workload = () => {
   });
 
   // Real-time Online / Offline state from shared SocketContext (no duplicate socket)
-  const { onlineUserIds, isOnline } = useSocketContext() || { onlineUserIds: [], isOnline: () => false };
+  const { onlineUserIds, isOnline: isOnlineFn, userPresence } = useSocketContext() || { onlineUserIds: [], isOnline: () => false, userPresence: {} };
 
   // State
   const [selectedRole, setSelectedRole] = useState("Graphic Designer"); // Default Graphic Designer user
@@ -479,7 +479,10 @@ const Workload = () => {
       const userIdStr = u._id?.toString();
 
       // Real-time Online / Offline status
-      const isOnline = onlineUserIds.includes(userIdStr);
+      const isOnline =
+        (typeof isOnlineFn === "function" && isOnlineFn(userIdStr)) ||
+        (onlineUserIds && onlineUserIds.some((id) => id.toString() === userIdStr)) ||
+        u.presenceStatus === "online";
 
       // Find all tasks assigned to this user
       const assignedTasks = (tasksData || []).filter((t) =>
@@ -563,7 +566,7 @@ const Workload = () => {
         availability,
       };
     });
-  }, [filteredUsers, tasksData, selectedDate, onlineUserIds, ticker]);
+  }, [filteredUsers, tasksData, selectedDate, onlineUserIds, userPresence, isOnlineFn, ticker]);
 
   // Apply availability filter if selected
   const finalWorkloads = useMemo(() => {
