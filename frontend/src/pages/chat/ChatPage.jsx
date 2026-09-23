@@ -442,11 +442,14 @@ const ChatPage = () => {
     (memberId) => {
       if (!memberId) return false;
       const idStr = memberId.toString();
+      if (isOnline) return isOnline(idStr);
       return (
-        onlineUsers.includes(idStr) || userPresence[idStr]?.status === "online"
+        onlineUsers.includes(idStr) ||
+        userPresence[idStr]?.status === "online" ||
+        userPresence[idStr]?.status === "away"
       );
     },
-    [onlineUsers, userPresence],
+    [onlineUsers, userPresence, isOnline],
   );
 
   const formatMemberLastSeen = useCallback(
@@ -1687,8 +1690,8 @@ const ChatPage = () => {
                       )}
                       <span
                         className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 shadow-sm transition-colors duration-300 ${
-                          onlineUsers.includes(u._id)
-                            ? "bg-emerald-500"
+                          isMemberOnline(u._id)
+                            ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                             : "bg-slate-400 dark:bg-slate-600"
                         } ${
                           activeChat === u._id
@@ -1696,7 +1699,7 @@ const ChatPage = () => {
                             : "border-white dark:border-slate-900"
                         }`}
                         title={
-                          onlineUsers.includes(u._id) ? "Online" : "Offline"
+                          isMemberOnline(u._id) ? "Online" : "Offline"
                         }
                       />
                       {hasUnread && (
@@ -1857,12 +1860,12 @@ const ChatPage = () => {
                   {/* Online / Offline dot on header */}
                   <span
                     className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 shadow-sm transition-colors duration-300 ${
-                      onlineUsers.includes(activeChatUser._id)
-                        ? "bg-emerald-500"
+                      isMemberOnline(activeChatUser._id)
+                        ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
                         : "bg-slate-400 dark:bg-slate-600"
                     }`}
                     title={
-                      onlineUsers.includes(activeChatUser._id)
+                      isMemberOnline(activeChatUser._id)
                         ? "Online"
                         : "Offline"
                     }

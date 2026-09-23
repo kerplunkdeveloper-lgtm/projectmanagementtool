@@ -4,11 +4,8 @@ const handlePresenceChange = async (io, userId, newStatus, lastActivityAt = new 
   try {
     // Use findOneAndUpdate for atomic read-modify-write (prevents race condition
     // when multiple sockets disconnect simultaneously for the same user).
-    const user = await User.findOneAndUpdate(
-      {
-        _id: userId,
-        presenceStatus: { $ne: newStatus }, // only update if status actually changed
-      },
+    const user = await User.findByIdAndUpdate(
+      userId,
       {
         $set: {
           presenceStatus: newStatus,
@@ -16,10 +13,9 @@ const handlePresenceChange = async (io, userId, newStatus, lastActivityAt = new 
           ...(newStatus === 'online' ? { lastActivityAt: new Date() } : {}),
         },
       },
-      { new: true } // return updated doc
+      { new: true }
     );
 
-    // If no doc was updated (null), status was already the same — skip broadcast
     if (!user) return;
 
     // Broadcast presence change to all connected clients (UI online dots, chat, etc.)

@@ -67,8 +67,24 @@ const useSocket = () => {
   useEffect(() => {
     const userId = user?._id || user?.id;
     if (user && userId) {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const socketUrl = baseUrl ? baseUrl : (typeof window !== 'undefined' ? window.location.origin : "http://localhost:5001");
+      const getSocketUrl = () => {
+        if (typeof window !== "undefined") {
+          const isLocalhost =
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1";
+
+          if (!isLocalhost) {
+            const envUrl = import.meta.env.VITE_API_BASE_URL;
+            if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+              return envUrl;
+            }
+            return window.location.origin;
+          }
+        }
+        return import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+      };
+
+      const socketUrl = getSocketUrl();
       socket.current = io(socketUrl, {
         transports: ["websocket", "polling"],
         withCredentials: true

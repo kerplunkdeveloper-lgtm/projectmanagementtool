@@ -1,7 +1,25 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
+const getBaseApiUrl = () => {
+  if (typeof window !== "undefined") {
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+
+    if (!isLocalhost) {
+      const envUrl = import.meta.env.VITE_API_BASE_URL;
+      if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+        return envUrl.endsWith("/api") ? envUrl : `${envUrl}/api`;
+      }
+      return `${window.location.origin}/api`;
+    }
+  }
+  const defaultUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+  return defaultUrl.endsWith("/api") ? defaultUrl : `${defaultUrl}/api`;
+};
+
 const baseQuery = fetchBaseQuery({
-  baseUrl: (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000") + "/api",
+  baseUrl: getBaseApiUrl(),
   prepareHeaders: (headers) => {
     const token = localStorage.getItem("token");
     if (token) {
