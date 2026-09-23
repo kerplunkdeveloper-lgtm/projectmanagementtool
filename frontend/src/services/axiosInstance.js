@@ -12,6 +12,12 @@ axiosInstance.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
+  // Browser HTTP cache bypass — API always fresh
+  if (config.method === 'get') {
+    config.headers['Cache-Control'] = 'no-cache';
+    config.headers['Pragma'] = 'no-cache';
+  }
+
   return config;
 });
 

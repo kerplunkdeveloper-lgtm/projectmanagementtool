@@ -28,6 +28,10 @@ export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Task", "Project", "Notification", "Goal"],
+  keepUnusedDataFor: 30,           // 30 sec மட்டுமே cache (was: no global setting)
+  refetchOnMountOrArgChange: true, // Page திரும்பி வந்தா always fresh fetch
+  refetchOnFocus: true,            // Tab switch பண்ணா auto refetch
+  refetchOnReconnect: true,        // Internet reconnect-ல் refetch
   endpoints: (builder) => ({
     // ==========================================
     // GOALS ENDPOINTS
@@ -74,7 +78,7 @@ export const apiSlice = createApi({
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],
-      keepUnusedDataFor: 300,
+      keepUnusedDataFor: 30, // 30 sec (was: 300 = 5 minutes stale data!)
       transformResponse: (response) => response.data,
     }),
     createTask: builder.mutation({
