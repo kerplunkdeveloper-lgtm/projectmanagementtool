@@ -10,12 +10,16 @@ import { apiSlice } from "../../features/api/apiSlice";
 import HorizontalSidebar from "./HorizontalSidebar";
 import { useTheme } from "../../context/ThemeContext";
 import { usePresence } from "../../hooks/usePresence";
+import { SocketProvider, useSocketContext } from "../../context/SocketContext";
 
-const DashboardLayout = ({ role }) => {
+// Inner layout — has access to SocketProvider
+const DashboardLayoutInner = ({ role }) => {
   const { sidebarLayout } = useTheme();
-  const socket = useSocket();
+  const notifSocket = useSocket();      // handles notifications, task_updated etc.
+  const { socket: sharedSocket } = useSocketContext() || {};
   const { user, originalAdminUser } = useSelector((state) => state.auth);
-  const presence = usePresence(socket, user?._id || user?.id);
+  // usePresence uses sharedSocket so heartbeat goes on the correct connection
+  usePresence(sharedSocket, user?._id || user?.id);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,7 +110,7 @@ const DashboardLayout = ({ role }) => {
         )}
 
         {/* NAVBAR */}
-        {!isChatPage && <Navbar setSidebarOpen={setSidebarOpen} presence={presence} />}
+        {!isChatPage && <Navbar setSidebarOpen={setSidebarOpen} />}
 
         {/* HORIZONTAL SIDEBAR */}
         {sidebarLayout === "horizontal" && (
@@ -135,5 +139,12 @@ const DashboardLayout = ({ role }) => {
     </div>
   );
 };
+
+// Outer wrapper — provides single shared socket to all child pages
+const DashboardLayout = ({ role }) => (
+  <SocketProvider>
+    <DashboardLayoutInner role={role} />
+  </SocketProvider>
+);
 
 export default DashboardLayout;

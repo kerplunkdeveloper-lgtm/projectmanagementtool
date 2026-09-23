@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import io from "socket.io-client";
+import { useSocketContext } from "../../../context/SocketContext";
 import {
   FiEdit2,
   FiTrash2,
@@ -149,34 +149,9 @@ const UserTable = ({
 }) => {
   const { user: currentUser } = useSelector((state) => state.auth);
   const [copiedId, setCopiedId] = useState(null);
-  const [onlineUserIds, setOnlineUserIds] = useState([]);
+  // Online presence from shared SocketContext (no duplicate socket)
+  const { onlineUserIds } = useSocketContext() || { onlineUserIds: [] };
 
-  useEffect(() => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    const socketUrl = baseUrl
-      ? baseUrl
-      : typeof window !== "undefined"
-        ? window.location.origin
-        : "http://localhost:5001";
-
-    const socket = io(socketUrl, {
-      transports: ["polling", "websocket"],
-      withCredentials: true,
-    });
-
-    const userId = currentUser?._id || currentUser?.id;
-    if (userId) {
-      socket.emit("join", userId);
-    }
-
-    socket.on("online_users_list", (usersList) => {
-      setOnlineUserIds(usersList);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [currentUser]);
 
   const handleEdit = (u) => {
     setEditUser(u);

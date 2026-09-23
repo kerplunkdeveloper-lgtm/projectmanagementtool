@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import io from "socket.io-client";
+import { useSocketContext } from "../../context/SocketContext";
 import {
   format,
   isSameDay,
@@ -387,47 +387,8 @@ const Workload = () => {
     pollingInterval: 15000,
   });
 
-  // Real-time Online / Offline state tracking via Socket.IO
-  const [onlineUserIds, setOnlineUserIds] = useState([]);
-
-  useEffect(() => {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL;
-    const socketUrl = baseUrl
-      ? baseUrl
-      : typeof window !== "undefined"
-      ? window.location.origin
-      : "http://localhost:5001";
-
-    const socket = io(socketUrl, {
-      transports: ["polling", "websocket"],
-      withCredentials: true,
-    });
-
-    const userId = currentUser?._id || currentUser?.id;
-    if (userId) {
-      socket.emit("join", userId);
-    }
-
-    socket.on("online_users_list", (usersList) => {
-      setOnlineUserIds(Array.isArray(usersList) ? usersList.map((id) => id.toString()) : []);
-    });
-
-    socket.on("user:presence", ({ userId: targetUserId, status }) => {
-      if (!targetUserId) return;
-      const idStr = targetUserId.toString();
-      setOnlineUserIds((prev) => {
-        if (status === "online") {
-          return prev.includes(idStr) ? prev : [...prev, idStr];
-        } else {
-          return prev.filter((id) => id !== idStr);
-        }
-      });
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [currentUser]);
+  // Real-time Online / Offline state from shared SocketContext (no duplicate socket)
+  const { onlineUserIds, isOnline } = useSocketContext() || { onlineUserIds: [], isOnline: () => false };
 
   // State
   const [selectedRole, setSelectedRole] = useState("Graphic Designer"); // Default Graphic Designer user

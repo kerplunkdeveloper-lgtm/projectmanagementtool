@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../../features/auth/authSlice";
@@ -37,6 +37,8 @@ import {
   FiX,
   FiFileText,
   FiVideo,
+  FiCalendar,
+  FiClock,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -76,6 +78,177 @@ const Navbar = ({ setSidebarOpen, presence }) => {
   const [deleteNotificationTrigger] = useDeleteNotificationMutation();
 
   const unreadCount = (notifications || []).filter((n) => !n.isRead).length;
+
+  const getNotificationDateMeta = (dateStr) => {
+    if (!dateStr) return { label: "Earlier", type: "other" };
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return { label: "Earlier", type: "other" };
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const itemDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+    const diffTime = today.getTime() - itemDate.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) {
+      return { label: "Today", type: "today" };
+    } else if (diffDays === 1) {
+      return { label: "Yesterday", type: "yesterday" };
+    } else {
+      const isSameYear = d.getFullYear() === now.getFullYear();
+      const label = d.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        ...(isSameYear ? {} : { year: "numeric" }),
+      });
+      return { label, type: "other" };
+    }
+  };
+
+  // Real-time ticker to keep "Just now" and "Xm ago" fresh automatically
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getNotificationTimeInfo = (dateStr) => {
+    if (!dateStr) return { text: "", isJustNow: false };
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return { text: "", isJustNow: false };
+
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+
+    // If within 60 seconds (or slight server clock drift), display "Just now"
+    if (diffSec < 60) {
+      return { text: "Just now", isJustNow: true };
+    }
+
+    // Under 60 minutes -> relative minutes (e.g. 5m ago)
+    if (diffMin < 60) {
+      return { text: `${diffMin}m ago`, isJustNow: false };
+    }
+
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const itemDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diffDays = Math.round(
+      (today.getTime() - itemDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    const timeStr = d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    if (diffDays <= 0) {
+      return { text: `Today at ${timeStr}`, isJustNow: false };
+    } else if (diffDays === 1) {
+      return { text: `Yesterday at ${timeStr}`, isJustNow: false };
+    } else {
+      const dateFormatted = d.toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+      });
+      return { text: `${dateFormatted} at ${timeStr}`, isJustNow: false };
+    }
+  };
+
+  const formatNotificationTime = (dateStr) => {
+    return getNotificationTimeInfo(dateStr).text;
+  };
+
+  const groupedNotifications = useMemo(() => {
+    if (!notifications || notifications.length === 0) return [];
+
+    const sorted = [...notifications].sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    );
+
+    const groups = [];
+    let currentGroup = null;
+
+    sorted.forEach((n) => {
+      const meta = getNotificationDateMeta(n.createdAt);
+      if (!currentGroup || currentGroup.label !== meta.label) {
+        currentGroup = {
+          label: meta.label,
+          type: meta.type,
+          items: [n],
+        };
+        groups.push(currentGroup);
+      } else {
+        currentGroup.items.push(n);
+      }
+    });
+
+    return groups;
+  }, [notifications]);
+
+  const getSenderDepartment = (n) => {
+    if (n?.sender?.department) return n.sender.department;
+
+    // Smart fallback: parse department from message (e.g. "Graphic Designer - Manikandan updated...")
+    if (n?.message && n.message.includes(" - ")) {
+      const parts = n.message.split(" - ");
+      const prefix = parts[0]?.trim();
+      if (
+        prefix &&
+        prefix.length <= 30 &&
+        !prefix.toLowerCase().includes("task") &&
+        !prefix.toLowerCase().includes("client")
+      ) {
+        return prefix;
+      }
+    }
+
+    if (n?.sender?.role) {
+      if (n.sender.role === "admin") return "Admin";
+      if (n.sender.role === "operationmanager") return "Operations";
+    }
+
+    return null;
+  };
+
+  const getDepartmentBadgeStyle = (dept) => {
+    const d = (dept || "").toLowerCase().trim();
+    if (d.includes("graphic") || d.includes("design")) {
+      return "text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border-purple-400 dark:border-purple-600";
+    }
+    if (
+      d.includes("cinema") ||
+      d.includes("video") ||
+      d.includes("shoot") ||
+      d.includes("editor")
+    ) {
+      return "text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 border-amber-400 dark:border-amber-600";
+    }
+    if (d.includes("social") || d.includes("smm") || d.includes("media")) {
+      return "text-pink-600 dark:text-pink-300 bg-pink-50 dark:bg-pink-950/50 border-pink-400 dark:border-pink-600";
+    }
+    if (
+      d.includes("web") ||
+      d.includes("dev") ||
+      d.includes("code") ||
+      d.includes("software")
+    ) {
+      return "text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border-blue-400 dark:border-blue-600";
+    }
+    if (d.includes("market") || d.includes("seo") || d.includes("growth")) {
+      return "text-emerald-600 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-400 dark:border-emerald-600";
+    }
+    if (d.includes("admin")) {
+      return "text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border-rose-400 dark:border-rose-600";
+    }
+    if (d.includes("operation") || d.includes("manager")) {
+      return "text-cyan-600 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/50 border-cyan-400 dark:border-cyan-600";
+    }
+    return "text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border-indigo-400 dark:border-indigo-600";
+  };
 
   const getNotificationDetails = (n) => {
     const type = n?.type;
@@ -530,7 +703,7 @@ const Navbar = ({ setSidebarOpen, presence }) => {
           <button
             onClick={() => setOpenNotifications(!openNotifications)}
             className={`
-              relative w-8 h-8 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
+              relative w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
               ${
                 openNotifications
                   ? "theme-bg-main border-indigo-500 dark:border-indigo-400 theme-text-primary ring-2 ring-indigo-500/10"
@@ -548,7 +721,7 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                   rounded-full bg-rose-500
                   text-white text-[0.5rem] font-black
                   flex items-center justify-center
-                  border-2 border-white  shadow-sm z-10
+                  border-2 border-white  shadow-lg z-10
                 "
                 >
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -599,8 +772,8 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                 </div>
 
                 {/* List */}
-                <div className="max-h-[300px] overflow-y-auto divide-y theme-border scrollbar-thin">
-                  {(notifications || []).length === 0 ? (
+                <div className="max-h-[320px] overflow-y-auto scrollbar-thin">
+                  {groupedNotifications.length === 0 ? (
                     <div className="py-12 text-center flex flex-col items-center justify-center text-slate-400">
                       <FiBell className="text-2xl mb-2 opacity-30 text-slate-400" />
                       <span className="text-[11px] font-bold">
@@ -612,148 +785,215 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                       </p>
                     </div>
                   ) : (
-                    (notifications || []).map((n) => {
-                      const details = getNotificationDetails(n);
-                      const Icon = details.icon;
-                      return (
-                        <div
-                          key={n._id}
-                          onClick={() => {
-                            if (!n.isRead) {
-                              markAsReadTrigger(n._id);
-                            }
-                            setOpenNotifications(false);
-                            if (n.type === "message_received" || n.chatRoomId) {
-                              navigate(
-                                `/${user?.role}/chat?id=${n.chatRoomId}`,
-                              );
-                            } else if (
-                              n.type === "report_submitted" ||
-                              (n.message &&
-                                (n.message.toLowerCase().includes("submitted a new designer eod report") ||
-                                 n.message.toLowerCase().includes("submitted a new eod report")))
-                            ) {
-                              navigate(`/${user?.role}/eod-reports`);
-                            } else if (
-                              n.type === "shoot_assigned" ||
-                              n.shoot ||
-                              (n.message &&
-                                n.message.toLowerCase().includes("shoot"))
-                            ) {
-                              navigate(`/${user?.role}/Shootcalendor`);
-                            } else if (
-                              n.type === "client_assigned" ||
-                              (n.message &&
-                                n.message.toLowerCase().includes("client:"))
-                            ) {
-                              navigate(`/${user?.role}/clients`);
-                            } else if (n.type === "task_assigned" || n.type?.startsWith("task_")) {
-                              const isProjectRedirect = n.message && /in-review|in progress|on-hold|on hold/i.test(n.message);
-                              if (n.project && (user?.role !== "team" || isProjectRedirect)) {
-                                const projectId = typeof n.project === 'object' ? n.project._id : n.project;
-                                navigate(`/${user?.role}/projects?id=${projectId}`);
-                              } else {
-                                navigate(`/${user?.role}/tasks`);
+                    groupedNotifications.map((group) => (
+                      <div key={group.label} className="relative">
+                        {/* Centered Date Separator Header */}
+                        <div className="sticky top-0 z-10 py-1.5 px-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs flex items-center justify-center select-none">
+                          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent" />
+                          <div
+                            className={`
+                              mx-2.5 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider
+                              flex items-center gap-1.5 shadow-2xs border
+                              ${
+                                group.type === "today"
+                                  ? "bg-emerald-50 dark:bg-black text-emerald-600 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/50"
+                                  : group.type === "yesterday"
+                                  ? "bg-indigo-50/80 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-800/40"
+                                  : "bg-slate-100/90 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/60"
                               }
-                            } else if (n.project) {
-                              const projectId = typeof n.project === 'object' ? n.project._id : n.project;
-                              navigate(
-                                `/${user?.role}/projects?id=${projectId}`,
-                              );
-                            } else {
-                              navigate(`/${user?.role}/tasks`);
-                            }
-                          }}
-                          className={`
-                            px-4 py-3 text-left transition-all cursor-pointer flex items-start gap-3 relative group
-                            ${
-                              !n.isRead
-                                ? "bg-indigo-500/5 hover:bg-indigo-500/10"
-                                : "theme-bg-card hover:theme-bg-main"
-                            }
-                          `}
-                        >
-                          {/* Sender Profile Avatar or Notification Icon */}
-                          <div className="relative shrink-0">
-                            {n.sender?.profile?.profileImage?.url ? (
-                              <img
-                                src={n.sender.profile.profileImage.url}
-                                alt={n.sender.name || "User"}
-                                className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/20 shadow-sm"
-                              />
-                            ) : n.sender?.name ? (
-                              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
-                                {n.sender.name.charAt(0).toUpperCase()}
-                              </div>
+                            `}
+                          >
+                            {group.type === "today" ? (
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            ) : group.type === "yesterday" ? (
+                              <FiClock size={10} className="text-indigo-500 dark:text-indigo-400" />
                             ) : (
-                              <div
-                                className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}
-                              >
-                                <Icon size={14} />
-                              </div>
+                              <FiCalendar size={10} className="text-slate-400 dark:text-slate-400" />
                             )}
-
-                            {/* Floating type badge overlay if sender avatar exists */}
-                            {(n.sender?.profile?.profileImage?.url || n.sender?.name) && (
-                              <div
-                                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-white dark:border-slate-900 flex items-center justify-center text-white shadow-xs ${details.bgColor}`}
-                              >
-                                <Icon size={9} />
-                              </div>
-                            )}
+                            <span>{group.label}</span>
                           </div>
-
-                          <div className="flex-1 min-w-0 pr-6">
-                            {n.sender?.name && (
-                              <div className="flex items-center gap-1.5 mb-0.5">
-                                <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 truncate">
-                                  {n.sender.name}
-                                </span>
-                                <span className="text-[9px] text-slate-400 font-semibold">•</span>
-                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                                  {n.type === "task_assigned" || n.type === "shoot_assigned" ? "Assigner" : "Sender"}
-                                </span>
-                              </div>
-                            )}
-                            <p
-                              className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"}`}
-                            >
-                              {n.message}
-                            </p>
-                            <span className="text-[9px] text-slate-400 block mt-1 font-semibold">
-                              {new Date(n.createdAt).toLocaleDateString([], {
-                                month: "short",
-                                day: "numeric",
-                              })}{" "}
-                              at{" "}
-                              {new Date(n.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0 absolute right-3 top-1/2 -translate-y-1/2">
-                            {!n.isRead && (
-                              <span className="w-1.5 h-1.5 rounded-full theme-bg-accent animate-pulse shadow-lg shadow-[var(--accent-color)]/50" />
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteNotificationTrigger(n._id);
-                                toast.success("Notification deleted");
-                              }}
-                              className="
-                                p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all duration-150
-                                opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100 cursor-pointer
-                              "
-                              title="Delete Notification"
-                            >
-                              <FiTrash2 size={12} />
-                            </button>
-                          </div>
+                          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent" />
                         </div>
-                      );
-                    })
+
+                        {/* Notifications in this Date Group */}
+                        <div className="divide-y theme-border">
+                          {group.items.map((n) => {
+                            const details = getNotificationDetails(n);
+                            const Icon = details.icon;
+                            return (
+                              <div
+                                key={n._id}
+                                onClick={() => {
+                                  if (!n.isRead) {
+                                    markAsReadTrigger(n._id);
+                                  }
+                                  setOpenNotifications(false);
+                                  if (n.type === "message_received" || n.chatRoomId) {
+                                    navigate(
+                                      `/${user?.role}/chat?id=${n.chatRoomId}`,
+                                    );
+                                  } else if (
+                                    n.type === "report_submitted" ||
+                                    (n.message &&
+                                      (n.message.toLowerCase().includes("submitted a new designer eod report") ||
+                                       n.message.toLowerCase().includes("submitted a new eod report")))
+                                  ) {
+                                    navigate(`/${user?.role}/eod-reports`);
+                                  } else if (
+                                    n.type === "shoot_assigned" ||
+                                    n.shoot ||
+                                    (n.message &&
+                                      n.message.toLowerCase().includes("shoot"))
+                                  ) {
+                                    navigate(`/${user?.role}/Shootcalendor`);
+                                  } else if (
+                                    n.type === "client_assigned" ||
+                                    (n.message &&
+                                      n.message.toLowerCase().includes("client:"))
+                                  ) {
+                                    navigate(`/${user?.role}/clients`);
+                                  } else if (n.type === "task_assigned" || n.type?.startsWith("task_")) {
+                                    const isProjectRedirect = n.message && /in-review|in progress|on-hold|on hold/i.test(n.message);
+                                    if (n.project && (user?.role !== "team" || isProjectRedirect)) {
+                                      const projectId = typeof n.project === 'object' ? n.project._id : n.project;
+                                      navigate(`/${user?.role}/projects?id=${projectId}`);
+                                    } else {
+                                      navigate(`/${user?.role}/tasks`);
+                                    }
+                                  } else if (n.project) {
+                                    const projectId = typeof n.project === 'object' ? n.project._id : n.project;
+                                    navigate(
+                                      `/${user?.role}/projects?id=${projectId}`,
+                                    );
+                                  } else {
+                                    navigate(`/${user?.role}/tasks`);
+                                  }
+                                }}
+                                className={`
+                                  px-4 py-3 text-left transition-all cursor-pointer flex items-start gap-3 relative group
+                                  ${
+                                    !n.isRead
+                                      ? "bg-indigo-500/5 hover:bg-indigo-500/10"
+                                      : "theme-bg-card hover:theme-bg-main"
+                                  }
+                                `}
+                              >
+                                {/* Sender Profile Avatar or Notification Icon */}
+                                <div className="relative shrink-0">
+                                  {n.sender?.profile?.profileImage?.url ? (
+                                    <img
+                                      src={n.sender.profile.profileImage.url}
+                                      alt={n.sender.name || "User"}
+                                      className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/20 shadow-sm"
+                                    />
+                                  ) : n.sender?.name ? (
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
+                                      {n.sender.name.charAt(0).toUpperCase()}
+                                    </div>
+                                  ) : (
+                                    <div
+                                      className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}
+                                    >
+                                      <Icon size={14} />
+                                    </div>
+                                  )}
+
+                                  {/* Floating type badge overlay if sender avatar exists */}
+                                  {(n.sender?.profile?.profileImage?.url || n.sender?.name) && (
+                                    <div
+                                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-white dark:border-slate-900 flex items-center justify-center text-white shadow-xs ${details.bgColor}`}
+                                    >
+                                      <Icon size={9} />
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex-1 min-w-0 pr-6">
+                                  {n.sender?.name && (
+                                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                                      <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 truncate">
+                                        {n.sender.name}
+                                      </span>
+                                      {(() => {
+                                        const dept = getSenderDepartment(n);
+                                        return dept ? (
+                                          <span
+                                            className={`text-[8.5px] font-extrabold px-1.5 py-0.5 rounded-md border tracking-wider uppercase shadow-2xs ${getDepartmentBadgeStyle(
+                                              dept,
+                                            )}`}
+                                          >
+                                            {dept}
+                                          </span>
+                                        ) : null;
+                                      })()}
+                                      <span className="text-[9px] text-slate-400 font-semibold">•</span>
+                                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                        {n.type === "task_assigned" || n.type === "shoot_assigned" ? "Assigner" : "Sender"}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <p
+                                    className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"}`}
+                                  >
+                                    {n.message}
+                                  </p>
+                                  {(() => {
+                                    const timeInfo = getNotificationTimeInfo(n.createdAt);
+                                    const exactTime = n.createdAt
+                                      ? new Date(n.createdAt).toLocaleTimeString([], {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        })
+                                      : "";
+
+                                    if (timeInfo.isJustNow) {
+                                      return (
+                                        <span
+                                          title={exactTime}
+                                          className="text-[9px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mt-1 font-extrabold"
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0 shadow-sm shadow-emerald-500/50" />
+                                          <span>Just now</span>
+                                        </span>
+                                      );
+                                    }
+
+                                    return (
+                                      <span
+                                        title={exactTime}
+                                        className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center gap-1 mt-1 font-semibold"
+                                      >
+                                        <FiClock size={9} className="opacity-70 shrink-0" />
+                                        <span>{timeInfo.text}</span>
+                                      </span>
+                                    );
+                                  })()}
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0 absolute right-3 top-1/2 -translate-y-1/2">
+                                  {!n.isRead && (
+                                    <span className="w-1.5 h-1.5 rounded-full theme-bg-accent animate-pulse shadow-lg shadow-[var(--accent-color)]/50" />
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteNotificationTrigger(n._id);
+                                      toast.success("Notification deleted");
+                                    }}
+                                    className="
+                                      p-1 rounded-lg text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all duration-150
+                                      opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100 cursor-pointer
+                                    "
+                                    title="Delete Notification"
+                                  >
+                                    <FiTrash2 size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
 

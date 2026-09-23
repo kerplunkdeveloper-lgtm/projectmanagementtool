@@ -14,7 +14,7 @@ import {
   useUpdateTaskMutation,
 } from "../../../features/api/apiSlice";
 import { createPortal } from "react-dom";
-import { io } from "socket.io-client";
+import { useSocketContext } from "../../../context/SocketContext";
 import toast from "react-hot-toast";
 import { getDesignerEodReports } from "../../../features/eodReports/designerEodReportSlice";
 import LiveTaskBoard from "./LiveTaskBoard";
@@ -1660,68 +1660,49 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     designerName: "",
   });
 
+  // Online presence from shared SocketContext (no duplicate socket)
+  const { socket: ctxSocket, onlineUserIds: ctxOnlineUserIds } = useSocketContext() || {};
   const [onlineUserIds, setOnlineUserIds] = useState([]);
+
+  // Sync from context
+  useEffect(() => {
+    if (ctxOnlineUserIds) setOnlineUserIds(ctxOnlineUserIds);
+  }, [ctxOnlineUserIds]);
 
   useEffect(() => {
     let syncDebounceTimer = null;
-    try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const socketUrl = baseUrl
-        ? baseUrl
-        : typeof window !== "undefined"
-          ? window.location.origin
-          : "http://localhost:5001";
+    const socket = ctxSocket;          // socket from state — re-runs when ready
+    if (!socket) return;
 
-      const socket = io(socketUrl, {
-        transports: ["polling", "websocket"],
-        withCredentials: true,
-      });
+    const handleRealtimeTaskSync = () => {
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = setTimeout(() => {
+        refetchTasks();
+        const curDate = selectedDateRef.current || new Date();
+        const year = curDate.getFullYear();
+        const month = String(curDate.getMonth() + 1).padStart(2, "0");
+        const day = String(curDate.getDate()).padStart(2, "0");
+        dispatch(getDesignerEodReports({ date: `${year}-${month}-${day}` }));
+      }, 300);
+    };
 
-      const userId = user?._id || user?.id;
-      if (userId) {
-        socket.emit("join", userId);
-      }
+    socket.on("task_updated", handleRealtimeTaskSync);
+    socket.on("task_created", handleRealtimeTaskSync);
+    socket.on("task_deleted", handleRealtimeTaskSync);
+    socket.on("task_status_updated", handleRealtimeTaskSync);
+    socket.on("productivity_resumed", handleRealtimeTaskSync);
 
-      socket.on("online_users_list", (usersList) => {
-        if (Array.isArray(usersList)) {
-          setOnlineUserIds(usersList);
-        }
-      });
+    return () => {
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+      // Don't disconnect shared socket
+      socket.off("task_updated", handleRealtimeTaskSync);
+      socket.off("task_created", handleRealtimeTaskSync);
+      socket.off("task_deleted", handleRealtimeTaskSync);
+      socket.off("task_status_updated", handleRealtimeTaskSync);
+      socket.off("productivity_resumed", handleRealtimeTaskSync);
+    };
+  }, [ctxSocket, user, dispatch, refetchTasks]);
 
-      const handleRealtimeTaskSync = () => {
-        if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
-        syncDebounceTimer = setTimeout(() => {
-          refetchTasks();
-          const curDate = selectedDateRef.current || new Date();
-          const year = curDate.getFullYear();
-          const month = String(curDate.getMonth() + 1).padStart(2, "0");
-          const day = String(curDate.getDate()).padStart(2, "0");
-          dispatch(getDesignerEodReports({ date: `${year}-${month}-${day}` }));
-        }, 300);
-      };
-
-      socket.on("task_updated", handleRealtimeTaskSync);
-      socket.on("task_created", handleRealtimeTaskSync);
-      socket.on("task_deleted", handleRealtimeTaskSync);
-      socket.on("task_status_updated", handleRealtimeTaskSync);
-      socket.on("productivity_resumed", handleRealtimeTaskSync);
-
-      socket.on("user:presence", (data) => {
-        if (data?.userId) {
-          setOnlineUserIds((prev) =>
-            data.status === "online"
-              ? Array.from(new Set([...prev, data.userId]))
-              : prev.filter((id) => id !== data.userId),
-          );
-        }
-      });
-
-      return () => {
-        if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
-        socket.disconnect();
-      };
-    } catch (err) {}
-  }, [user, dispatch, refetchTasks]);
 
   const [officeHours, setOfficeHours] = useState({
     startTime: "09:00",

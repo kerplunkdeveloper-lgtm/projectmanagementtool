@@ -58,7 +58,7 @@ import {
   FiCheckCircle,
   FiMoreVertical,
 } from "react-icons/fi";
-import io from "socket.io-client";
+import { useSocketContext } from "../../context/SocketContext";
 import toast from "react-hot-toast";
 import axiosInstance from "../../services/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
@@ -317,8 +317,10 @@ const ChatPage = () => {
   const [inputText, setInputText] = useState("");
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [showChatWindowMobile, setShowChatWindowMobile] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState([]); // Array of online userIds
-  const [userPresence, setUserPresence] = useState({}); // userId -> { status, lastSeen }
+  // Online presence from shared SocketContext (single socket, no duplicates)
+  const { socket: ctxSocket, onlineUserIds, userPresence, isOnline } = useSocketContext() || {};
+  const onlineUsers = onlineUserIds || [];
+
 
   // Group Member Presence Panel State
   const [showMembersDrawer, setShowMembersDrawer] = useState(false);
@@ -608,27 +610,10 @@ const ChatPage = () => {
   }, [messages]);
 
   // Socket Connection & Real-Time Listeners
+  // Uses shared socket from SocketContext — no duplicate io() call
   useEffect(() => {
-    const apiBase =
-      import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
-    socketRef.current = io(apiBase, {
-      transports: ["websocket", "polling"],
-      withCredentials: true,
-    });
-
-    const performJoin = () => {
-      if (currentUserId) {
-        socketRef.current.emit("join", currentUserId);
-        console.log(`Socket joined room: ${currentUserId}`);
-      }
-    };
-
-    // If socket is already connected when listener is registered, join immediately
-    if (socketRef.current.connected) {
-      performJoin();
-    }
-
-    socketRef.current.on("connect", performJoin);
+    if (!ctxSocket) return;          // wait until socket is ready (state-based)
+    socketRef.current = ctxSocket;
 
     const showNewMessageToast = (msg) => {
 
@@ -698,85 +683,45 @@ const ChatPage = () => {
       );
     };
 
-    socketRef.current.on("direct_message", (msg) => {
-      dispatch(
-        receiveMessage({
-          message: msg,
-          currentUserId,
-        }),
-      );
+    const onDirectMessage = (msg) => {
+      dispatch(receiveMessage({ message: msg, currentUserId }));
       if (msg.sender?._id !== currentUserId) {
         playDirectMessageSound();
-        if (activeChatRef.current !== msg.sender?._id) {
-          showNewMessageToast(msg);
-        }
-      }
-    });
-
-    socketRef.current.on("group_message", (msg) => {
-      dispatch(
-        receiveMessage({
-          message: msg,
-          currentUserId,
-        }),
-      );
-      if (msg.sender?._id !== currentUserId) {
-        playGroupMessageSound();
-        if (activeChatRef.current !== msg.chatRoom) {
-          showNewMessageToast(msg);
-        }
-      }
-    });
-
-    socketRef.current.on("message_deleted", ({ messageId }) => {
-      dispatch(removeMessage(messageId));
-    });
-
-    socketRef.current.on("chat_cleared", ({ otherUserId }) => {
-      dispatch(clearChatLocal(otherUserId));
-    });
-
-    // Track online/offline users
-    socketRef.current.on("online_users_list", (userIds) => {
-      setOnlineUsers(userIds || []);
-    });
-
-    // Receive full initial presence state
-    socketRef.current.on("presence_state", (presenceMap) => {
-      if (presenceMap && typeof presenceMap === "object") {
-        setUserPresence(presenceMap);
-      }
-    });
-
-    // Receive individual user presence updates
-    socketRef.current.on("user:presence", ({ userId, status, lastSeen }) => {
-      if (userId) {
-        setUserPresence((prev) => ({
-          ...prev,
-          [userId]: {
-            status,
-            lastSeen: lastSeen ? new Date(lastSeen) : new Date(),
-          },
-        }));
-      }
-    });
-
-    // Receive real-time group message seen updates
-    socketRef.current.on("message:seen:update", (data) => {
-      dispatch(updateMessageSeen(data));
-    });
-
-    // Receive real-time message reactions
-    socketRef.current.on("message:reaction", (data) => {
-      dispatch(updateMessageReaction(data));
-    });
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
+        if (activeChatRef.current !== msg.sender?._id) showNewMessageToast(msg);
       }
     };
-  }, [currentUserId, dispatch]);
+    const onGroupMessage = (msg) => {
+      dispatch(receiveMessage({ message: msg, currentUserId }));
+      if (msg.sender?._id !== currentUserId) {
+        playGroupMessageSound();
+        if (activeChatRef.current !== msg.chatRoom) showNewMessageToast(msg);
+      }
+    };
+    const onMessageDeleted = ({ messageId }) => dispatch(removeMessage(messageId));
+    const onChatCleared = ({ otherUserId }) => dispatch(clearChatLocal(otherUserId));
+    const onMessageSeen = (data) => dispatch(updateMessageSeen(data));
+    const onMessageReaction = (data) => dispatch(updateMessageReaction(data));
+
+    ctxSocket.on("direct_message",    onDirectMessage);
+    ctxSocket.on("group_message",     onGroupMessage);
+    ctxSocket.on("message_deleted",   onMessageDeleted);
+    ctxSocket.on("chat_cleared",      onChatCleared);
+    ctxSocket.on("message:seen:update", onMessageSeen);
+    ctxSocket.on("message:reaction",  onMessageReaction);
+
+    return () => {
+      // Remove only our listeners — don't disconnect shared socket
+      ctxSocket.off("direct_message",    onDirectMessage);
+      ctxSocket.off("group_message",     onGroupMessage);
+      ctxSocket.off("message_deleted",   onMessageDeleted);
+      ctxSocket.off("chat_cleared",      onChatCleared);
+      ctxSocket.off("message:seen:update", onMessageSeen);
+      ctxSocket.off("message:reaction",  onMessageReaction);
+      socketRef.current = null;
+    };
+  }, [currentUserId, dispatch, ctxSocket]);
+
+
 
   // Click outside to close message dropdowns & reaction bars
   useEffect(() => {

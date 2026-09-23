@@ -9,7 +9,7 @@ exports.getNotifications = async (req, res) => {
       .sort('-createdAt')
       .populate({
         path: 'sender',
-        select: 'name profile',
+        select: 'name profile department role',
         populate: {
           path: 'profile',
           select: 'profileImage',
