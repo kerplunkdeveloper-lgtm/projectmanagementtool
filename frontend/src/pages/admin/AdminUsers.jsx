@@ -23,6 +23,7 @@ import {
 } from "../../features/users/userSlice";
 
 import { impersonateUser } from "../../features/auth/authSlice";
+import { useSocketContext } from "../../context/SocketContext";
 
 import UserHeader from "./users/UserHeader";
 import UserTable from "./users/UserTable";
@@ -311,6 +312,114 @@ const AdminUsers = () => {
   const startEntry = totalEntries === 0 ? 0 : startIndex + 1;
   const endEntry = Math.min(startIndex + USERS_PER_PAGE, totalEntries);
 
+  const { onlineUserIds, isOnline } = useSocketContext() || { onlineUserIds: [], isOnline: () => false };
+
+  const checkUserOnline = (u) => {
+    if (!u) return false;
+    const uid = (u._id || u.id)?.toString();
+    if (!uid) return false;
+    if (isOnline && isOnline(uid)) return true;
+    if (onlineUserIds && onlineUserIds.some((id) => id.toString() === uid)) return true;
+    return u.presenceStatus === "online";
+  };
+
+  // EXCEL EXPORT HANDLER
+  const handleExportExcel = () => {
+    const dataToExport = filteredUsers;
+
+    if (!dataToExport || dataToExport.length === 0) {
+      toast.error("No users found to export");
+      return;
+    }
+
+    const headers = [
+      "User Name",
+      "Email Address",
+      "Phone Number",
+      "Role",
+      "Department",
+      "Location",
+      "Employment Status",
+      "Presence",
+      "Joined Date",
+      "Relieved Date",
+      "Relieve Reason",
+    ];
+
+    const escapeCsv = (str) => {
+      if (str === null || str === undefined) return '""';
+      const s = String(str).replace(/"/g, '""');
+      return `"${s}"`;
+    };
+
+    const rows = dataToExport.map((u) => {
+      const roleMap = {
+        admin: "Admin",
+        operationmanager: "Operations Manager",
+        team: "Team Member",
+      };
+      const roleStr = roleMap[u.role] || u.role || "Team Member";
+
+      const isRelieved =
+        u.employmentStatus === "relieved" ||
+        u.accountStatus === "inactive";
+      const empStatusStr = isRelieved ? "Relieved" : "Active";
+
+      const online = checkUserOnline(u);
+      const presenceStr = isRelieved ? "Relieved" : online ? "Online" : "Offline";
+
+      const phoneStr = u.profile?.phone || "-";
+
+      const joinedDate = u.createdAt
+        ? new Date(u.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          })
+        : "-";
+
+      const relievedDate = u.relievedAt
+        ? new Date(u.relievedAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          })
+        : "-";
+
+      const relieveReason = u.relieveReason || "-";
+
+      return [
+        escapeCsv(u.name || "-"),
+        escapeCsv(u.email || "-"),
+        escapeCsv(phoneStr),
+        escapeCsv(roleStr),
+        escapeCsv(u.department || "-"),
+        escapeCsv(u.location || "-"),
+        escapeCsv(empStatusStr),
+        escapeCsv(presenceStr),
+        escapeCsv(joinedDate),
+        escapeCsv(relievedDate),
+        escapeCsv(relieveReason),
+      ].join(",");
+    });
+
+    const csvContent =
+      "\uFEFF" + [headers.map(escapeCsv).join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const filterTag = filterDept ? `_${filterDept.replace(/[^a-zA-Z0-9]/g, "_")}` : "";
+    const todayStr = new Date().toISOString().split("T")[0];
+    const fileName = `Users_List${filterTag}_${todayStr}.csv`;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${dataToExport.length} users to Excel!`);
+  };
+
   return (
     <div className="w-full">
 
@@ -328,6 +437,7 @@ const AdminUsers = () => {
         filterRelieved={filterRelieved}
         setFilterRelieved={setFilterRelieved}
         isReadOnly={isReadOnly}
+        onExportExcel={handleExportExcel}
       />
 
 

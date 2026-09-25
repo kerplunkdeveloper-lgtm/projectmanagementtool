@@ -1,5 +1,5 @@
 import React from "react";
-import { FiPlus, FiFilter } from "react-icons/fi";
+import { FiPlus, FiFilter, FiDownload } from "react-icons/fi";
 
 const UserHeader = ({
   users,
@@ -13,6 +13,7 @@ const UserHeader = ({
   filterRelieved,
   setFilterRelieved,
   isReadOnly,
+  onExportExcel,
 }) => {
   const uniqueDepts = Array.from(
     new Set(
@@ -108,11 +109,22 @@ const UserHeader = ({
           </select>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onExportExcel}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 text-xs font-bold active:scale-95 transition-all cursor-pointer shrink-0"
+            title="Download Users Table in Excel"
+          >
+            <FiDownload size={14} />
+            <span>Export Excel</span>
+          </button>
+
           {!isReadOnly && (
             <button
+              type="button"
               onClick={() => setOpenModal(true)}
-              className="bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black px-5 py-3 rounded-xl flex items-center justify-center gap-2.5 shadow-md shadow-blue-500/20 dark:shadow-[#3b82f6]/20  dark:hover:bg-[#ccff00] hover:-translate-y-0.5 hover:shadow-lg text-xs font-bold active:scale-95 transition-all cursor-pointer"
+              className="bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black px-5 py-3 rounded-xl flex items-center justify-center gap-2.5 shadow-md shadow-blue-500/20 dark:shadow-[#3b82f6]/20  dark:hover:bg-[#ccff00] hover:-translate-y-0.5 hover:shadow-lg text-xs font-bold active:scale-95 transition-all cursor-pointer shrink-0"
             >
               <FiPlus size={14} /> Add User
             </button>
