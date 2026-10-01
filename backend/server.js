@@ -196,7 +196,7 @@ const calendarEventRoutes = require("./routes/calendarEventRoutes");
 
 
 app.get("/", (req, res) => {
-  res.send("demo testing api da ithu :) ");
+  res.send("Sorted Task Website - Backend API Website Url :) ");
 });
 
 app.get("/health", (req, res) => {
