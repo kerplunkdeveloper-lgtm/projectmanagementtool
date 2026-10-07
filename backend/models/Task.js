@@ -246,6 +246,10 @@ const TaskSchema = new mongoose.Schema(
       type: String,
       default: "Recently assigned",
     },
+    department: {
+      type: String,
+      default: "",
+    },
     contentType: {
       type: String,
       default: "",

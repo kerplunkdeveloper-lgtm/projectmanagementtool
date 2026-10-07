@@ -5,10 +5,7 @@ const Project = require("../models/Project");
 const { calculateBusinessMs, checkWithinBusinessHours } = require("../utils/businessHours");
 
 
-
-
 const hasActiveWork = async (userId, currentTaskId = null, currentSubtaskId = null) => {
-
 
   // Parent Task Check
   const activeTask = await Task.findOne({
@@ -426,7 +423,17 @@ exports.getTasks = async (req, res) => {
     }
 
     let query = {};
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+    if (req.query.project && req.query.project !== "all") {
+      query.project = req.query.project;
+      if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+        query.$or = [
+          { createdBy: req.user._id },
+          { assignedTo: req.user._id },
+          { "subtasks.assignedTo": req.user._id },
+          { project: req.query.project }
+        ];
+      }
+    } else if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const Client = require("../models/Client");
       const [assignedClients, usersInSameDept] = await Promise.all([
         Client.find({ assignedTo: req.user._id }).select("_id").lean(),
@@ -460,14 +467,6 @@ exports.getTasks = async (req, res) => {
       ];
     }
 
-    if (req.query.project) {
-      if (query.$or) {
-        query = { $and: [{ $or: query.$or }, { project: req.query.project }] };
-      } else {
-        query.project = req.query.project;
-      }
-    }
-
     if (req.query.department) {
       const usersInDept = await User.find({
         department: { $regex: req.query.department, $options: "i" }
@@ -477,7 +476,9 @@ exports.getTasks = async (req, res) => {
       const deptCondition = {
         $or: [
           { assignedTo: { $in: userIds } },
-          { "subtasks.assignedTo": { $in: userIds } }
+          { "subtasks.assignedTo": { $in: userIds } },
+          { assignedTo: null },
+          { assignedTo: { $exists: false } }
         ]
       };
       
@@ -509,6 +510,7 @@ exports.getTasks = async (req, res) => {
     }
 
     const tasks = await Task.find(query)
+      .sort({ updatedAt: -1 })
       .populate({
         path: "project",
         select: "name client",
@@ -890,8 +892,7 @@ exports.updateTask = async (req, res) => {
       }
 
       if (req.body.status === "On Hold") {
-        const isMOMTask = task.contentType === "MOM" || req.body.contentType === "MOM";
-        if (!task.actualStartTime && !task.totalTrackedTime && !isMOMTask) {
+        if (!task.actualStartTime && !task.totalTrackedTime) {
           return res.status(400).json({
             message: "Please start the task by setting its status to 'In Progress' first before placing it on hold.",
           });
@@ -1004,9 +1005,8 @@ exports.updateTask = async (req, res) => {
         );
 
         if (prevSub && sub.status && (sub.status !== prevSub.status || (sub.status === "In Progress" && !prevSub.actualStartTime))) {
-          const isSubMOM = (sub && sub.contentType === "MOM") || (prevSub && prevSub.contentType === "MOM") || task.contentType === "MOM";
           // ✅ FIX Bug 2: Enforce On Hold validation for subtasks (same rule as parent task)
-          if (sub.status === "On Hold" && !prevSub.actualStartTime && !prevSub.totalTrackedTime && !isSubMOM) {
+          if (sub.status === "On Hold" && !prevSub.actualStartTime && !prevSub.totalTrackedTime) {
             throw Object.assign(
               new Error("Please start the subtask by setting its status to 'In Progress' first before placing it on hold."),
               { statusCode: 400, isValidationError: true }

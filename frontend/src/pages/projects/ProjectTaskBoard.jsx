@@ -8,6 +8,7 @@ import {
   FiX,
   FiPlus,
   FiCheck,
+  FiCheckSquare,
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
@@ -41,7 +42,12 @@ import {
   FiLoader,
   FiLock,
 } from "react-icons/fi";
-import { getTotalTrackedMs, formatShortDuration, getStatusTrackedMs, getTodayProductivityMs } from "../../utils/taskTimerUtils";
+import {
+  getTotalTrackedMs,
+  formatShortDuration,
+  getStatusTrackedMs,
+  getTodayProductivityMs,
+} from "../../utils/taskTimerUtils";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
 
@@ -351,12 +357,23 @@ const TimeTracker = React.memo(
       statusHistory: [],
     };
 
-    const productiveMs = getStatusTrackedMs(taskObj, "In Progress", new Date(now));
+    const productiveMs = getStatusTrackedMs(
+      taskObj,
+      "In Progress",
+      new Date(now),
+    );
     const holdMs = getStatusTrackedMs(taskObj, "On Hold", new Date(now));
-    const correctionMs = getStatusTrackedMs(taskObj, "Correction", new Date(now));
+    const correctionMs = getStatusTrackedMs(
+      taskObj,
+      "Correction",
+      new Date(now),
+    );
     const todayMs = getTodayProductivityMs(taskObj, new Date(now));
 
-    if (status === "Not Started" || (!startTime && productiveMs === 0 && holdMs === 0 && correctionMs === 0)) {
+    if (
+      status === "Not Started" ||
+      (!startTime && productiveMs === 0 && holdMs === 0 && correctionMs === 0)
+    ) {
       return (
         <span className="text-slate-405 dark:text-slate-500 font-semibold text-xs block text-center w-full">
           Not started
@@ -368,21 +385,27 @@ const TimeTracker = React.memo(
       <div className="flex flex-col gap-1 w-full p-1 rounded-md bg-white dark:bg-[#1e1e24] shadow-sm border border-slate-200 dark:border-slate-700/50">
         {todayMs > 0 && (
           <div className="flex justify-between items-center px-1.5 pb-1 border-b border-slate-100 dark:border-white/5">
-            <span className="text-[10px] text-slate-800 dark:text-slate-200 font-bold">Today</span>
+            <span className="text-[10px] text-slate-800 dark:text-slate-200 font-bold">
+              Today
+            </span>
             <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
               {formatShortDuration(todayMs)}
             </span>
           </div>
         )}
         <div className="flex justify-between items-center px-1.5">
-          <span className="text-[10px] text-slate-500 font-semibold">Productive</span>
+          <span className="text-[10px] text-slate-500 font-semibold">
+            Productive
+          </span>
           <span className="font-mono text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-             {formatShortDuration(productiveMs)}
+            {formatShortDuration(productiveMs)}
           </span>
         </div>
         {holdMs > 0 && (
           <div className="flex justify-between items-center px-1.5">
-            <span className="text-[10px] text-slate-500 font-semibold">Hold</span>
+            <span className="text-[10px] text-slate-500 font-semibold">
+              Hold
+            </span>
             <span className="font-mono text-[11px] font-semibold text-amber-600 dark:text-amber-500">
               {formatShortDuration(holdMs)}
             </span>
@@ -390,7 +413,9 @@ const TimeTracker = React.memo(
         )}
         {correctionMs > 0 && (
           <div className="flex justify-between items-center px-1.5">
-            <span className="text-[10px] text-slate-500 font-semibold">Correction</span>
+            <span className="text-[10px] text-slate-500 font-semibold">
+              Correction
+            </span>
             <span className="font-mono text-[11px] font-semibold text-blue-600 dark:text-blue-500">
               {formatShortDuration(correctionMs)}
             </span>
@@ -398,8 +423,40 @@ const TimeTracker = React.memo(
         )}
       </div>
     );
-  }
+  },
 );
+
+const ProductivityCell = React.memo(({ task }) => {
+  const [now, setNow] = useState(Date.now());
+  const isActive =
+    task?.status === "In Progress" && !task?.autoPaused && !task?.pausedAt;
+
+  useEffect(() => {
+    if (isActive) {
+      const interval = setInterval(() => setNow(Date.now()), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isActive]);
+
+  const totalMs = getTotalTrackedMs(task, now);
+
+  if ((!task?.status || task.status === "Not Started") && totalMs === 0) {
+    return (
+      <span className="text-slate-400 dark:text-slate-500 font-medium text-[11px]">
+        —
+      </span>
+    );
+  }
+
+  return (
+    <div className="inline-flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-bold font-mono tracking-tight bg-emerald-50/70 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40 shadow-2xs whitespace-nowrap">
+      {isActive && (
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+      )}
+      <span>{formatBusinessDuration(totalMs)}</span>
+    </div>
+  );
+});
 
 // Task Title Input Component for autosaving inline without cursor jump
 const TaskTitleInput = ({
@@ -490,6 +547,7 @@ const SubtaskRow = ({
   sub,
   task,
   users,
+  filterDepartment,
   getAvatarColor,
   handleSubtaskFieldChange,
   handleDeleteSubtask,
@@ -712,33 +770,19 @@ const SubtaskRow = ({
         {/* Assignee Picker (Always Visible) */}
         <div className="flex items-center gap-1.5">
           <AssigneeDropdown
-            selectedUser={
-              sub.contentType === "MOM"
-                ? sub.assignedTo ||
-                  sub.createdBy?._id ||
-                  sub.createdBy?.id ||
-                  sub.createdBy ||
-                  task.createdBy?._id ||
-                  task.createdBy?.id ||
-                  task.createdBy ||
-                  currentUser?._id ||
-                  currentUser?.id
-                : sub.assignedTo
-            }
+            selectedUser={sub.assignedTo}
             users={users}
+            filterDepartment={filterDepartment}
             onChange={(userId) =>
               handleSubtaskFieldChange(task, sub._id, {
                 assignedTo: userId,
               })
             }
             isAdminOrManager={isAdminOrManager}
-            disabled={sub.contentType === "MOM"}
-            isLocked={sub.contentType === "MOM"}
-            isMOM={sub.contentType === "MOM"}
             getAvatarColor={getAvatarColor}
             size="sm"
           />
-          {sub.assignedTo && isAdminOrManager && sub.contentType !== "MOM" && (
+          {sub.assignedTo && isAdminOrManager && (
             <button
               type="button"
               onClick={(e) => {
@@ -776,6 +820,7 @@ const SubtaskRow = ({
 const AssigneeDropdown = ({
   selectedUser,
   users = [],
+  filterDepartment = null,
   onChange,
   isAdminOrManager,
   getAvatarColor,
@@ -783,7 +828,6 @@ const AssigneeDropdown = ({
   size = "md",
   disabled = false,
   isLocked = false,
-  isMOM = false,
   currentUser = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -797,7 +841,7 @@ const AssigneeDropdown = ({
   });
   const dropdownRef = useRef(null);
 
-  const canEdit = isAdminOrManager && !disabled && !isLocked && !isMOM;
+  const canEdit = isAdminOrManager && !disabled && !isLocked;
 
   const updateCoords = () => {
     if (dropdownRef.current) {
@@ -856,21 +900,23 @@ const AssigneeDropdown = ({
     };
   }, [isOpen]);
 
-  let selectedUserObj =
-    typeof selectedUser === "string"
-      ? (users || []).find(
-          (u) => u && (u._id === selectedUser || u.id === selectedUser),
-        )
+  const selectedUserId =
+    typeof selectedUser === "object" && selectedUser !== null
+      ? selectedUser._id || selectedUser.id
       : selectedUser;
+
+  let selectedUserObj =
+    (users || []).find(
+      (u) => u && (u._id === selectedUserId || u.id === selectedUserId),
+    ) ||
+    (typeof selectedUser === "object" ? selectedUser : null);
+
   if (
     !selectedUserObj &&
     selectedUser &&
     currentUser &&
     (selectedUser === currentUser._id || selectedUser === currentUser.id)
   ) {
-    selectedUserObj = currentUser;
-  }
-  if (!selectedUserObj && isMOM && currentUser) {
     selectedUserObj = currentUser;
   }
 
@@ -939,13 +985,7 @@ const AssigneeDropdown = ({
           } overflow-hidden`}
         >
           {selectedUserObj ? (
-            avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={selectedUserObj?.name || "User"}
-                className="w-full h-full object-cover"
-              />
-            ) : (
+            <>
               <div
                 className={`w-full h-full flex items-center justify-center text-white text-[8px] font-bold bg-gradient-to-br ${safeGetAvatarColor(
                   selectedUserObj?.name || "U",
@@ -953,7 +993,17 @@ const AssigneeDropdown = ({
               >
                 {getInitials(selectedUserObj?.name)}
               </div>
-            )
+              {avatarUrl && (
+                <img
+                  src={avatarUrl}
+                  alt={selectedUserObj?.name || "User"}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
+                />
+              )}
+            </>
           ) : (
             <FiUser size={11} />
           )}
@@ -976,28 +1026,30 @@ const AssigneeDropdown = ({
           <div className="flex items-center gap-2 truncate">
             {selectedUserObj ? (
               <>
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={selectedUserObj?.name || "User"}
-                    className="w-5 h-5 rounded-full object-cover shrink-0"
-                  />
-                ) : (
+                <div className="relative w-5 h-5 rounded-full overflow-hidden shrink-0">
                   <div
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
+                    className={`w-full h-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
                       selectedUserObj?.name || "U",
                     )}`}
                   >
                     {getInitials(selectedUserObj?.name)}
                   </div>
-                )}
+                  {avatarUrl && (
+                    <img
+                      src={avatarUrl}
+                      alt={selectedUserObj?.name || "User"}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  )}
+                </div>
                 <span className="truncate">
                   {selectedUserObj?.name || "Assigned User"}{" "}
-                  {dept && (
-                    <span className="text-[10px] text-slate-400 dark:text-slate-550 font-normal">
-                      ({dept})
-                    </span>
-                  )}
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                    ({dept || (filterDepartment ? filterDepartment : effectiveAssigneeDepartment || "Graphic Designer")})
+                  </span>
                 </span>
               </>
             ) : (
@@ -1009,7 +1061,7 @@ const AssigneeDropdown = ({
           {canEdit && (
             <FiChevronDown
               size={14}
-              className="text-slate-400 dark:text-slate-500 shrink-0"
+              className="text-slate-400 dark:text-slate-550 shrink-0"
             />
           )}
         </button>
@@ -1026,30 +1078,32 @@ const AssigneeDropdown = ({
               : "cursor-default"
           } w-[135px] h-[28px] shadow-sm`}
         >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={selectedUserObj?.name || "User"}
-              className="w-5.5 h-5.5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
-            />
-          ) : (
+          <div className="relative w-5.5 h-5.5 rounded-full overflow-hidden border border-slate-250 dark:border-white/10 shrink-0">
             <div
-              className={`w-5.5 h-5.5 rounded-full flex items-center justify-center text-white font-black text-[9px] bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
+              className={`w-full h-full flex items-center justify-center text-white font-black text-[9px] bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
                 selectedUserObj?.name || "Unknown",
               )}`}
             >
               {getInitials(selectedUserObj?.name)}
             </div>
-          )}
+            {avatarUrl && (
+              <img
+                src={avatarUrl}
+                alt={selectedUserObj?.name || "User"}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+              />
+            )}
+          </div>
           <div className="flex-1 min-w-0 flex flex-col text-left">
             <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
               {selectedUserObj?.name || "Assigned"}
             </span>
-            {dept && (
-              <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 truncate leading-none mt-0">
-                {dept}
-              </span>
-            )}
+            <span className="text-[8px] font-semibold text-indigo-600 dark:text-indigo-400 truncate leading-none mt-0 flex items-center gap-1">
+               {dept || (filterDepartment ? filterDepartment : effectiveAssigneeDepartment || "Graphic Designer")}
+            </span>
           </div>
           {canEdit && (
             <button
@@ -1092,11 +1146,11 @@ const AssigneeDropdown = ({
           )}
         </div>
         <div className="flex-1 min-w-0 flex flex-col text-left">
-          <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-550 truncate leading-tight">
-            Unassigned
+          <span className="text-[9.5px] font-bold text-indigo-600 dark:text-indigo-400 truncate leading-tight flex items-center gap-1">
+             {filterDepartment ? filterDepartment : "Unassigned"}
           </span>
           <span className="text-[8px] font-medium text-slate-400/80 dark:text-slate-550/80 truncate leading-none mt-0">
-            Assign Task
+            {filterDepartment ? `Assign ${filterDepartment}` : "Assign Task"}
           </span>
         </div>
       </button>
@@ -1145,19 +1199,53 @@ const AssigneeDropdown = ({
             </button>
 
             {(users || [])
-              .filter(
-                (u) =>
-                  u &&
-                  (!searchTerm ||
-                    u.name?.toLowerCase().includes(searchTerm.toLowerCase())),
-              )
+              .filter((u) => {
+                if (!u) return false;
+                if (filterDepartment) {
+                  const uDept = (u.department || u.profile?.department || "")
+                    .toLowerCase()
+                    .trim();
+                  const uRole = (u.role || "").toLowerCase().trim();
+                  const target = filterDepartment.toLowerCase().trim();
+                  const matches =
+                    uDept === target ||
+                    uDept.includes(target) ||
+                    (target.includes("graphic") &&
+                      (uDept === "designer" ||
+                        uDept === "graphic design" ||
+                        uDept.includes("graphic") ||
+                        uDept.includes("design") ||
+                        uRole === "graphic designer" ||
+                        uRole.includes("designer"))) ||
+                    ((target.includes("cinema") ||
+                      target.includes("video") ||
+                      target.includes("cinematog")) &&
+                      (uDept.includes("cinema") ||
+                        uDept.includes("video") ||
+                        uDept.includes("edit") ||
+                        uDept.includes("cinematog") ||
+                        uRole.includes("cinema") ||
+                        uRole.includes("video") ||
+                        uRole.includes("cinematog")));
+                  const isCurrentSelected =
+                    selectedUserId &&
+                    (String(u._id || u.id) === String(selectedUserId));
+                  if (!matches && !isCurrentSelected) return false;
+                }
+                return (
+                  !searchTerm ||
+                  u.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+              })
               .map((u) => {
-                const isSelected = selectedUserObj?._id === u._id;
+                const isSelected =
+                  String(selectedUserObj?._id || selectedUserObj?.id) ===
+                  String(u._id || u.id);
                 const uAvatar = getAvatarUrl(u);
                 const uDept = getDepartment(u);
                 return (
                   <button
-                    key={u._id}
+                    key={u._id || u.id}
                     type="button"
                     onClick={() => handleSelect(u)}
                     className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${
@@ -1167,28 +1255,30 @@ const AssigneeDropdown = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      {uAvatar ? (
-                        <img
-                          src={uAvatar}
-                          alt={u.name}
-                          className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-100 dark:border-white/5"
-                        />
-                      ) : (
+                      <div className="relative w-5 h-5 rounded-full overflow-hidden shrink-0 border border-slate-100 dark:border-white/5">
                         <div
-                          className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                          className={`w-full h-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
                             u.name || "U",
                           )}`}
                         >
                           {getInitials(u.name)}
                         </div>
-                      )}
+                        {uAvatar && (
+                          <img
+                            src={uAvatar}
+                            alt={u.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                      </div>
                       <div className="flex flex-col truncate">
                         <span className="truncate">{u.name}</span>
-                        {uDept && (
-                          <span className="text-[9px] text-slate-400 dark:text-slate-550 font-normal truncate">
-                            {uDept}
-                          </span>
-                        )}
+                        <span className="text-[9px] text-indigo-600 dark:text-indigo-400 font-medium truncate flex items-center gap-1">
+                           {uDept || filterDepartment || effectiveAssigneeDepartment || "Graphic Designer"}
+                        </span>
                       </div>
                     </div>
                     {isSelected && (
@@ -1435,19 +1525,21 @@ const ClientDropdown = ({
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      {c.icon ? (
-                        <img
-                          src={c.icon}
-                          alt=""
-                          className="w-5 h-5 rounded object-contain bg-white shrink-0"
-                        />
-                      ) : (
-                        <div
-                          className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold bg-slate-200 dark:bg-slate-800 shrink-0`}
-                        >
+                      <div className="relative w-5 h-5 rounded overflow-hidden shrink-0">
+                        <div className="w-full h-full flex items-center justify-center text-[9px] font-bold bg-slate-200 dark:bg-slate-800">
                           {getClientInitials(c.companyName)}
                         </div>
-                      )}
+                        {c.icon && (
+                          <img
+                            src={c.icon}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-contain bg-white"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        )}
+                      </div>
                       <span className="truncate">{c.companyName}</span>
                     </div>
                     {isSelected && (
@@ -1470,6 +1562,10 @@ const ContentCopyInput = ({
   value,
   onChange,
   placeholder = "Content copy...",
+  className = "",
+  autoAdjustWidth = false,
+  minWidth = "100%",
+  maxWidth = "100%",
 }) => {
   const [val, setVal] = useState(value || "");
 
@@ -1477,10 +1573,22 @@ const ContentCopyInput = ({
     setVal(value || "");
   }, [value]);
 
+  const charLength = Math.max((val || "").length, (placeholder || "").length);
+  const widthStyle = autoAdjustWidth
+    ? {
+        width: `${Math.max(charLength + 3, 14)}ch`,
+        minWidth,
+        maxWidth,
+      }
+    : {
+        width: "100%",
+      };
+
   return (
     <input
       type="text"
       value={val}
+      style={widthStyle}
       onChange={(e) => setVal(e.target.value)}
       onClick={(e) => e.stopPropagation()}
       onBlur={() => {
@@ -1498,7 +1606,7 @@ const ContentCopyInput = ({
         }
       }}
       placeholder={placeholder}
-      className="w-full bg-transparent border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all placeholder:font-normal hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-[#0f172a] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] focus:shadow-[0_0_0_2px_rgba(59,130,246,0.15)] text-left"
+      className={`w-full bg-transparent border border-slate-200 dark:border-slate-700 rounded px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all placeholder:font-normal hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-[#0f172a] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] focus:shadow-[0_0_0_2px_rgba(59,130,246,0.15)] text-left ${className}`}
     />
   );
 };
@@ -1666,10 +1774,33 @@ const ProjectTaskBoard = ({
   currentUser,
   users,
   clients,
+  projects = [],
   isAdminOrManager,
   getStatusBadge,
   getAvatarColor,
+  filterAssigneeDepartment = null,
+  clientSwitcherNode = null,
+  headerBadge = null,
+  customTitle = null,
+  showDepartmentBadge = false,
+  isDesignerTasksMode = false,
+  isCinematographerTasksMode = false,
+  hideProjectIcon = false,
+  hideTitle = false,
 }) => {
+  const effectiveAssigneeDepartment =
+    filterAssigneeDepartment ||
+    (isCinematographerTasksMode
+      ? "Cinematographer"
+      : isDesignerTasksMode
+        ? "Graphic Designer"
+        : null);
+
+  const isDedicatedDepartmentMode =
+    isDesignerTasksMode ||
+    isCinematographerTasksMode ||
+    Boolean(filterAssigneeDepartment);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -1707,8 +1838,25 @@ const ProjectTaskBoard = ({
 
   // Stable empty array to prevent infinite loops when data is undefined
   const EMPTY_TASKS = useRef([]).current;
+  const isAllClientsMode = activeProjectId === "all" || !activeProjectId;
+  const taskQueryParams = useMemo(() => {
+    const params = {};
+    if (!isAllClientsMode && activeProjectId) {
+      params.project = activeProjectId;
+    }
+    if (filterAssigneeDepartment && !isDedicatedDepartmentMode) {
+      params.department = filterAssigneeDepartment;
+    }
+    return Object.keys(params).length > 0 ? params : undefined;
+  }, [
+    isAllClientsMode,
+    activeProjectId,
+    filterAssigneeDepartment,
+    isDedicatedDepartmentMode,
+  ]);
+
   const { data: tasks = EMPTY_TASKS, isLoading: tasksLoading } =
-    useGetTasksQuery({ project: activeProjectId }, { skip: !activeProjectId });
+    useGetTasksQuery(taskQueryParams, { skip: false });
   const [createTaskMutation] = useCreateTaskMutation();
   const [updateTaskMutation] = useUpdateTaskMutation();
   const [deleteTaskMutation] = useDeleteTaskMutation();
@@ -1795,20 +1943,32 @@ const ProjectTaskBoard = ({
   const getTaskDisplayId = (task) => {
     if (!task || !task._id) return "";
 
+    const taskProj =
+      task.project && typeof task.project === "object"
+        ? task.project
+        : activeProject;
+
     // Project Name first character (upper case, fallback to 'P')
-    const projChar = (activeProject?.name || "P").charAt(0).toUpperCase();
+    const projChar = (taskProj?.name || "P").charAt(0).toUpperCase();
 
     // Client Name first 2 characters (upper case, fallback to 'XX')
-    const clientName = activeProject?.client?.companyName || "";
+    const clientName =
+      taskProj?.client?.companyName || activeProject?.client?.companyName || "";
     const clientChars = clientName
       ? clientName.substring(0, 2).toUpperCase().padEnd(2, "X")
       : "XX";
 
     // Get all tasks for this project
-    const projectTasks = tasks.filter(
-      (t) =>
-        t.project?._id === activeProjectId || t.project === activeProjectId,
-    );
+    const projectTasks = tasks.filter((t) => {
+      if (activeProjectId === "all" || !activeProjectId) {
+        const tProjId = t.project?._id || t.project;
+        const thisProjId = task.project?._id || task.project;
+        return String(tProjId) === String(thisProjId);
+      }
+      return (
+        t.project?._id === activeProjectId || t.project === activeProjectId
+      );
+    });
 
     // Sort stably by createdAt or _id
     const sortedByCreation = [...projectTasks].sort((a, b) => {
@@ -1903,8 +2063,19 @@ const ProjectTaskBoard = ({
   // Hidden Columns State
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     try {
-      const saved = localStorage.getItem("ptb_hidden_columns");
-      return saved ? JSON.parse(saved) : {};
+      const storageKey = isDesignerTasksMode
+        ? "ptb_designer_hidden_columns"
+        : (isCinematographerTasksMode || (filterAssigneeDepartment && filterAssigneeDepartment.toLowerCase().includes("cinema"))
+            ? "ptb_cinematographer_hidden_columns"
+            : (filterAssigneeDepartment
+                ? `ptb_${filterAssigneeDepartment.toLowerCase().replace(/\s+/g, "_")}_hidden_columns`
+                : "ptb_hidden_columns"));
+      const saved = localStorage.getItem(storageKey);
+      const parsed = saved ? JSON.parse(saved) : {};
+      if (isDedicatedDepartmentMode) {
+        parsed.department = false;
+      }
+      return parsed;
     } catch (e) {
       return {};
     }
@@ -1916,7 +2087,14 @@ const ProjectTaskBoard = ({
   const toggleColumnHide = (colId) => {
     setHiddenColumns((prev) => {
       const next = { ...prev, [colId]: !prev[colId] };
-      localStorage.setItem("ptb_hidden_columns", JSON.stringify(next));
+      const storageKey = isDesignerTasksMode
+        ? "ptb_designer_hidden_columns"
+        : (isCinematographerTasksMode || (filterAssigneeDepartment && filterAssigneeDepartment.toLowerCase().includes("cinema"))
+            ? "ptb_cinematographer_hidden_columns"
+            : (filterAssigneeDepartment
+                ? `ptb_${filterAssigneeDepartment.toLowerCase().replace(/\s+/g, "_")}_hidden_columns`
+                : "ptb_hidden_columns"));
+      localStorage.setItem(storageKey, JSON.stringify(next));
       return next;
     });
   };
@@ -2053,9 +2231,149 @@ const ProjectTaskBoard = ({
 
   // Add optimistic tasks state for dragging
   const [localTasks, setLocalTasks] = useState([]);
+  const [recentlyCreatedTaskIds, setRecentlyCreatedTaskIds] = useState(
+    () => new Set(),
+  );
+
+  const targetDeptUserIdsSet = useMemo(() => {
+    const set = new Set();
+    const target = (effectiveAssigneeDepartment || "graphic designer")
+      .toLowerCase()
+      .trim();
+    if (!target) return set;
+
+    const isMatch = (dept, uRole) => {
+      if (dept === target || dept.includes(target) || uRole === target) return true;
+      if (target.includes("graphic") || target === "designer") {
+        return (
+          dept === "designer" ||
+          dept.includes("graphic") ||
+          dept.includes("design") ||
+          uRole === "graphic designer" ||
+          uRole.includes("designer")
+        );
+      }
+      if (
+        target.includes("cinema") ||
+        target.includes("video") ||
+        target.includes("cinematog")
+      ) {
+        return (
+          dept.includes("video") ||
+          dept.includes("edit") ||
+          dept.includes("cinema") ||
+          dept.includes("cinematog") ||
+          uRole.includes("cinema") ||
+          uRole.includes("video") ||
+          uRole.includes("cinematog")
+        );
+      }
+      return false;
+    };
+
+    (users || []).forEach((u) => {
+      if (!u) return;
+      const dept = (u.department || u.profile?.department || "")
+        .toLowerCase()
+        .trim();
+      const uRole = (u.role || "").toLowerCase().trim();
+      if (isMatch(dept, uRole)) {
+        set.add(String(u._id || u.id));
+      }
+    });
+    if (currentUser) {
+      const dept = (
+        currentUser.department ||
+        currentUser.profile?.department ||
+        ""
+      )
+        .toLowerCase()
+        .trim();
+      const uRole = (currentUser.role || "").toLowerCase().trim();
+      if (isMatch(dept, uRole)) {
+        set.add(String(currentUser._id || currentUser.id));
+      }
+    }
+    return set;
+  }, [users, currentUser, effectiveAssigneeDepartment]);
+
+  // Helper to identify users belonging to a target department (e.g. Graphic Designer / Cinematographer)
+  const isTargetDepartmentUser = (userRef, targetDept = effectiveAssigneeDepartment || "Graphic Designer") => {
+    if (!userRef) return false;
+    const uid =
+      typeof userRef === "object" ? userRef._id || userRef.id : userRef;
+    if (uid && targetDeptUserIdsSet.has(String(uid))) return true;
+    if (typeof userRef === "object") {
+      const dept = (userRef.department || userRef.profile?.department || "")
+        .toLowerCase()
+        .trim();
+      const uRole = (userRef.role || "").toLowerCase().trim();
+      const target = (targetDept || "graphic designer").toLowerCase().trim();
+      if (dept === target || dept.includes(target) || uRole === target) return true;
+      if (target.includes("graphic") || target === "designer") {
+        return (
+          dept === "designer" ||
+          dept.includes("graphic") ||
+          dept.includes("design") ||
+          uRole === "graphic designer" ||
+          uRole.includes("designer")
+        );
+      }
+      if (
+        target.includes("cinema") ||
+        target.includes("video") ||
+        target.includes("cinematog")
+      ) {
+        return (
+          dept.includes("video") ||
+          dept.includes("edit") ||
+          dept.includes("cinema") ||
+          dept.includes("cinematog") ||
+          uRole.includes("cinema") ||
+          uRole.includes("video") ||
+          uRole.includes("cinematog")
+        );
+      }
+    }
+    return false;
+  };
+
+  const getDefaultDesignerAssignee = () => {
+    if (isTargetDepartmentUser(currentUser, "Graphic Designer")) {
+      return currentUser?._id || currentUser?.id;
+    }
+    const firstDesigner = (users || []).find((u) =>
+      isTargetDepartmentUser(u, "Graphic Designer"),
+    );
+    return (
+      firstDesigner?._id ||
+      firstDesigner?.id ||
+      currentUser?._id ||
+      currentUser?.id ||
+      null
+    );
+  };
 
   useEffect(() => {
-    setLocalTasks(tasks);
+    const cleanTasks = (tasks || []).map((t) => {
+      let cleanTask = t;
+      if (
+        t &&
+        typeof t.contentType !== "string" &&
+        t.contentType !== null &&
+        t.contentType !== undefined
+      ) {
+        cleanTask = {
+          ...t,
+          contentType:
+            typeof t.contentType?.value === "string"
+              ? t.contentType.value
+              : "",
+        };
+      }
+      return cleanTask;
+    });
+    setLocalTasks(cleanTasks);
   }, [tasks]);
 
   useEffect(() => {
@@ -2070,74 +2388,205 @@ const ProjectTaskBoard = ({
     }
   }, [inlineAddingSectionUnder]);
 
+  const accessibleProjIdSet = useMemo(() => {
+    return new Set((projects || []).map((p) => String(p._id)));
+  }, [projects]);
+
   // Filter tasks for this project using localTasks for optimistic UI
-  const activeProjectTasks = localTasks.filter((t) => {
-    const projId = t.project?._id || t.project;
-    return String(projId) === String(activeProjectId);
-  });
+  const activeProjectTasks = useMemo(() => {
+    return localTasks.filter((t) => {
+      if (activeProjectId === "all" || !activeProjectId) {
+        if (isDedicatedDepartmentMode && accessibleProjIdSet.size > 0) {
+          const projId = t.project?._id || t.project;
+          return accessibleProjIdSet.has(String(projId));
+        }
+        return true;
+      }
+      const projId = t.project?._id || t.project;
+      return String(projId) === String(activeProjectId);
+    });
+  }, [localTasks, activeProjectId, isDedicatedDepartmentMode, accessibleProjIdSet]);
 
-  const filteredTasks = activeProjectTasks.filter((t) => {
-    if (statusFilter !== "All") {
-      const currentStatus = t.status || "Not Started";
-      const statusUpper = currentStatus.toUpperCase();
+  const filteredTasks = useMemo(() => {
+    const myId = currentUser?._id || currentUser?.id;
+    const myIdStr = myId ? String(myId) : "";
+    const targetDept = effectiveAssigneeDepartment || "Graphic Designer";
 
-      if (statusFilter === "Active Tasks") {
-        const isCompleted = statusUpper === "COMPLETED";
-        const isRejected = statusUpper === "REJECTED";
-        if (isCompleted || isRejected) {
+    return activeProjectTasks.filter((t) => {
+      // In Designer / Cinematographer Tasks mode or when department filter is applied:
+      if (isDedicatedDepartmentMode) {
+        const isAssignedToTarget = isTargetDepartmentUser(
+          t.assignedTo,
+          targetDept,
+        );
+        const hasTargetSubtask = (t.subtasks || []).some((sub) =>
+          isTargetDepartmentUser(sub.assignedTo, targetDept),
+        );
+        const taskDept = (t.department || "").toLowerCase().trim();
+        const isTaskDeptTarget = (() => {
+          if (!taskDept) return false;
+          if (taskDept === targetDept.toLowerCase() || taskDept.includes(targetDept.toLowerCase())) return true;
+          if (targetDept.toLowerCase().includes("graphic")) {
+            return (
+              taskDept === "graphic designer" ||
+              taskDept === "graphic design" ||
+              taskDept === "designer" ||
+              taskDept.includes("graphic")
+            );
+          }
+          if (
+            targetDept.toLowerCase().includes("cinema") ||
+            targetDept.toLowerCase().includes("video") ||
+            targetDept.toLowerCase().includes("cinematog")
+          ) {
+            return (
+              taskDept.includes("cinema") ||
+              taskDept.includes("video") ||
+              taskDept.includes("edit") ||
+              taskDept.includes("cinematog")
+            );
+          }
+          return false;
+        })();
+
+        const isTargetContentType = (() => {
+          if (!t.contentType) return false;
+          const ct = String(t.contentType).toUpperCase().trim();
+          if (targetDept.toLowerCase().includes("graphic")) {
+            return ["IMAGE", "POST", "CAROUSEL", "REEL"].includes(ct);
+          }
+          if (
+            targetDept.toLowerCase().includes("cinema") ||
+            targetDept.toLowerCase().includes("video") ||
+            targetDept.toLowerCase().includes("cinematog")
+          ) {
+            return ["VIDEO", "REEL", "SHOOT", "CINEMATIC", "STORY", "FOOTAGE"].includes(ct);
+          }
+          return false;
+        })();
+
+        const isRecentlyCreated =
+          (typeof t._id === "string" && t._id.startsWith("temp-")) ||
+          recentlyCreatedTaskIds.has(t._id);
+
+        const isUserInTarget = isTargetDepartmentUser(currentUser, targetDept);
+        const isAssignedToMe =
+          isUserInTarget &&
+          myIdStr &&
+          String(t.assignedTo?._id || t.assignedTo?.id || t.assignedTo) ===
+            myIdStr;
+        const hasSubtaskAssignedToMe =
+          isUserInTarget &&
+          myIdStr &&
+          (t.subtasks || []).some(
+            (sub) =>
+              String(
+                sub.assignedTo?._id || sub.assignedTo?.id || sub.assignedTo,
+              ) === myIdStr,
+          );
+
+        // If the task is assigned to someone from a different department, exclude it unless it has a matching subtask
+        const isAssignedToOtherDept =
+          t.assignedTo && !isAssignedToTarget && !isAssignedToMe;
+
+        if (isAssignedToOtherDept && !hasTargetSubtask) {
           return false;
         }
-      } else if (statusFilter === "In Review") {
-        if (t.status !== "In Review") {
-          return false;
-        }
-      } else if (statusFilter === "In Progress") {
-        if (statusUpper !== "IN PROGRESS") {
-          return false;
-        }
-      } else if (statusFilter === "On Hold") {
-        if (statusUpper !== "ON HOLD") {
-          return false;
-        }
-      } else if (statusFilter === "Not Started") {
-        if (statusUpper !== "PENDING") {
-          return false;
-        }
-      } else {
-        if (t.status !== statusFilter) {
+
+        const isUnassignedDeptTask =
+          isDedicatedDepartmentMode &&
+          !t.assignedTo &&
+          (!t.department || isTaskDeptTarget);
+
+        const isMatch =
+          isAssignedToTarget ||
+          hasTargetSubtask ||
+          isTaskDeptTarget ||
+          isTargetContentType ||
+          isAssignedToMe ||
+          hasSubtaskAssignedToMe ||
+          isRecentlyCreated ||
+          isUnassignedDeptTask;
+
+        if (!isMatch) {
           return false;
         }
       }
-    }
 
-    if (dateFilter === "All Time") return true;
-    const taskDate = new Date(t.createdAt || new Date());
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      if (statusFilter !== "All") {
+        const currentStatus = t.status || "Not Started";
+        const statusUpper = currentStatus.toUpperCase();
 
-    if (dateFilter === "Today") {
-      return taskDate >= today;
-    } else if (dateFilter === "Yesterday") {
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return taskDate >= yesterday && taskDate < today;
-    } else if (dateFilter === "Last 7 Days") {
-      const last7Days = new Date(today);
-      last7Days.setDate(last7Days.getDate() - 7);
-      return taskDate >= last7Days;
-    } else if (dateFilter === "This Month") {
-      return (
-        taskDate.getMonth() === today.getMonth() &&
-        taskDate.getFullYear() === today.getFullYear()
-      );
-    }
-    return true;
-  });
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    if (a.status === "Completed" && b.status !== "Completed") return 1;
-    if (b.status === "Completed" && a.status !== "Completed") return -1;
-    return 0;
-  });
+        if (statusFilter === "Active Tasks") {
+          const isCompleted = statusUpper === "COMPLETED";
+          const isRejected = statusUpper === "REJECTED";
+          if (isCompleted || isRejected) {
+            return false;
+          }
+        } else if (statusFilter === "In Review") {
+          if (t.status !== "In Review") {
+            return false;
+          }
+        } else if (statusFilter === "In Progress") {
+          if (statusUpper !== "IN PROGRESS") {
+            return false;
+          }
+        } else if (statusFilter === "On Hold") {
+          if (statusUpper !== "ON HOLD") {
+            return false;
+          }
+        } else if (statusFilter === "Not Started") {
+          if (statusUpper !== "PENDING") {
+            return false;
+          }
+        } else {
+          if (t.status !== statusFilter) {
+            return false;
+          }
+        }
+      }
+
+      if (dateFilter === "All Time") return true;
+      const taskDate = new Date(t.createdAt || new Date());
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (dateFilter === "Today") {
+        return taskDate >= today;
+      } else if (dateFilter === "Yesterday") {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return taskDate >= yesterday && taskDate < today;
+      } else if (dateFilter === "Last 7 Days") {
+        const last7Days = new Date(today);
+        last7Days.setDate(last7Days.getDate() - 7);
+        return taskDate >= last7Days;
+      } else if (dateFilter === "This Month") {
+        return (
+          taskDate.getMonth() === today.getMonth() &&
+          taskDate.getFullYear() === today.getFullYear()
+        );
+      }
+      return true;
+    });
+  }, [
+    activeProjectTasks,
+    filterAssigneeDepartment,
+    isDesignerTasksMode,
+    currentUser,
+    recentlyCreatedTaskIds,
+    statusFilter,
+    dateFilter,
+    targetDeptUserIdsSet,
+  ]);
+
+  const sortedTasks = useMemo(() => {
+    return [...filteredTasks].sort((a, b) => {
+      if (a.status === "Completed" && b.status !== "Completed") return 1;
+      if (b.status === "Completed" && a.status !== "Completed") return -1;
+      return 0;
+    });
+  }, [filteredTasks]);
 
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId, type } = result;
@@ -2249,7 +2698,11 @@ const ProjectTaskBoard = ({
     try {
       // If no sections exist yet in the project, create "General" section first
       const currentSections = activeProject.sections || [];
-      if (currentSections.length === 0) {
+      if (
+        currentSections.length === 0 &&
+        activeProjectId &&
+        activeProjectId !== "all"
+      ) {
         targetSection = "General";
         await dispatch(
           updateProject({
@@ -2259,18 +2712,36 @@ const ProjectTaskBoard = ({
         ).unwrap();
       }
 
+      const targetProjId =
+        activeProjectId && activeProjectId !== "all"
+          ? activeProjectId
+          : projects && projects.length > 0
+            ? projects[0]._id
+            : null;
+
+      if (!targetProjId) {
+        toast.error("Please create a project first before creating a task");
+        return;
+      }
+
       // Create task via mutation
       const response = await createTaskMutation({
         title: titleToCreate,
-        project: activeProjectId,
+        project: targetProjId,
         section: targetSection,
         assignedTo: null,
+        department: effectiveAssigneeDepartment || undefined,
         dueDate: null,
         priority: "Medium",
         status: "Not Started",
       }).unwrap();
 
       if (response && response.data) {
+        if (response.data._id) {
+          setRecentlyCreatedTaskIds((prev) =>
+            new Set(prev).add(response.data._id),
+          );
+        }
         setLocalTasks((prev) => [...prev, response.data]);
       }
 
@@ -2299,12 +2770,27 @@ const ProjectTaskBoard = ({
         ? activeProject.sections[0]
         : "General");
     const tempId = "temp-" + Date.now();
+    setRecentlyCreatedTaskIds((prev) => new Set(prev).add(tempId));
+
+    const targetProjId =
+      activeProjectId && activeProjectId !== "all"
+        ? activeProjectId
+        : projects && projects.length > 0
+          ? projects[0]._id
+          : null;
+
+    if (!targetProjId) {
+      toast.error("Please create a project first before creating a task");
+      return;
+    }
+
     const tempTask = {
       _id: tempId,
       title: "",
-      project: activeProjectId,
+      project: targetProjId,
       section: resolvedSectionName,
       assignedTo: null,
+      department: effectiveAssigneeDepartment || undefined,
       startDate: new Date().toISOString(),
       dueDate: null,
       priority: "Medium",
@@ -2322,15 +2808,21 @@ const ProjectTaskBoard = ({
     try {
       const response = await createTaskMutation({
         title: "",
-        project: activeProjectId,
+        project: targetProjId,
         section: resolvedSectionName,
         assignedTo: null,
+        department: effectiveAssigneeDepartment || undefined,
         dueDate: null,
         priority: "Medium",
         status: "Not Started",
       }).unwrap();
 
       if (response && response.data) {
+        if (response.data._id) {
+          setRecentlyCreatedTaskIds((prev) =>
+            new Set(prev).add(response.data._id),
+          );
+        }
         setLocalTasks((prev) =>
           prev.map((t) => (t._id === tempId ? response.data : t)),
         );
@@ -2346,17 +2838,32 @@ const ProjectTaskBoard = ({
   // Add Task directly to DB with preselected status (Board view helper)
   const handleAddTaskWithStatus = async (status) => {
     const tempId = "temp-" + Date.now();
+    setRecentlyCreatedTaskIds((prev) => new Set(prev).add(tempId));
+
     const defaultSection =
       activeProject?.sections?.length > 0
         ? activeProject.sections[0]
         : "General";
 
+    const targetProjId =
+      activeProjectId && activeProjectId !== "all"
+        ? activeProjectId
+        : projects && projects.length > 0
+          ? projects[0]._id
+          : null;
+
+    if (!targetProjId) {
+      toast.error("Please create a project first before creating a task");
+      return;
+    }
+
     const tempTask = {
       _id: tempId,
       title: "Add Task",
-      project: activeProjectId,
+      project: targetProjId,
       section: defaultSection,
       assignedTo: null,
+      department: effectiveAssigneeDepartment || undefined,
       startDate: new Date().toISOString(),
       dueDate: null,
       priority: "Medium",
@@ -2374,14 +2881,21 @@ const ProjectTaskBoard = ({
     try {
       const response = await createTaskMutation({
         title: "Add Task",
-        project: activeProjectId,
+        project: targetProjId,
+        section: defaultSection,
         assignedTo: null,
+        department: effectiveAssigneeDepartment || undefined,
         dueDate: null,
         priority: "Medium",
         status: status,
       }).unwrap();
 
       if (response && response.data) {
+        if (response.data._id) {
+          setRecentlyCreatedTaskIds((prev) =>
+            new Set(prev).add(response.data._id),
+          );
+        }
         setLocalTasks((prev) =>
           prev.map((t) => (t._id === tempId ? response.data : t)),
         );
@@ -2516,7 +3030,11 @@ const ProjectTaskBoard = ({
 
     if (fields.status === "On Hold") {
       const taskObj = localTasks.find((t) => t._id === taskId);
-      if (taskObj && !taskObj.actualStartTime && !taskObj.totalTrackedTime && taskObj.contentType !== "MOM") {
+      if (
+        taskObj &&
+        !taskObj.actualStartTime &&
+        !taskObj.totalTrackedTime
+      ) {
         showStartInProgressWarning("hold");
         return;
       }
@@ -2565,6 +3083,13 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
     if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
+    if (sanitizedFields.contentType !== undefined) {
+      if (typeof sanitizedFields.contentType !== "string") {
+        sanitizedFields.contentType =
+          sanitizedFields.contentType?.value ||
+          String(sanitizedFields.contentType || "");
+      }
+    }
 
     const currentTask = localTasks.find((t) => t._id === taskId);
 
@@ -2918,11 +3443,27 @@ const ProjectTaskBoard = ({
     };
 
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
+
+    setLocalTasks((prev) =>
+      prev.map((t) =>
+        t._id === task._id ? { ...t, subtasks: updatedSubtasks } : t,
+      ),
+    );
+
+    if (String(task._id).startsWith("temp-")) {
+      return;
+    }
+
     try {
-      await updateTaskMutation({
+      const response = await updateTaskMutation({
         id: task._id,
         taskData: { subtasks: updatedSubtasks },
       }).unwrap();
+      if (response && response.data) {
+        setLocalTasks((prev) =>
+          prev.map((t) => (t._id === task._id ? response.data : t)),
+        );
+      }
     } catch (err) {
       console.error("Failed to add subtask:", err);
     }
@@ -2942,7 +3483,11 @@ const ProjectTaskBoard = ({
   const handleSubtaskFieldChange = async (task, subtaskId, updatedFields) => {
     if (updatedFields.status === "In Review") {
       const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
-      if (subtaskObj && !subtaskObj.actualStartTime && !subtaskObj.totalTrackedTime) {
+      if (
+        subtaskObj &&
+        !subtaskObj.actualStartTime &&
+        !subtaskObj.totalTrackedTime
+      ) {
         showStartInProgressWarning("review");
         return;
       }
@@ -2960,7 +3505,11 @@ const ProjectTaskBoard = ({
 
     if (updatedFields.status === "On Hold") {
       const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
-      if (subtaskObj && !subtaskObj.actualStartTime && !subtaskObj.totalTrackedTime && (subtaskObj.contentType !== "MOM" && task.contentType !== "MOM")) {
+      if (
+        subtaskObj &&
+        !subtaskObj.actualStartTime &&
+        !subtaskObj.totalTrackedTime
+      ) {
         showStartInProgressWarning("hold");
         return;
       }
@@ -3011,6 +3560,13 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
     if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
+    if (sanitizedFields.contentType !== undefined) {
+      if (typeof sanitizedFields.contentType !== "string") {
+        sanitizedFields.contentType =
+          sanitizedFields.contentType?.value ||
+          String(sanitizedFields.contentType || "");
+      }
+    }
 
     const currentSub = task.subtasks?.find((s) => s._id === subtaskId);
 
@@ -3039,51 +3595,6 @@ const ProjectTaskBoard = ({
       ) {
         toast.error(
           "🔒 Subtask End Date is locked once set and cannot be changed.",
-        );
-        return;
-      }
-    }
-
-    // Check date requirement before assigning member on subtask
-    if (sanitizedFields.assignedTo) {
-      const effectiveStart =
-        sanitizedFields.startDate !== undefined
-          ? sanitizedFields.startDate
-          : currentSub?.startDate || task?.startDate;
-      const effectiveEnd =
-        sanitizedFields.dueDate !== undefined
-          ? sanitizedFields.dueDate
-          : currentSub?.dueDate || task?.dueDate;
-
-      if (!effectiveStart || !effectiveEnd) {
-        toast.custom(
-          (t) => (
-            <div
-              className={`${
-                t.visible ? "animate-enter" : "animate-leave"
-              } max-w-md w-full bg-slate-900/95 dark:bg-[#121217] text-white shadow-2xl rounded-2xl pointer-events-auto flex ring-2 ring-amber-500/50 p-4 gap-3.5 items-center border border-amber-500/40 backdrop-blur-xl z-[99999]`}
-            >
-              <div className="text-3xl animate-bounce shrink-0">🗓️</div>
-              <div className="flex-1 text-xs">
-                <p className="font-extrabold text-amber-400 text-sm flex items-center gap-1.5">
-                  <span>Please assign Start Date & End Date first!</span>
-                  <span>✨</span>
-                </p>
-                <p className="text-slate-300 font-medium mt-1 leading-snug">
-                  Please assign Start Date and End Date before assigning a team
-                  member.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => toast.dismiss(t.id)}
-                className="shrink-0 p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
-              >
-                <FiX size={16} />
-              </button>
-            </div>
-          ),
-          { duration: 4500 },
         );
         return;
       }
@@ -3131,14 +3642,30 @@ const ProjectTaskBoard = ({
       sanitizedFields.priority = "Top High";
     }
 
-    const updatedSubtasks = task.subtasks.map((sub) =>
+    const updatedSubtasks = (task.subtasks || []).map((sub) =>
       sub._id === subtaskId ? { ...sub, ...sanitizedFields } : sub,
     );
+
+    setLocalTasks((prev) =>
+      prev.map((t) =>
+        t._id === task._id ? { ...t, subtasks: updatedSubtasks } : t,
+      ),
+    );
+
+    if (String(task._id).startsWith("temp-")) {
+      return;
+    }
+
     try {
-      await updateTaskMutation({
+      const response = await updateTaskMutation({
         id: task._id,
         taskData: { subtasks: updatedSubtasks },
       }).unwrap();
+      if (response && response.data) {
+        setLocalTasks((prev) =>
+          prev.map((t) => (t._id === task._id ? response.data : t)),
+        );
+      }
     } catch (err) {
       console.error("Failed to update subtask:", err);
     }
@@ -3288,12 +3815,27 @@ const ProjectTaskBoard = ({
       setAutoFocusSubtaskIdx(subIdx + 1);
     }
 
+    setLocalTasks((prev) =>
+      prev.map((t) =>
+        t._id === task._id ? { ...t, subtasks: updatedSubtasks } : t,
+      ),
+    );
+
+    if (String(task._id).startsWith("temp-")) {
+      return;
+    }
+
     // 4. Save to backend
     try {
-      await updateTaskMutation({
+      const response = await updateTaskMutation({
         id: task._id,
         taskData: { subtasks: updatedSubtasks },
       }).unwrap();
+      if (response && response.data) {
+        setLocalTasks((prev) =>
+          prev.map((t) => (t._id === task._id ? response.data : t)),
+        );
+      }
     } catch (err) {
       console.error("Failed to insert subtask on Enter:", err);
     }
@@ -3317,11 +3859,26 @@ const ProjectTaskBoard = ({
     // Auto focus the new subtask (at the end of the array)
     setAutoFocusSubtaskIdx((task.subtasks || []).length);
 
+    setLocalTasks((prev) =>
+      prev.map((t) =>
+        t._id === task._id ? { ...t, subtasks: updatedSubtasks } : t,
+      ),
+    );
+
+    if (String(task._id).startsWith("temp-")) {
+      return;
+    }
+
     try {
-      await updateTaskMutation({
+      const response = await updateTaskMutation({
         id: task._id,
         taskData: { subtasks: updatedSubtasks },
       }).unwrap();
+      if (response && response.data) {
+        setLocalTasks((prev) =>
+          prev.map((t) => (t._id === task._id ? response.data : t)),
+        );
+      }
     } catch (err) {
       console.error("Failed to add subtask via button:", err);
     }
@@ -3329,14 +3886,30 @@ const ProjectTaskBoard = ({
 
   // Delete Subtask
   const handleDeleteSubtask = async (task, subtaskId) => {
-    const updatedSubtasks = task.subtasks.filter(
+    const updatedSubtasks = (task.subtasks || []).filter(
       (sub) => sub._id !== subtaskId,
     );
+
+    setLocalTasks((prev) =>
+      prev.map((t) =>
+        t._id === task._id ? { ...t, subtasks: updatedSubtasks } : t,
+      ),
+    );
+
+    if (String(task._id).startsWith("temp-")) {
+      return;
+    }
+
     try {
-      await updateTaskMutation({
+      const response = await updateTaskMutation({
         id: task._id,
         taskData: { subtasks: updatedSubtasks },
       }).unwrap();
+      if (response && response.data) {
+        setLocalTasks((prev) =>
+          prev.map((t) => (t._id === task._id ? response.data : t)),
+        );
+      }
     } catch (err) {
       console.error("Failed to delete subtask:", err);
     }
@@ -3399,7 +3972,7 @@ const ProjectTaskBoard = ({
     const taskSections = sortedTasks.map((t) => t.section || "General");
     const rawSections = [...projectSections, ...taskSections];
     const sectionsToRender = Array.from(
-      new Set(rawSections.length > 0 ? rawSections : ["General"])
+      new Set(rawSections.length > 0 ? rawSections : ["General"]),
     );
 
     return sectionsToRender.map((sectionName) => {
@@ -3407,14 +3980,14 @@ const ProjectTaskBoard = ({
         .filter(
           (t) =>
             t.section === sectionName ||
-            (!t.section && sectionName === "General")
+            (!t.section && sectionName === "General"),
         )
         .sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return dateA - dateB;
         });
-      
+
       return {
         sectionName,
         sectionTasks,
@@ -3423,16 +3996,68 @@ const ProjectTaskBoard = ({
   }, [sortedTasks, activeProject?.sections]);
 
   // Dashboard calculations
-  const totalTasks = activeProjectTasks.length;
-  const completedTasks = activeProjectTasks.filter(
+  const relevantProjectTasks = useMemo(() => {
+    if (!isDedicatedDepartmentMode) {
+      return activeProjectTasks;
+    }
+    const myId = currentUser?._id || currentUser?.id;
+    const myIdStr = myId ? String(myId) : "";
+    const targetDept = effectiveAssigneeDepartment || "Graphic Designer";
+
+    return activeProjectTasks.filter((t) => {
+      const isAssignedToTarget = isTargetDepartmentUser(
+        t.assignedTo,
+        targetDept,
+      );
+      const isAssignedToMe =
+        myIdStr &&
+        String(t.assignedTo?._id || t.assignedTo?.id || t.assignedTo) ===
+          myIdStr;
+      const isCreatedByMe =
+        myIdStr &&
+        String(t.createdBy?._id || t.createdBy?.id || t.createdBy) ===
+          myIdStr;
+      const hasTargetSubtask = (t.subtasks || []).some(
+        (sub) =>
+          isTargetDepartmentUser(sub.assignedTo, targetDept) ||
+          (myIdStr &&
+            String(
+              sub.assignedTo?._id || sub.assignedTo?.id || sub.assignedTo,
+            ) === myIdStr),
+      );
+      const isRecentlyCreated =
+        (typeof t._id === "string" && t._id.startsWith("temp-")) ||
+        recentlyCreatedTaskIds.has(t._id);
+      const isUnassigned = !t.assignedTo;
+
+      return (
+        isAssignedToTarget ||
+        isAssignedToMe ||
+        isCreatedByMe ||
+        hasTargetSubtask ||
+        isRecentlyCreated ||
+        isUnassigned
+      );
+    });
+  }, [
+    activeProjectTasks,
+    isDedicatedDepartmentMode,
+    effectiveAssigneeDepartment,
+    currentUser,
+    recentlyCreatedTaskIds,
+    targetDeptUserIdsSet,
+  ]);
+
+  const totalTasks = relevantProjectTasks.length;
+  const completedTasks = relevantProjectTasks.filter(
     (t) => t.status === "Completed",
   ).length;
-  const incompleteTasks = activeProjectTasks.filter(
+  const incompleteTasks = relevantProjectTasks.filter(
     (t) => t.status !== "Completed",
   ).length;
 
   // Overdue count calculation
-  const overdueTasks = activeProjectTasks.filter((t) => {
+  const overdueTasks = relevantProjectTasks.filter((t) => {
     if (t.status === "Completed") return false;
     if (!t.dueDate) return false;
     const today = new Date();
@@ -3461,39 +4086,62 @@ const ProjectTaskBoard = ({
       {/* WORKSPACE HEADER & PROGRESS */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mt-4 mb-4 pb-4 border-b border-slate-100 dark:border-white/5">
         <div className="flex items-center gap-3 min-w-0 w-full lg:flex-1 order-1 lg:order-none">
-          <div className="space-y-2 w-full">
-            <div className="flex items-center gap-3">
-              <div>
-                {/* Breadcrumb Back Button */}
-                <button
-                  onClick={() => navigate(-1)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250 transition-colors"
-                >
-                  <FiChevronLeft size={16} />
-                </button>
-              </div>
-              <ProjectIcon
-                name={activeProject.name}
-                size="lg"
-                className="shadow-md"
-              />
-              <div className="flex items-center gap-2 min-w-0 truncate">
-                <h1 className="text-lg sm:text-[15px] font-bold text-slate-800 dark:text-white truncate">
-                  {activeProject.name}
-                </h1>
-                {(() => {
+          <div className="w-full">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              {/* Breadcrumb Back Button */}
+              <button
+                onClick={() => navigate(-1)}
+                className="w-8 h-8 rounded-xl border border-slate-200/80 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-2xs shrink-0"
+                title="Back"
+              >
+                <FiChevronLeft size={16} />
+              </button>
+
+              {/* Project / Workspace Icon */}
+              {!isDesignerTasksMode && !isCinematographerTasksMode && !hideProjectIcon && (
+                <ProjectIcon
+                  name={activeProject.name}
+                  size="md"
+                  className="shadow-sm shrink-0"
+                />
+              )}
+
+              {/* Title & Badge Group (Always on same baseline) */}
+              {((!isDesignerTasksMode && !isCinematographerTasksMode && !hideTitle) || headerBadge) && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {!isDesignerTasksMode && !isCinematographerTasksMode && !hideTitle && (
+                    <h1 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white tracking-tight truncate">
+                      {customTitle || activeProject.name}
+                    </h1>
+                  )}
+                  {headerBadge && <div className="shrink-0">{headerBadge}</div>}
+                </div>
+              )}
+
+              {/* Client & Project Switcher Section or Standard Client Badge */}
+              {clientSwitcherNode ? (
+                <>
+                  <div className="hidden sm:block h-4 w-px bg-slate-200 dark:border-white/10 shrink-0 mx-0.5" />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {clientSwitcherNode}
+                  </div>
+                </>
+              ) : (
+                (() => {
                   const clientId =
                     activeProject?.client?._id || activeProject?.client;
-                  const clientObj = clients?.find((c) => c._id === clientId);
+                  const clientObj = clients?.find(
+                    (c) => c._id === clientId,
+                  );
                   return clientObj ? (
                     <ClientBadge
                       client={clientObj}
                       size="sm"
-                      className="ml-2"
+                      className="ml-1 shrink-0"
                     />
                   ) : null;
-                })()}
-              </div>
+                })()
+              )}
             </div>
           </div>
         </div>
@@ -3502,1573 +4150,1533 @@ const ProjectTaskBoard = ({
 
         {/* Left Side: Spacer to keep Tab Selector centered */}
 
-
-
         {/* Right Side: Filter & Sort Popover Dropdowns */}
-        <div className="flex items-center px-15 justify-between lg:justify-end gap-2 w-full lg:flex-1 order-3 lg:order-none relative">
-            <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
-              {/* Status Filter Dropdown */}
-              <div className="relative" ref={statusFilterDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
-                    isStatusFilterOpen || statusFilter !== "All"
-                      ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-blue-400"
-                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                >
-                  <FiFilter className="shrink-0" size={13} />
-                  <span>
-                    {statusFilter === "All" ? "All Status" : statusFilter}
-                  </span>
-                  <FiChevronDown
-                    className="shrink-0 text-slate-400"
-                    size={13}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {isStatusFilterOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
-                    >
-                      {[
-                        "All",
-                        "Active Tasks",
-                        "Not Started",
-                        "In Progress",
-                        "On Hold",
-                        "In Review",
-                        "Completed",
-                      ].map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => {
-                            setStatusFilter(option);
-                            setIsStatusFilterOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                            statusFilter === option
-                              ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Date Filter Dropdown */}
-              <div className="relative" ref={dateFilterDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
-                    isDateFilterOpen || dateFilter !== "All Time"
-                      ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-transparent text-emerald-600 dark:text-emerald-400"
-                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                >
-                  <FiFilter className="shrink-0" size={13} />
-                  <span>{dateFilter}</span>
-                  <FiChevronDown
-                    className="shrink-0 text-slate-400"
-                    size={13}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {isDateFilterOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
-                    >
-                      {[
-                        "Today",
-                        "Yesterday",
-                        "Last 7 Days",
-                        "This Month",
-                        "All Time",
-                      ].map((option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => {
-                            setDateFilter(option);
-                            setIsDateFilterOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                            dateFilter === option
-                              ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Columns Trigger Button */}
-              <div className="relative" ref={colsDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsColsOpen(!isColsOpen);
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
-                    isColsOpen || Object.values(hiddenColumns).some(Boolean)
-                      ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#3b82f6]"
-                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                >
-                  <FiColumns className="shrink-0" size={13} />
-                  <span>Hide Columns</span>
-                  {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
-                    <span className="text-[10px] font-bold bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
-                      {Object.values(hiddenColumns).filter(Boolean).length}
-                    </span>
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {isColsOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2.5 z-50 space-y-1.5 backdrop-blur-md"
-                    >
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2 px-1">
-                        <span className="text-xs font-bold text-slate-800 dark:text-white tracking-wider">
-                          Toggle Columns
-                        </span>
-                        {Object.values(hiddenColumns).some(Boolean) && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setHiddenColumns({});
-                              localStorage.removeItem("ptb_hidden_columns");
-                            }}
-                            className="text-[10px] font-bold text-blue-500 hover:text-blue-600 cursor-pointer"
-                          >
-                            Show All
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="space-y-1 pt-1">
-                        {[
-                          { id: "contentCopy", label: "Content Copy" },
-                          { id: "client", label: "Client" },
-                          { id: "createdBy", label: "Owner" },
-                          { id: "assignee", label: "Assignee" },
-                          { id: "contentType", label: "Content Type" },
-                          { id: "startDate", label: "Start Date" },
-                          { id: "endDate", label: "End Date" },
-                          { id: "priority", label: "Priority" },
-                          { id: "status", label: "Status" },
-                          { id: "holdReason", label: "Hold Reason" },
-                          { id: "revision", label: "Revision" },
-                          {
-                            id: "totalHours",
-                            label: "Total productivity - (total inprogress) ",
-                          },
-                          { id: "approvalInfo", label: "Approval Info" },
-                        ].map((col) => {
-                          const isHidden = !!hiddenColumns[col.id];
-                          return (
-                            <button
-                              key={col.id}
-                              type="button"
-                              onClick={() => toggleColumnHide(col.id)}
-                              className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                                !isHidden
-                                  ? "bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-slate-100"
-                                  : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 line-through"
-                              }`}
-                            >
-                              <span>{col.label}</span>
-                              {!isHidden ? (
-                                <FiEye size={13} className="text-emerald-500" />
-                              ) : (
-                                <FiEyeOff
-                                  size={13}
-                                  className="text-slate-400"
-                                />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+        <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-auto order-3 lg:order-none relative">
+          <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+            {/* Status Filter Dropdown */}
+            <div className="relative" ref={statusFilterDropdownRef}>
               <button
                 type="button"
-                onClick={() => handleAddTask(null)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[12px] font-black cursor-pointer transition-all shadow-md shrink-0"
+                onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
+                  isStatusFilterOpen || statusFilter !== "All"
+                    ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-blue-400"
+                    : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                }`}
               >
-                <FiPlus size={14} className="stroke-[3]" />
-                <span>Add Task</span>
+                <FiFilter className="shrink-0" size={13} />
+                <span>
+                  {statusFilter === "All" ? "All Status" : statusFilter}
+                </span>
+                <FiChevronDown className="shrink-0 text-slate-400" size={13} />
               </button>
+
+              <AnimatePresence>
+                {isStatusFilterOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
+                  >
+                    {[
+                      "All",
+                      "Active Tasks",
+                      "Not Started",
+                      "In Progress",
+                      "On Hold",
+                      "In Review",
+                      "Completed",
+                    ].map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          setStatusFilter(option);
+                          setIsStatusFilterOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                          statusFilter === option
+                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
+
+            {/* Date Filter Dropdown */}
+            <div className="relative" ref={dateFilterDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
+                  isDateFilterOpen || dateFilter !== "All Time"
+                    ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-transparent text-emerald-600 dark:text-emerald-400"
+                    : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                }`}
+              >
+                <FiFilter className="shrink-0" size={13} />
+                <span>{dateFilter}</span>
+                <FiChevronDown className="shrink-0 text-slate-400" size={13} />
+              </button>
+
+              <AnimatePresence>
+                {isDateFilterOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
+                  >
+                    {[
+                      "Today",
+                      "Yesterday",
+                      "Last 7 Days",
+                      "This Month",
+                      "All Time",
+                    ].map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          setDateFilter(option);
+                          setIsDateFilterOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                          dateFilter === option
+                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Columns Trigger Button */}
+            <div className="relative" ref={colsDropdownRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsColsOpen(!isColsOpen);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
+                  isColsOpen || Object.values(hiddenColumns).some(Boolean)
+                    ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#3b82f6]"
+                    : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                }`}
+              >
+                <FiColumns className="shrink-0" size={13} />
+                <span>Hide Columns</span>
+                {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
+                  <span className="text-[10px] font-bold bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
+                    {Object.values(hiddenColumns).filter(Boolean).length}
+                  </span>
+                )}
+              </button>
+
+              <AnimatePresence>
+                {isColsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2.5 z-50 space-y-1.5 backdrop-blur-md"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2 px-1">
+                      <span className="text-xs font-bold text-slate-800 dark:text-white tracking-wider">
+                        Toggle Columns
+                      </span>
+                      {Object.values(hiddenColumns).some(Boolean) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHiddenColumns({});
+                            localStorage.removeItem("ptb_hidden_columns");
+                          }}
+                          className="text-[10px] font-bold text-blue-500 hover:text-blue-600 cursor-pointer"
+                        >
+                          Show All
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 pt-1">
+                      {[
+                        { id: "contentCopy", label: "Content Copy" },
+                        { id: "client", label: "Client" },
+                        { id: "createdBy", label: "Owner" },
+                        { id: "startDate", label: "Start Date" },
+                        { id: "endDate", label: "End Date" },
+                        { id: "contentType", label: "Content Type" },
+                        { id: "assignee", label: "Assignee" },
+                        { id: "department", label: "Department" },
+                        { id: "priority", label: "Priority" },
+                        { id: "status", label: "Status" },
+                        { id: "productivity", label: "Productivity" },
+                        { id: "holdReason", label: "Hold Reason" },
+                        { id: "revision", label: "Revision" },
+                        { id: "approvalInfo", label: "Approval Info" },
+                      ].map((col) => {
+                        const isHidden = !!hiddenColumns[col.id];
+                        return (
+                          <button
+                            key={col.id}
+                            type="button"
+                            onClick={() => toggleColumnHide(col.id)}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                              !isHidden
+                                ? "bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-slate-100"
+                                : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 line-through"
+                            }`}
+                          >
+                            <span>{col.label}</span>
+                            {!isHidden ? (
+                              <FiEye size={13} className="text-emerald-500" />
+                            ) : (
+                              <FiEyeOff size={13} className="text-slate-400" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleAddTask(null)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[12px] font-black cursor-pointer transition-all shadow-md shrink-0"
+            >
+              <FiPlus size={14} className="stroke-[3]" />
+              <span>Add Task</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* TAB CONTENT */}
       <div className="min-h-[400px] relative">
-          {tasksLoading && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 dark:bg-[#0f172a]/60 backdrop-blur-sm rounded-xl">
-              <FiLoader size={36} className="animate-spin text-blue-500 mb-4" />
-              <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tracking-wide">
-                Loading Tasks...
-              </p>
-            </div>
-          )}
-          <DragDropContext onDragEnd={handleDragEnd}>
-            {(() => {
-              const showSelectionColumn = Object.values(
-                selectionModeSections,
-              ).some(Boolean);
+        {tasksLoading && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/60 dark:bg-[#0f172a]/60 backdrop-blur-sm rounded-xl">
+            <FiLoader size={36} className="animate-spin text-blue-500 mb-4" />
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-300 tracking-wide">
+              Loading Tasks...
+            </p>
+          </div>
+        )}
+        <DragDropContext onDragEnd={handleDragEnd}>
+          {(() => {
+            const showSelectionColumn = Object.values(
+              selectionModeSections,
+            ).some(Boolean);
 
-              const visibleColsAfterTaskName = [
-                !hiddenColumns.contentCopy,
-                !hiddenColumns.client,
-                !hiddenColumns.createdBy,
-                !hiddenColumns.startDate,
-                !hiddenColumns.endDate,
-                !hiddenColumns.assignee,
-                !hiddenColumns.contentType,
-                !hiddenColumns.priority,
-                !hiddenColumns.status,
-                !hiddenColumns.holdReason,
-                !hiddenColumns.revision,
-                !hiddenColumns.totalHours,
-                !hiddenColumns.approvalInfo,
-                true, // Actions column is always visible
-              ].filter(Boolean).length;
+            const visibleColsAfterTaskName = [
+              !hiddenColumns.contentCopy,
+              !hiddenColumns.client,
+              !hiddenColumns.createdBy,
+              !hiddenColumns.startDate,
+              !hiddenColumns.endDate,
+              !hiddenColumns.contentType,
+              !hiddenColumns.assignee,
+              !hiddenColumns.department,
+              !hiddenColumns.priority,
+              !hiddenColumns.status,
+              !hiddenColumns.productivity,
+              !hiddenColumns.holdReason,
+              !hiddenColumns.revision,
+              !hiddenColumns.approvalInfo,
+              true, // Actions column is always visible
+            ].filter(Boolean).length;
 
-              const totalVisibleColumns =
-                (showSelectionColumn ? 1 : 0) + 3 + visibleColsAfterTaskName;
+            const totalVisibleColumns =
+              (showSelectionColumn ? 1 : 0) + 3 + visibleColsAfterTaskName;
 
-              const renderInlineCreateRow = (sectionName, sColor = null) => {
-                const isTaskInputActive =
-                  inlineAddingTaskSection === sectionName;
-                const isSectionInputActive =
-                  inlineAddingSectionUnder === sectionName;
-                const rowBg =
-                  "bg-white dark:bg-[#111115] hover:bg-slate-50/50 dark:hover:bg-white/[0.02]";
-                const bBottom = sColor
-                  ? { borderBottom: `2.5px solid ${sColor.hex}` }
-                  : {};
-                const bLeft = sColor
-                  ? { borderLeft: `2.5px solid ${sColor.hex}` }
-                  : {};
-                const bRight = sColor
-                  ? { borderRight: `2.5px solid ${sColor.hex}` }
-                  : {};
-                return (
-                  <tr
-                    className={`border-b border-slate-300 dark:border-slate-700 ${rowBg}`}
-                  >
-                    {showSelectionColumn && (
-                      <td
-                        className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent"
-                        style={{
-                          width: "40px",
-                          minWidth: "40px",
-                          maxWidth: "40px",
-                          ...bBottom,
-                          ...bLeft,
-                        }}
-                      />
-                    )}
-                    {/* Chevron column spacer */}
+            const renderInlineCreateRow = (sectionName, sColor = null) => {
+              const isTaskInputActive = inlineAddingTaskSection === sectionName;
+              const isSectionInputActive =
+                inlineAddingSectionUnder === sectionName;
+              const rowBg =
+                "bg-white dark:bg-[#111115] hover:bg-slate-50/50 dark:hover:bg-white/[0.02]";
+              const bBottom = sColor
+                ? { borderBottom: `2.5px solid ${sColor.hex}` }
+                : {};
+              const bLeft = sColor
+                ? { borderLeft: `2.5px solid ${sColor.hex}` }
+                : {};
+              const bRight = sColor
+                ? { borderRight: `2.5px solid ${sColor.hex}` }
+                : {};
+              return (
+                <tr
+                  className={`border-b border-slate-300 dark:border-slate-700 ${rowBg}`}
+                >
+                  {showSelectionColumn && (
                     <td
-                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent"
+                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent"
                       style={{
-                        left: showSelectionColumn ? "40px" : "0px",
                         width: "40px",
                         minWidth: "40px",
                         maxWidth: "40px",
                         ...bBottom,
-                        ...(!showSelectionColumn ? bLeft : {}),
+                        ...bLeft,
                       }}
                     />
-                    {/* ID column spacer */}
-                    <td
-                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10"
-                      style={{
-                        left: showSelectionColumn ? "80px" : "40px",
-                        backgroundColor: "inherit",
-                        minWidth: "60px",
-                        maxWidth: "60px",
-                        width: "60px",
-                        ...bBottom,
-                      }}
-                    />
-                    <td
-                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
-                      style={{
-                        left: showSelectionColumn ? "140px" : "100px",
-                        backgroundColor: "inherit",
-                        ...bBottom,
-                      }}
-                    >
-                      <div className="flex items-center gap-2 w-full pl-6">
-                        {isTaskInputActive ? (
-                          <form
-                            onSubmit={(e) =>
-                              handleInlineAddTaskSubmit(e, sectionName)
-                            }
-                            className="w-full"
-                          >
-                            <input
-                              ref={inlineTaskInputRef}
-                              type="text"
-                              placeholder="Type task name and press Enter..."
-                              value={inlineTaskTitle}
-                              onChange={(e) =>
-                                setInlineTaskTitle(e.target.value)
-                              }
-                              onBlur={() => {
-                                setTimeout(() => {
-                                  if (inlineTaskTitle.trim()) {
-                                    handleInlineAddTaskSubmit(
-                                      { preventDefault: () => {} },
-                                      sectionName,
-                                    );
-                                  } else {
-                                    setInlineAddingTaskSection(null);
-                                  }
-                                }, 150);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Escape") {
-                                  setInlineTaskTitle("");
-                                  setInlineAddingTaskSection(null);
-                                }
-                              }}
-                              className="w-full bg-transparent text-[11px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-blue-500 dark:border-[#3b82f6] pb-1 placeholder-slate-450 dark:placeholder-slate-550 transition-all focus:border-blue-600 dark:focus:border-blue-400"
-                            />
-                          </form>
-                        ) : isSectionInputActive ? (
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              handleInlineAddSection(inlineSectionName);
-                              setInlineSectionName("");
-                              setInlineAddingSectionUnder(null);
-                            }}
-                            className="w-full"
-                          >
-                            <input
-                              ref={inlineSectionInputRef}
-                              type="text"
-                              placeholder="Add Task List (Type section name & Enter)..."
-                              value={inlineSectionName}
-                              onChange={(e) =>
-                                setInlineSectionName(e.target.value)
-                              }
-                              onBlur={() => {
-                                setTimeout(() => {
-                                  if (inlineSectionName.trim()) {
-                                    handleInlineAddSection(inlineSectionName);
-                                    setInlineSectionName("");
-                                    setInlineAddingSectionUnder(null);
-                                  } else {
-                                    setInlineAddingSectionUnder(null);
-                                  }
-                                }, 150);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Escape") {
-                                  setInlineSectionName("");
-                                  setInlineAddingSectionUnder(null);
-                                }
-                              }}
-                              className="w-full bg-transparent text-[10px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-indigo-500 dark:border-indigo-400 pb-0.5 placeholder-slate-450 dark:placeholder-slate-555 transition-all focus:border-indigo-650"
-                            />
-                          </form>
-                        ) : (
-                          <div className="flex items-center gap-2 text-[12px] font-bold text-slate-450 dark:text-slate-400 select-none">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setInlineAddingTaskSection(sectionName);
-                                setInlineAddingSectionUnder(null);
-                                setInlineTaskTitle("");
-                              }}
-                              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-955/30 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-[#3b82f6] transition-all cursor-pointer font-bold"
-                            >
-                              <FiPlus size={12} className="stroke-[3]" />
-                              <span>Add Task</span>
-                            </button>
-                            <span className="mx-1.5 text-slate-350 dark:text-slate-705">
-                              |
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setInlineAddingSectionUnder(sectionName);
-                                setInlineAddingTaskSection(null);
-                                setInlineSectionName("");
-                              }}
-                              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-955/30 text-slate-500 hover:text-indigo-650 dark:text-slate-400 dark:hover:text-indigo-400 transition-all cursor-pointer font-bold"
-                            >
-                              <FiPlus size={12} className="stroke-[3]" />
-                              <span>Add Task List</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td
-                      colSpan={visibleColsAfterTaskName}
-                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-transparent"
-                      style={{
-                        backgroundColor: "inherit",
-                        ...bBottom,
-                        ...bRight,
-                      }}
-                    />
-                  </tr>
-                );
-              };
-
-              return (
-                <div className="pt-3 w-full">
-                  {/* Mobile Horizontal Scroll Indicator Cue */}
-                  <div className="flex md:hidden items-center justify-between gap-1.5 py-1.5 px-3 mb-2 rounded-lg bg-indigo-50/50 dark:bg-white/[0.02] border border-indigo-100/30 dark:border-white/5 text-[9px] text-slate-500 dark:text-slate-400 font-medium">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-[#3b82f6] animate-pulse" />
-                      <span>Scroll horizontally to view columns</span>
-                    </div>
-                    <div className="flex items-center gap-0.5 opacity-80">
-                      <span>← Swipe</span>
-                      <svg
-                        className="w-2.5 h-2.5 animate-bounce-horizontal"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M17 8l4 4m0 0l-4 4m4-4H3"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div
-                    className="overflow-x-auto overflow-y-auto h-[calc(100vh-220px)] min-h-[400px] w-full bg-white dark:bg-[#111115] border border-slate-200 dark:border-slate-800 rounded-xl relative scrollbar-thin"
-                    onWheel={(e) => {
-                      if (e.target.closest(".md\\:sticky")) {
-                        // Let native vertical scroll happen when hovering the sticky left area
-                        return;
-                      }
-                      if (e.deltaY !== 0 && !e.shiftKey) {
-                        e.currentTarget.scrollLeft += e.deltaY;
-                      }
+                  )}
+                  {/* Chevron column spacer */}
+                  <td
+                    className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent"
+                    style={{
+                      left: showSelectionColumn ? "40px" : "0px",
+                      width: "40px",
+                      minWidth: "40px",
+                      maxWidth: "40px",
+                      ...bBottom,
+                      ...(!showSelectionColumn ? bLeft : {}),
+                    }}
+                  />
+                  {/* ID column spacer */}
+                  <td
+                    className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10"
+                    style={{
+                      left: showSelectionColumn ? "80px" : "40px",
+                      backgroundColor: "inherit",
+                      minWidth: "60px",
+                      maxWidth: "60px",
+                      width: "60px",
+                      ...bBottom,
+                    }}
+                  />
+                  <td
+                    className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
+                    style={{
+                      left: showSelectionColumn ? "140px" : "100px",
+                      backgroundColor: "inherit",
+                      ...bBottom,
                     }}
                   >
-                    <StrictModeDroppable
-                      droppableId="sections-list"
-                      type="SECTION"
-                    >
-                      {(provided) => (
-                        <table
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className="w-full text-left border-collapse text-[11px] "
+                    <div className="flex items-center gap-2 w-full pl-6">
+                      {isTaskInputActive ? (
+                        <form
+                          onSubmit={(e) =>
+                            handleInlineAddTaskSubmit(e, sectionName)
+                          }
+                          className="w-full"
                         >
-                          <thead>
-                            <tr className="bg-slate-50 dark:bg-[#16161b] text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
-                              {showSelectionColumn && (
-                                <th
-                                  className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
-                                  style={{
-                                    width: "40px",
-                                    minWidth: "40px",
-                                    maxWidth: "40px",
-                                  }}
-                                >
-                                  {/* Selection column header */}
-                                </th>
-                              )}
+                          <input
+                            ref={inlineTaskInputRef}
+                            type="text"
+                            placeholder="Type task name and press Enter..."
+                            value={inlineTaskTitle}
+                            onChange={(e) => setInlineTaskTitle(e.target.value)}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                if (inlineTaskTitle.trim()) {
+                                  handleInlineAddTaskSubmit(
+                                    { preventDefault: () => {} },
+                                    sectionName,
+                                  );
+                                } else {
+                                  setInlineAddingTaskSection(null);
+                                }
+                              }, 150);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                setInlineTaskTitle("");
+                                setInlineAddingTaskSection(null);
+                              }
+                            }}
+                            className="w-full bg-transparent text-[11px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-blue-500 dark:border-[#3b82f6] pb-1 placeholder-slate-450 dark:placeholder-slate-550 transition-all focus:border-blue-600 dark:focus:border-blue-400"
+                          />
+                        </form>
+                      ) : isSectionInputActive ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleInlineAddSection(inlineSectionName);
+                            setInlineSectionName("");
+                            setInlineAddingSectionUnder(null);
+                          }}
+                          className="w-full"
+                        >
+                          <input
+                            ref={inlineSectionInputRef}
+                            type="text"
+                            placeholder="Add Task List (Type section name & Enter)..."
+                            value={inlineSectionName}
+                            onChange={(e) =>
+                              setInlineSectionName(e.target.value)
+                            }
+                            onBlur={() => {
+                              setTimeout(() => {
+                                if (inlineSectionName.trim()) {
+                                  handleInlineAddSection(inlineSectionName);
+                                  setInlineSectionName("");
+                                  setInlineAddingSectionUnder(null);
+                                } else {
+                                  setInlineAddingSectionUnder(null);
+                                }
+                              }, 150);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                setInlineSectionName("");
+                                setInlineAddingSectionUnder(null);
+                              }
+                            }}
+                            className="w-full bg-transparent text-[10px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-indigo-500 dark:border-indigo-400 pb-0.5 placeholder-slate-450 dark:placeholder-slate-555 transition-all focus:border-indigo-650"
+                          />
+                        </form>
+                      ) : (
+                        <div className="flex items-center gap-2 text-[12px] font-bold text-slate-450 dark:text-slate-400 select-none">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInlineAddingTaskSection(sectionName);
+                              setInlineAddingSectionUnder(null);
+                              setInlineTaskTitle("");
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-955/30 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-[#3b82f6] transition-all cursor-pointer font-bold"
+                          >
+                            <FiPlus size={12} className="stroke-[3]" />
+                            <span>Add Task</span>
+                          </button>
+                          <span className="mx-1.5 text-slate-350 dark:text-slate-705">
+                            |
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInlineAddingSectionUnder(sectionName);
+                              setInlineAddingTaskSection(null);
+                              setInlineSectionName("");
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-955/30 text-slate-500 hover:text-indigo-650 dark:text-slate-400 dark:hover:text-indigo-400 transition-all cursor-pointer font-bold"
+                          >
+                            <FiPlus size={12} className="stroke-[3]" />
+                            <span>Add Task List</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td
+                    colSpan={visibleColsAfterTaskName}
+                    className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-transparent"
+                    style={{
+                      backgroundColor: "inherit",
+                      ...bBottom,
+                      ...bRight,
+                    }}
+                  />
+                </tr>
+              );
+            };
+
+            return (
+              <div className="pt-3 w-full">
+                {/* Mobile Horizontal Scroll Indicator Cue */}
+                <div className="flex md:hidden items-center justify-between gap-1.5 py-1.5 px-3 mb-2 rounded-lg bg-indigo-50/50 dark:bg-white/[0.02] border border-indigo-100/30 dark:border-white/5 text-[9px] text-slate-500 dark:text-slate-400 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-[#3b82f6] animate-pulse" />
+                    <span>Scroll horizontally to view columns</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-80">
+                    <span>← Swipe</span>
+                    <svg
+                      className="w-2.5 h-2.5 animate-bounce-horizontal"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M17 8l4 4m0 0l-4 4m4-4H3"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <div
+                  className="overflow-x-auto overflow-y-auto h-[calc(100vh-220px)] min-h-[400px] w-full bg-white dark:bg-[#111115] border border-slate-200 dark:border-slate-800 rounded-xl relative scrollbar-thin"
+                  onWheel={(e) => {
+                    if (e.target.closest(".md\\:sticky")) {
+                      // Let native vertical scroll happen when hovering the sticky left area
+                      return;
+                    }
+                    if (e.deltaY !== 0 && !e.shiftKey) {
+                      e.currentTarget.scrollLeft += e.deltaY;
+                    }
+                  }}
+                >
+                  <StrictModeDroppable
+                    droppableId="sections-list"
+                    type="SECTION"
+                  >
+                    {(provided) => (
+                      <table
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className="w-full text-left border-collapse text-[11px] "
+                      >
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-[#16161b] text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
+                            {showSelectionColumn && (
                               <th
-                                className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center whitespace-nowrap md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                                className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
                                 style={{
-                                  left: showSelectionColumn ? "40px" : "0px",
-                                  width: "60px",
-                                  minWidth: "60px",
-                                  maxWidth: "60px",
+                                  width: "40px",
+                                  minWidth: "40px",
+                                  maxWidth: "40px",
                                 }}
                               >
-                                <div className="flex justify-center items-center">
-                                  <button
-                                    type="button"
-                                    onClick={toggleAllSections}
-                                    className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
-                                    title="Toggle all sections"
+                                {/* Selection column header */}
+                              </th>
+                            )}
+                            <th
+                              className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center whitespace-nowrap md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                              style={{
+                                left: showSelectionColumn ? "40px" : "0px",
+                                width: "60px",
+                                minWidth: "60px",
+                                maxWidth: "60px",
+                              }}
+                            >
+                              <div className="flex justify-center items-center">
+                                <button
+                                  type="button"
+                                  onClick={toggleAllSections}
+                                  className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
+                                  title="Toggle all sections"
+                                >
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${(activeProject?.sections?.length > 0 ? activeProject.sections : ["General"]).every((sec) => collapsedSections[sec]) ? "" : "rotate-90"}`}
+                                    fill="currentColor"
                                   >
-                                    <svg
-                                      viewBox="0 0 24 24"
-                                      className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${(activeProject?.sections?.length > 0 ? activeProject.sections : ["General"]).every((sec) => collapsedSections[sec]) ? "" : "rotate-90"}`}
-                                      fill="currentColor"
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </th>
+                            <th
+                              className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                              style={{
+                                left: showSelectionColumn ? "100px" : "60px",
+                              }}
+                            >
+                              ID
+                            </th>
+                            <th
+                              className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[80px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                              style={{
+                                left: showSelectionColumn ? "160px" : "120px",
+                              }}
+                            >
+                              Task Name
+                            </th>
+                            {/* Content Copy Column */}
+                            {!hiddenColumns.contentCopy && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[240px] w-[260px] group relative">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span>Content Copy</span>
+                                  <div className="relative col-header-menu">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenColMenu(
+                                          openColMenu === "contentCopy"
+                                            ? null
+                                            : "contentCopy",
+                                        );
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-70 group-hover:opacity-100 transition-opacity rounded cursor-pointer"
+                                      title="Column options"
                                     >
-                                      <path d="M8 5v14l11-7z" />
-                                    </svg>
-                                  </button>
+                                      <FiMoreVertical size={13} />
+                                    </button>
+                                    {openColMenu === "contentCopy" && (
+                                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleColumnHide("contentCopy");
+                                            setOpenColMenu(null);
+                                          }}
+                                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                        >
+                                          <FiEyeOff
+                                            size={13}
+                                            className="text-slate-400"
+                                          />
+                                          <span>Hide Column</span>
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               </th>
-                              <th
-                                className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
-                                style={{
-                                  left: showSelectionColumn ? "100px" : "60px",
-                                }}
-                              >
-                                ID
+                            )}
+                            {/* Client Column */}
+                            {!hiddenColumns.client && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                Client
                               </th>
-                              <th
-                                className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[80px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
-                                style={{
-                                  left: showSelectionColumn ? "160px" : "120px",
-                                }}
-                              >
-                                Task Name
+                            )}
+                            {/* Created By Column */}
+                            {!hiddenColumns.createdBy && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px]">
+                                Owner
                               </th>
-                              {/* Content Copy Column */}
-                              {!hiddenColumns.contentCopy && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[350px] w-auto group relative">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span>Content Copy</span>
-                                    <div className="relative col-header-menu">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setOpenColMenu(
-                                            openColMenu === "contentCopy"
-                                              ? null
-                                              : "contentCopy",
-                                          );
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-70 group-hover:opacity-100 transition-opacity rounded cursor-pointer"
-                                        title="Column options"
-                                      >
-                                        <FiMoreVertical size={13} />
-                                      </button>
-                                      {openColMenu === "contentCopy" && (
-                                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              toggleColumnHide("contentCopy");
-                                              setOpenColMenu(null);
-                                            }}
-                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                                          >
-                                            <FiEyeOff
-                                              size={13}
-                                              className="text-slate-400"
-                                            />
-                                            <span>Hide Column</span>
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </th>
-                              )}
-                              {/* Client Column */}
-                              {!hiddenColumns.client && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                  Client
-                                </th>
-                              )}
-                              {/* Created By Column */}
-                              {!hiddenColumns.createdBy && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px]">
-                                  Owner
-                                </th>
-                              )}
-                              {/* Start Date Column */}
-                              {!hiddenColumns.startDate && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[90px]">
-                                  Start Date
-                                </th>
-                              )}
-                              {/* End Date Column */}
-                              {!hiddenColumns.endDate && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[90px]">
-                                  End Date
-                                </th>
-                              )}
-                              {/* Assignee Column */}
-                              {!hiddenColumns.assignee && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[150px]">
-                                  Assignee
-                                </th>
-                              )}
-                              {/* Content Type Column */}
-                              {!hiddenColumns.contentType && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[160px] w-[180px]">
-                                  Content Type
-                                </th>
-                              )}
-
-                              {/* Priority Column */}
-                              {!hiddenColumns.priority && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                  Priority
-                                </th>
-                              )}
-                              {/* Status Column */}
-                              {!hiddenColumns.status && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                  Status
-                                </th>
-                              )}
-                              {/* Hold Reason Column */}
-                              {!hiddenColumns.holdReason && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                  Reason for Hold
-                                </th>
-                              )}
-                              {/* Revision Column */}
-                              {!hiddenColumns.revision && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px] group relative">
-                                  <div className="flex items-center justify-between gap-1.5">
-                                    <span>Revision</span>
-                                    <div className="relative col-header-menu">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setOpenColMenu(
-                                            openColMenu === "revision"
-                                              ? null
-                                              : "revision",
-                                          );
-                                        }}
-                                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-70 group-hover:opacity-100 transition-opacity rounded cursor-pointer"
-                                        title="Column options"
-                                      >
-                                        <FiMoreVertical size={13} />
-                                      </button>
-                                      {openColMenu === "revision" && (
-                                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              toggleColumnHide("revision");
-                                              setOpenColMenu(null);
-                                            }}
-                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                                          >
-                                            <FiEyeOff
-                                              size={13}
-                                              className="text-slate-400"
-                                            />
-                                            <span>Hide Column</span>
-                                          </button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </th>
-                              )}
-                              {!hiddenColumns.approvalInfo && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[200px]">
-                                  Approval Info
-                                </th>
-                              )}
-                              <th className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 text-center whitespace-nowrap min-w-[80px]">
-                                Actions
+                            )}
+                            {/* Start Date Column */}
+                            {!hiddenColumns.startDate && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[90px]">
+                                Start Date
                               </th>
-                            </tr>
-                          </thead>
-                          {(() => {
-                            const hasNoSectionsAndNoTasks =
-                              sectionsWithTasks.length === 0 &&
-                              sortedTasks.length === 0;
-                            if (hasNoSectionsAndNoTasks) {
-                              return (
-                                <tbody className="text-[11px]">
-                                  {renderInlineCreateRow("__root__")}
-                                </tbody>
-                              );
-                            }
-                            return sectionsWithTasks.map(
-                              ({ sectionName, sectionTasks }, sectionIndex) => {
-                                const isSectionCollapsed =
-                                  !!collapsedSections[sectionName];
+                            )}
+                            {/* End Date Column */}
+                            {!hiddenColumns.endDate && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[90px]">
+                                End Date
+                              </th>
+                            )}
+                            {/* Content Type Column */}
+                            {!hiddenColumns.contentType && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[160px] w-[180px]">
+                                Content Type
+                              </th>
+                            )}
+                            {/* Assignee Column */}
+                            {!hiddenColumns.assignee && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[150px]">
+                                Assignee
+                              </th>
+                            )}
+                            {/* Department Column */}
+                            {!hiddenColumns.department && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px]">
+                                Department
+                              </th>
+                            )}
 
-                                const sectionColors = [
-                                  {
-                                    hex: "#6366f1",
-                                    borderClass:
-                                      "border-indigo-500 dark:border-indigo-400",
-                                  }, // Indigo
-                                  {
-                                    hex: "#0ea5e9",
-                                    borderClass:
-                                      "border-sky-500 dark:border-sky-400",
-                                  }, // Sky
-                                  {
-                                    hex: "#10b981",
-                                    borderClass:
-                                      "border-emerald-500 dark:border-emerald-400",
-                                  }, // Emerald
-                                  {
-                                    hex: "#f59e0b",
-                                    borderClass:
-                                      "border-amber-500 dark:border-amber-400",
-                                  }, // Amber
-                                  {
-                                    hex: "#f43f5e",
-                                    borderClass:
-                                      "border-rose-500 dark:border-rose-400",
-                                  }, // Rose
-                                  {
-                                    hex: "#a855f7",
-                                    borderClass:
-                                      "border-purple-500 dark:border-purple-400",
-                                  }, // Purple
-                                ];
-                                const sColor =
-                                  sectionColors[
-                                    sectionIndex % sectionColors.length
-                                  ];
-
-                                return (
-                                  <Draggable
-                                    key={sectionName}
-                                    draggableId={sectionName}
-                                    index={sectionIndex}
-                                  >
-                                    {(provided) => (
-                                      <tbody
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        className="text-[11px]"
-                                      >
-                                        {sectionIndex > 0 && (
-                                          <tr className="pointer-events-none select-none">
-                                            <td
-                                              colSpan={totalVisibleColumns}
-                                              style={{
-                                                height: "20px",
-                                                padding: 0,
-                                                border: "none",
-                                                backgroundColor: "transparent",
-                                              }}
-                                            />
-                                          </tr>
-                                        )}
-                                        {/* SECTION HEADER ROW */}
-                                        <tr
-                                          className={`theme-bg-accent-ultrasubtle  border-b border-slate-300 dark:border-slate-700 select-none group/secrow transition-colors ${
-                                            openSectionMenu === sectionName
-                                              ? "relative z-50"
-                                              : ""
-                                          }`}
+                            {/* Priority Column */}
+                            {!hiddenColumns.priority && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                Priority
+                              </th>
+                            )}
+                            {/* Status Column */}
+                            {!hiddenColumns.status && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                Status
+                              </th>
+                            )}
+                            {/* Productivity Column */}
+                            {!hiddenColumns.productivity && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px] text-center">
+                                Productivity
+                              </th>
+                            )}
+                            {/* Hold Reason Column */}
+                            {!hiddenColumns.holdReason && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                Reason for Hold
+                              </th>
+                            )}
+                            {/* Revision Column */}
+                            {!hiddenColumns.revision && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px] group relative">
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <span>Revision</span>
+                                  <div className="relative col-header-menu">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenColMenu(
+                                          openColMenu === "revision"
+                                            ? null
+                                            : "revision",
+                                        );
+                                      }}
+                                      className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-70 group-hover:opacity-100 transition-opacity rounded cursor-pointer"
+                                      title="Column options"
+                                    >
+                                      <FiMoreVertical size={13} />
+                                    </button>
+                                    {openColMenu === "revision" && (
+                                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleColumnHide("revision");
+                                            setOpenColMenu(null);
+                                          }}
+                                          className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
                                         >
-                                          {showSelectionColumn && (
-                                            <td
-                                              className={`px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 sidebar-bg  relative ${
-                                                openSectionMenu === sectionName
-                                                  ? "z-50"
-                                                  : "z-30"
-                                              }`}
-                                              style={{
-                                                width: "40px",
-                                                minWidth: "40px",
-                                                maxWidth: "40px",
-                                                borderLeft: `2.5px solid ${sColor.hex}`,
-                                              }}
-                                            >
-                                              {selectionModeSections[
-                                                sectionName
-                                              ] && (
-                                                <input
-                                                  type="checkbox"
-                                                  className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                                  checked={
-                                                    sectionTasks.length > 0 &&
-                                                    sectionTasks.every(
-                                                      (t) =>
-                                                        selectedTasks[t._id],
-                                                    )
-                                                  }
-                                                  onChange={(e) => {
-                                                    const checked =
-                                                      e.target.checked;
-                                                    setSelectedTasks((prev) => {
-                                                      const next = { ...prev };
-                                                      sectionTasks.forEach(
-                                                        (t) => {
-                                                          next[t._id] = checked;
-                                                        },
-                                                      );
-                                                      return next;
-                                                    });
-                                                  }}
-                                                />
-                                              )}
-                                            </td>
-                                          )}
-                                          {/* Chevron + 3-dots Column */}
+                                          <FiEyeOff
+                                            size={13}
+                                            className="text-slate-400"
+                                          />
+                                          <span>Hide Column</span>
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </th>
+                            )}
+                            {!hiddenColumns.approvalInfo && (
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[200px]">
+                                Approval Info
+                              </th>
+                            )}
+                            <th className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 text-center whitespace-nowrap min-w-[80px]">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        {(() => {
+                          const hasNoSectionsAndNoTasks =
+                            sectionsWithTasks.length === 0 &&
+                            sortedTasks.length === 0;
+                          if (hasNoSectionsAndNoTasks) {
+                            return (
+                              <tbody className="text-[11px]">
+                                {renderInlineCreateRow("__root__")}
+                              </tbody>
+                            );
+                          }
+                          return sectionsWithTasks.map(
+                            ({ sectionName, sectionTasks }, sectionIndex) => {
+                              const isSectionCollapsed =
+                                !!collapsedSections[sectionName];
+
+                              const sectionColors = [
+                                {
+                                  hex: "#6366f1",
+                                  borderClass:
+                                    "border-indigo-500 dark:border-indigo-400",
+                                }, // Indigo
+                                {
+                                  hex: "#0ea5e9",
+                                  borderClass:
+                                    "border-sky-500 dark:border-sky-400",
+                                }, // Sky
+                                {
+                                  hex: "#10b981",
+                                  borderClass:
+                                    "border-emerald-500 dark:border-emerald-400",
+                                }, // Emerald
+                                {
+                                  hex: "#f59e0b",
+                                  borderClass:
+                                    "border-amber-500 dark:border-amber-400",
+                                }, // Amber
+                                {
+                                  hex: "#f43f5e",
+                                  borderClass:
+                                    "border-rose-500 dark:border-rose-400",
+                                }, // Rose
+                                {
+                                  hex: "#a855f7",
+                                  borderClass:
+                                    "border-purple-500 dark:border-purple-400",
+                                }, // Purple
+                              ];
+                              const sColor =
+                                sectionColors[
+                                  sectionIndex % sectionColors.length
+                                ];
+
+                              return (
+                                <Draggable
+                                  key={sectionName}
+                                  draggableId={sectionName}
+                                  index={sectionIndex}
+                                >
+                                  {(provided) => (
+                                    <tbody
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      className="text-[11px]"
+                                    >
+                                      {sectionIndex > 0 && (
+                                        <tr className="pointer-events-none select-none">
                                           <td
-                                            className={`px-2 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky sidebar-bg relative ${
+                                            colSpan={totalVisibleColumns}
+                                            style={{
+                                              height: "20px",
+                                              padding: 0,
+                                              border: "none",
+                                              backgroundColor: "transparent",
+                                            }}
+                                          />
+                                        </tr>
+                                      )}
+                                      {/* SECTION HEADER ROW */}
+                                      <tr
+                                        className={`theme-bg-accent-ultrasubtle  border-b border-slate-300 dark:border-slate-700 select-none group/secrow transition-colors ${
+                                          openSectionMenu === sectionName
+                                            ? "relative z-50"
+                                            : ""
+                                        }`}
+                                      >
+                                        {showSelectionColumn && (
+                                          <td
+                                            className={`px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 sidebar-bg  relative ${
                                               openSectionMenu === sectionName
                                                 ? "z-50"
                                                 : "z-30"
                                             }`}
                                             style={{
-                                              left: showSelectionColumn
-                                                ? "40px"
-                                                : "0px",
-                                              width: "60px",
-                                              minWidth: "60px",
-                                              maxWidth: "60px",
-                                              borderLeft: !showSelectionColumn
-                                                ? `2.5px solid ${sColor.hex}`
-                                                : undefined,
-                                            }}
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <div className="flex items-center justify-center gap-1">
-                                              {/* Collapse toggle */}
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  toggleSection(sectionName)
-                                                }
-                                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
-                                              >
-                                                <svg
-                                                  viewBox="0 0 24 24"
-                                                  className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
-                                                  fill="currentColor"
-                                                >
-                                                  <path d="M8 5v14l11-7z" />
-                                                </svg>
-                                              </button>
-                                              {/* 3-dots menu */}
-                                              {isAdminOrManager && (
-                                                <div className="relative section-menu-container">
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setOpenSectionMenu(
-                                                        openSectionMenu ===
-                                                          sectionName
-                                                          ? null
-                                                          : sectionName,
-                                                      );
-                                                    }}
-                                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
-                                                  >
-                                                    <FiMoreHorizontal
-                                                      size={13}
-                                                    />
-                                                  </button>
-                                                  {openSectionMenu ===
-                                                    sectionName && (
-                                                    <div
-                                                      className="absolute left-0 top-full mt-1.5 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-[60] flex flex-col gap-1.5"
-                                                      onClick={(e) =>
-                                                        e.stopPropagation()
-                                                      }
-                                                    >
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                          setSelectionModeSections(
-                                                            (prev) => ({
-                                                              ...prev,
-                                                              [sectionName]:
-                                                                !prev[
-                                                                  sectionName
-                                                                ],
-                                                            }),
-                                                          );
-                                                          if (
-                                                            selectionModeSections[
-                                                              sectionName
-                                                            ]
-                                                          ) {
-                                                            setSelectedTasks(
-                                                              (prev) => {
-                                                                const next = {
-                                                                  ...prev,
-                                                                };
-                                                                sectionTasks.forEach(
-                                                                  (t) => {
-                                                                    delete next[
-                                                                      t._id
-                                                                    ];
-                                                                  },
-                                                                );
-                                                                return next;
-                                                              },
-                                                            );
-                                                          }
-                                                          setOpenSectionMenu(
-                                                            null,
-                                                          );
-                                                        }}
-                                                        className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1E293B] dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 rounded-lg transition-all"
-                                                      >
-                                                        {selectionModeSections[
-                                                          sectionName
-                                                        ] ? (
-                                                          <>
-                                                            <FiX size={13} />{" "}
-                                                            Cancel Select
-                                                          </>
-                                                        ) : (
-                                                          <>
-                                                            <FiCheckCircle
-                                                              size={13}
-                                                            />{" "}
-                                                            Select Tasks
-                                                          </>
-                                                        )}
-                                                      </button>
-                                                      {sectionName !==
-                                                        "General" && (
-                                                        <button
-                                                          type="button"
-                                                          onClick={() => {
-                                                            handleDeleteSection(
-                                                              sectionName,
-                                                            );
-                                                            setOpenSectionMenu(
-                                                              null,
-                                                            );
-                                                          }}
-                                                          className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg transition-all"
-                                                        >
-                                                          <FiTrash2 size={13} />{" "}
-                                                          Delete Section
-                                                        </button>
-                                                      )}
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              )}
-                                            </div>
-                                          </td>
-                                          {/* ID Column */}
-                                          <td
-                                            className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-30 sidebar-bg"
-                                            style={{
-                                              left: showSelectionColumn
-                                                ? "80px"
-                                                : "40px",
-                                            }}
-                                          />
-                                          {/* Task Name Column */}
-                                          <td
-                                            className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-30 sidebar-bg"
-                                            style={{
-                                              left: showSelectionColumn
-                                                ? "140px"
-                                                : "100px",
-                                              minWidth: "250px",
+                                              width: "40px",
+                                              minWidth: "40px",
+                                              maxWidth: "40px",
+                                              borderLeft: `2.5px solid ${sColor.hex}`,
                                             }}
                                           >
-                                            <div className="flex items-center gap-2.5 w-full">
-                                              {/* Drag Handle */}
-                                              <div
-                                                {...provided.dragHandleProps}
-                                                className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-655 dark:hover:text-slate-205 transition-colors flex items-center justify-center shrink-0"
-                                                title="Drag to reorder section"
-                                                onClick={(e) =>
-                                                  e.stopPropagation()
-                                                }
-                                              >
-                                                <svg
-                                                  viewBox="0 0 24 24"
-                                                  className="w-3.5 h-3.5"
-                                                  fill="none"
-                                                  stroke="currentColor"
-                                                  strokeWidth="2.5"
-                                                  strokeLinecap="round"
-                                                  strokeLinejoin="round"
-                                                >
-                                                  <circle
-                                                    cx="9"
-                                                    cy="12"
-                                                    r="1.5"
-                                                    fill="currentColor"
-                                                  />
-                                                  <circle
-                                                    cx="9"
-                                                    cy="6"
-                                                    r="1.5"
-                                                    fill="currentColor"
-                                                  />
-                                                  <circle
-                                                    cx="9"
-                                                    cy="18"
-                                                    r="1.5"
-                                                    fill="currentColor"
-                                                  />
-                                                  <circle
-                                                    cx="15"
-                                                    cy="12"
-                                                    r="1.5"
-                                                    fill="currentColor"
-                                                  />
-                                                  <circle
-                                                    cx="15"
-                                                    cy="6"
-                                                    r="1.5"
-                                                    fill="currentColor"
-                                                  />
-                                                  <circle
-                                                    cx="15"
-                                                    cy="18"
-                                                    r="1.5"
-                                                    fill="currentColor"
-                                                  />
-                                                </svg>
-                                              </div>
-
-                                              {/* Inline Editable Section Name Input */}
+                                            {selectionModeSections[
+                                              sectionName
+                                            ] && (
                                               <input
-                                                id={`section-input-${sectionName}`}
-                                                type="text"
-                                                defaultValue={sectionName}
-                                                onBlur={async (e) => {
-                                                  const newName =
-                                                    e.target.value.trim();
-                                                  if (
-                                                    !newName ||
-                                                    newName === sectionName
-                                                  ) {
-                                                    e.target.value =
-                                                      sectionName; // revert back
-                                                    return;
-                                                  }
-
-                                                  try {
-                                                    const currentSections =
-                                                      activeProject.sections
-                                                        ?.length > 0
-                                                        ? activeProject.sections
-                                                        : ["General"];
-                                                    const updatedSections =
-                                                      currentSections.map(
-                                                        (s) =>
-                                                          s === sectionName
-                                                            ? newName
-                                                            : s,
-                                                      );
-
-                                                    await dispatch(
-                                                      updateProject({
-                                                        id: activeProjectId,
-                                                        data: {
-                                                          sections:
-                                                            updatedSections,
-                                                        },
-                                                      }),
-                                                    ).unwrap();
-
-                                                    const tasksToUpdate =
-                                                      tasks.filter(
-                                                        (t) =>
-                                                          t.section ===
-                                                            sectionName ||
-                                                          (!t.section &&
-                                                            sectionName ===
-                                                              "General"),
-                                                      );
-                                                    await Promise.all(
-                                                      tasksToUpdate.map((t) =>
-                                                        updateTaskMutation({
-                                                          id: t._id,
-                                                          taskData: {
-                                                            section: newName,
-                                                          },
-                                                        }).unwrap(),
-                                                      ),
-                                                    );
-
-                                                    toast.success(
-                                                      "Section renamed successfully",
-                                                    );
-                                                  } catch (err) {
-                                                    console.error(
-                                                      "Failed to rename section:",
-                                                      err,
-                                                    );
-                                                    toast.error(
-                                                      "Failed to rename section",
-                                                    );
-                                                    e.target.value =
-                                                      sectionName; // revert back
-                                                  }
-                                                }}
-                                                onKeyDown={(e) => {
-                                                  if (e.key === "Enter") {
-                                                    e.target.blur();
-                                                  }
-                                                }}
-                                                onClick={(e) =>
-                                                  e.stopPropagation()
+                                                type="checkbox"
+                                                className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                checked={
+                                                  sectionTasks.length > 0 &&
+                                                  sectionTasks.every(
+                                                    (t) => selectedTasks[t._id],
+                                                  )
                                                 }
-                                                className="font-bold text-[10px] uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 outline-none bg-transparent focus:bg-white dark:focus:bg-slate-800 focus:ring-1 focus:ring-blue-500 flex-1 border-none cursor-text truncate transition-all"
+                                                onChange={(e) => {
+                                                  const checked =
+                                                    e.target.checked;
+                                                  setSelectedTasks((prev) => {
+                                                    const next = { ...prev };
+                                                    sectionTasks.forEach(
+                                                      (t) => {
+                                                        next[t._id] = checked;
+                                                      },
+                                                    );
+                                                    return next;
+                                                  });
+                                                }}
                                               />
-
-                                              <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px] select-none">
-                                                {sectionTasks.length}
-                                              </span>
-
-                                              {/* Add Task Plus Icon next to section name */}
-                                              {isAdminOrManager && (
+                                            )}
+                                          </td>
+                                        )}
+                                        {/* Chevron + 3-dots Column */}
+                                        <td
+                                          className={`px-2 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky sidebar-bg relative ${
+                                            openSectionMenu === sectionName
+                                              ? "z-50"
+                                              : "z-30"
+                                          }`}
+                                          style={{
+                                            left: showSelectionColumn
+                                              ? "40px"
+                                              : "0px",
+                                            width: "60px",
+                                            minWidth: "60px",
+                                            maxWidth: "60px",
+                                            borderLeft: !showSelectionColumn
+                                              ? `2.5px solid ${sColor.hex}`
+                                              : undefined,
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <div className="flex items-center justify-center gap-1">
+                                            {/* Collapse toggle */}
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                toggleSection(sectionName)
+                                              }
+                                              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
+                                            >
+                                              <svg
+                                                viewBox="0 0 24 24"
+                                                className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
+                                                fill="currentColor"
+                                              >
+                                                <path d="M8 5v14l11-7z" />
+                                              </svg>
+                                            </button>
+                                            {/* 3-dots menu */}
+                                            {isAdminOrManager && (
+                                              <div className="relative section-menu-container">
                                                 <button
                                                   type="button"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleAddTask(sectionName);
+                                                    setOpenSectionMenu(
+                                                      openSectionMenu ===
+                                                        sectionName
+                                                        ? null
+                                                        : sectionName,
+                                                    );
                                                   }}
-                                                  title="Add Task to this Section"
-                                                  className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#3b82f6] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
+                                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
                                                 >
-                                                  <FiPlus
-                                                    size={11}
-                                                    className="stroke-[3]"
-                                                  />
+                                                  <FiMoreHorizontal size={13} />
                                                 </button>
-                                              )}
-
-                                              {/* Bulk Actions Inline */}
-                                              {isAdminOrManager &&
-                                                selectionModeSections[
-                                                  sectionName
-                                                ] && (
-                                                  <div className="flex items-center gap-2 ml-3">
-                                                    {/* Cancel Select */}
+                                                {openSectionMenu ===
+                                                  sectionName && (
+                                                  <div
+                                                    className="absolute left-0 top-full mt-1.5 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-[60] flex flex-col gap-1.5"
+                                                    onClick={(e) =>
+                                                      e.stopPropagation()
+                                                    }
+                                                  >
                                                     <button
                                                       type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
+                                                      onClick={() => {
                                                         setSelectionModeSections(
                                                           (prev) => ({
                                                             ...prev,
-                                                            [sectionName]: false,
+                                                            [sectionName]:
+                                                              !prev[
+                                                                sectionName
+                                                              ],
                                                           }),
                                                         );
-                                                        setSelectedTasks(
-                                                          (prev) => {
-                                                            const next = {
-                                                              ...prev,
-                                                            };
-                                                            sectionTasks.forEach(
-                                                              (t) => {
-                                                                delete next[
-                                                                  t._id
-                                                                ];
-                                                              },
-                                                            );
-                                                            return next;
-                                                          },
+                                                        if (
+                                                          selectionModeSections[
+                                                            sectionName
+                                                          ]
+                                                        ) {
+                                                          setSelectedTasks(
+                                                            (prev) => {
+                                                              const next = {
+                                                                ...prev,
+                                                              };
+                                                              sectionTasks.forEach(
+                                                                (t) => {
+                                                                  delete next[
+                                                                    t._id
+                                                                  ];
+                                                                },
+                                                              );
+                                                              return next;
+                                                            },
+                                                          );
+                                                        }
+                                                        setOpenSectionMenu(
+                                                          null,
                                                         );
                                                       }}
-                                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50 transition-all cursor-pointer shadow-sm whitespace-nowrap"
+                                                      className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1E293B] dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 rounded-lg transition-all"
                                                     >
-                                                      <FiX
-                                                        size={11}
-                                                        className="shrink-0"
-                                                      />
-                                                      Cancel Select
+                                                      {selectionModeSections[
+                                                        sectionName
+                                                      ] ? (
+                                                        <>
+                                                          <FiX size={13} />{" "}
+                                                          Cancel Select
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <FiCheckCircle
+                                                            size={13}
+                                                          />{" "}
+                                                          Select Tasks
+                                                        </>
+                                                      )}
                                                     </button>
-                                                    {/* Delete Selected */}
-                                                    {Object.keys(
-                                                      selectedTasks,
-                                                    ).some(
-                                                      (id) =>
-                                                        selectedTasks[id] &&
-                                                        sectionTasks.some(
-                                                          (t) => t._id === id,
-                                                        ),
-                                                    ) && (
+                                                    {sectionName !==
+                                                      "General" && (
                                                       <button
                                                         type="button"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          handleBulkDelete(
-                                                            sectionTasks,
+                                                        onClick={() => {
+                                                          handleDeleteSection(
                                                             sectionName,
                                                           );
+                                                          setOpenSectionMenu(
+                                                            null,
+                                                          );
                                                         }}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-rose-500 hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500 text-white border border-rose-600 dark:border-rose-500 transition-all cursor-pointer shadow-sm whitespace-nowrap"
+                                                        className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg transition-all"
                                                       >
-                                                        <FiTrash2
-                                                          size={11}
-                                                          className="shrink-0"
-                                                        />
-                                                        Delete Selected (
-                                                        {
-                                                          Object.keys(
-                                                            selectedTasks,
-                                                          ).filter(
-                                                            (id) =>
-                                                              selectedTasks[
-                                                                id
-                                                              ] &&
-                                                              sectionTasks.some(
-                                                                (t) =>
-                                                                  t._id === id,
-                                                              ),
-                                                          ).length
-                                                        }
-                                                        )
+                                                        <FiTrash2 size={13} />{" "}
+                                                        Delete Section
                                                       </button>
                                                     )}
                                                   </div>
                                                 )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </td>
+                                        {/* ID Column */}
+                                        <td
+                                          className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-30 sidebar-bg"
+                                          style={{
+                                            left: showSelectionColumn
+                                              ? "80px"
+                                              : "40px",
+                                          }}
+                                        />
+                                        {/* Task Name Column */}
+                                        <td
+                                          className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-30 sidebar-bg"
+                                          style={{
+                                            left: showSelectionColumn
+                                              ? "140px"
+                                              : "100px",
+                                            minWidth: "250px",
+                                          }}
+                                        >
+                                          <div className="flex items-center gap-2.5 w-full">
+                                            {/* Drag Handle */}
+                                            <div
+                                              {...provided.dragHandleProps}
+                                              className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-655 dark:hover:text-slate-205 transition-colors flex items-center justify-center shrink-0"
+                                              title="Drag to reorder section"
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                            >
+                                              <svg
+                                                viewBox="0 0 24 24"
+                                                className="w-3.5 h-3.5"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.5"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                              >
+                                                <circle
+                                                  cx="9"
+                                                  cy="12"
+                                                  r="1.5"
+                                                  fill="currentColor"
+                                                />
+                                                <circle
+                                                  cx="9"
+                                                  cy="6"
+                                                  r="1.5"
+                                                  fill="currentColor"
+                                                />
+                                                <circle
+                                                  cx="9"
+                                                  cy="18"
+                                                  r="1.5"
+                                                  fill="currentColor"
+                                                />
+                                                <circle
+                                                  cx="15"
+                                                  cy="12"
+                                                  r="1.5"
+                                                  fill="currentColor"
+                                                />
+                                                <circle
+                                                  cx="15"
+                                                  cy="6"
+                                                  r="1.5"
+                                                  fill="currentColor"
+                                                />
+                                                <circle
+                                                  cx="15"
+                                                  cy="18"
+                                                  r="1.5"
+                                                  fill="currentColor"
+                                                />
+                                              </svg>
                                             </div>
-                                          </td>
-                                          {/* Empty Column Cells merged into one to remove vertical gridlines */}
-                                          <td
-                                            colSpan={visibleColsAfterTaskName}
-                                            className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 sidebar-bg"
-                                            style={{
-                                              borderRight: `2.5px solid ${sColor.hex}`,
-                                            }}
-                                          />
-                                        </tr>
 
-                                        {/* SECTION TASKS */}
-                                        {!isSectionCollapsed && (
-                                          <>
-                                            {sectionTasks.map(
-                                              (task, taskIndex) => {
-                                                const isExpanded =
-                                                  !!expandedTasks[task._id];
-                                                const isCompleted =
-                                                  task.status === "Completed";
-                                                const canToggle =
-                                                  isAdminOrManager ||
-                                                  task.assignedTo?._id ===
-                                                    currentUser?._id ||
-                                                  task.assignedTo ===
-                                                    currentUser?._id;
+                                            {/* Inline Editable Section Name Input */}
+                                            <input
+                                              id={`section-input-${sectionName}`}
+                                              type="text"
+                                              defaultValue={sectionName}
+                                              onBlur={async (e) => {
+                                                const newName =
+                                                  e.target.value.trim();
+                                                if (
+                                                  !newName ||
+                                                  newName === sectionName
+                                                ) {
+                                                  e.target.value = sectionName; // revert back
+                                                  return;
+                                                }
 
-                                                const isSelected =
-                                                  selectedTaskId === task._id;
-                                                const isRejected =
-                                                  task.status === "Rejected";
-                                                const isInReview =
-                                                  task.status === "In Review";
-                                                const isInProgress =
-                                                  task.status === "In Progress";
-                                                const rowBg = isSelected
-                                                  ? "bg-blue-50 dark:bg-[#1e293b]"
-                                                  : isRejected
-                                                    ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60"
-                                                    : taskIndex % 2 === 0
-                                                      ? "bg-white dark:bg-[#111115] text-slate-800 dark:text-slate-100"
-                                                      : "bg-slate-50 dark:bg-[#16161b] text-slate-800 dark:text-slate-100";
+                                                try {
+                                                  const currentSections =
+                                                    activeProject.sections
+                                                      ?.length > 0
+                                                      ? activeProject.sections
+                                                      : ["General"];
+                                                  const updatedSections =
+                                                    currentSections.map((s) =>
+                                                      s === sectionName
+                                                        ? newName
+                                                        : s,
+                                                    );
 
-                                                return (
-                                                  <React.Fragment
-                                                    key={task._id}
+                                                  await dispatch(
+                                                    updateProject({
+                                                      id: activeProjectId,
+                                                      data: {
+                                                        sections:
+                                                          updatedSections,
+                                                      },
+                                                    }),
+                                                  ).unwrap();
+
+                                                  const tasksToUpdate =
+                                                    tasks.filter(
+                                                      (t) =>
+                                                        t.section ===
+                                                          sectionName ||
+                                                        (!t.section &&
+                                                          sectionName ===
+                                                            "General"),
+                                                    );
+                                                  await Promise.all(
+                                                    tasksToUpdate.map((t) =>
+                                                      updateTaskMutation({
+                                                        id: t._id,
+                                                        taskData: {
+                                                          section: newName,
+                                                        },
+                                                      }).unwrap(),
+                                                    ),
+                                                  );
+
+                                                  toast.success(
+                                                    "Section renamed successfully",
+                                                  );
+                                                } catch (err) {
+                                                  console.error(
+                                                    "Failed to rename section:",
+                                                    err,
+                                                  );
+                                                  toast.error(
+                                                    "Failed to rename section",
+                                                  );
+                                                  e.target.value = sectionName; // revert back
+                                                }
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                  e.target.blur();
+                                                }
+                                              }}
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                              className="font-bold text-[10px] uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 outline-none bg-transparent focus:bg-white dark:focus:bg-slate-800 focus:ring-1 focus:ring-blue-500 flex-1 border-none cursor-text truncate transition-all"
+                                            />
+
+                                            <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px] select-none">
+                                              {sectionTasks.length}
+                                            </span>
+
+                                            {/* Add Task Plus Icon next to section name */}
+                                            {isAdminOrManager && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleAddTask(sectionName);
+                                                }}
+                                                title="Add Task to this Section"
+                                                className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#3b82f6] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
+                                              >
+                                                <FiPlus
+                                                  size={11}
+                                                  className="stroke-[3]"
+                                                />
+                                              </button>
+                                            )}
+
+                                            {/* Bulk Actions Inline */}
+                                            {isAdminOrManager &&
+                                              selectionModeSections[
+                                                sectionName
+                                              ] && (
+                                                <div className="flex items-center gap-2 ml-3">
+                                                  {/* Cancel Select */}
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setSelectionModeSections(
+                                                        (prev) => ({
+                                                          ...prev,
+                                                          [sectionName]: false,
+                                                        }),
+                                                      );
+                                                      setSelectedTasks(
+                                                        (prev) => {
+                                                          const next = {
+                                                            ...prev,
+                                                          };
+                                                          sectionTasks.forEach(
+                                                            (t) => {
+                                                              delete next[
+                                                                t._id
+                                                              ];
+                                                            },
+                                                          );
+                                                          return next;
+                                                        },
+                                                      );
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50 transition-all cursor-pointer shadow-sm whitespace-nowrap"
                                                   >
-                                                    {/* Parent Task Row */}
-                                                    <tr
-                                                      id={`task-row-${task._id}`}
-                                                      onClick={() =>
-                                                        setSelectedTaskId(
-                                                          task._id,
-                                                        )
-                                                      }
-                                                      className={`group cursor-pointer transition-colors ${
-                                                        highlightedTaskId ===
-                                                        task._id
-                                                          ? "bg-indigo-100/80 dark:bg-indigo-900/40"
-                                                          : rowBg
-                                                      } ${
-                                                        task.priority ===
-                                                          "Top High" &&
-                                                        task.status !==
-                                                          "Completed"
-                                                          ? "row-priority-top-high"
-                                                          : ""
-                                                      }`}
+                                                    <FiX
+                                                      size={11}
+                                                      className="shrink-0"
+                                                    />
+                                                    Cancel Select
+                                                  </button>
+                                                  {/* Delete Selected */}
+                                                  {Object.keys(
+                                                    selectedTasks,
+                                                  ).some(
+                                                    (id) =>
+                                                      selectedTasks[id] &&
+                                                      sectionTasks.some(
+                                                        (t) => t._id === id,
+                                                      ),
+                                                  ) && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleBulkDelete(
+                                                          sectionTasks,
+                                                          sectionName,
+                                                        );
+                                                      }}
+                                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-rose-500 hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500 text-white border border-rose-600 dark:border-rose-500 transition-all cursor-pointer shadow-sm whitespace-nowrap"
                                                     >
-                                                      {showSelectionColumn && (
-                                                        <td
-                                                          onClick={(e) =>
-                                                            e.stopPropagation()
-                                                          }
-                                                          className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
-                                                          style={{
-                                                            width: "40px",
-                                                            minWidth: "40px",
-                                                            maxWidth: "40px",
-                                                            borderLeft: `2.5px solid ${sColor.hex}`,
-                                                          }}
-                                                        >
-                                                          {selectionModeSections[
-                                                            sectionName
-                                                          ] && (
-                                                            <input
-                                                              type="checkbox"
-                                                              className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                                              checked={
-                                                                !!selectedTasks[
-                                                                  task._id
-                                                                ]
-                                                              }
-                                                              onChange={(e) => {
-                                                                const checked =
-                                                                  e.target
-                                                                    .checked;
-                                                                setSelectedTasks(
-                                                                  (prev) => ({
-                                                                    ...prev,
-                                                                    [task._id]:
-                                                                      checked,
-                                                                  }),
-                                                                );
-                                                              }}
-                                                            />
-                                                          )}
-                                                        </td>
-                                                      )}
-                                                      {/* Dropdown Chevron Column */}
-                                                      <td
-                                                        className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky z-30 ${rowBg}`}
-                                                        style={{
-                                                          left: showSelectionColumn
-                                                            ? "40px"
-                                                            : "0px",
-                                                          width: "40px",
-                                                          minWidth: "40px",
-                                                          maxWidth: "40px",
-                                                          borderLeft:
-                                                            !showSelectionColumn
-                                                              ? `2.5px solid ${sColor.hex}`
-                                                              : undefined,
-                                                        }}
-                                                      >
-                                                        <div className="flex items-center justify-center">
-                                                          {task.subtasks
-                                                            ?.length > 0 && (
-                                                            <button
-                                                              type="button"
-                                                              onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                toggleTaskExpanded(
-                                                                  task._id,
-                                                                );
-                                                              }}
-                                                              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded shrink-0 cursor-pointer"
-                                                              title={
-                                                                isExpanded
-                                                                  ? "Collapse Subtasks"
-                                                                  : "Expand Subtasks"
-                                                              }
-                                                            >
-                                                              <svg
-                                                                viewBox="0 0 24 24"
-                                                                className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
-                                                                fill="currentColor"
-                                                              >
-                                                                <path d="M8 5v14l11-7z" />
-                                                              </svg>
-                                                            </button>
-                                                          )}
-                                                        </div>
-                                                      </td>
-                                                      {/* ID Column */}
-                                                      <td
-                                                        className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
-                                                        style={{
-                                                          left: showSelectionColumn
-                                                            ? "80px"
-                                                            : "40px",
-                                                          minWidth: "60px",
-                                                          maxWidth: "60px",
-                                                          width: "60px",
-                                                        }}
-                                                      >
-                                                        {getTaskDisplayId(task)}
-                                                      </td>
-                                                      {/* Name Field with Circle Checkbox */}
+                                                      <FiTrash2
+                                                        size={11}
+                                                        className="shrink-0"
+                                                      />
+                                                      Delete Selected (
+                                                      {
+                                                        Object.keys(
+                                                          selectedTasks,
+                                                        ).filter(
+                                                          (id) =>
+                                                            selectedTasks[id] &&
+                                                            sectionTasks.some(
+                                                              (t) =>
+                                                                t._id === id,
+                                                            ),
+                                                        ).length
+                                                      }
+                                                      )
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              )}
+                                          </div>
+                                        </td>
+                                        {/* Empty Column Cells merged into one to remove vertical gridlines */}
+                                        <td
+                                          colSpan={visibleColsAfterTaskName}
+                                          className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 sidebar-bg"
+                                          style={{
+                                            borderRight: `2.5px solid ${sColor.hex}`,
+                                          }}
+                                        />
+                                      </tr>
+
+                                      {/* SECTION TASKS */}
+                                      {!isSectionCollapsed && (
+                                        <>
+                                          {sectionTasks.map(
+                                            (task, taskIndex) => {
+                                              const isExpanded =
+                                                !!expandedTasks[task._id];
+                                              const isCompleted =
+                                                task.status === "Completed";
+                                              const canToggle =
+                                                isAdminOrManager ||
+                                                task.assignedTo?._id ===
+                                                  currentUser?._id ||
+                                                task.assignedTo ===
+                                                  currentUser?._id;
+
+                                              const isSelected =
+                                                selectedTaskId === task._id;
+                                              const isRejected =
+                                                task.status === "Rejected";
+                                              const isInReview =
+                                                task.status === "In Review";
+                                              const isInProgress =
+                                                task.status === "In Progress";
+                                              const rowBg = isSelected
+                                                ? "bg-blue-50 dark:bg-[#1e293b]"
+                                                : isRejected
+                                                  ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60"
+                                                  : taskIndex % 2 === 0
+                                                    ? "bg-white dark:bg-[#111115] text-slate-800 dark:text-slate-100"
+                                                    : "bg-slate-50 dark:bg-[#16161b] text-slate-800 dark:text-slate-100";
+
+                                              return (
+                                                <React.Fragment key={task._id}>
+                                                  {/* Parent Task Row */}
+                                                  <tr
+                                                    id={`task-row-${task._id}`}
+                                                    onClick={() =>
+                                                      setSelectedTaskId(
+                                                        task._id,
+                                                      )
+                                                    }
+                                                    className={`group cursor-pointer transition-colors ${
+                                                      highlightedTaskId ===
+                                                      task._id
+                                                        ? "bg-indigo-100/80 dark:bg-indigo-900/40"
+                                                        : rowBg
+                                                    } ${
+                                                      task.priority ===
+                                                        "Top High" &&
+                                                      task.status !==
+                                                        "Completed"
+                                                        ? "row-priority-top-high"
+                                                        : ""
+                                                    }`}
+                                                  >
+                                                    {showSelectionColumn && (
                                                       <td
                                                         onClick={(e) =>
                                                           e.stopPropagation()
                                                         }
-                                                        className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                                        className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
                                                         style={{
-                                                          left: showSelectionColumn
-                                                            ? "140px"
-                                                            : "100px",
+                                                          width: "40px",
+                                                          minWidth: "40px",
+                                                          maxWidth: "40px",
+                                                          borderLeft: `2.5px solid ${sColor.hex}`,
                                                         }}
                                                       >
-                                                        <div className="flex items-center gap-2.5 w-full">
-                                                          {/* Circular Complete Checkbox */}
+                                                        {selectionModeSections[
+                                                          sectionName
+                                                        ] && (
+                                                          <input
+                                                            type="checkbox"
+                                                            className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                            checked={
+                                                              !!selectedTasks[
+                                                                task._id
+                                                              ]
+                                                            }
+                                                            onChange={(e) => {
+                                                              const checked =
+                                                                e.target
+                                                                  .checked;
+                                                              setSelectedTasks(
+                                                                (prev) => ({
+                                                                  ...prev,
+                                                                  [task._id]:
+                                                                    checked,
+                                                                }),
+                                                              );
+                                                            }}
+                                                          />
+                                                        )}
+                                                      </td>
+                                                    )}
+                                                    {/* Dropdown Chevron Column */}
+                                                    <td
+                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky z-30 ${rowBg}`}
+                                                      style={{
+                                                        left: showSelectionColumn
+                                                          ? "40px"
+                                                          : "0px",
+                                                        width: "40px",
+                                                        minWidth: "40px",
+                                                        maxWidth: "40px",
+                                                        borderLeft:
+                                                          !showSelectionColumn
+                                                            ? `2.5px solid ${sColor.hex}`
+                                                            : undefined,
+                                                      }}
+                                                    >
+                                                      <div className="flex items-center justify-center">
+                                                        {task.subtasks?.length >
+                                                          0 && (
                                                           <button
                                                             type="button"
                                                             onClick={(e) => {
                                                               e.stopPropagation();
-                                                              if (canToggle) {
+                                                              toggleTaskExpanded(
+                                                                task._id,
+                                                              );
+                                                            }}
+                                                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded shrink-0 cursor-pointer"
+                                                            title={
+                                                              isExpanded
+                                                                ? "Collapse Subtasks"
+                                                                : "Expand Subtasks"
+                                                            }
+                                                          >
+                                                            <svg
+                                                              viewBox="0 0 24 24"
+                                                              className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                                                              fill="currentColor"
+                                                            >
+                                                              <path d="M8 5v14l11-7z" />
+                                                            </svg>
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    </td>
+                                                    {/* ID Column */}
+                                                    <td
+                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
+                                                      style={{
+                                                        left: showSelectionColumn
+                                                          ? "80px"
+                                                          : "40px",
+                                                        minWidth: "60px",
+                                                        maxWidth: "60px",
+                                                        width: "60px",
+                                                      }}
+                                                    >
+                                                      {getTaskDisplayId(task)}
+                                                    </td>
+                                                    {/* Name Field with Circle Checkbox */}
+                                                    <td
+                                                      onClick={(e) =>
+                                                        e.stopPropagation()
+                                                      }
+                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                                      style={{
+                                                        left: showSelectionColumn
+                                                          ? "140px"
+                                                          : "100px",
+                                                      }}
+                                                    >
+                                                      <div className="flex items-center gap-2.5 w-full">
+                                                        {/* Circular Complete Checkbox */}
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (canToggle) {
+                                                              handleTaskFieldChange(
+                                                                task._id,
+                                                                {
+                                                                  status:
+                                                                    isCompleted
+                                                                      ? "Not Started"
+                                                                      : "Completed",
+                                                                },
+                                                              );
+                                                            }
+                                                          }}
+                                                          disabled={!canToggle}
+                                                          className={`w-[18px] h-[18px] rounded-full border flex items-center justify-center transition-all shrink-0 ${
+                                                            !canToggle
+                                                              ? "cursor-not-allowed opacity-50"
+                                                              : "cursor-pointer"
+                                                          } ${
+                                                            isCompleted
+                                                              ? "bg-emerald-500 border-emerald-500 text-white"
+                                                              : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-slate-400 dark:hover:text-[#3b82f6]"
+                                                          }`}
+                                                        >
+                                                          <FiCheck size={9} />
+                                                        </button>
+
+                                                        {/* Task Title contentEditable Span */}
+                                                        <div className="flex-grow min-w-0 flex items-center gap-1.5">
+                                                          {highlightedTaskId ===
+                                                            task._id && (
+                                                            <FiLoader
+                                                              size={12}
+                                                              className="animate-spin text-indigo-500 dark:text-indigo-400 shrink-0"
+                                                            />
+                                                          )}
+                                                          <span
+                                                            ref={(el) => {
+                                                              if (
+                                                                el &&
+                                                                focusedTaskId ===
+                                                                  task._id
+                                                              ) {
+                                                                el.focus();
+                                                                setFocusedTaskId(
+                                                                  null,
+                                                                );
+                                                              }
+                                                            }}
+                                                            contentEditable={
+                                                              canToggle
+                                                            }
+                                                            suppressContentEditableWarning={
+                                                              true
+                                                            }
+                                                            placeholder="Write a task here..."
+                                                            onBlur={(e) => {
+                                                              const val =
+                                                                e.target.innerText.trim();
+                                                              if (
+                                                                val !==
+                                                                task.title
+                                                              ) {
                                                                 handleTaskFieldChange(
                                                                   task._id,
                                                                   {
-                                                                    status:
-                                                                      isCompleted
-                                                                        ? "Not Started"
-                                                                        : "Completed",
+                                                                    title: val,
                                                                   },
                                                                 );
                                                               }
                                                             }}
-                                                            disabled={
-                                                              !canToggle
-                                                            }
-                                                            className={`w-[18px] h-[18px] rounded-full border flex items-center justify-center transition-all shrink-0 ${
-                                                              !canToggle
-                                                                ? "cursor-not-allowed opacity-50"
-                                                                : "cursor-pointer"
-                                                            } ${
+                                                            onKeyDown={(e) => {
+                                                              if (
+                                                                e.key ===
+                                                                "Enter"
+                                                              ) {
+                                                                e.preventDefault();
+                                                                e.target.blur();
+                                                                setInlineAddingTaskSection(
+                                                                  task.section ||
+                                                                    "General",
+                                                                );
+                                                                setInlineTaskTitle(
+                                                                  "",
+                                                                );
+                                                              }
+                                                            }}
+                                                            className={`font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
                                                               isCompleted
-                                                                ? "bg-emerald-500 border-emerald-500 text-white"
-                                                                : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-slate-400 dark:hover:text-[#3b82f6]"
+                                                                ? "line-through text-slate-450 dark:text-slate-555 font-bold"
+                                                                : ""
                                                             }`}
                                                           >
-                                                            <FiCheck size={9} />
-                                                          </button>
+                                                            {task.title}
+                                                          </span>
+                                                        </div>
 
-                                                          {/* Task Title contentEditable Span */}
-                                                          <div className="flex-grow min-w-0 flex items-center gap-1.5">
-                                                            {highlightedTaskId ===
-                                                              task._id && (
-                                                              <FiLoader
-                                                                size={12}
-                                                                className="animate-spin text-indigo-500 dark:text-indigo-400 shrink-0"
-                                                              />
-                                                            )}
-                                                            <span
-                                                              ref={(el) => {
-                                                                if (
-                                                                  el &&
-                                                                  focusedTaskId ===
-                                                                    task._id
-                                                                ) {
-                                                                  el.focus();
-                                                                  setFocusedTaskId(
-                                                                    null,
-                                                                  );
-                                                                }
-                                                              }}
-                                                              contentEditable={
-                                                                canToggle
-                                                              }
-                                                              suppressContentEditableWarning={
-                                                                true
-                                                              }
-                                                              placeholder="Write a task here..."
-                                                              onBlur={(e) => {
-                                                                const val =
-                                                                  e.target.innerText.trim();
-                                                                if (
-                                                                  val !==
-                                                                  task.title
-                                                                ) {
-                                                                  handleTaskFieldChange(
-                                                                    task._id,
-                                                                    {
-                                                                      title:
-                                                                        val,
-                                                                    },
-                                                                  );
-                                                                }
-                                                              }}
-                                                              onKeyDown={(
-                                                                e,
-                                                              ) => {
-                                                                if (
-                                                                  e.key ===
-                                                                  "Enter"
-                                                                ) {
-                                                                  e.preventDefault();
-                                                                  e.target.blur();
-                                                                  setInlineAddingTaskSection(
-                                                                    task.section ||
-                                                                      "General",
-                                                                  );
-                                                                  setInlineTaskTitle(
-                                                                    "",
-                                                                  );
-                                                                }
-                                                              }}
-                                                              className={`font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
-                                                                isCompleted
-                                                                  ? "line-through text-slate-450 dark:text-slate-555 font-bold"
-                                                                  : ""
-                                                              }`}
-                                                            >
-                                                              {task.title}
-                                                            </span>
-                                                          </div>
-
-                                                          {/* Subtask Count Badge (static, click opens drawer) */}
-                                                          {task.subtasks
-                                                            ?.length > 0 && (
-                                                            <button
-                                                              type="button"
-                                                              onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setSelectedTaskId(
-                                                                  task._id,
-                                                                );
-                                                              }}
-                                                              title={`${task.subtasks.length} subtask${task.subtasks.length !== 1 ? "s" : ""} — open details`}
-                                                              className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-slate-550 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 bg-blue-50 bg-[#3b82f6]/10 hover:text-blue-600 dark:hover:text-[#3b82f6] hover:border-blue-200 dark:hover:border-[#3b82f6]/20 transition-all cursor-pointer"
-                                                            >
-                                                              <FiCornerDownRight
-                                                                size={8}
-                                                              />
-                                                              {
-                                                                task.subtasks
-                                                                  .length
-                                                              }
-                                                            </button>
-                                                          )}
-
-                                                          {/* Detail Drawer Open Arrow */}
+                                                        {/* Subtask Count Badge (static, click opens drawer) */}
+                                                        {task.subtasks?.length >
+                                                          0 && (
                                                           <button
                                                             type="button"
                                                             onClick={(e) => {
@@ -5077,818 +5685,804 @@ const ProjectTaskBoard = ({
                                                                 task._id,
                                                               );
                                                             }}
-                                                            className="ml-auto shrink-0 text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-[#3b82f6] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                                                            title="Open Task Details"
+                                                            title={`${task.subtasks.length} subtask${task.subtasks.length !== 1 ? "s" : ""} — open details`}
+                                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-slate-550 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 bg-blue-50 bg-[#3b82f6]/10 hover:text-blue-600 dark:hover:text-[#3b82f6] hover:border-blue-200 dark:hover:border-[#3b82f6]/20 transition-all cursor-pointer"
                                                           >
-                                                            <FiChevronRight
-                                                              size={14}
+                                                            <FiCornerDownRight
+                                                              size={8}
                                                             />
+                                                            {
+                                                              task.subtasks
+                                                                .length
+                                                            }
                                                           </button>
-                                                        </div>
-                                                      </td>
+                                                        )}
 
-                                                      {/* Content Copy */}
-                                                      <td
-                                                        className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? "hidden" : ""}`}
+                                                        {/* Detail Drawer Open Arrow */}
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedTaskId(
+                                                              task._id,
+                                                            );
+                                                          }}
+                                                          className="ml-auto shrink-0 text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-[#3b82f6] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                          title="Open Task Details"
+                                                        >
+                                                          <FiChevronRight
+                                                            size={14}
+                                                          />
+                                                        </button>
+                                                      </div>
+                                                    </td>
+
+                                                    {/* Content Copy */}
+                                                    <td
+                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? "hidden" : ""} min-w-[240px] w-[260px]`}
+                                                    >
+                                                      <div
+                                                        onClick={(e) =>
+                                                          e.stopPropagation()
+                                                        }
+                                                        className="w-full"
                                                       >
+                                                        <ContentCopyInput
+                                                          value={
+                                                            task.contentCopy
+                                                          }
+                                                          onChange={(newVal) =>
+                                                            handleTaskFieldChange(
+                                                              task._id,
+                                                              {
+                                                                contentCopy:
+                                                                  newVal,
+                                                              },
+                                                            )
+                                                          }
+                                                          className="w-full"
+                                                        />
+                                                      </div>
+                                                    </td>
+                                                    {/* Client Column */}
+                                                    {!hiddenColumns.client && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
                                                         <div
                                                           onClick={(e) =>
                                                             e.stopPropagation()
                                                           }
-                                                          className="w-full"
                                                         >
-                                                          <ContentCopyInput
-                                                            value={
-                                                              task.contentCopy
-                                                            }
-                                                            onChange={(
-                                                              newVal,
-                                                            ) =>
-                                                              handleTaskFieldChange(
-                                                                task._id,
-                                                                {
-                                                                  contentCopy:
-                                                                    newVal,
-                                                                },
-                                                              )
-                                                            }
-                                                          />
+                                                          {(() => {
+                                                            const clientId =
+                                                              task.project
+                                                                ?.client?._id ||
+                                                              task.project
+                                                                ?.client ||
+                                                              task.client
+                                                                ?._id ||
+                                                              task.client ||
+                                                              activeProject
+                                                                ?.client?._id ||
+                                                              activeProject?.client;
+                                                            const clientObj =
+                                                              clients?.find(
+                                                                (c) =>
+                                                                  c._id ===
+                                                                  clientId,
+                                                              );
+                                                            if (!clientObj)
+                                                              return (
+                                                                <span className="text-slate-400 text-[10px] italic">
+                                                                  No Client
+                                                                </span>
+                                                              );
+                                                            return (
+                                                              <ClientBadge
+                                                                client={
+                                                                  clientObj
+                                                                }
+                                                                size="sm"
+                                                              />
+                                                            );
+                                                          })()}
                                                         </div>
                                                       </td>
-                                                      {/* Client Column */}
-                                                      {!hiddenColumns.client && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
-                                                          <div
-                                                            onClick={(e) =>
-                                                              e.stopPropagation()
-                                                            }
-                                                          >
-                                                            {(() => {
-                                                              const clientId =
-                                                                activeProject
-                                                                  ?.client
-                                                                  ?._id ||
-                                                                activeProject?.client;
-                                                              const clientObj =
-                                                                clients?.find(
-                                                                  (c) =>
-                                                                    c._id ===
-                                                                    clientId,
-                                                                );
-                                                              if (!clientObj)
-                                                                return (
-                                                                  <span className="text-slate-400 text-[10px] italic">
-                                                                    No Client
-                                                                  </span>
-                                                                );
-                                                              return (
-                                                                <ClientBadge
-                                                                  client={
-                                                                    clientObj
-                                                                  }
-                                                                  size="sm"
-                                                                />
-                                                              );
-                                                            })()}
-                                                          </div>
-                                                        </td>
-                                                      )}
+                                                    )}
 
-                                                      {/* Created By Column */}
-                                                      {!hiddenColumns.createdBy && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                          {task.createdBy ? (
-                                                            <div className="flex items-center gap-2">
-                                                              {task.createdBy
-                                                                .profile
+                                                    {/* Created By Column */}
+                                                    {!hiddenColumns.createdBy && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        {task.createdBy ? (
+                                                          <div className="flex items-center gap-2">
+                                                            <div className="relative w-4 h-4 rounded-full overflow-hidden shrink-0 border border-slate-250 dark:border-white/10">
+                                                              <div
+                                                                className={`w-full h-full flex items-center justify-center text-white text-[7.5px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                                  task.createdBy
+                                                                    ?.name ||
+                                                                    "U",
+                                                                )}`}
+                                                              >
+                                                                {getInitials(
+                                                                  task.createdBy
+                                                                    ?.name ||
+                                                                    "U",
+                                                                )}
+                                                              </div>
+                                                              {(task.createdBy
+                                                                ?.profile
                                                                 ?.profileImage
                                                                 ?.url ||
-                                                              task.createdBy
-                                                                .profileImage
-                                                                ?.url ||
-                                                              task.createdBy
-                                                                .profile
-                                                                ?.avatar ||
-                                                              task.createdBy
-                                                                .avatar ? (
+                                                                task.createdBy
+                                                                  ?.profileImage
+                                                                  ?.url ||
+                                                                task.createdBy
+                                                                  ?.profile
+                                                                  ?.avatar ||
+                                                                task.createdBy
+                                                                  ?.avatar) && (
                                                                 <img
                                                                   src={
                                                                     task
                                                                       .createdBy
-                                                                      .profile
+                                                                      ?.profile
                                                                       ?.profileImage
                                                                       ?.url ||
                                                                     task
                                                                       .createdBy
-                                                                      .profileImage
+                                                                      ?.profileImage
                                                                       ?.url ||
                                                                     task
                                                                       .createdBy
-                                                                      .profile
+                                                                      ?.profile
                                                                       ?.avatar ||
                                                                     task
                                                                       .createdBy
-                                                                      .avatar
+                                                                      ?.avatar
                                                                   }
                                                                   alt={
                                                                     task
                                                                       .createdBy
-                                                                      .name
+                                                                      ?.name ||
+                                                                    "User"
                                                                   }
-                                                                  className="w-4 h-4 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
+                                                                  className="absolute inset-0 w-full h-full object-cover"
+                                                                  onError={(
+                                                                    e,
+                                                                  ) => {
+                                                                    e.currentTarget.style.display =
+                                                                      "none";
+                                                                  }}
                                                                 />
-                                                              ) : (
-                                                                <div
-                                                                  className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-[7.5px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                                                                    task
-                                                                      .createdBy
-                                                                      .name ||
-                                                                      "U",
-                                                                  )}`}
-                                                                >
-                                                                  {getInitials(
-                                                                    task
-                                                                      .createdBy
-                                                                      .name ||
-                                                                      "U",
-                                                                  )}
-                                                                </div>
                                                               )}
-                                                              <span
-                                                                className="text-[9.5px] font-semibold text-slate-605 dark:text-slate-400 truncate max-w-[85px]"
-                                                                title={
-                                                                  task.createdBy
-                                                                    .name
-                                                                }
-                                                              >
-                                                                {
-                                                                  task.createdBy
-                                                                    .name
-                                                                }
+                                                            </div>
+                                                            <span
+                                                              className="text-[9.5px] font-semibold text-slate-605 dark:text-slate-400 truncate max-w-[85px]"
+                                                              title={
+                                                                task.createdBy
+                                                                  .name
+                                                              }
+                                                            >
+                                                              {
+                                                                task.createdBy
+                                                                  .name
+                                                              }
+                                                            </span>
+                                                          </div>
+                                                        ) : (
+                                                          <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
+                                                            N/A
+                                                          </span>
+                                                        )}
+                                                      </td>
+                                                    )}
+
+                                                    {/* Start Date */}
+                                                    {!hiddenColumns.startDate && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        <div
+                                                          className={`relative h-6 flex items-center justify-start transition-all ${
+                                                            task.startDate
+                                                              ? "cursor-not-allowed"
+                                                              : "cursor-pointer"
+                                                          }`}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (
+                                                              !task.startDate
+                                                            ) {
+                                                              const input =
+                                                                e.currentTarget.querySelector(
+                                                                  'input[type="date"]',
+                                                                );
+                                                              if (
+                                                                input &&
+                                                                typeof input.showPicker ===
+                                                                  "function"
+                                                              ) {
+                                                                input.showPicker();
+                                                              }
+                                                            }
+                                                          }}
+                                                        >
+                                                          {task.startDate ? (
+                                                            <div
+                                                              className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/85 text-blue-855 dark:text-blue-300 text-[9.5px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
+                                                              title="🔒 Start Date — Locked"
+                                                            >
+                                                              <FiLock
+                                                                size={9.5}
+                                                                className="text-amber-600 dark:text-amber-400 shrink-0"
+                                                              />
+                                                              <span className="whitespace-nowrap">
+                                                                {new Date(
+                                                                  task.startDate,
+                                                                ).toLocaleDateString(
+                                                                  undefined,
+                                                                  {
+                                                                    month:
+                                                                      "short",
+                                                                    day: "numeric",
+                                                                  },
+                                                                )}
+                                                              </span>
+                                                              <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
+                                                                🔒
                                                               </span>
                                                             </div>
                                                           ) : (
-                                                            <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
-                                                              N/A
-                                                            </span>
+                                                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-white dark:text-blue-400/90 bg-blue-400 dark:bg-blue-400 transition-all text-[8px] font-bold">
+                                                              <FiCalendar
+                                                                size={9.5}
+                                                              />
+                                                              <span>
+                                                                + Start Date
+                                                              </span>
+                                                            </div>
                                                           )}
-                                                        </td>
-                                                      )}
-
-                                                      {/* Start Date */}
-                                                      {!hiddenColumns.startDate && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                          <div
-                                                            className={`relative h-6 flex items-center justify-start transition-all ${
-                                                              task.startDate
-                                                                ? "cursor-not-allowed"
-                                                                : "cursor-pointer"
-                                                            }`}
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              if (
-                                                                !task.startDate
-                                                              ) {
-                                                                const input =
-                                                                  e.currentTarget.querySelector(
-                                                                    'input[type="date"]',
-                                                                  );
-                                                                if (
-                                                                  input &&
-                                                                  typeof input.showPicker ===
-                                                                    "function"
-                                                                ) {
-                                                                  input.showPicker();
-                                                                }
-                                                              }
-                                                            }}
-                                                          >
-                                                            {task.startDate ? (
-                                                              <div
-                                                                className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/85 text-blue-855 dark:text-blue-300 text-[9.5px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
-                                                                title="🔒 Start Date — Locked"
-                                                              >
-                                                                <FiLock
-                                                                  size={9.5}
-                                                                  className="text-amber-600 dark:text-amber-400 shrink-0"
-                                                                />
-                                                                <span className="whitespace-nowrap">
-                                                                  {new Date(
-                                                                    task.startDate,
-                                                                  ).toLocaleDateString(
-                                                                    undefined,
+                                                          {isAdminOrManager &&
+                                                            !task.startDate && (
+                                                              <input
+                                                                type="date"
+                                                                value=""
+                                                                onChange={(e) =>
+                                                                  handleTaskFieldChange(
+                                                                    task._id,
                                                                     {
-                                                                      month:
-                                                                        "short",
-                                                                      day: "numeric",
+                                                                      startDate:
+                                                                        e.target
+                                                                          .value ||
+                                                                        null,
                                                                     },
-                                                                  )}
-                                                                </span>
-                                                                <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
-                                                                  🔒
-                                                                </span>
-                                                              </div>
-                                                            ) : (
-                                                              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-white dark:text-blue-400/90 bg-blue-400 dark:bg-blue-400 transition-all text-[8px] font-bold">
-                                                                <FiCalendar
-                                                                  size={9.5}
-                                                                />
-                                                                <span>
-                                                                  + Start Date
-                                                                </span>
-                                                              </div>
+                                                                  )
+                                                                }
+                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                              />
                                                             )}
-                                                            {isAdminOrManager &&
-                                                              !task.startDate && (
-                                                                <input
-                                                                  type="date"
-                                                                  value=""
-                                                                  onChange={(
-                                                                    e,
-                                                                  ) =>
-                                                                    handleTaskFieldChange(
-                                                                      task._id,
-                                                                      {
-                                                                        startDate:
-                                                                          e
-                                                                            .target
-                                                                            .value ||
-                                                                          null,
-                                                                      },
-                                                                    )
-                                                                  }
-                                                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                />
-                                                              )}
-                                                          </div>
-                                                        </td>
-                                                      )}
+                                                        </div>
+                                                      </td>
+                                                    )}
 
-                                                      {/* End Date */}
-                                                      {!hiddenColumns.endDate && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                          <div
-                                                            className={`relative h-6 flex items-center justify-start transition-all ${
-                                                              task.dueDate
-                                                                ? "cursor-not-allowed"
-                                                                : "cursor-pointer"
-                                                            }`}
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
+                                                    {/* End Date */}
+                                                    {!hiddenColumns.endDate && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        <div
+                                                          className={`relative h-6 flex items-center justify-start transition-all ${
+                                                            task.dueDate
+                                                              ? "cursor-not-allowed"
+                                                              : "cursor-pointer"
+                                                          }`}
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (!task.dueDate) {
+                                                              const input =
+                                                                e.currentTarget.querySelector(
+                                                                  'input[type="date"]',
+                                                                );
                                                               if (
-                                                                !task.dueDate
+                                                                input &&
+                                                                typeof input.showPicker ===
+                                                                  "function"
                                                               ) {
-                                                                const input =
-                                                                  e.currentTarget.querySelector(
-                                                                    'input[type="date"]',
-                                                                  );
-                                                                if (
-                                                                  input &&
-                                                                  typeof input.showPicker ===
-                                                                    "function"
-                                                                ) {
-                                                                  input.showPicker();
-                                                                }
+                                                                input.showPicker();
                                                               }
-                                                            }}
-                                                          >
-                                                            {task.dueDate ? (
-                                                              <div
-                                                                className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-700/80 text-rose-855 dark:text-rose-100 text-[9.5px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
-                                                                title="🔒 End Date — Locked"
-                                                              >
-                                                                <FiLock
-                                                                  size={9.5}
-                                                                  className="text-amber-600 dark:text-amber-400 shrink-0"
-                                                                />
-                                                                <span className="whitespace-nowrap">
-                                                                  {new Date(
-                                                                    task.dueDate,
-                                                                  ).toLocaleDateString(
-                                                                    undefined,
+                                                            }
+                                                          }}
+                                                        >
+                                                          {task.dueDate ? (
+                                                            <div
+                                                              className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-700/80 text-rose-855 dark:text-rose-100 text-[9.5px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
+                                                              title="🔒 End Date — Locked"
+                                                            >
+                                                              <FiLock
+                                                                size={9.5}
+                                                                className="text-amber-600 dark:text-amber-400 shrink-0"
+                                                              />
+                                                              <span className="whitespace-nowrap">
+                                                                {new Date(
+                                                                  task.dueDate,
+                                                                ).toLocaleDateString(
+                                                                  undefined,
+                                                                  {
+                                                                    month:
+                                                                      "short",
+                                                                    day: "numeric",
+                                                                  },
+                                                                )}
+                                                              </span>
+                                                              <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
+                                                                🔒
+                                                              </span>
+                                                            </div>
+                                                          ) : (
+                                                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
+                                                              <FiCalendar
+                                                                size={9.5}
+                                                              />
+                                                              <span>
+                                                                + End Date
+                                                              </span>
+                                                            </div>
+                                                          )}
+                                                          {isAdminOrManager &&
+                                                            !task.dueDate && (
+                                                              <input
+                                                                type="date"
+                                                                value=""
+                                                                min={
+                                                                  task.startDate
+                                                                    ? new Date(
+                                                                        task.startDate,
+                                                                      )
+                                                                        .toISOString()
+                                                                        .split(
+                                                                          "T",
+                                                                        )[0]
+                                                                    : ""
+                                                                }
+                                                                onChange={(e) =>
+                                                                  handleTaskFieldChange(
+                                                                    task._id,
                                                                     {
-                                                                      month:
-                                                                        "short",
-                                                                      day: "numeric",
+                                                                      dueDate:
+                                                                        e.target
+                                                                          .value ||
+                                                                        null,
                                                                     },
-                                                                  )}
-                                                                </span>
-                                                                <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
-                                                                  🔒
-                                                                </span>
-                                                              </div>
-                                                            ) : (
-                                                              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
-                                                                <FiCalendar
-                                                                  size={9.5}
-                                                                />
-                                                                <span>
-                                                                  + End Date
-                                                                </span>
-                                                              </div>
+                                                                  )
+                                                                }
+                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                              />
                                                             )}
-                                                            {isAdminOrManager &&
-                                                              !task.dueDate && (
-                                                                <input
-                                                                  type="date"
-                                                                  value=""
-                                                                  min={
-                                                                    task.startDate
-                                                                      ? new Date(
-                                                                          task.startDate,
-                                                                        )
-                                                                          .toISOString()
-                                                                          .split(
-                                                                            "T",
-                                                                          )[0]
-                                                                      : ""
-                                                                  }
-                                                                  onChange={(
-                                                                    e,
-                                                                  ) =>
-                                                                    handleTaskFieldChange(
-                                                                      task._id,
-                                                                      {
-                                                                        dueDate:
-                                                                          e
-                                                                            .target
-                                                                            .value ||
-                                                                          null,
-                                                                      },
-                                                                    )
-                                                                  }
-                                                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                />
-                                                              )}
-                                                          </div>
-                                                        </td>
-                                                      )}
+                                                        </div>
+                                                      </td>
+                                                     )}
 
-                                                      {/* Assignee Selection */}
-                                                      {!hiddenColumns.assignee && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                          <div
-                                                            className="flex items-center gap-1.5"
-                                                            onClick={(e) =>
-                                                              e.stopPropagation()
-                                                            }
-                                                          >
-                                                            <AssigneeDropdown
-                                                              selectedUser={
-                                                                task.contentType ===
-                                                                "MOM"
-                                                                  ? task.assignedTo ||
-                                                                    task
-                                                                      .createdBy
-                                                                      ?._id ||
-                                                                    task
-                                                                      .createdBy
-                                                                      ?.id ||
-                                                                    task.createdBy ||
-                                                                    currentUser?._id ||
-                                                                    currentUser?.id
-                                                                  : task.assignedTo
+                                                    {/* Content Type Column */}
+                                                    {!hiddenColumns.contentType && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 min-w-[160px] w-[180px]">
+                                                        <div
+                                                          onClick={(e) =>
+                                                            e.stopPropagation()
+                                                          }
+                                                        >
+                                                          {isAdminOrManager ? (
+                                                            <select
+                                                              value={
+                                                                typeof task.contentType === "string"
+                                                                  ? task.contentType
+                                                                  : ""
                                                               }
-                                                              users={users}
-                                                              onChange={(userId) => {
-                                                                if (!task.title || task.title.trim() === "") {
-                                                                  toast.error("Please fill the task name first");
-                                                                  return;
-                                                                }
-                                                                handleTaskFieldChange(task._id, {
-                                                                  assignedTo: userId,
-                                                                });
-                                                              }}
-                                                              isAdminOrManager={
-                                                                isAdminOrManager
-                                                              }
-                                                              disabled={
-                                                                task.contentType ===
-                                                                "MOM"
-                                                              }
-                                                              isLocked={
-                                                                task.contentType ===
-                                                                "MOM"
-                                                              }
-                                                              isMOM={
-                                                                task.contentType ===
-                                                                "MOM"
-                                                              }
-                                                              currentUser={
-                                                                currentUser
-                                                              }
-                                                              getAvatarColor={
-                                                                getAvatarColor
-                                                              }
-                                                              size="md"
-                                                            />
-                                                          </div>
-                                                        </td>
-                                                      )}
-
-                                                      {/* Content Type Column */}
-                                                      {!hiddenColumns.contentType && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 min-w-[160px] w-[180px]">
-                                                          <div
-                                                            onClick={(e) =>
-                                                              e.stopPropagation()
-                                                            }
-                                                          >
-                                                            {isAdminOrManager ? (
-                                                              <select
-                                                                value={
-                                                                  task.contentType ||
-                                                                  ""
-                                                                }
-                                                                onChange={(
-                                                                  e,
-                                                                ) => {
-                                                                  const val =
-                                                                    e.target
-                                                                      .value;
+                                                              onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (
+                                                                  val ===
+                                                                  "__ADD_CUSTOM__"
+                                                                ) {
+                                                                  const customVal =
+                                                                    prompt(
+                                                                      "Enter custom content type:",
+                                                                    );
                                                                   if (
-                                                                    val ===
-                                                                    "__ADD_CUSTOM__"
+                                                                    customVal &&
+                                                                    customVal.trim() !==
+                                                                      ""
                                                                   ) {
-                                                                    const customVal =
-                                                                      prompt(
-                                                                        "Enter custom content type:",
-                                                                      );
-                                                                    if (
-                                                                      customVal &&
-                                                                      customVal.trim() !==
-                                                                        ""
-                                                                    ) {
-                                                                      const creatorId =
-                                                                        task
-                                                                          .createdBy
-                                                                          ?._id ||
-                                                                        task
-                                                                          .createdBy
-                                                                          ?.id ||
-                                                                        (typeof task.createdBy ===
-                                                                        "string"
-                                                                          ? task.createdBy
-                                                                          : null) ||
-                                                                        currentUser?._id ||
-                                                                        currentUser?.id;
-                                                                      const updates =
-                                                                        {
-                                                                          contentType:
-                                                                            customVal.trim(),
-                                                                        };
-                                                                      if (
-                                                                        customVal.trim() ===
-                                                                          "MOM" &&
-                                                                        creatorId
-                                                                      ) {
-                                                                        updates.assignedTo =
-                                                                          creatorId;
-                                                                      }
-                                                                      handleTaskFieldChange(
-                                                                        task._id,
-                                                                        updates,
-                                                                      );
-                                                                    }
-                                                                  } else {
-                                                                    const creatorId =
-                                                                      task
-                                                                        .createdBy
-                                                                        ?._id ||
-                                                                      task
-                                                                        .createdBy
-                                                                        ?.id ||
-                                                                      (typeof task.createdBy ===
-                                                                      "string"
-                                                                        ? task.createdBy
-                                                                        : null) ||
-                                                                      currentUser?._id ||
-                                                                      currentUser?.id;
                                                                     const updates =
                                                                       {
                                                                         contentType:
-                                                                          val,
+                                                                          customVal.trim(),
                                                                       };
-                                                                    if (
-                                                                      val ===
-                                                                        "MOM" &&
-                                                                      creatorId
-                                                                    ) {
-                                                                      updates.assignedTo =
-                                                                        creatorId;
-                                                                    }
                                                                     handleTaskFieldChange(
                                                                       task._id,
                                                                       updates,
                                                                     );
                                                                   }
-                                                                }}
-                                                                className={`badge-select ${
-                                                                  task.contentType ===
-                                                                  "VIDEO"
-                                                                    ? "badge-type-video"
+                                                                } else {
+                                                                  const updates =
+                                                                    {
+                                                                      contentType:
+                                                                        val,
+                                                                    };
+                                                                  handleTaskFieldChange(
+                                                                    task._id,
+                                                                    updates,
+                                                                    );
+                                                                }
+                                                              }}
+                                                              className={`badge-select ${
+                                                                task.contentType ===
+                                                                "VIDEO"
+                                                                  ? "badge-type-video"
+                                                                  : task.contentType ===
+                                                                      "IMAGE"
+                                                                    ? "badge-type-image"
                                                                     : task.contentType ===
-                                                                        "IMAGE"
-                                                                      ? "badge-type-image"
+                                                                        "CAROUSEL"
+                                                                      ? "badge-type-carousel"
                                                                       : task.contentType ===
-                                                                          "CAROUSEL"
-                                                                        ? "badge-type-carousel"
+                                                                          "REEL"
+                                                                        ? "badge-type-reel"
                                                                         : task.contentType ===
-                                                                            "REEL"
-                                                                          ? "badge-type-reel"
+                                                                            "POST"
+                                                                          ? "badge-type-post"
                                                                           : task.contentType ===
-                                                                              "POST"
-                                                                            ? "badge-type-post"
+                                                                              "STORY"
+                                                                            ? "badge-type-story"
                                                                             : task.contentType ===
-                                                                                "STORY"
-                                                                              ? "badge-type-story"
+                                                                                "Website"
+                                                                              ? "badge-type-video"
                                                                               : task.contentType ===
-                                                                                  "Website"
-                                                                                ? "badge-type-video"
+                                                                                  "SEO"
+                                                                                ? "badge-type-image"
                                                                                 : task.contentType ===
-                                                                                    "SEO"
-                                                                                  ? "badge-type-image"
-                                                                                  : task.contentType ===
-                                                                                      "Video shoot"
-                                                                                    ? "badge-type-carousel"
-                                                                                    : task.contentType ===
-                                                                                        "MOM"
-                                                                                      ? "badge-type-post"
-                                                                                      : "badge-type-none"
-                                                                }`}
-                                                              >
-                                                                <option value="">
-                                                                  NONE
-                                                                </option>
-                                                                <option value="VIDEO">
-                                                                  VIDEO
-                                                                </option>
-                                                                <option value="IMAGE">
-                                                                  IMAGE
-                                                                </option>
-                                                                <option value="CAROUSEL">
-                                                                  CAROUSEL
-                                                                </option>
-                                                                <option value="REEL">
-                                                                  REEL
-                                                                </option>
-                                                                <option value="POST">
-                                                                  POST
-                                                                </option>
-                                                                <option value="STORY">
-                                                                  STORY
-                                                                </option>
-                                                                <option value="Website">
-                                                                  Website
-                                                                </option>
-                                                                <option value="SEO">
-                                                                  SEO
-                                                                </option>
-                                                                <option value="Video shoot">
-                                                                  Video shoot
-                                                                </option>
-                                                                <option value="MOM">
-                                                                  🤝 MOM
-                                                                </option>
-                                                                {task.contentType &&
-                                                                  ![
-                                                                    "VIDEO",
-                                                                    "IMAGE",
-                                                                    "CAROUSEL",
-                                                                    "REEL",
-                                                                    "POST",
-                                                                    "STORY",
-                                                                    "Website",
-                                                                    "SEO",
-                                                                    "Video shoot",
-                                                                    "MOM",
-                                                                  ].includes(
-                                                                    task.contentType,
-                                                                  ) && (
-                                                                    <option
-                                                                      value={
-                                                                        task.contentType
-                                                                      }
-                                                                    >
-                                                                      {
-                                                                        task.contentType
-                                                                      }
-                                                                    </option>
-                                                                  )}
-                                                                {currentUser?.role ===
-                                                                  "admin" && (
-                                                                  <option value="__ADD_CUSTOM__">
-                                                                    ➕ Custom...
+                                                                                    "Video shoot"
+                                                                                  ? "badge-type-carousel"
+                                                                                  : "badge-type-none"
+                                                              }`}
+                                                            >
+                                                              <option value="">
+                                                                NONE
+                                                              </option>
+                                                              <option value="VIDEO">
+                                                                VIDEO
+                                                              </option>
+                                                              <option value="IMAGE">
+                                                                IMAGE
+                                                              </option>
+                                                              <option value="CAROUSEL">
+                                                                CAROUSEL
+                                                              </option>
+                                                              <option value="REEL">
+                                                                REEL
+                                                              </option>
+                                                              <option value="POST">
+                                                                POST
+                                                              </option>
+                                                              <option value="STORY">
+                                                                STORY
+                                                              </option>
+                                                              <option value="Website">
+                                                                Website
+                                                              </option>
+                                                              <option value="SEO">
+                                                                SEO
+                                                              </option>
+                                                              <option value="Video shoot">
+                                                                Video shoot
+                                                              </option>
+                                                              {task.contentType &&
+                                                                typeof task.contentType === "string" &&
+                                                                ![
+                                                                  "VIDEO",
+                                                                  "IMAGE",
+                                                                  "CAROUSEL",
+                                                                  "REEL",
+                                                                  "POST",
+                                                                  "STORY",
+                                                                  "Website",
+                                                                  "SEO",
+                                                                  "Video shoot",
+                                                                ].includes(
+                                                                  task.contentType,
+                                                                ) && (
+                                                                  <option
+                                                                    value={
+                                                                      task.contentType
+                                                                    }
+                                                                  >
+                                                                    {
+                                                                      task.contentType
+                                                                    }
                                                                   </option>
                                                                 )}
-                                                              </select>
-                                                            ) : (
-                                                              <span
-                                                                className={`badge-span ${
-                                                                  task.contentType ===
-                                                                  "VIDEO"
-                                                                    ? "badge-type-video"
+                                                              {currentUser?.role ===
+                                                                "admin" && (
+                                                                <option value="__ADD_CUSTOM__">
+                                                                  ➕ Custom...
+                                                                </option>
+                                                              )}
+                                                            </select>
+                                                          ) : (
+                                                            <span
+                                                              className={`badge-span ${
+                                                                task.contentType ===
+                                                                "VIDEO"
+                                                                  ? "badge-type-video"
+                                                                  : task.contentType ===
+                                                                      "IMAGE"
+                                                                    ? "badge-type-image"
                                                                     : task.contentType ===
-                                                                        "IMAGE"
-                                                                      ? "badge-type-image"
+                                                                        "CAROUSEL"
+                                                                      ? "badge-type-carousel"
                                                                       : task.contentType ===
-                                                                          "CAROUSEL"
-                                                                        ? "badge-type-carousel"
+                                                                          "REEL"
+                                                                        ? "badge-type-reel"
                                                                         : task.contentType ===
-                                                                            "REEL"
-                                                                          ? "badge-type-reel"
+                                                                            "POST"
+                                                                          ? "badge-type-post"
                                                                           : task.contentType ===
-                                                                              "POST"
-                                                                            ? "badge-type-post"
+                                                                              "STORY"
+                                                                            ? "badge-type-story"
                                                                             : task.contentType ===
-                                                                                "STORY"
-                                                                              ? "badge-type-story"
+                                                                                "Website"
+                                                                              ? "badge-type-video"
                                                                               : task.contentType ===
-                                                                                  "Website"
-                                                                                ? "badge-type-video"
+                                                                                  "SEO"
+                                                                                ? "badge-type-image"
                                                                                 : task.contentType ===
-                                                                                    "SEO"
-                                                                                  ? "badge-type-image"
-                                                                                  : task.contentType ===
-                                                                                      "Video shoot"
-                                                                                    ? "badge-type-carousel"
-                                                                                    : "badge-type-none"
-                                                                }`}
-                                                              >
-                                                                {task.contentType ||
-                                                                  "NONE"}
-                                                              </span>
-                                                            )}
-                                                          </div>
-                                                        </td>
-                                                      )}
+                                                                                    "Video shoot"
+                                                                                  ? "badge-type-carousel"
+                                                                                  : "badge-type-none"
+                                                              }`}
+                                                            >
+                                                              {typeof task.contentType === "string"
+                                                                ? task.contentType || "NONE"
+                                                                : "NONE"}
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                      </td>
+                                                    )}
 
-                                                      {/* Priority */}
-                                                      {!hiddenColumns.priority && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                          <div
-                                                            onClick={(e) =>
-                                                              e.stopPropagation()
+                                                    {/* Assignee Selection */}
+                                                    {!hiddenColumns.assignee && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        <div
+                                                          className="flex items-center gap-1.5"
+                                                          onClick={(e) =>
+                                                            e.stopPropagation()
+                                                          }
+                                                        >
+                                                          <AssigneeDropdown
+                                                            selectedUser={
+                                                              task.assignedTo
                                                             }
-                                                          >
-                                                            {isSameDate(
-                                                              task.startDate,
-                                                              task.dueDate,
-                                                            ) ? (
-                                                              <span className="badge-span badge-priority-top-high">
-                                                                🔴 Top High
-                                                              </span>
-                                                            ) : isAdminOrManager ? (
-                                                              <select
-                                                                value={
-                                                                  task.priority ||
-                                                                  "Medium"
-                                                                }
-                                                                onChange={(e) =>
-                                                                  handleTaskFieldChange(
-                                                                    task._id,
-                                                                    {
-                                                                      priority:
-                                                                        e.target
-                                                                          .value,
-                                                                    },
-                                                                  )
-                                                                }
-                                                                className={`badge-select ${
-                                                                  task.priority ===
-                                                                  "Top High"
-                                                                    ? "badge-priority-top-high"
-                                                                    : task.priority ===
-                                                                        "High"
-                                                                      ? "badge-priority-high"
-                                                                      : task.priority ===
-                                                                          "Medium"
-                                                                        ? "badge-priority-medium"
-                                                                        : "badge-priority-low"
-                                                                }`}
-                                                              >
-                                                                <option value="Low">
-                                                                  Low
-                                                                </option>
-                                                                <option value="Medium">
-                                                                  Medium
-                                                                </option>
-                                                                <option value="High">
-                                                                  High
-                                                                </option>
-                                                                <option value="Top High">
-                                                                  Top High
-                                                                </option>
-                                                              </select>
-                                                            ) : (
-                                                              <span
-                                                                className={`badge-span ${
-                                                                  task.priority ===
-                                                                  "Top High"
-                                                                    ? "badge-priority-top-high"
-                                                                    : task.priority ===
-                                                                        "High"
-                                                                      ? "badge-priority-high"
-                                                                      : task.priority ===
-                                                                          "Medium"
-                                                                        ? "badge-priority-medium"
-                                                                        : "badge-priority-low"
-                                                                }`}
-                                                              >
-                                                                {task.priority ||
-                                                                  "Medium"}
-                                                              </span>
-                                                            )}
-                                                          </div>
-                                                        </td>
-                                                      )}
+                                                            users={users}
+                                                            filterDepartment={
+                                                              effectiveAssigneeDepartment
+                                                            }
+                                                            onChange={(
+                                                              userId,
+                                                            ) => {
+                                                              if (
+                                                                !task.title ||
+                                                                task.title.trim() ===
+                                                                  ""
+                                                              ) {
+                                                                toast.error(
+                                                                  "Please fill the task name first",
+                                                                );
+                                                                return;
+                                                              }
+                                                              handleTaskFieldChange(
+                                                                task._id,
+                                                                {
+                                                                  assignedTo:
+                                                                    userId,
+                                                                },
+                                                              );
+                                                            }}
+                                                            isAdminOrManager={
+                                                              isAdminOrManager
+                                                            }
+                                                            currentUser={
+                                                              currentUser
+                                                            }
+                                                            getAvatarColor={
+                                                              getAvatarColor
+                                                            }
+                                                            size="md"
+                                                          />
+                                                        </div>
+                                                      </td>
+                                                    )}
 
-                                                      {/* Status Column */}
-                                                      {!hiddenColumns.status && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                          <div
-                                                            onClick={(e) =>
-                                                              e.stopPropagation()
+                                                    {/* Department Column */}
+                                                    {!hiddenColumns.department && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
+                                                        <div
+                                                          onClick={(e) =>
+                                                            e.stopPropagation()
+                                                          }
+                                                          className="flex items-center gap-1.5"
+                                                        >
+                                                          {(() => {
+                                                            const assignedId =
+                                                              typeof task.assignedTo ===
+                                                                "object" &&
+                                                              task.assignedTo
+                                                                ? task.assignedTo._id ||
+                                                                  task.assignedTo.id
+                                                                : task.assignedTo;
+                                                            const assignedObj =
+                                                              (users || []).find(
+                                                                (u) =>
+                                                                  u &&
+                                                                  (u._id === assignedId ||
+                                                                    u.id === assignedId),
+                                                              ) ||
+                                                              (typeof task.assignedTo ===
+                                                              "object"
+                                                                ? task.assignedTo
+                                                                : null);
+                                                            const dept =
+                                                              assignedObj?.department ||
+                                                              assignedObj
+                                                                ?.profile
+                                                                ?.department ||
+                                                                effectiveAssigneeDepartment ||
+                                                                "";
+                                                            if (!dept) {
+                                                              return (
+                                                                <span className="text-slate-400 dark:text-slate-500 text-[10px] italic">
+                                                                  —
+                                                                </span>
+                                                              );
                                                             }
-                                                          >
-                                                            {isAdminOrManager &&
-                                                            task.status !==
-                                                              "Completed" &&
-                                                            task.status !==
-                                                              "Rejected" ? (
-                                                              <select
-                                                                value={
-                                                                  task.status ||
-                                                                  "Not Started"
-                                                                }
-                                                                onChange={(e) =>
-                                                                  handleTaskFieldChange(
-                                                                    task._id,
-                                                                    {
-                                                                      status:
-                                                                        e.target
-                                                                          .value,
-                                                                    },
-                                                                  )
-                                                                }
-                                                                className={`badge-select ${
-                                                                  task.status ===
-                                                                  "Completed"
-                                                                    ? "badge-status-completed"
-                                                                    : task.status ===
-                                                                        "In Progress"
-                                                                      ? "badge-status-in-progress"
-                                                                      : task.status ===
-                                                                            "IN-REVIEW" ||
-                                                                          task.status ===
-                                                                            "In Review" ||
-                                                                          task.status ===
-                                                                            "IN-Review"
-                                                                        ? "badge-status-in-review"
-                                                                        : task.status ===
-                                                                            "Correction"
-                                                                          ? "badge-status-correction"
-                                                                          : task.status ===
-                                                                              "On Hold"
-                                                                            ? "badge-status-on-hold"
-                                                                            : task.status ===
-                                                                                "Rejected"
-                                                                              ? "badge-status-rejected"
-                                                                              : "badge-status-not-started"
+                                                            const isCinemaBadge =
+                                                              dept.toLowerCase().includes("cinema") ||
+                                                              dept.toLowerCase().includes("video");
+                                                            return (
+                                                              <span
+                                                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold whitespace-nowrap ${
+                                                                  isCinemaBadge
+                                                                    ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/20"
+                                                                    : "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20"
                                                                 }`}
                                                               >
-                                                                  {task.contentType === "MOM" ? (
-                                                                    <>
-                                                                      <option value="Not Started">Not Started</option>
-                                                                      {["In Progress", "On Hold", "In Review", "Correction"].includes(task.status) && (
-                                                                        <option value={task.status}>{task.status}</option>
-                                                                      )}
-                                                                      <option value="Completed">Completed</option>
-                                                                    </>
-                                                                  ) : (
-                                                                    <>
-                                                                      <option value="Not Started">Not Started</option>
-                                                                      {["In Progress", "On Hold", "In Review"].includes(task.status) && (
-                                                                        <option value={task.status}>{task.status}</option>
-                                                                      )}
-                                                                      <option value="Correction">Correction</option>
-                                                                      <option value="Completed">Completed</option>
-                                                                      <option value="Rejected">Rejected</option>
-                                                                    </>
-                                                                  )}
-                                                              </select>
-                                                            ) : (
-                                                              <span
-                                                                className={`badge-span ${
-                                                                  task.status ===
-                                                                  "Completed"
-                                                                    ? "badge-status-completed"
+                                                                 {dept}
+                                                              </span>
+                                                            );
+                                                          })()}
+                                                        </div>
+                                                      </td>
+                                                    )}
+
+                                                    {/* Priority */}
+                                                    {!hiddenColumns.priority && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        <div
+                                                          onClick={(e) =>
+                                                            e.stopPropagation()
+                                                          }
+                                                        >
+                                                          {isSameDate(
+                                                            task.startDate,
+                                                            task.dueDate,
+                                                          ) ? (
+                                                            <span className="badge-span badge-priority-top-high">
+                                                              🔴 Top High
+                                                            </span>
+                                                          ) : isAdminOrManager ? (
+                                                            <select
+                                                              value={
+                                                                task.priority ||
+                                                                "Medium"
+                                                              }
+                                                              onChange={(e) =>
+                                                                handleTaskFieldChange(
+                                                                  task._id,
+                                                                  {
+                                                                    priority:
+                                                                      e.target
+                                                                        .value,
+                                                                  },
+                                                                )
+                                                              }
+                                                              className={`badge-select ${
+                                                                task.priority ===
+                                                                "Top High"
+                                                                  ? "badge-priority-top-high"
+                                                                  : task.priority ===
+                                                                      "High"
+                                                                    ? "badge-priority-high"
+                                                                    : task.priority ===
+                                                                        "Medium"
+                                                                      ? "badge-priority-medium"
+                                                                      : "badge-priority-low"
+                                                              }`}
+                                                            >
+                                                              <option value="Low">
+                                                                Low
+                                                              </option>
+                                                              <option value="Medium">
+                                                                Medium
+                                                              </option>
+                                                              <option value="High">
+                                                                High
+                                                              </option>
+                                                              <option value="Top High">
+                                                                Top High
+                                                              </option>
+                                                            </select>
+                                                          ) : (
+                                                            <span
+                                                              className={`badge-span ${
+                                                                task.priority ===
+                                                                "Top High"
+                                                                  ? "badge-priority-top-high"
+                                                                  : task.priority ===
+                                                                      "High"
+                                                                    ? "badge-priority-high"
+                                                                    : task.priority ===
+                                                                        "Medium"
+                                                                      ? "badge-priority-medium"
+                                                                      : "badge-priority-low"
+                                                              }`}
+                                                            >
+                                                              {task.priority ||
+                                                                "Medium"}
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                      </td>
+                                                    )}
+
+                                                    {/* Status Column */}
+                                                    {!hiddenColumns.status && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        <div
+                                                          onClick={(e) =>
+                                                            e.stopPropagation()
+                                                          }
+                                                        >
+                                                          {isAdminOrManager &&
+                                                          task.status !==
+                                                            "Completed" &&
+                                                          task.status !==
+                                                            "Rejected" ? (
+                                                            <select
+                                                              value={
+                                                                task.status ||
+                                                                "Not Started"
+                                                              }
+                                                              onChange={(e) =>
+                                                                handleTaskFieldChange(
+                                                                  task._id,
+                                                                  {
+                                                                    status:
+                                                                      e.target
+                                                                        .value,
+                                                                  },
+                                                                )
+                                                              }
+                                                              className={`badge-select ${
+                                                                task.status ===
+                                                                "Completed"
+                                                                  ? "badge-status-completed"
+                                                                  : task.status ===
+                                                                      "In Progress"
+                                                                    ? "badge-status-in-progress"
                                                                     : task.status ===
-                                                                        "In Progress"
-                                                                      ? "badge-status-in-progress"
+                                                                          "IN-REVIEW" ||
+                                                                        task.status ===
+                                                                          "In Review" ||
+                                                                        task.status ===
+                                                                          "IN-Review"
+                                                                      ? "badge-status-in-review"
                                                                       : task.status ===
-                                                                          "In Review"
-                                                                        ? "badge-status-in-review"
+                                                                          "Correction"
+                                                                        ? "badge-status-correction"
                                                                         : task.status ===
                                                                             "On Hold"
                                                                           ? "badge-status-on-hold"
@@ -5896,1254 +6490,1343 @@ const ProjectTaskBoard = ({
                                                                               "Rejected"
                                                                             ? "badge-status-rejected"
                                                                             : "badge-status-not-started"
-                                                                }`}
-                                                              >
-                                                                {getStatusWithEmoji(
-                                                                  task.status,
-                                                                )}
-                                                              </span>
-                                                            )}
-                                                          </div>
-                                                        </td>
-                                                      )}
-                                                      {/* Hold Reason Column (Tasks) */}
-                                                      {!hiddenColumns.holdReason && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                          {task.status === "On Hold" && (() => {
-                                                            const hEntry = [...(task.statusHistory || [])].reverse().find(x => x.status === "On Hold");
-                                                            if (hEntry && hEntry.reason) {
+                                                              }`}
+                                                            >
+                                                              <option value="Not Started">
+                                                                Not Started
+                                                              </option>
+                                                              {[
+                                                                "In Progress",
+                                                                "On Hold",
+                                                                "In Review",
+                                                              ].includes(
+                                                                task.status,
+                                                              ) && (
+                                                                <option
+                                                                  value={
+                                                                    task.status
+                                                                  }
+                                                                >
+                                                                  {
+                                                                    task.status
+                                                                  }
+                                                                </option>
+                                                              )}
+                                                              <option value="Correction">
+                                                                Correction
+                                                              </option>
+                                                              <option value="Completed">
+                                                                Completed
+                                                              </option>
+                                                              <option value="Rejected">
+                                                                Rejected
+                                                              </option>
+                                                            </select>
+                                                          ) : (
+                                                            <span
+                                                              className={`badge-span ${
+                                                                task.status ===
+                                                                "Completed"
+                                                                  ? "badge-status-completed"
+                                                                  : task.status ===
+                                                                      "In Progress"
+                                                                    ? "badge-status-in-progress"
+                                                                    : task.status ===
+                                                                        "In Review"
+                                                                      ? "badge-status-in-review"
+                                                                      : task.status ===
+                                                                          "On Hold"
+                                                                        ? "badge-status-on-hold"
+                                                                        : task.status ===
+                                                                            "Rejected"
+                                                                          ? "badge-status-rejected"
+                                                                          : "badge-status-not-started"
+                                                              }`}
+                                                            >
+                                                              {getStatusWithEmoji(
+                                                                task.status,
+                                                              )}
+                                                            </span>
+                                                          )}
+                                                        </div>
+                                                      </td>
+                                                    )}
+                                                    {/* Productivity Column */}
+                                                    {!hiddenColumns.productivity && (
+                                                      <td
+                                                        className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center whitespace-nowrap"
+                                                        onClick={(e) =>
+                                                          e.stopPropagation()
+                                                        }
+                                                      >
+                                                        <ProductivityCell
+                                                          task={task}
+                                                        />
+                                                      </td>
+                                                    )}
+                                                    {/* Hold Reason Column (Tasks) */}
+                                                    {!hiddenColumns.holdReason && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        {task.status ===
+                                                          "On Hold" &&
+                                                          (() => {
+                                                            const hEntry = [
+                                                              ...(task.statusHistory ||
+                                                                []),
+                                                            ]
+                                                              .reverse()
+                                                              .find(
+                                                                (x) =>
+                                                                  x.status ===
+                                                                  "On Hold",
+                                                              );
+                                                            if (
+                                                              hEntry &&
+                                                              hEntry.reason
+                                                            ) {
                                                               return (
-                                                                <span className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
-                                                                  {hEntry.reason}
+                                                                <span
+                                                                  className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400"
+                                                                  title={
+                                                                    hEntry.reason
+                                                                  }
+                                                                >
+                                                                  {
+                                                                    hEntry.reason
+                                                                  }
                                                                 </span>
                                                               );
                                                             }
                                                             return null;
                                                           })()}
-                                                        </td>
-                                                      )}
+                                                      </td>
+                                                    )}
 
-                                                      {/* Revision Column */}
-                                                      {!hiddenColumns.revision && (
-                                                        <td
-                                                          className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
-                                                          onClick={(e) =>
-                                                            e.stopPropagation()
-                                                          }
-                                                        >
-                                                          <div className="flex justify-center items-center gap-1.5">
-                                                            <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
-                                                              {task.revisions ||
-                                                                0}
-                                                            </span>
-                                                            {(task.revisions ||
-                                                              0) > 3 && (
-                                                              <span
-                                                                className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
-                                                                title="More than 3 revisions"
-                                                              />
-                                                            )}
-                                                          </div>
-                                                        </td>
-                                                      )}
-
-
-                                                      {/* Approval Info */}
-                                                      {!hiddenColumns.approvalInfo && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
-                                                          <ApprovalTimeDisplay
-                                                            reviewStartedAt={
-                                                              task.reviewStartedAt
-                                                            }
-                                                            completedAt={
-                                                              task.completedAt
-                                                            }
-                                                            approvalWaitingMs={
-                                                              task.approvalWaitingMs
-                                                            }
-                                                            status={task.status}
-                                                            lastReviewStartedAt={
-                                                              task.lastReviewStartedAt
-                                                            }
-                                                            reviewCycles={
-                                                              task.reviewCycles
-                                                            }
-                                                          />
-                                                        </td>
-                                                      )}
-
-                                                      {/* Action Controls */}
+                                                    {/* Revision Column */}
+                                                    {!hiddenColumns.revision && (
                                                       <td
-                                                        className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center"
-                                                        style={{
-                                                          borderRight: `2.5px solid ${sColor.hex}`,
-                                                        }}
+                                                        className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
+                                                        onClick={(e) =>
+                                                          e.stopPropagation()
+                                                        }
                                                       >
-                                                        <div
-                                                          className="flex items-center justify-center gap-2.5"
-                                                          onClick={(e) =>
-                                                            e.stopPropagation()
-                                                          }
-                                                        >
-                                                          {isAdminOrManager && (
-                                                            <>
-                                                              <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                  handleAddSubtaskViaButton(
-                                                                    task,
-                                                                  )
-                                                                }
-                                                                className="text-slate-455 hover:text-blue-500 dark:hover:text-[#3b82f6] transition-colors p-1 flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
-                                                                title="Add Subtask"
-                                                              >
-                                                                <FiPlus
-                                                                  size={11}
-                                                                />
-                                                                <span>
-                                                                  Subtask
-                                                                </span>
-                                                              </button>
-
-                                                              <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                  handleParentTaskDelete(
-                                                                    task._id,
-                                                                  )
-                                                                }
-                                                                className="text-slate-455 hover:text-red-505 transition-colors p-1 cursor-pointer"
-                                                                title="Delete Task"
-                                                              >
-                                                                <FiTrash2
-                                                                  size={12}
-                                                                />
-                                                              </button>
-                                                            </>
+                                                        <div className="flex justify-center items-center gap-1.5">
+                                                          <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
+                                                            {task.revisions ||
+                                                              0}
+                                                          </span>
+                                                          {(task.revisions ||
+                                                            0) > 3 && (
+                                                            <span
+                                                              className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
+                                                              title="More than 3 revisions"
+                                                            />
                                                           )}
                                                         </div>
                                                       </td>
-                                                    </tr>
+                                                    )}
 
-                                                    {isExpanded && (
-                                                      <>
-                                                        {(
-                                                          task.subtasks || []
-                                                        ).map((sub, subIdx) => {
-                                                          const isSubCompleted =
-                                                            sub.status ===
-                                                            "Completed";
-                                                          const canToggleSub =
-                                                            isAdminOrManager ||
-                                                            sub.assignedTo
-                                                              ?._id ===
-                                                              currentUser?._id ||
-                                                            sub.assignedTo ===
-                                                              currentUser?._id;
-                                                          const isSubRejected =
-                                                            sub.status ===
-                                                            "Rejected";
-                                                          const isSubInReview =
-                                                            sub.status ===
-                                                            "In Review";
-                                                          const isSubInProgress =
-                                                            sub.status ===
-                                                            "In Progress";
-                                                          const rowBgSub =
-                                                            isSubRejected
-                                                              ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                                                              : "bg-amber-50 dark:bg-[#16161b] text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
+                                                    {/* Approval Info */}
+                                                    {!hiddenColumns.approvalInfo && (
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
+                                                        <ApprovalTimeDisplay
+                                                          reviewStartedAt={
+                                                            task.reviewStartedAt
+                                                          }
+                                                          completedAt={
+                                                            task.completedAt
+                                                          }
+                                                          approvalWaitingMs={
+                                                            task.approvalWaitingMs
+                                                          }
+                                                          status={task.status}
+                                                          lastReviewStartedAt={
+                                                            task.lastReviewStartedAt
+                                                          }
+                                                          reviewCycles={
+                                                            task.reviewCycles
+                                                          }
+                                                        />
+                                                      </td>
+                                                    )}
 
-                                                          return (
-                                                            <tr
-                                                              key={
-                                                                sub._id ||
-                                                                subIdx
+                                                    {/* Action Controls */}
+                                                    <td
+                                                      className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center"
+                                                      style={{
+                                                        borderRight: `2.5px solid ${sColor.hex}`,
+                                                      }}
+                                                    >
+                                                      <div
+                                                        className="flex items-center justify-center gap-2.5"
+                                                        onClick={(e) =>
+                                                          e.stopPropagation()
+                                                        }
+                                                      >
+                                                        {isAdminOrManager && (
+                                                          <>
+                                                            <button
+                                                              type="button"
+                                                              onClick={() =>
+                                                                handleAddSubtaskViaButton(
+                                                                  task,
+                                                                )
                                                               }
-                                                              className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-50/10 dark:hover:bg-[#3b82f6]/5`}
+                                                              className="text-slate-455 hover:text-blue-500 dark:hover:text-[#3b82f6] transition-colors p-1 flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
+                                                              title="Add Subtask"
                                                             >
-                                                              {showSelectionColumn && (
-                                                                <td
-                                                                  className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBgSub}`}
-                                                                  style={{
-                                                                    width:
-                                                                      "40px",
-                                                                    minWidth:
-                                                                      "40px",
-                                                                    maxWidth:
-                                                                      "40px",
-                                                                    borderLeft: `2.5px solid ${sColor.hex}`,
-                                                                  }}
-                                                                />
-                                                              )}
-                                                              {/* Empty Chevron Column for Subtask */}
+                                                              <FiPlus
+                                                                size={11}
+                                                              />
+                                                              <span>
+                                                                Subtask
+                                                              </span>
+                                                            </button>
+
+                                                            <button
+                                                              type="button"
+                                                              onClick={() =>
+                                                                handleParentTaskDelete(
+                                                                  task._id,
+                                                                )
+                                                              }
+                                                              className="text-slate-455 hover:text-red-505 transition-colors p-1 cursor-pointer"
+                                                              title="Delete Task"
+                                                            >
+                                                              <FiTrash2
+                                                                size={12}
+                                                              />
+                                                            </button>
+                                                          </>
+                                                        )}
+                                                      </div>
+                                                    </td>
+                                                  </tr>
+
+                                                  {isExpanded && (
+                                                    <>
+                                                      {(
+                                                        task.subtasks || []
+                                                      ).map((sub, subIdx) => {
+                                                        const isSubCompleted =
+                                                          sub.status ===
+                                                          "Completed";
+                                                        const canToggleSub =
+                                                          isAdminOrManager ||
+                                                          sub.assignedTo
+                                                            ?._id ===
+                                                            currentUser?._id ||
+                                                          sub.assignedTo ===
+                                                            currentUser?._id;
+                                                        const isSubRejected =
+                                                          sub.status ===
+                                                          "Rejected";
+                                                        const isSubInReview =
+                                                          sub.status ===
+                                                          "In Review";
+                                                        const isSubInProgress =
+                                                          sub.status ===
+                                                          "In Progress";
+                                                        const rowBgSub =
+                                                          isSubRejected
+                                                            ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                                            : "bg-amber-50 dark:bg-[#16161b] text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
+
+                                                        return (
+                                                          <tr
+                                                            key={
+                                                              sub._id || subIdx
+                                                            }
+                                                            className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-50/10 dark:hover:bg-[#3b82f6]/5`}
+                                                          >
+                                                            {showSelectionColumn && (
                                                               <td
-                                                                className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 md:sticky z-30 ${rowBgSub}`}
+                                                                className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBgSub}`}
                                                                 style={{
-                                                                  left: showSelectionColumn
-                                                                    ? "40px"
-                                                                    : "0px",
                                                                   width: "40px",
                                                                   minWidth:
                                                                     "40px",
                                                                   maxWidth:
                                                                     "40px",
-                                                                  borderLeft:
-                                                                    !showSelectionColumn
-                                                                      ? `2.5px solid ${sColor.hex}`
-                                                                      : undefined,
+                                                                  borderLeft: `2.5px solid ${sColor.hex}`,
                                                                 }}
                                                               />
-                                                              {/* Subtask ID Column */}
-                                                              <td
-                                                                className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-500 dark:text-slate-500 whitespace-nowrap md:sticky z-30 ${rowBgSub}`}
-                                                                style={{
-                                                                  left: showSelectionColumn
-                                                                    ? "80px"
-                                                                    : "40px",
-                                                                  minWidth:
-                                                                    "60px",
-                                                                  maxWidth:
-                                                                    "60px",
-                                                                  width: "60px",
-                                                                }}
-                                                              >
-                                                                {getTaskDisplayId(
-                                                                  task,
-                                                                )}
-                                                                .{subIdx + 1}
-                                                              </td>
-                                                              {/* 1. Name Column */}
-                                                              <td
-                                                                className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
-                                                                style={{
-                                                                  left: showSelectionColumn
-                                                                    ? "140px"
-                                                                    : "100px",
-                                                                }}
+                                                            )}
+                                                            {/* Empty Chevron Column for Subtask */}
+                                                            <td
+                                                              className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 md:sticky z-30 ${rowBgSub}`}
+                                                              style={{
+                                                                left: showSelectionColumn
+                                                                  ? "40px"
+                                                                  : "0px",
+                                                                width: "40px",
+                                                                minWidth:
+                                                                  "40px",
+                                                                maxWidth:
+                                                                  "40px",
+                                                                borderLeft:
+                                                                  !showSelectionColumn
+                                                                    ? `2.5px solid ${sColor.hex}`
+                                                                    : undefined,
+                                                              }}
+                                                            />
+                                                            {/* Subtask ID Column */}
+                                                            <td
+                                                              className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-500 dark:text-slate-500 whitespace-nowrap md:sticky z-30 ${rowBgSub}`}
+                                                              style={{
+                                                                left: showSelectionColumn
+                                                                  ? "80px"
+                                                                  : "40px",
+                                                                minWidth:
+                                                                  "60px",
+                                                                maxWidth:
+                                                                  "60px",
+                                                                width: "60px",
+                                                              }}
+                                                            >
+                                                              {getTaskDisplayId(
+                                                                task,
+                                                              )}
+                                                              .{subIdx + 1}
+                                                            </td>
+                                                            {/* 1. Name Column */}
+                                                            <td
+                                                              className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
+                                                              style={{
+                                                                left: showSelectionColumn
+                                                                  ? "140px"
+                                                                  : "100px",
+                                                              }}
+                                                              onClick={(e) =>
+                                                                e.stopPropagation()
+                                                              }
+                                                            >
+                                                              <div className="flex items-center gap-2 w-full pl-4 border-l border-slate-150 dark:border-slate-850">
+                                                                <FiCornerDownRight
+                                                                  className="text-slate-450 shrink-0"
+                                                                  size={11}
+                                                                />
+
+                                                                {/* Subtask Checkbox */}
+                                                                <button
+                                                                  type="button"
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) => {
+                                                                    e.stopPropagation();
+                                                                    if (
+                                                                      canToggleSub
+                                                                    ) {
+                                                                      handleSubtaskFieldChange(
+                                                                        task,
+                                                                        sub._id,
+                                                                        {
+                                                                          status:
+                                                                            isSubCompleted
+                                                                              ? "Not Started"
+                                                                              : "Completed",
+                                                                        },
+                                                                      );
+                                                                    }
+                                                                  }}
+                                                                  disabled={
+                                                                    !canToggleSub
+                                                                  }
+                                                                  className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center transition-all shrink-0 ${
+                                                                    !canToggleSub
+                                                                      ? "cursor-not-allowed opacity-50"
+                                                                      : "cursor-pointer"
+                                                                  } ${
+                                                                    isSubCompleted
+                                                                      ? "bg-emerald-500 border-emerald-500 text-white"
+                                                                      : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
+                                                                  }`}
+                                                                >
+                                                                  <FiCheck
+                                                                    size={8}
+                                                                  />
+                                                                </button>
+
+                                                                {/* Subtask Title Input */}
+                                                                <span
+                                                                  ref={(el) => {
+                                                                    if (
+                                                                      autoFocusSubtaskIdx ===
+                                                                        subIdx &&
+                                                                      el
+                                                                    ) {
+                                                                      el.focus();
+                                                                      const range =
+                                                                        document.createRange();
+                                                                      range.selectNodeContents(
+                                                                        el,
+                                                                      );
+                                                                      const sel =
+                                                                        window.getSelection();
+                                                                      sel.removeAllRanges();
+                                                                      sel.addRange(
+                                                                        range,
+                                                                      );
+                                                                      setAutoFocusSubtaskIdx(
+                                                                        null,
+                                                                      );
+                                                                    }
+                                                                  }}
+                                                                  contentEditable={
+                                                                    canToggleSub
+                                                                  }
+                                                                  suppressContentEditableWarning={
+                                                                    true
+                                                                  }
+                                                                  placeholder="Write a subtask..."
+                                                                  onBlur={(
+                                                                    e,
+                                                                  ) => {
+                                                                    const val =
+                                                                      e.target.innerText.trim();
+                                                                    if (
+                                                                      val !==
+                                                                      sub.title
+                                                                    ) {
+                                                                      handleSubtaskFieldChange(
+                                                                        task,
+                                                                        sub._id,
+                                                                        {
+                                                                          title:
+                                                                            val,
+                                                                        },
+                                                                      );
+                                                                    }
+                                                                  }}
+                                                                  onKeyDown={(
+                                                                    e,
+                                                                  ) => {
+                                                                    if (
+                                                                      e.key ===
+                                                                      "Enter"
+                                                                    ) {
+                                                                      e.preventDefault();
+                                                                      handleSubtaskEnterKey(
+                                                                        task,
+                                                                        subIdx,
+                                                                        e.target
+                                                                          .innerText,
+                                                                        false,
+                                                                      );
+                                                                    }
+                                                                  }}
+                                                                  className={`outline-none w-full font-bold text-slate-705 dark:text-white text-[11px] block min-h-[16px] cursor-text ${
+                                                                    isSubCompleted
+                                                                      ? "line-through text-slate-450 dark:text-slate-550"
+                                                                      : ""
+                                                                  }`}
+                                                                >
+                                                                  {sub.title}
+                                                                </span>
+                                                                <button
+                                                                  type="button"
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedTaskId(
+                                                                      task._id,
+                                                                    );
+                                                                    setTimeout(
+                                                                      () => {
+                                                                        const el =
+                                                                          document.getElementById(
+                                                                            "drawer-subtasks-section",
+                                                                          );
+                                                                        if (
+                                                                          el
+                                                                        ) {
+                                                                          el.scrollIntoView(
+                                                                            {
+                                                                              behavior:
+                                                                                "smooth",
+                                                                              block:
+                                                                                "start",
+                                                                            },
+                                                                          );
+                                                                        }
+                                                                      },
+                                                                      350,
+                                                                    );
+                                                                  }}
+                                                                  className="shrink-0 text-slate-400 dark:text-slate-555 hover:text-blue-500 dark:hover:text-[#3b82f6] p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all opacity-0 group-hover/subrow:opacity-100 cursor-pointer ml-auto"
+                                                                  title="Open Details & View Subtasks"
+                                                                >
+                                                                  <FiChevronRight
+                                                                    size={12}
+                                                                  />
+                                                                </button>
+                                                              </div>
+                                                            </td>
+
+                                                            {/* Content Copy Column */}
+                                                            <td
+                                                              className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? "hidden" : ""} min-w-[240px] w-[260px]`}
+                                                            >
+                                                              <div
                                                                 onClick={(e) =>
                                                                   e.stopPropagation()
                                                                 }
+                                                                className="w-full"
                                                               >
-                                                                <div className="flex items-center gap-2 w-full pl-4 border-l border-slate-150 dark:border-slate-850">
-                                                                  <FiCornerDownRight
-                                                                    className="text-slate-450 shrink-0"
-                                                                    size={11}
-                                                                  />
-
-                                                                  {/* Subtask Checkbox */}
-                                                                  <button
-                                                                    type="button"
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) => {
-                                                                      e.stopPropagation();
-                                                                      if (
-                                                                        canToggleSub
-                                                                      ) {
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            status:
-                                                                              isSubCompleted
-                                                                                ? "Not Started"
-                                                                                : "Completed",
-                                                                          },
-                                                                        );
-                                                                      }
-                                                                    }}
-                                                                    disabled={
-                                                                      !canToggleSub
-                                                                    }
-                                                                    className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center transition-all shrink-0 ${
-                                                                      !canToggleSub
-                                                                        ? "cursor-not-allowed opacity-50"
-                                                                        : "cursor-pointer"
-                                                                    } ${
-                                                                      isSubCompleted
-                                                                        ? "bg-emerald-500 border-emerald-500 text-white"
-                                                                        : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
-                                                                    }`}
-                                                                  >
-                                                                    <FiCheck
-                                                                      size={8}
-                                                                    />
-                                                                  </button>
-
-                                                                  {/* Subtask Title Input */}
-                                                                  <span
-                                                                    ref={(
-                                                                      el,
-                                                                    ) => {
-                                                                      if (
-                                                                        autoFocusSubtaskIdx ===
-                                                                          subIdx &&
-                                                                        el
-                                                                      ) {
-                                                                        el.focus();
-                                                                        const range =
-                                                                          document.createRange();
-                                                                        range.selectNodeContents(
-                                                                          el,
-                                                                        );
-                                                                        const sel =
-                                                                          window.getSelection();
-                                                                        sel.removeAllRanges();
-                                                                        sel.addRange(
-                                                                          range,
-                                                                        );
-                                                                        setAutoFocusSubtaskIdx(
-                                                                          null,
-                                                                        );
-                                                                      }
-                                                                    }}
-                                                                    contentEditable={
-                                                                      canToggleSub
-                                                                    }
-                                                                    suppressContentEditableWarning={
-                                                                      true
-                                                                    }
-                                                                    placeholder="Write a subtask..."
-                                                                    onBlur={(
-                                                                      e,
-                                                                    ) => {
-                                                                      const val =
-                                                                        e.target.innerText.trim();
-                                                                      if (
-                                                                        val !==
-                                                                        sub.title
-                                                                      ) {
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            title:
-                                                                              val,
-                                                                          },
-                                                                        );
-                                                                      }
-                                                                    }}
-                                                                    onKeyDown={(
-                                                                      e,
-                                                                    ) => {
-                                                                      if (
-                                                                        e.key ===
-                                                                        "Enter"
-                                                                      ) {
-                                                                        e.preventDefault();
-                                                                        handleSubtaskEnterKey(
-                                                                          task,
-                                                                          subIdx,
-                                                                          e
-                                                                            .target
-                                                                            .innerText,
-                                                                          false,
-                                                                        );
-                                                                      }
-                                                                    }}
-                                                                    className={`outline-none w-full font-bold text-slate-705 dark:text-white text-[11px] block min-h-[16px] cursor-text ${
-                                                                      isSubCompleted
-                                                                        ? "line-through text-slate-450 dark:text-slate-550"
-                                                                        : ""
-                                                                    }`}
-                                                                  >
-                                                                    {sub.title}
-                                                                  </span>
-                                                                  <button
-                                                                    type="button"
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) => {
-                                                                      e.stopPropagation();
-                                                                      setSelectedTaskId(
-                                                                        task._id,
-                                                                      );
-                                                                      setTimeout(
-                                                                        () => {
-                                                                          const el =
-                                                                            document.getElementById(
-                                                                              "drawer-subtasks-section",
-                                                                            );
-                                                                          if (
-                                                                            el
-                                                                          ) {
-                                                                            el.scrollIntoView(
-                                                                              {
-                                                                                behavior:
-                                                                                  "smooth",
-                                                                                block:
-                                                                                  "start",
-                                                                              },
-                                                                            );
-                                                                          }
-                                                                        },
-                                                                        350,
-                                                                      );
-                                                                    }}
-                                                                    className="shrink-0 text-slate-400 dark:text-slate-555 hover:text-blue-500 dark:hover:text-[#3b82f6] p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all opacity-0 group-hover/subrow:opacity-100 cursor-pointer ml-auto"
-                                                                    title="Open Details & View Subtasks"
-                                                                  >
-                                                                    <FiChevronRight
-                                                                      size={12}
-                                                                    />
-                                                                  </button>
-                                                                </div>
-                                                              </td>
-
-                                                              {/* Content Copy Column */}
-                                                              <td
-                                                                className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? "hidden" : ""}`}
-                                                              >
+                                                                <ContentCopyInput
+                                                                  value={
+                                                                    sub.contentCopy
+                                                                  }
+                                                                  onChange={(
+                                                                    newVal,
+                                                                  ) =>
+                                                                    handleSubtaskFieldChange(
+                                                                      task,
+                                                                      sub._id,
+                                                                      {
+                                                                        contentCopy:
+                                                                          newVal,
+                                                                      },
+                                                                    )
+                                                                  }
+                                                                  className="w-full"
+                                                                />
+                                                              </div>
+                                                            </td>
+                                                            {/* 2. Client Column */}
+                                                            {!hiddenColumns.client && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                                 <div
                                                                   onClick={(
                                                                     e,
                                                                   ) =>
                                                                     e.stopPropagation()
                                                                   }
-                                                                  className="w-full"
                                                                 >
-                                                                  <ContentCopyInput
-                                                                    value={
-                                                                      sub.contentCopy
+                                                                  <ClientDropdown
+                                                                    selectedClient={
+                                                                      sub.client
+                                                                        ?._id ||
+                                                                      sub.client ||
+                                                                      task
+                                                                        .project
+                                                                        ?.client
+                                                                        ?._id ||
+                                                                      task
+                                                                        .project
+                                                                        ?.client ||
+                                                                      task
+                                                                        .client
+                                                                        ?._id ||
+                                                                      task.client ||
+                                                                      activeProject
+                                                                        ?.client
+                                                                        ?._id ||
+                                                                      activeProject?.client
+                                                                    }
+                                                                    clients={
+                                                                      clients
                                                                     }
                                                                     onChange={(
-                                                                      newVal,
+                                                                      clientId,
                                                                     ) =>
                                                                       handleSubtaskFieldChange(
                                                                         task,
                                                                         sub._id,
                                                                         {
-                                                                          contentCopy:
-                                                                            newVal,
+                                                                          client:
+                                                                            clientId,
                                                                         },
                                                                       )
+                                                                    }
+                                                                    isAdminOrManager={
+                                                                      isAdminOrManager
                                                                     }
                                                                   />
                                                                 </div>
                                                               </td>
-                                                              {/* 2. Client Column */}
-                                                              {!hiddenColumns.client && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                  <div
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) =>
-                                                                      e.stopPropagation()
-                                                                    }
-                                                                  >
-                                                                    <ClientDropdown
-                                                                      selectedClient={
-                                                                        sub
-                                                                          .client
-                                                                          ?._id ||
-                                                                        sub.client ||
-                                                                        task
-                                                                          .client
-                                                                          ?._id ||
-                                                                        task.client ||
-                                                                        activeProject
-                                                                          ?.client
-                                                                          ?._id ||
-                                                                        activeProject?.client
-                                                                      }
-                                                                      clients={
-                                                                        clients
-                                                                      }
-                                                                      onChange={(
-                                                                        clientId,
-                                                                      ) =>
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            client:
-                                                                              clientId,
-                                                                          },
-                                                                        )
-                                                                      }
-                                                                      isAdminOrManager={
-                                                                        isAdminOrManager
-                                                                      }
-                                                                    />
-                                                                  </div>
-                                                                </td>
-                                                              )}
+                                                            )}
 
-                                                              {/* Created By Column */}
-                                                              {!hiddenColumns.createdBy && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 opacity-60">
-                                                                  {task.createdBy ? (
-                                                                    <div className="flex items-center gap-2">
-                                                                      {task
+                                                            {/* Created By Column */}
+                                                            {!hiddenColumns.createdBy && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 opacity-60">
+                                                                {task.createdBy ? (
+                                                                  <div className="flex items-center gap-2">
+                                                                    <div className="relative w-4 h-4 rounded-full overflow-hidden shrink-0 border border-slate-200 dark:border-white/10">
+                                                                      <div
+                                                                        className={`w-full h-full flex items-center justify-center text-white text-[7.5px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                                          task
+                                                                            .createdBy
+                                                                            ?.name ||
+                                                                            "U",
+                                                                        )}`}
+                                                                      >
+                                                                        {getInitials(
+                                                                          task
+                                                                            .createdBy
+                                                                            ?.name ||
+                                                                            "U",
+                                                                        )}
+                                                                      </div>
+                                                                      {(task
                                                                         .createdBy
-                                                                        .profile
+                                                                        ?.profile
                                                                         ?.profileImage
                                                                         ?.url ||
-                                                                      task
-                                                                        .createdBy
-                                                                        .profileImage
-                                                                        ?.url ||
-                                                                      task
-                                                                        .createdBy
-                                                                        .profile
-                                                                        ?.avatar ||
-                                                                      task
-                                                                        .createdBy
-                                                                        .avatar ? (
+                                                                        task
+                                                                          .createdBy
+                                                                          ?.profileImage
+                                                                          ?.url ||
+                                                                        task
+                                                                          .createdBy
+                                                                          ?.profile
+                                                                          ?.avatar ||
+                                                                        task
+                                                                          .createdBy
+                                                                          ?.avatar) && (
                                                                         <img
                                                                           src={
                                                                             task
                                                                               .createdBy
-                                                                              .profile
+                                                                              ?.profile
                                                                               ?.profileImage
                                                                               ?.url ||
                                                                             task
                                                                               .createdBy
-                                                                              .profileImage
+                                                                              ?.profileImage
                                                                               ?.url ||
                                                                             task
                                                                               .createdBy
-                                                                              .profile
+                                                                              ?.profile
                                                                               ?.avatar ||
                                                                             task
                                                                               .createdBy
-                                                                              .avatar
+                                                                              ?.avatar
                                                                           }
                                                                           alt={
                                                                             task
                                                                               .createdBy
-                                                                              .name
+                                                                              ?.name ||
+                                                                            "User"
                                                                           }
-                                                                          className="w-4 h-4 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
+                                                                          className="absolute inset-0 w-full h-full object-cover"
+                                                                          onError={(
+                                                                            e,
+                                                                          ) => {
+                                                                            e.currentTarget.style.display =
+                                                                              "none";
+                                                                          }}
                                                                         />
-                                                                      ) : (
-                                                                        <div
-                                                                          className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-[7.5px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                                                                            task
-                                                                              .createdBy
-                                                                              .name ||
-                                                                              "U",
-                                                                          )}`}
-                                                                        >
-                                                                          {getInitials(
-                                                                            task
-                                                                              .createdBy
-                                                                              .name ||
-                                                                              "U",
-                                                                          )}
-                                                                        </div>
                                                                       )}
-                                                                      <span
-                                                                        className="text-[9.5px] font-semibold text-slate-705 dark:text-slate-400 truncate max-w-[85px]"
-                                                                        title={
-                                                                          task
-                                                                            .createdBy
-                                                                            .name
+                                                                    </div>
+                                                                    <span
+                                                                      className="text-[9.5px] font-semibold text-slate-705 dark:text-slate-400 truncate max-w-[85px]"
+                                                                      title={
+                                                                        task
+                                                                          .createdBy
+                                                                          .name
+                                                                      }
+                                                                    >
+                                                                      {
+                                                                        task
+                                                                          .createdBy
+                                                                          .name
+                                                                      }
+                                                                    </span>
+                                                                  </div>
+                                                                ) : (
+                                                                  <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
+                                                                    N/A
+                                                                  </span>
+                                                                )}
+                                                              </td>
+                                                            )}
+
+                                                            {/* 3. Start Date Column */}
+                                                            {!hiddenColumns.startDate && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                <div
+                                                                  className={`relative h-7 flex items-center justify-start transition-all ${
+                                                                    sub.startDate
+                                                                      ? "cursor-not-allowed"
+                                                                      : "cursor-pointer"
+                                                                  }`}
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) => {
+                                                                    e.stopPropagation();
+                                                                    if (
+                                                                      !sub.startDate
+                                                                    ) {
+                                                                      const input =
+                                                                        e.currentTarget.querySelector(
+                                                                          'input[type="date"]',
+                                                                        );
+                                                                      if (
+                                                                        input &&
+                                                                        typeof input.showPicker ===
+                                                                          "function"
+                                                                      ) {
+                                                                        input.showPicker();
+                                                                      }
+                                                                    }
+                                                                  }}
+                                                                >
+                                                                  {sub.startDate ? (
+                                                                    <div
+                                                                      className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/80 text-blue-855 dark:text-blue-200 text-[9.5px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
+                                                                      title="🔒 Start Date — Locked"
+                                                                    >
+                                                                      <FiLock
+                                                                        size={
+                                                                          9.5
                                                                         }
-                                                                      >
-                                                                        {
-                                                                          task
-                                                                            .createdBy
-                                                                            .name
-                                                                        }
+                                                                        className="text-amber-600 dark:text-amber-400 shrink-0"
+                                                                      />
+                                                                      <span className="whitespace-nowrap">
+                                                                        {new Date(
+                                                                          sub.startDate,
+                                                                        ).toLocaleDateString(
+                                                                          undefined,
+                                                                          {
+                                                                            month:
+                                                                              "short",
+                                                                            day: "numeric",
+                                                                          },
+                                                                        )}
+                                                                      </span>
+                                                                      <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
+                                                                        🔒
                                                                       </span>
                                                                     </div>
                                                                   ) : (
-                                                                    <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
-                                                                      N/A
-                                                                    </span>
+                                                                    <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
+                                                                      <FiCalendar
+                                                                        size={
+                                                                          9.5
+                                                                        }
+                                                                      />
+                                                                      <span>
+                                                                        + Start
+                                                                        Date
+                                                                      </span>
+                                                                    </div>
                                                                   )}
-                                                                </td>
-                                                              )}
-
-                                                              {/* 3. Start Date Column */}
-                                                              {!hiddenColumns.startDate && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                  <div
-                                                                    className={`relative h-7 flex items-center justify-start transition-all ${
-                                                                      sub.startDate
-                                                                        ? "cursor-not-allowed"
-                                                                        : "cursor-pointer"
-                                                                    }`}
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) => {
-                                                                      e.stopPropagation();
-                                                                      if (
-                                                                        !sub.startDate
-                                                                      ) {
-                                                                        const input =
-                                                                          e.currentTarget.querySelector(
-                                                                            'input[type="date"]',
-                                                                          );
-                                                                        if (
-                                                                          input &&
-                                                                          typeof input.showPicker ===
-                                                                            "function"
-                                                                        ) {
-                                                                          input.showPicker();
-                                                                        }
-                                                                      }
-                                                                    }}
-                                                                  >
-                                                                    {sub.startDate ? (
-                                                                      <div
-                                                                        className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/80 text-blue-855 dark:text-blue-200 text-[9.5px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
-                                                                        title="🔒 Start Date — Locked"
-                                                                      >
-                                                                        <FiLock
-                                                                          size={
-                                                                            9.5
-                                                                          }
-                                                                          className="text-amber-600 dark:text-amber-400 shrink-0"
-                                                                        />
-                                                                        <span className="whitespace-nowrap">
-                                                                          {new Date(
-                                                                            sub.startDate,
-                                                                          ).toLocaleDateString(
-                                                                            undefined,
+                                                                  {isAdminOrManager &&
+                                                                    !sub.startDate && (
+                                                                      <input
+                                                                        type="date"
+                                                                        value=""
+                                                                        onChange={(
+                                                                          e,
+                                                                        ) =>
+                                                                          handleSubtaskFieldChange(
+                                                                            task,
+                                                                            sub._id,
                                                                             {
-                                                                              month:
-                                                                                "short",
-                                                                              day: "numeric",
+                                                                              startDate:
+                                                                                e
+                                                                                  .target
+                                                                                  .value ||
+                                                                                null,
                                                                             },
-                                                                          )}
-                                                                        </span>
-                                                                        <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
-                                                                          🔒
-                                                                        </span>
-                                                                      </div>
-                                                                    ) : (
-                                                                      <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
-                                                                        <FiCalendar
-                                                                          size={
-                                                                            9.5
-                                                                          }
-                                                                        />
-                                                                        <span>
-                                                                          +
-                                                                          Start
-                                                                          Date
-                                                                        </span>
-                                                                      </div>
-                                                                    )}
-                                                                    {isAdminOrManager &&
-                                                                      !sub.startDate && (
-                                                                        <input
-                                                                          type="date"
-                                                                          value=""
-                                                                          onChange={(
-                                                                            e,
-                                                                          ) =>
-                                                                            handleSubtaskFieldChange(
-                                                                              task,
-                                                                              sub._id,
-                                                                              {
-                                                                                startDate:
-                                                                                  e
-                                                                                    .target
-                                                                                    .value ||
-                                                                                  null,
-                                                                              },
-                                                                            )
-                                                                          }
-                                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                        />
-                                                                      )}
-                                                                  </div>
-                                                                </td>
-                                                              )}
-
-                                                              {/* 4. End Date Column */}
-                                                              {!hiddenColumns.endDate && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                  <div
-                                                                    className={`relative h-7 flex items-center justify-start transition-all ${
-                                                                      sub.dueDate
-                                                                        ? "cursor-not-allowed"
-                                                                        : "cursor-pointer"
-                                                                    }`}
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) => {
-                                                                      e.stopPropagation();
-                                                                      if (
-                                                                        !sub.dueDate
-                                                                      ) {
-                                                                        const input =
-                                                                          e.currentTarget.querySelector(
-                                                                            'input[type="date"]',
-                                                                          );
-                                                                        if (
-                                                                          input &&
-                                                                          typeof input.showPicker ===
-                                                                            "function"
-                                                                        ) {
-                                                                          input.showPicker();
+                                                                          )
                                                                         }
-                                                                      }
-                                                                    }}
-                                                                  >
-                                                                    {sub.dueDate ? (
-                                                                      <div
-                                                                        className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-750/80 text-rose-850 dark:text-rose-200 text-[9.5px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
-                                                                        title="🔒 End Date — Locked"
-                                                                      >
-                                                                        <FiLock
-                                                                          size={
-                                                                            9.5
-                                                                          }
-                                                                          className="text-amber-600 dark:text-amber-400 shrink-0"
-                                                                        />
-                                                                        <span className="whitespace-nowrap">
-                                                                          {new Date(
-                                                                            sub.dueDate,
-                                                                          ).toLocaleDateString(
-                                                                            undefined,
-                                                                            {
-                                                                              month:
-                                                                                "short",
-                                                                              day: "numeric",
-                                                                            },
-                                                                          )}
-                                                                        </span>
-                                                                        <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
-                                                                          🔒
-                                                                        </span>
-                                                                      </div>
-                                                                    ) : (
-                                                                      <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
-                                                                        <FiCalendar
-                                                                          size={
-                                                                            9.5
-                                                                          }
-                                                                        />
-                                                                        <span>
-                                                                          + End
-                                                                          Date
-                                                                        </span>
-                                                                      </div>
+                                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                      />
                                                                     )}
-                                                                    {isAdminOrManager &&
-                                                                      !sub.dueDate && (
-                                                                        <input
-                                                                          type="date"
-                                                                          value=""
-                                                                          min={
-                                                                            sub.startDate
-                                                                              ? new Date(
-                                                                                  sub.startDate,
-                                                                                )
-                                                                                  .toISOString()
-                                                                                  .split(
-                                                                                    "T",
-                                                                                  )[0]
-                                                                              : ""
-                                                                          }
-                                                                          onChange={(
-                                                                            e,
-                                                                          ) =>
-                                                                            handleSubtaskFieldChange(
-                                                                              task,
-                                                                              sub._id,
-                                                                              {
-                                                                                dueDate:
-                                                                                  e
-                                                                                    .target
-                                                                                    .value ||
-                                                                                  null,
-                                                                              },
-                                                                            )
-                                                                          }
-                                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                        />
-                                                                      )}
-                                                                  </div>
-                                                                </td>
-                                                              )}
+                                                                </div>
+                                                              </td>
+                                                            )}
 
-                                                              {/* 5. Assignee Column */}
-                                                              {!hiddenColumns.assignee && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                  <div
-                                                                    className="flex items-center gap-1.5"
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) =>
-                                                                      e.stopPropagation()
-                                                                    }
-                                                                  >
-                                                                    <AssigneeDropdown
-                                                                      selectedUser={
-                                                                        sub.assignedTo
-                                                                      }
-                                                                      users={
-                                                                        users
-                                                                      }
-                                                                      onChange={(userId) => {
-                                                                        if (!sub.title || sub.title.trim() === "") {
-                                                                          toast.error("Please fill the task name first");
-                                                                          return;
-                                                                        }
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            assignedTo: userId,
-                                                                          }
+                                                            {/* 4. End Date Column */}
+                                                            {!hiddenColumns.endDate && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                <div
+                                                                  className={`relative h-7 flex items-center justify-start transition-all ${
+                                                                    sub.dueDate
+                                                                      ? "cursor-not-allowed"
+                                                                      : "cursor-pointer"
+                                                                  }`}
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) => {
+                                                                    e.stopPropagation();
+                                                                    if (
+                                                                      !sub.dueDate
+                                                                    ) {
+                                                                      const input =
+                                                                        e.currentTarget.querySelector(
+                                                                          'input[type="date"]',
                                                                         );
-                                                                      }}
-                                                                      isAdminOrManager={
-                                                                        isAdminOrManager
+                                                                      if (
+                                                                        input &&
+                                                                        typeof input.showPicker ===
+                                                                          "function"
+                                                                      ) {
+                                                                        input.showPicker();
                                                                       }
-                                                                      disabled={
-                                                                        sub.contentType ===
-                                                                        "MOM"
-                                                                      }
-                                                                      isLocked={
-                                                                        sub.contentType ===
-                                                                        "MOM"
-                                                                      }
-                                                                      isMOM={
-                                                                        sub.contentType ===
-                                                                        "MOM"
-                                                                      }
-                                                                      currentUser={
-                                                                        currentUser
-                                                                      }
-                                                                      getAvatarColor={
-                                                                        getAvatarColor
-                                                                      }
-                                                                      size="md"
-                                                                    />
-                                                                  </div>
-                                                                </td>
-                                                              )}
-
-                                                              {/* 6. Content Type Column */}
-                                                              {!hiddenColumns.contentType && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 min-w-[160px] w-[180px]">
-                                                                  <div
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) =>
-                                                                      e.stopPropagation()
                                                                     }
-                                                                  >
-                                                                    {isAdminOrManager ? (
-                                                                      <select
-                                                                        value={
-                                                                          sub.contentType ||
-                                                                          ""
+                                                                  }}
+                                                                >
+                                                                  {sub.dueDate ? (
+                                                                    <div
+                                                                      className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-750/80 text-rose-850 dark:text-rose-200 text-[9.5px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
+                                                                      title="🔒 End Date — Locked"
+                                                                    >
+                                                                      <FiLock
+                                                                        size={
+                                                                          9.5
+                                                                        }
+                                                                        className="text-amber-600 dark:text-amber-400 shrink-0"
+                                                                      />
+                                                                      <span className="whitespace-nowrap">
+                                                                        {new Date(
+                                                                          sub.dueDate,
+                                                                        ).toLocaleDateString(
+                                                                          undefined,
+                                                                          {
+                                                                            month:
+                                                                              "short",
+                                                                            day: "numeric",
+                                                                          },
+                                                                        )}
+                                                                      </span>
+                                                                      <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
+                                                                        🔒
+                                                                      </span>
+                                                                    </div>
+                                                                  ) : (
+                                                                    <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
+                                                                      <FiCalendar
+                                                                        size={
+                                                                          9.5
+                                                                        }
+                                                                      />
+                                                                      <span>
+                                                                        + End
+                                                                        Date
+                                                                      </span>
+                                                                    </div>
+                                                                  )}
+                                                                  {isAdminOrManager &&
+                                                                    !sub.dueDate && (
+                                                                      <input
+                                                                        type="date"
+                                                                        value=""
+                                                                        min={
+                                                                          sub.startDate
+                                                                            ? new Date(
+                                                                                sub.startDate,
+                                                                              )
+                                                                                .toISOString()
+                                                                                .split(
+                                                                                  "T",
+                                                                                )[0]
+                                                                            : ""
                                                                         }
                                                                         onChange={(
                                                                           e,
-                                                                        ) => {
-                                                                          const val =
-                                                                            e
-                                                                              .target
-                                                                              .value;
-                                                                          const creatorId =
-                                                                            sub
-                                                                              .createdBy
-                                                                              ?._id ||
-                                                                            sub
-                                                                              .createdBy
-                                                                              ?.id ||
-                                                                            (typeof sub.createdBy ===
-                                                                            "string"
-                                                                              ? sub.createdBy
-                                                                              : null) ||
-                                                                            task
-                                                                              .createdBy
-                                                                              ?._id ||
-                                                                            task
-                                                                              .createdBy
-                                                                              ?.id ||
-                                                                            (typeof task.createdBy ===
-                                                                            "string"
-                                                                              ? task.createdBy
-                                                                              : null) ||
-                                                                            currentUser?._id ||
-                                                                            currentUser?.id;
+                                                                        ) =>
+                                                                          handleSubtaskFieldChange(
+                                                                            task,
+                                                                            sub._id,
+                                                                            {
+                                                                              dueDate:
+                                                                                e
+                                                                                  .target
+                                                                                  .value ||
+                                                                                null,
+                                                                            },
+                                                                          )
+                                                                        }
+                                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                      />
+                                                                    )}
+                                                                </div>
+                                                              </td>
+                                                            )}
+
+                                                            {/* 5. Content Type Column */}
+                                                            {!hiddenColumns.contentType && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 min-w-[160px] w-[180px]">
+                                                                <div
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) =>
+                                                                    e.stopPropagation()
+                                                                  }
+                                                                >
+                                                                  {isAdminOrManager ? (
+                                                                    <select
+                                                                      value={
+                                                                        typeof sub.contentType === "string"
+                                                                          ? sub.contentType
+                                                                          : ""
+                                                                      }
+                                                                      onChange={(
+                                                                        e,
+                                                                      ) => {
+                                                                        const val =
+                                                                          e
+                                                                            .target
+                                                                            .value;
+                                                                        const creatorId =
+                                                                          sub
+                                                                            .createdBy
+                                                                            ?._id ||
+                                                                          sub
+                                                                            .createdBy
+                                                                            ?.id ||
+                                                                          (typeof sub.createdBy ===
+                                                                          "string"
+                                                                            ? sub.createdBy
+                                                                            : null) ||
+                                                                          task
+                                                                            .createdBy
+                                                                            ?._id ||
+                                                                          task
+                                                                            .createdBy
+                                                                            ?.id ||
+                                                                          (typeof task.createdBy ===
+                                                                          "string"
+                                                                            ? task.createdBy
+                                                                            : null) ||
+                                                                          currentUser?._id ||
+                                                                          currentUser?.id;
+                                                                        if (
+                                                                          val ===
+                                                                          "__ADD_CUSTOM__"
+                                                                        ) {
+                                                                          const customVal =
+                                                                            prompt(
+                                                                              "Enter custom content type:",
+                                                                            );
                                                                           if (
-                                                                            val ===
-                                                                            "__ADD_CUSTOM__"
+                                                                            customVal &&
+                                                                            customVal.trim() !==
+                                                                              ""
                                                                           ) {
-                                                                            const customVal =
-                                                                              prompt(
-                                                                                "Enter custom content type:",
-                                                                              );
-                                                                            if (
-                                                                              customVal &&
-                                                                              customVal.trim() !==
-                                                                                ""
-                                                                            ) {
-                                                                              const updates =
-                                                                                {
-                                                                                  contentType:
-                                                                                    customVal.trim(),
-                                                                                };
-                                                                              if (
-                                                                                customVal.trim() ===
-                                                                                  "MOM" &&
-                                                                                creatorId
-                                                                              ) {
-                                                                                updates.assignedTo =
-                                                                                  creatorId;
-                                                                              }
-                                                                              handleSubtaskFieldChange(
-                                                                                task,
-                                                                                sub._id,
-                                                                                updates,
-                                                                              );
-                                                                            }
-                                                                          } else {
                                                                             const updates =
                                                                               {
                                                                                 contentType:
-                                                                                  val,
+                                                                                  customVal.trim(),
                                                                               };
-                                                                            if (
-                                                                              val ===
-                                                                                "MOM" &&
-                                                                              creatorId
-                                                                            ) {
-                                                                              updates.assignedTo =
-                                                                                creatorId;
-                                                                            }
                                                                             handleSubtaskFieldChange(
                                                                               task,
                                                                               sub._id,
                                                                               updates,
                                                                             );
                                                                           }
-                                                                        }}
-                                                                        className={`badge-select w-full min-w-[140px] ${
-                                                                          sub.contentType ===
-                                                                          "VIDEO"
-                                                                            ? "badge-type-video"
+                                                                        } else {
+                                                                          const updates =
+                                                                            {
+                                                                              contentType:
+                                                                                val,
+                                                                            };
+                                                                          handleSubtaskFieldChange(
+                                                                            task,
+                                                                            sub._id,
+                                                                            updates,
+                                                                          );
+                                                                        }
+                                                                      }}
+                                                                      className={`badge-select w-full min-w-[140px] ${
+                                                                        sub.contentType ===
+                                                                        "VIDEO"
+                                                                          ? "badge-type-video"
+                                                                          : sub.contentType ===
+                                                                              "IMAGE"
+                                                                            ? "badge-type-image"
                                                                             : sub.contentType ===
-                                                                                "IMAGE"
-                                                                              ? "badge-type-image"
+                                                                                "CAROUSEL"
+                                                                              ? "badge-type-carousel"
                                                                               : sub.contentType ===
-                                                                                  "CAROUSEL"
-                                                                                ? "badge-type-carousel"
+                                                                                  "REEL"
+                                                                                ? "badge-type-reel"
                                                                                 : sub.contentType ===
-                                                                                    "REEL"
-                                                                                  ? "badge-type-reel"
+                                                                                    "POST"
+                                                                                  ? "badge-type-post"
                                                                                   : sub.contentType ===
-                                                                                      "POST"
-                                                                                    ? "badge-type-post"
+                                                                                      "STORY"
+                                                                                    ? "badge-type-story"
                                                                                     : sub.contentType ===
-                                                                                        "STORY"
-                                                                                      ? "badge-type-story"
+                                                                                        "Website"
+                                                                                      ? "badge-type-video"
                                                                                       : sub.contentType ===
-                                                                                          "Website"
-                                                                                        ? "badge-type-video"
+                                                                                          "SEO"
+                                                                                        ? "badge-type-image"
                                                                                         : sub.contentType ===
-                                                                                            "SEO"
-                                                                                          ? "badge-type-image"
-                                                                                          : sub.contentType ===
-                                                                                              "Video shoot"
-                                                                                            ? "badge-type-carousel"
-                                                                                            : sub.contentType ===
-                                                                                                "MOM"
-                                                                                              ? "badge-type-post"
-                                                                                              : "badge-type-none"
-                                                                        }`}
-                                                                      >
-                                                                        <option value="">
-                                                                          NONE
-                                                                        </option>
-                                                                        <option value="VIDEO">
-                                                                          VIDEO
-                                                                        </option>
-                                                                        <option value="IMAGE">
-                                                                          IMAGE
-                                                                        </option>
-                                                                        <option value="CAROUSEL">
-                                                                          CAROUSEL
-                                                                        </option>
-                                                                        <option value="REEL">
-                                                                          REEL
-                                                                        </option>
-                                                                        <option value="POST">
-                                                                          POST
-                                                                        </option>
-                                                                        <option value="STORY">
-                                                                          STORY
-                                                                        </option>
-                                                                        <option value="Website">
-                                                                          Website
-                                                                        </option>
-                                                                        <option value="SEO">
-                                                                          SEO
-                                                                        </option>
-                                                                        <option value="Video shoot">
-                                                                          Video
-                                                                          shoot
-                                                                        </option>
-                                                                        <option value="MOM">
-                                                                          🤝 MOM
-                                                                        </option>
-                                                                        {sub.contentType &&
-                                                                          ![
-                                                                            "VIDEO",
-                                                                            "IMAGE",
-                                                                            "CAROUSEL",
-                                                                            "REEL",
-                                                                            "POST",
-                                                                            "STORY",
-                                                                            "Website",
-                                                                            "SEO",
-                                                                            "Video shoot",
-                                                                            "MOM",
-                                                                          ].includes(
-                                                                            sub.contentType,
-                                                                          ) && (
-                                                                            <option
-                                                                              value={
-                                                                                sub.contentType
-                                                                              }
-                                                                            >
-                                                                              {
-                                                                                sub.contentType
-                                                                              }
-                                                                            </option>
-                                                                          )}
-                                                                        {currentUser?.role ===
-                                                                          "admin" && (
-                                                                          <option value="__ADD_CUSTOM__">
-                                                                            ➕
-                                                                            Custom...
+                                                                                            "Video shoot"
+                                                                                          ? "badge-type-carousel"
+                                                                                          : "badge-type-none"
+                                                                      }`}
+                                                                    >
+                                                                      <option value="">
+                                                                        NONE
+                                                                      </option>
+                                                                      <option value="VIDEO">
+                                                                        VIDEO
+                                                                      </option>
+                                                                      <option value="IMAGE">
+                                                                        IMAGE
+                                                                      </option>
+                                                                      <option value="CAROUSEL">
+                                                                        CAROUSEL
+                                                                      </option>
+                                                                      <option value="REEL">
+                                                                        REEL
+                                                                      </option>
+                                                                      <option value="POST">
+                                                                        POST
+                                                                      </option>
+                                                                      <option value="STORY">
+                                                                        STORY
+                                                                      </option>
+                                                                      <option value="Website">
+                                                                        Website
+                                                                      </option>
+                                                                      <option value="SEO">
+                                                                        SEO
+                                                                      </option>
+                                                                      <option value="Video shoot">
+                                                                        Video
+                                                                        shoot
+                                                                      </option>
+                                                                      {sub.contentType &&
+                                                                        typeof sub.contentType === "string" &&
+                                                                        ![
+                                                                          "VIDEO",
+                                                                          "IMAGE",
+                                                                          "CAROUSEL",
+                                                                          "REEL",
+                                                                          "POST",
+                                                                          "STORY",
+                                                                          "Website",
+                                                                          "SEO",
+                                                                          "Video shoot",
+                                                                        ].includes(
+                                                                          sub.contentType,
+                                                                        ) && (
+                                                                          <option
+                                                                            value={
+                                                                              sub.contentType
+                                                                            }
+                                                                          >
+                                                                            {
+                                                                              sub.contentType
+                                                                            }
                                                                           </option>
                                                                         )}
-                                                                      </select>
-                                                                    ) : (
-                                                                      <span
-                                                                        className={`badge-span ${
-                                                                          sub.contentType ===
-                                                                          "VIDEO"
-                                                                            ? "badge-type-video"
+                                                                      {currentUser?.role ===
+                                                                        "admin" && (
+                                                                        <option value="__ADD_CUSTOM__">
+                                                                          ➕
+                                                                          Custom...
+                                                                        </option>
+                                                                      )}
+                                                                    </select>
+                                                                  ) : (
+                                                                    <span
+                                                                      className={`badge-span ${
+                                                                        sub.contentType ===
+                                                                        "VIDEO"
+                                                                          ? "badge-type-video"
+                                                                          : sub.contentType ===
+                                                                              "IMAGE"
+                                                                            ? "badge-type-image"
                                                                             : sub.contentType ===
-                                                                                "IMAGE"
-                                                                              ? "badge-type-image"
+                                                                                "CAROUSEL"
+                                                                              ? "badge-type-carousel"
                                                                               : sub.contentType ===
-                                                                                  "CAROUSEL"
-                                                                                ? "badge-type-carousel"
+                                                                                  "REEL"
+                                                                                ? "badge-type-reel"
                                                                                 : sub.contentType ===
-                                                                                    "REEL"
-                                                                                  ? "badge-type-reel"
+                                                                                    "POST"
+                                                                                  ? "badge-type-post"
                                                                                   : sub.contentType ===
-                                                                                      "POST"
-                                                                                    ? "badge-type-post"
+                                                                                      "STORY"
+                                                                                    ? "badge-type-story"
                                                                                     : sub.contentType ===
-                                                                                        "STORY"
-                                                                                      ? "badge-type-story"
+                                                                                        "Website"
+                                                                                      ? "badge-type-video"
                                                                                       : sub.contentType ===
-                                                                                          "Website"
-                                                                                        ? "badge-type-video"
+                                                                                          "SEO"
+                                                                                        ? "badge-type-image"
                                                                                         : sub.contentType ===
-                                                                                            "SEO"
-                                                                                          ? "badge-type-image"
-                                                                                          : sub.contentType ===
-                                                                                              "Video shoot"
-                                                                                            ? "badge-type-carousel"
-                                                                                            : "badge-type-none"
+                                                                                            "Video shoot"
+                                                                                          ? "badge-type-carousel"
+                                                                                          : "badge-type-none"
+                                                                      }`}
+                                                                    >
+                                                                      {typeof sub.contentType === "string"
+                                                                        ? sub.contentType || "NONE"
+                                                                        : "NONE"}
+                                                                    </span>
+                                                                  )}
+                                                                </div>
+                                                              </td>
+                                                            )}
+
+                                                            {/* 6. Assignee Column */}
+                                                            {!hiddenColumns.assignee && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                <div
+                                                                  className="flex items-center gap-1.5"
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) =>
+                                                                    e.stopPropagation()
+                                                                  }
+                                                                >
+                                                                  <AssigneeDropdown
+                                                                    selectedUser={
+                                                                      sub.assignedTo
+                                                                    }
+                                                                    users={
+                                                                      users
+                                                                    }
+                                                                    filterDepartment={
+                                                                      effectiveAssigneeDepartment
+                                                                    }
+                                                                    onChange={(
+                                                                      userId,
+                                                                    ) => {
+                                                                      if (
+                                                                        !sub.title ||
+                                                                        sub.title.trim() ===
+                                                                          ""
+                                                                      ) {
+                                                                        toast.error(
+                                                                          "Please fill the subtask name first",
+                                                                        );
+                                                                        return;
+                                                                      }
+                                                                      handleSubtaskFieldChange(
+                                                                        task,
+                                                                        sub._id,
+                                                                        {
+                                                                          assignedTo:
+                                                                            userId,
+                                                                        },
+                                                                      );
+                                                                    }}
+                                                                    isAdminOrManager={
+                                                                      isAdminOrManager
+                                                                    }
+                                                                    currentUser={
+                                                                      currentUser
+                                                                    }
+                                                                    getAvatarColor={
+                                                                      getAvatarColor
+                                                                    }
+                                                                    size="md"
+                                                                  />
+                                                                </div>
+                                                              </td>
+                                                            )}
+
+                                                            {/* Department Column */}
+                                                            {!hiddenColumns.department && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
+                                                                <div
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) =>
+                                                                    e.stopPropagation()
+                                                                  }
+                                                                  className="flex items-center gap-1.5"
+                                                                >
+                                                                  {(() => {
+                                                                    const assignedId =
+                                                                      typeof sub.assignedTo ===
+                                                                        "object" &&
+                                                                      sub.assignedTo
+                                                                        ? sub.assignedTo._id ||
+                                                                          sub.assignedTo.id
+                                                                        : sub.assignedTo;
+                                                                    const assignedObj =
+                                                                      (users || []).find(
+                                                                        (u) =>
+                                                                          u &&
+                                                                          (u._id === assignedId ||
+                                                                            u.id === assignedId),
+                                                                      ) ||
+                                                                      (typeof sub.assignedTo ===
+                                                                      "object"
+                                                                        ? sub.assignedTo
+                                                                        : null);
+                                                                    const dept =
+                                                                      assignedObj?.department ||
+                                                                      assignedObj
+                                                                        ?.profile
+                                                                        ?.department ||
+                                                                      effectiveAssigneeDepartment ||
+                                                                      "";
+                                                                    if (!dept) {
+                                                                      return (
+                                                                        <span className="text-slate-400 dark:text-slate-500 text-[10px] italic">
+                                                                          —
+                                                                        </span>
+                                                                      );
+                                                                    }
+                                                                    const isCinemaBadge =
+                                                                      dept.toLowerCase().includes("cinema") ||
+                                                                      dept.toLowerCase().includes("video");
+                                                                    return (
+                                                                      <span
+                                                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] font-bold whitespace-nowrap ${
+                                                                          isCinemaBadge
+                                                                            ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/20"
+                                                                            : "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20"
                                                                         }`}
                                                                       >
-                                                                        {sub.contentType ||
-                                                                          "NONE"}
+                                                                        {" "}
+                                                                        {dept}
                                                                       </span>
-                                                                    )}
-                                                                  </div>
-                                                                </td>
-                                                              )}
+                                                                    );
+                                                                  })()}
+                                                                </div>
+                                                              </td>
+                                                            )}
 
-                                                              {/* 7. Priority Column */}
-                                                              {!hiddenColumns.priority && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                  <div
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) =>
-                                                                      e.stopPropagation()
-                                                                    }
-                                                                  >
-                                                                    {isSameDate(
-                                                                      sub.startDate ||
-                                                                        task.startDate,
-                                                                      sub.dueDate ||
-                                                                        task.dueDate,
-                                                                    ) ? (
-                                                                      <span className="badge-span badge-priority-top-high">
-                                                                        🔴 Top
+                                                            {/* 8. Priority Column */}
+                                                            {!hiddenColumns.priority && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                <div
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) =>
+                                                                    e.stopPropagation()
+                                                                  }
+                                                                >
+                                                                  {isSameDate(
+                                                                    sub.startDate ||
+                                                                      task.startDate,
+                                                                    sub.dueDate ||
+                                                                      task.dueDate,
+                                                                  ) ? (
+                                                                    <span className="badge-span badge-priority-top-high">
+                                                                      🔴 Top
+                                                                      High
+                                                                    </span>
+                                                                  ) : isAdminOrManager ? (
+                                                                    <select
+                                                                      value={
+                                                                        sub.priority ||
+                                                                        "Medium"
+                                                                      }
+                                                                      onChange={(
+                                                                        e,
+                                                                      ) =>
+                                                                        handleSubtaskFieldChange(
+                                                                          task,
+                                                                          sub._id,
+                                                                          {
+                                                                            priority:
+                                                                              e
+                                                                                .target
+                                                                                .value,
+                                                                          },
+                                                                        )
+                                                                      }
+                                                                      className={`badge-select ${
+                                                                        sub.priority ===
+                                                                        "Top High"
+                                                                          ? "badge-priority-top-high"
+                                                                          : sub.priority ===
+                                                                              "High"
+                                                                            ? "badge-priority-high"
+                                                                            : sub.priority ===
+                                                                                "Medium"
+                                                                              ? "badge-priority-medium"
+                                                                              : "badge-priority-low"
+                                                                      }`}
+                                                                    >
+                                                                      <option value="Low">
+                                                                        Low
+                                                                      </option>
+                                                                      <option value="Medium">
+                                                                        Medium
+                                                                      </option>
+                                                                      <option value="High">
                                                                         High
-                                                                      </span>
-                                                                    ) : isAdminOrManager ? (
-                                                                      <select
-                                                                        value={
-                                                                          sub.priority ||
-                                                                          "Medium"
-                                                                        }
-                                                                        onChange={(
-                                                                          e,
-                                                                        ) =>
-                                                                          handleSubtaskFieldChange(
-                                                                            task,
-                                                                            sub._id,
-                                                                            {
-                                                                              priority:
-                                                                                e
-                                                                                  .target
-                                                                                  .value,
-                                                                            },
-                                                                          )
-                                                                        }
-                                                                        className={`badge-select ${
-                                                                          sub.priority ===
-                                                                          "Top High"
-                                                                            ? "badge-priority-top-high"
+                                                                      </option>
+                                                                      <option value="Top High">
+                                                                        Top High
+                                                                      </option>
+                                                                    </select>
+                                                                  ) : (
+                                                                    <span
+                                                                      className={`badge-span ${
+                                                                        sub.priority ===
+                                                                        "Top High"
+                                                                          ? "badge-priority-top-high"
+                                                                          : sub.priority ===
+                                                                              "High"
+                                                                            ? "badge-priority-high"
                                                                             : sub.priority ===
-                                                                                "High"
-                                                                              ? "badge-priority-high"
-                                                                              : sub.priority ===
-                                                                                  "Medium"
-                                                                                ? "badge-priority-medium"
-                                                                                : "badge-priority-low"
-                                                                        }`}
-                                                                      >
-                                                                        <option value="Low">
-                                                                          Low
-                                                                        </option>
-                                                                        <option value="Medium">
-                                                                          Medium
-                                                                        </option>
-                                                                        <option value="High">
-                                                                          High
-                                                                        </option>
-                                                                        <option value="Top High">
-                                                                          Top
-                                                                          High
-                                                                        </option>
-                                                                      </select>
-                                                                    ) : (
-                                                                      <span
-                                                                        className={`badge-span ${
-                                                                          sub.priority ===
-                                                                          "Top High"
-                                                                            ? "badge-priority-top-high"
-                                                                            : sub.priority ===
-                                                                                "High"
-                                                                              ? "badge-priority-high"
-                                                                              : sub.priority ===
-                                                                                  "Medium"
-                                                                                ? "badge-priority-medium"
-                                                                                : "badge-priority-low"
-                                                                        }`}
-                                                                      >
-                                                                        {sub.priority ||
-                                                                          "Medium"}
-                                                                      </span>
-                                                                    )}
-                                                                  </div>
-                                                                </td>
-                                                              )}
+                                                                                "Medium"
+                                                                              ? "badge-priority-medium"
+                                                                              : "badge-priority-low"
+                                                                      }`}
+                                                                    >
+                                                                      {sub.priority ||
+                                                                        "Medium"}
+                                                                    </span>
+                                                                  )}
+                                                                </div>
+                                                              </td>
+                                                            )}
 
-                                                              {/* 8. Status Column */}
-                                                              {!hiddenColumns.status && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                  <div
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) =>
-                                                                      e.stopPropagation()
-                                                                    }
-                                                                  >
-                                                                    {isAdminOrManager &&
-                                                                    sub.status !==
-                                                                      "Completed" &&
-                                                                    sub.status !==
-                                                                      "Rejected" ? (
-                                                                      <select
-                                                                        value={
-                                                                          sub.status ||
-                                                                          "Not Started"
-                                                                        }
-                                                                        onChange={(
-                                                                          e,
-                                                                        ) =>
-                                                                          handleSubtaskFieldChange(
-                                                                            task,
-                                                                            sub._id,
-                                                                            {
-                                                                              status:
-                                                                                e
-                                                                                  .target
-                                                                                  .value,
-                                                                            },
-                                                                          )
-                                                                        }
-                                                                        className={`badge-select ${
-                                                                          sub.status ===
-                                                                          "Completed"
-                                                                            ? "badge-status-completed"
+                                                            {/* 8. Status Column */}
+                                                            {!hiddenColumns.status && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                <div
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) =>
+                                                                    e.stopPropagation()
+                                                                  }
+                                                                >
+                                                                  {isAdminOrManager &&
+                                                                  sub.status !==
+                                                                    "Completed" &&
+                                                                  sub.status !==
+                                                                    "Rejected" ? (
+                                                                    <select
+                                                                      value={
+                                                                        sub.status ||
+                                                                        "Not Started"
+                                                                      }
+                                                                      onChange={(
+                                                                        e,
+                                                                      ) =>
+                                                                        handleSubtaskFieldChange(
+                                                                          task,
+                                                                          sub._id,
+                                                                          {
+                                                                            status:
+                                                                              e
+                                                                                .target
+                                                                                .value,
+                                                                          },
+                                                                        )
+                                                                      }
+                                                                      className={`badge-select ${
+                                                                        sub.status ===
+                                                                        "Completed"
+                                                                          ? "badge-status-completed"
+                                                                          : sub.status ===
+                                                                              "In Progress"
+                                                                            ? "badge-status-in-progress"
                                                                             : sub.status ===
-                                                                                "In Progress"
-                                                                              ? "badge-status-in-progress"
+                                                                                "In Review"
+                                                                              ? "badge-status-in-review"
                                                                               : sub.status ===
-                                                                                  "In Review"
-                                                                                ? "badge-status-in-review"
-                                                                                : sub.status ===
-                                                                                    "Correction"
-                                                                                  ? "badge-status-correction"
-                                                                                  : sub.status ===
-                                                                                      "On Hold"
-                                                                                    ? "badge-status-on-hold"
-                                                                                    : sub.status ===
-                                                                                        "Rejected"
-                                                                                      ? "badge-status-rejected"
-                                                                                      : "badge-status-not-started"
-                                                                        }`}
-                                                                      >
-                                                                        {sub.contentType === "MOM" ? (
-                                                                          <>
-                                                                            <option value="Not Started">Not Started</option>
-                                                                            {["In Progress", "On Hold", "In Review", "Correction"].includes(sub.status) && (
-                                                                              <option value={sub.status}>{sub.status}</option>
-                                                                            )}
-                                                                            <option value="Completed">Completed</option>
-                                                                          </>
-                                                                        ) : (
-                                                                          <>
-                                                                            <option value="Not Started">Not Started</option>
-                                                                            {["In Progress", "On Hold", "In Review"].includes(sub.status) && (
-                                                                              <option value={sub.status}>{sub.status}</option>
-                                                                            )}
-                                                                            <option value="Correction">Correction</option>
-                                                                            <option value="Completed">Completed</option>
-                                                                            <option value="Rejected">Rejected</option>
-                                                                          </>
-                                                                        )}
-                                                                      </select>
-                                                                    ) : (
-                                                                      <span
-                                                                        className={`badge-span ${
-                                                                          sub.status ===
-                                                                          "Completed"
-                                                                            ? "badge-status-completed"
-                                                                            : sub.status ===
-                                                                                "In Progress"
-                                                                              ? "badge-status-in-progress"
-                                                                              : sub.status ===
-                                                                                    "IN-REVIEW" ||
-                                                                                  sub.status ===
-                                                                                    "In Review" ||
-                                                                                  sub.status ===
-                                                                                    "IN-Review"
-                                                                                ? "badge-status-in-review"
+                                                                                  "Correction"
+                                                                                ? "badge-status-correction"
                                                                                 : sub.status ===
                                                                                     "On Hold"
                                                                                   ? "badge-status-on-hold"
@@ -7151,167 +7834,249 @@ const ProjectTaskBoard = ({
                                                                                       "Rejected"
                                                                                     ? "badge-status-rejected"
                                                                                     : "badge-status-not-started"
-                                                                        }`}
-                                                                      >
-                                                                        {getStatusWithEmoji(
+                                                                      }`}
+                                                                    >
+                                                                        <option value="Not Started">
+                                                                          Not
+                                                                          Started
+                                                                        </option>
+                                                                        {[
+                                                                          "In Progress",
+                                                                          "On Hold",
+                                                                          "In Review",
+                                                                        ].includes(
                                                                           sub.status,
+                                                                        ) && (
+                                                                          <option
+                                                                            value={
+                                                                              sub.status
+                                                                            }
+                                                                          >
+                                                                            {
+                                                                              sub.status
+                                                                            }
+                                                                          </option>
                                                                         )}
-                                                                      </span>
-                                                                    )}
-                                                                  </div>
+                                                                        <option value="Correction">
+                                                                          Correction
+                                                                        </option>
+                                                                        <option value="Completed">
+                                                                          Completed
+                                                                        </option>
+                                                                        <option value="Rejected">
+                                                                          Rejected
+                                                                        </option>
+                                                                    </select>
+                                                                  ) : (
+                                                                    <span
+                                                                      className={`badge-span ${
+                                                                        sub.status ===
+                                                                        "Completed"
+                                                                          ? "badge-status-completed"
+                                                                          : sub.status ===
+                                                                              "In Progress"
+                                                                            ? "badge-status-in-progress"
+                                                                            : sub.status ===
+                                                                                  "IN-REVIEW" ||
+                                                                                sub.status ===
+                                                                                  "In Review" ||
+                                                                                sub.status ===
+                                                                                  "IN-Review"
+                                                                              ? "badge-status-in-review"
+                                                                              : sub.status ===
+                                                                                  "On Hold"
+                                                                                ? "badge-status-on-hold"
+                                                                                : sub.status ===
+                                                                                    "Rejected"
+                                                                                  ? "badge-status-rejected"
+                                                                                  : "badge-status-not-started"
+                                                                      }`}
+                                                                    >
+                                                                      {getStatusWithEmoji(
+                                                                        sub.status,
+                                                                      )}
+                                                                    </span>
+                                                                  )}
+                                                                </div>
+                                                              </td>
+                                                            )}
+
+                                                            {/* Subtask Productivity Column */}
+                                                              {!hiddenColumns.productivity && (
+                                                                <td
+                                                                  className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center whitespace-nowrap"
+                                                                  onClick={(e) =>
+                                                                    e.stopPropagation()
+                                                                  }
+                                                                >
+                                                                  <ProductivityCell
+                                                                    task={sub}
+                                                                  />
                                                                 </td>
                                                               )}
-                                                              
+
                                                               {/* Hold Reason Column (Subtasks) */}
-                                                              {!hiddenColumns.holdReason && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                  {sub.status === "On Hold" && (() => {
-                                                                    const hEntry = [...(sub.statusHistory || [])].reverse().find(x => x.status === "On Hold");
-                                                                    if (hEntry && hEntry.reason) {
+                                                            {!hiddenColumns.holdReason && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                {sub.status ===
+                                                                  "On Hold" &&
+                                                                  (() => {
+                                                                    const hEntry =
+                                                                      [
+                                                                        ...(sub.statusHistory ||
+                                                                          []),
+                                                                      ]
+                                                                        .reverse()
+                                                                        .find(
+                                                                          (x) =>
+                                                                            x.status ===
+                                                                            "On Hold",
+                                                                        );
+                                                                    if (
+                                                                      hEntry &&
+                                                                      hEntry.reason
+                                                                    ) {
                                                                       return (
-                                                                        <span className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400" title={hEntry.reason}>
-                                                                          {hEntry.reason}
+                                                                        <span
+                                                                          className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-400"
+                                                                          title={
+                                                                            hEntry.reason
+                                                                          }
+                                                                        >
+                                                                          {
+                                                                            hEntry.reason
+                                                                          }
                                                                         </span>
                                                                       );
                                                                     }
                                                                     return null;
                                                                   })()}
-                                                                </td>
-                                                              )}
+                                                              </td>
+                                                            )}
 
-                                                              {/* Subtask Revision Column */}
-                                                              {!hiddenColumns.revision && (
-                                                                <td
-                                                                  className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) =>
-                                                                    e.stopPropagation()
-                                                                  }
-                                                                >
-                                                                  <div className="flex justify-center items-center gap-1.5">
-                                                                    <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
-                                                                      {sub.revisions ||
-                                                                        0}
-                                                                    </span>
-                                                                    {(sub.revisions ||
-                                                                      0) >
-                                                                      3 && (
-                                                                      <span
-                                                                        className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
-                                                                        title="More than 3 revisions"
-                                                                      />
-                                                                    )}
-                                                                  </div>
-                                                                </td>
-                                                              )}
-
-
-                                                              {/* Approval Info Column */}
-                                                              {!hiddenColumns.approvalInfo && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
-                                                                  <ApprovalTimeDisplay
-                                                                    reviewStartedAt={
-                                                                      sub.reviewStartedAt
-                                                                    }
-                                                                    completedAt={
-                                                                      sub.completedAt
-                                                                    }
-                                                                    approvalWaitingMs={
-                                                                      sub.approvalWaitingMs
-                                                                    }
-                                                                    status={
-                                                                      sub.status
-                                                                    }
-                                                                    lastReviewStartedAt={
-                                                                      sub.lastReviewStartedAt
-                                                                    }
-                                                                    reviewCycles={
-                                                                      sub.reviewCycles
-                                                                    }
-                                                                  />
-                                                                </td>
-                                                              )}
-
-                                                              {/* 9. Actions Column */}
+                                                            {/* Subtask Revision Column */}
+                                                            {!hiddenColumns.revision && (
                                                               <td
-                                                                className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center"
-                                                                style={{
-                                                                  borderRight: `2.5px solid ${sColor.hex}`,
-                                                                }}
+                                                                className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
+                                                                onClick={(e) =>
+                                                                  e.stopPropagation()
+                                                                }
                                                               >
-                                                                <div
-                                                                  className="flex items-center justify-center gap-2.5 opacity-0 group-hover/subrow:opacity-100 transition-opacity"
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) =>
-                                                                    e.stopPropagation()
-                                                                  }
-                                                                >
-                                                                  {isAdminOrManager && (
-                                                                    <button
-                                                                      type="button"
-                                                                      onClick={() =>
-                                                                        handleDeleteSubtask(
-                                                                          task,
-                                                                          sub._id,
-                                                                        )
-                                                                      }
-                                                                      className="text-slate-455 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                                                                      title="Delete Subtask"
-                                                                    >
-                                                                      <FiTrash2
-                                                                        size={
-                                                                          12
-                                                                        }
-                                                                      />
-                                                                    </button>
+                                                                <div className="flex justify-center items-center gap-1.5">
+                                                                  <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
+                                                                    {sub.revisions ||
+                                                                      0}
+                                                                  </span>
+                                                                  {(sub.revisions ||
+                                                                    0) > 3 && (
+                                                                    <span
+                                                                      className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
+                                                                      title="More than 3 revisions"
+                                                                    />
                                                                   )}
                                                                 </div>
                                                               </td>
-                                                            </tr>
-                                                          );
-                                                        })}
-                                                      </>
-                                                    )}
-                                                  </React.Fragment>
-                                                );
-                                              },
-                                            )}
-                                            {renderInlineCreateRow(
-                                              sectionName,
-                                              sColor,
-                                            )}
-                                          </>
-                                        )}
+                                                            )}
 
-                                        {/* Spacer row between sections */}
-                                        <tr className=" pointer-events-none">
-                                          <td
-                                            colSpan={
-                                              showSelectionColumn ? 14 : 13
-                                            }
-                                            className=" p-0 border-0 bg-transparent"
-                                          />
-                                        </tr>
-                                      </tbody>
-                                    )}
-                                  </Draggable>
-                                );
-                              },
-                            );
-                          })()}
-                          {provided.placeholder}
-                        </table>
-                      )}
-                    </StrictModeDroppable>
-                  </div>
+                                                            {/* Approval Info Column */}
+                                                            {!hiddenColumns.approvalInfo && (
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
+                                                                <ApprovalTimeDisplay
+                                                                  reviewStartedAt={
+                                                                    sub.reviewStartedAt
+                                                                  }
+                                                                  completedAt={
+                                                                    sub.completedAt
+                                                                  }
+                                                                  approvalWaitingMs={
+                                                                    sub.approvalWaitingMs
+                                                                  }
+                                                                  status={
+                                                                    sub.status
+                                                                  }
+                                                                  lastReviewStartedAt={
+                                                                    sub.lastReviewStartedAt
+                                                                  }
+                                                                  reviewCycles={
+                                                                    sub.reviewCycles
+                                                                  }
+                                                                />
+                                                              </td>
+                                                            )}
+
+                                                            {/* 9. Actions Column */}
+                                                            <td
+                                                              className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center"
+                                                              style={{
+                                                                borderRight: `2.5px solid ${sColor.hex}`,
+                                                              }}
+                                                            >
+                                                              <div
+                                                                className="flex items-center justify-center gap-2.5 opacity-0 group-hover/subrow:opacity-100 transition-opacity"
+                                                                onClick={(e) =>
+                                                                  e.stopPropagation()
+                                                                }
+                                                              >
+                                                                {isAdminOrManager && (
+                                                                  <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                      handleDeleteSubtask(
+                                                                        task,
+                                                                        sub._id,
+                                                                      )
+                                                                    }
+                                                                    className="text-slate-455 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                                                                    title="Delete Subtask"
+                                                                  >
+                                                                    <FiTrash2
+                                                                      size={12}
+                                                                    />
+                                                                  </button>
+                                                                )}
+                                                              </div>
+                                                            </td>
+                                                          </tr>
+                                                        );
+                                                      })}
+                                                    </>
+                                                  )}
+                                                </React.Fragment>
+                                              );
+                                            },
+                                          )}
+                                          {renderInlineCreateRow(
+                                            sectionName,
+                                            sColor,
+                                          )}
+                                        </>
+                                      )}
+
+                                      {/* Spacer row between sections */}
+                                      <tr className=" pointer-events-none">
+                                        <td
+                                          colSpan={
+                                            totalVisibleColumns
+                                          }
+                                          className=" p-0 border-0 bg-transparent"
+                                        />
+                                      </tr>
+                                    </tbody>
+                                  )}
+                                </Draggable>
+                              );
+                            },
+                          );
+                        })()}
+                        {provided.placeholder}
+                      </table>
+                    )}
+                  </StrictModeDroppable>
                 </div>
-              );
-            })()}
-          </DragDropContext>
-
-
+              </div>
+            );
+          })()}
+        </DragDropContext>
       </div>
 
       {/* OFFCANVAS TASK DETAILS DRAWER */}
@@ -7333,39 +8098,47 @@ const ProjectTaskBoard = ({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-[#111111] h-full shadow-2xl flex flex-col z-10 border-l border-slate-100 dark:border-white/5"
+              className="relative w-full max-w-2xl lg:max-w-3xl xl:max-w-[780px] bg-white dark:bg-[#12131c] h-full shadow-2xl flex flex-col z-10 border-l border-slate-200 dark:border-white/10"
             >
               {/* Drawer Header */}
-              <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-[#1a1a1a]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#3b82f6]/10 border border-blue-100 dark:border-[#3b82f6]/20 flex items-center justify-center text-blue-600 dark:text-[#3b82f6] shadow-sm shrink-0">
+              <div className="p-5 px-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50/80 dark:bg-[#161826]/90 backdrop-blur-sm shrink-0">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm shrink-0">
                     <FiBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100  tracking-wider">
-                      Task Workspace Preview
-                    </h2>
-                    <p className="text-[10px] text-slate-400 font-bold  tracking-wider mt-0.5">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 tracking-wide">
+                        Task Workspace Preview
+                      </h2>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-500/30">
+                        {selectedTask.status || "Not Started"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-400 font-medium tracking-wide mt-0.5">
                       Real-time Editing & Details
                     </p>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setSelectedTaskId(null)}
-                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-colors"
+                  className="w-8 h-8 rounded-xl hover:bg-slate-200/60 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer"
+                  title="Close Preview"
                 >
                   <FiX size={18} />
                 </button>
               </div>
 
               {/* Drawer Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                 {/* Title Section (Autosaves on blur/enter) */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400  tracking-wider">
-                    Task Title
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 flex items-center gap-1.5">
+                    <FiFileText size={12} className="text-indigo-500 dark:text-indigo-400" />
+                    <span>Task Title</span>
                   </label>
-                  <div className="p-3 bg-slate-50 dark:bg-[#0a0a0a]/50 border border-slate-150 dark:border-white/10 rounded-xl focus-within:bg-white dark:focus-within:bg-[#111111] focus-within:ring-1 focus-within:ring-blue-500 dark:focus-within:ring-[#3b82f6] transition-all">
+                  <div className="p-3 bg-slate-50/90 dark:bg-[#181a28] border border-slate-200 dark:border-white/10 rounded-xl focus-within:bg-white dark:focus-within:bg-[#141522] focus-within:ring-2 focus-within:ring-indigo-500/30 dark:focus-within:ring-indigo-500/30 focus-within:border-indigo-500 transition-all shadow-2xs">
                     <TaskTitleInput
                       task={selectedTask}
                       canToggle={
@@ -7382,14 +8155,14 @@ const ProjectTaskBoard = ({
                 </div>
 
                 {/* Metadata Fields Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/50 dark:bg-[#0a0a0a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/70 dark:bg-[#161826]/70 p-5 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-2xs">
                   {/* Status Selection */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiTag size={12} /> Status
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1.5">
+                      <FiTag size={12} className="text-indigo-500" /> Status
                     </label>
                     {selectedTask.status === "Completed" ? (
-                      <div className="w-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                      <div className="w-full h-10 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 rounded-xl px-3 text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         Completed
                       </div>
@@ -7401,81 +8174,155 @@ const ProjectTaskBoard = ({
                             status: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
+                        className="w-full h-10 bg-white dark:bg-[#181a28] border border-slate-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 shadow-2xs"
                       >
-                        {selectedTask.contentType === "MOM" ? (
-                            <>
-                              <option value="Not Started" className="dark:bg-slate-950 dark:text-slate-200">Not Started</option>
-                              {["In Progress", "On Hold", "In Review", "Correction"].includes(selectedTask.status) && (
-                                <option value={selectedTask.status} className="dark:bg-slate-950 dark:text-slate-200">{selectedTask.status}</option>
-                              )}
-                              <option value="Completed" className="dark:bg-slate-950 dark:text-slate-200">Completed</option>
-                            </>
-                          ) : (
-                            <>
-                              <option value="Not Started" className="dark:bg-slate-950 dark:text-slate-200">Not Started</option>
-                              {["In Progress", "On Hold", "In Review"].includes(selectedTask.status) && (
-                                <option value={selectedTask.status} className="dark:bg-slate-950 dark:text-slate-200">{selectedTask.status}</option>
-                              )}
-                              <option value="Correction" className="dark:bg-slate-950 dark:text-slate-200">Correction</option>
-                              <option value="Completed" className="dark:bg-slate-950 dark:text-slate-200">Completed</option>
-                              <option value="Rejected" className="dark:bg-slate-950 dark:text-slate-200">Rejected</option>
-                            </>
-                          )}
+                        <option
+                          value="Not Started"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Not Started
+                        </option>
+                        {["In Progress", "On Hold", "In Review"].includes(
+                          selectedTask.status,
+                        ) && (
+                          <option
+                            value={selectedTask.status}
+                            className="dark:bg-slate-950 dark:text-slate-200"
+                          >
+                            {selectedTask.status}
+                          </option>
+                        )}
+                        <option
+                          value="Correction"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Correction
+                        </option>
+                        <option
+                          value="Completed"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Completed
+                        </option>
+                        <option
+                          value="Rejected"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Rejected
+                        </option>
                       </select>
                     ) : (
-                      <div
-                        className={`badge-span ${
-                          selectedTask.status === "Completed"
-                            ? "badge-status-completed"
-                            : selectedTask.status === "In Progress"
-                              ? "badge-status-in-progress"
-                              : selectedTask.status === "IN-REVIEW" ||
-                                  selectedTask.status === "In Review" ||
-                                  selectedTask.status === "IN-Review"
-                                ? "badge-status-in-review"
-                                : selectedTask.status === "On Hold"
-                                  ? "badge-status-on-hold"
-                                  : selectedTask.status === "Rejected"
-                                    ? "badge-status-rejected"
-                                    : "badge-status-not-started"
-                        }`}
+                      <div className="w-full h-10 flex items-center px-3 bg-white dark:bg-[#181a28] border border-slate-200 dark:border-white/10 rounded-xl">
+                        <div
+                          className={`badge-span ${
+                            selectedTask.status === "Completed"
+                              ? "badge-status-completed"
+                              : selectedTask.status === "In Progress"
+                                ? "badge-status-in-progress"
+                                : selectedTask.status === "IN-REVIEW" ||
+                                    selectedTask.status === "In Review" ||
+                                    selectedTask.status === "IN-Review"
+                                  ? "badge-status-in-review"
+                                  : selectedTask.status === "On Hold"
+                                    ? "badge-status-on-hold"
+                                    : selectedTask.status === "Rejected"
+                                      ? "badge-status-rejected"
+                                      : "badge-status-not-started"
+                          }`}
+                        >
+                          {selectedTask.status === "IN-REVIEW" ||
+                          selectedTask.status === "In Review" ||
+                          selectedTask.status === "IN-Review"
+                            ? "In Review"
+                            : selectedTask.status || "Not Started"}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Priority Selection */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1.5">
+                      <FiClock size={12} className="text-amber-500" /> Priority
+                    </label>
+                    {isSameDate(
+                      selectedTask.startDate,
+                      selectedTask.dueDate,
+                    ) ? (
+                      <div className="w-full h-10 flex items-center px-3 bg-white dark:bg-[#181a28] border border-slate-200 dark:border-white/10 rounded-xl">
+                        <span className="badge-span badge-priority-top-high">
+                          🔴 Top High
+                        </span>
+                      </div>
+                    ) : isAdminOrManager ? (
+                      <select
+                        value={selectedTask.priority || "Medium"}
+                        onChange={(e) =>
+                          handleTaskFieldChange(selectedTask._id, {
+                            priority: e.target.value,
+                          })
+                        }
+                        className="w-full h-10 bg-white dark:bg-[#181a28] border border-slate-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 shadow-2xs"
                       >
-                        {selectedTask.status === "IN-REVIEW" ||
-                        selectedTask.status === "In Review" ||
-                        selectedTask.status === "IN-Review"
-                          ? "In Review"
-                          : selectedTask.status || "Not Started"}
+                        <option
+                          value="Low"
+                          className="dark:bg-[#111] dark:text-slate-200"
+                        >
+                          Low
+                        </option>
+                        <option
+                          value="Medium"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Medium
+                        </option>
+                        <option
+                          value="High"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          High
+                        </option>
+                        <option
+                          value="Top High"
+                          className="dark:bg-red-950 dark:text-slate-200"
+                        >
+                          Top High
+                        </option>
+                      </select>
+                    ) : (
+                      <div className="w-full h-10 flex items-center px-3 bg-white dark:bg-[#181a28] border border-slate-200 dark:border-white/10 rounded-xl">
+                        <div
+                          className={`px-2.5 py-1 border rounded-lg text-xs font-semibold w-fit ${
+                            selectedTask.priority === "Top High"
+                              ? "bg-red-50 text-red-650 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/40"
+                              : selectedTask.priority === "High"
+                                ? "bg-rose-500/10 text-rose-700 border-rose-200/50"
+                                : selectedTask.priority === "Medium"
+                                  ? "bg-amber-500/10 text-amber-700 border-amber-200/50"
+                                  : "bg-slate-50 text-slate-600 border-slate-200"
+                          }`}
+                        >
+                          {selectedTask.priority || "Medium"}
+                        </div>
                       </div>
                     )}
                   </div>
 
                   {/* Assignee Selection */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiUser size={12} /> Assignee
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1.5">
+                      <FiUser size={12} className="text-blue-500" /> Assignee
                     </label>
                     <AssigneeDropdown
-                      selectedUser={
-                        selectedTask.contentType === "MOM"
-                          ? selectedTask.assignedTo ||
-                            selectedTask.createdBy?._id ||
-                            selectedTask.createdBy?.id ||
-                            selectedTask.createdBy ||
-                            currentUser?._id ||
-                            currentUser?.id
-                          : selectedTask.assignedTo
-                      }
+                      selectedUser={selectedTask.assignedTo}
                       users={users}
+                      filterDepartment={effectiveAssigneeDepartment}
                       onChange={(userId) =>
                         handleTaskFieldChange(selectedTask._id, {
                           assignedTo: userId,
                         })
                       }
                       isAdminOrManager={isAdminOrManager}
-                      disabled={selectedTask.contentType === "MOM"}
-                      isLocked={selectedTask.contentType === "MOM"}
-                      isMOM={selectedTask.contentType === "MOM"}
                       currentUser={currentUser}
                       getAvatarColor={getAvatarColor}
                       size="lg"
@@ -7483,10 +8330,10 @@ const ProjectTaskBoard = ({
                   </div>
 
                   {/* Start Date Picker */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 tracking-wider flex items-center justify-between">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
-                        <FiCalendar size={12} /> Start Date
+                        <FiCalendar size={12} className="text-emerald-500" /> Start Date
                       </span>
                       {selectedTask.startDate && (
                         <span className="text-[9px] text-amber-600 dark:text-amber-400 font-extrabold flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
@@ -7503,23 +8350,25 @@ const ProjectTaskBoard = ({
                             startDate: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
+                        className="w-full h-10 bg-white dark:bg-[#181a28] border border-slate-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 shadow-2xs"
                       />
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/80 dark:bg-blue-955/30 border border-blue-200/80 dark:border-blue-900/60 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300">
-                        <FiLock
-                          className="text-amber-500 dark:text-amber-400 shrink-0"
-                          size={13}
-                        />
-                        <span>
-                          {selectedTask.startDate
-                            ? new Date(
-                                selectedTask.startDate,
-                              ).toLocaleDateString()
-                            : "N/A"}
+                      <div className="w-full h-10 flex items-center justify-between px-3 bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/60 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300">
+                        <span className="flex items-center gap-2">
+                          <FiLock
+                            className="text-amber-500 dark:text-amber-400 shrink-0"
+                            size={13}
+                          />
+                          <span>
+                            {selectedTask.startDate
+                              ? new Date(
+                                  selectedTask.startDate,
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </span>
                         </span>
                         {selectedTask.startDate && (
-                          <span className="ml-auto text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">
                             🔒 Locked
                           </span>
                         )}
@@ -7528,10 +8377,10 @@ const ProjectTaskBoard = ({
                   </div>
 
                   {/* End Date (Due Date) Picker */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 tracking-wider flex items-center justify-between">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
-                        <FiCalendar size={12} /> End Date
+                        <FiCalendar size={12} className="text-rose-500" /> End Date
                       </span>
                       {selectedTask.dueDate && (
                         <span className="text-[9px] text-amber-600 dark:text-amber-400 font-extrabold flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
@@ -7555,23 +8404,25 @@ const ProjectTaskBoard = ({
                             dueDate: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
+                        className="w-full h-10 bg-white dark:bg-[#181a28] border border-slate-200 dark:border-white/10 rounded-xl px-3 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 shadow-2xs"
                       />
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-rose-50/80 dark:bg-rose-955/30 border border-rose-200/80 dark:border-rose-900/60 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-300">
-                        <FiLock
-                          className="text-amber-500 dark:text-amber-400 shrink-0"
-                          size={13}
-                        />
-                        <span>
-                          {selectedTask.dueDate
-                            ? new Date(
-                                selectedTask.dueDate,
-                              ).toLocaleDateString()
-                            : "N/A"}
+                      <div className="w-full h-10 flex items-center justify-between px-3 bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/60 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-300">
+                        <span className="flex items-center gap-2">
+                          <FiLock
+                            className="text-amber-500 dark:text-amber-400 shrink-0"
+                            size={13}
+                          />
+                          <span>
+                            {selectedTask.dueDate
+                              ? new Date(
+                                  selectedTask.dueDate,
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </span>
                         </span>
                         {selectedTask.dueDate && (
-                          <span className="ml-auto text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">
                             🔒 Locked
                           </span>
                         )}
@@ -7580,11 +8431,11 @@ const ProjectTaskBoard = ({
                   </div>
 
                   {/* Content Copy */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiFileText size={12} /> Content Copy
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider flex items-center gap-1.5">
+                      <FiFileText size={12} className="text-purple-500" /> Content Copy
                     </label>
-                    <div className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-1 py-0.5">
+                    <div className="flex items-center">
                       <ContentCopyInput
                         value={selectedTask.contentCopy}
                         onChange={(newVal) =>
@@ -7592,83 +8443,19 @@ const ProjectTaskBoard = ({
                             contentCopy: newVal,
                           })
                         }
+                        autoAdjustWidth={false}
+                        className="w-full h-8.5 px-3 rounded-xl bg-white dark:bg-[#181a28] border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 shadow-2xs transition-all"
                       />
                     </div>
-                  </div>
-
-                  {/* Priority Selection */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiClock size={12} /> Priority
-                    </label>
-                    {isSameDate(
-                      selectedTask.startDate,
-                      selectedTask.dueDate,
-                    ) ? (
-                      <div className="w-full pt-1">
-                        <span className="badge-span badge-priority-top-high">
-                          🔴 Top High
-                        </span>
-                      </div>
-                    ) : isAdminOrManager ? (
-                      <select
-                        value={selectedTask.priority || "Medium"}
-                        onChange={(e) =>
-                          handleTaskFieldChange(selectedTask._id, {
-                            priority: e.target.value,
-                          })
-                        }
-                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
-                      >
-                        <option
-                          value="Low"
-                          className="dark:bg-[#111] dark:text-slate-200"
-                        >
-                          Low
-                        </option>
-                        <option
-                          value="Medium"
-                          className="dark:bg-slate-955 dark:text-slate-200"
-                        >
-                          Medium
-                        </option>
-                        <option
-                          value="High"
-                          className="dark:bg-slate-955 dark:text-slate-200"
-                        >
-                          High
-                        </option>
-                        <option
-                          value="Top High"
-                          className="dark:bg-red-950 dark:text-slate-200"
-                        >
-                          Top High
-                        </option>
-                      </select>
-                    ) : (
-                      <div
-                        className={`px-3 py-2 border rounded-xl text-xs font-semibold w-fit ${
-                          selectedTask.priority === "Top High"
-                            ? "bg-red-50 text-red-650 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/40"
-                            : selectedTask.priority === "High"
-                              ? "bg-rose-550/10 text-rose-700 border-rose-200/50"
-                              : selectedTask.priority === "Medium"
-                                ? "bg-amber-550/10 text-amber-700 border-amber-200/50"
-                                : "bg-slate-50 text-slate-605 border-slate-200"
-                        }`}
-                      >
-                        {selectedTask.priority || "Medium"}
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 {/* Rejection History Display */}
                 {selectedTask.rejectionHistory &&
                   selectedTask.rejectionHistory.length > 0 && (
-                    <div className="bg-rose-50/50 dark:bg-rose-500/[0.02] border border-rose-100 dark:border-rose-500/10 rounded-2xl p-4 space-y-3">
+                    <div className="bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-900/40 rounded-2xl p-4.5 space-y-3 shadow-2xs">
                       <h3 className="text-xs font-bold text-rose-800 dark:text-rose-400 flex items-center gap-2">
-                        <FiAlertTriangle size={14} /> Rejection History
+                        <FiAlertTriangle size={15} /> Rejection History
                       </h3>
                       <div className="flex flex-col gap-2.5">
                         {selectedTask.rejectionHistory
@@ -7687,14 +8474,14 @@ const ProjectTaskBoard = ({
                             return (
                               <div
                                 key={idx}
-                                className="bg-white dark:bg-[#111111] border border-rose-100/50 dark:border-rose-500/10 rounded-xl p-3"
+                                className="bg-white dark:bg-[#181a28] border border-rose-100 dark:border-rose-900/30 rounded-xl p-3 shadow-2xs"
                               >
-                                <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                                <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                                   "{item.reason}"
                                 </p>
-                                <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                                  <span className="flex items-center gap-1.5">
-                                    <FiUser size={10} />
+                                <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                  <span className="flex items-center gap-1.5 font-bold text-slate-600 dark:text-slate-300">
+                                    <FiUser size={11} className="text-rose-500" />
                                     {userName}
                                   </span>
                                   <span>
@@ -7717,19 +8504,19 @@ const ProjectTaskBoard = ({
                   )}
 
                 {/* Metrics Showcase (Revisions & Time Tracker) */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Approval Info Card */}
-                  <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-900/20 border border-blue-100/50 dark:border-blue-500/10 rounded-2xl p-4 group transition-all hover:shadow-lg hover:shadow-blue-500/5">
+                  <div className="relative overflow-hidden bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-950/25 dark:to-indigo-950/25 border border-blue-100 dark:border-blue-900/40 rounded-2xl p-4.5 group transition-all hover:shadow-lg hover:shadow-blue-500/5 shadow-2xs">
                     <div className="absolute -right-4 -top-4 w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500 blur-xl" />
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#111] shadow-sm flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <div className="flex items-center gap-3 mb-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#141522] shadow-sm flex items-center justify-center text-blue-600 dark:text-blue-400">
                         <FiClock size={16} />
                       </div>
-                      <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300">
                         Approval Info
                       </h3>
                     </div>
-                    <div className="relative z-10 flex flex-col gap-2.5 text-[10px] mt-2.5">
+                    <div className="relative z-10 flex flex-col gap-2.5 text-[10px] mt-2">
                       {(() => {
                         const drawerEffectiveReviewStart =
                           selectedTask.reviewStartedAt ||
@@ -7772,7 +8559,7 @@ const ProjectTaskBoard = ({
                             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
                               Review Start
                             </span>
-                            <span className="font-semibold text-slate-400 dark:text-slate-550">
+                            <span className="font-semibold text-slate-400 dark:text-slate-500">
                               Not started
                             </span>
                           </div>
@@ -7781,7 +8568,7 @@ const ProjectTaskBoard = ({
 
                       {selectedTask.completedAt ? (
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-[8px] font-black text-emerald-500 dark:text-emerald-450 uppercase tracking-widest">
+                          <span className="text-[8px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-widest">
                             Completed At
                           </span>
                           <span className="font-bold text-slate-700 dark:text-slate-200">
@@ -7806,7 +8593,7 @@ const ProjectTaskBoard = ({
                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
                             Completed At
                           </span>
-                          <span className="font-semibold text-slate-400 dark:text-slate-550">
+                          <span className="font-semibold text-slate-400 dark:text-slate-500">
                             Not Started
                           </span>
                         </div>
@@ -7815,13 +8602,13 @@ const ProjectTaskBoard = ({
                   </div>
 
                   {/* Total Productivity Card */}
-                  <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-900/20 border border-emerald-100/50 dark:border-emerald-500/10 rounded-2xl p-5 group transition-all hover:shadow-lg hover:shadow-emerald-500/5">
+                  <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50/80 to-teal-50/80 dark:from-emerald-950/25 dark:to-teal-950/25 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl p-4.5 group transition-all hover:shadow-lg hover:shadow-emerald-500/5 shadow-2xs">
                     <div className="absolute -right-4 -top-4 w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500 blur-xl" />
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#111] shadow-sm flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <div className="flex items-center gap-3 mb-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#141522] shadow-sm flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                         <FiActivity size={16} />
                       </div>
-                      <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300">
                         Total Productivity
                       </h3>
                     </div>
@@ -7873,90 +8660,153 @@ const ProjectTaskBoard = ({
                             <span className="text-xl font-black tracking-tight text-emerald-500 dark:text-emerald-400">
                               {s}
                             </span>
-                            <span className="text-xs font-bold text-emerald-400">
+                            <span className="text-xs font-bold text-emerald-500 dark:text-emerald-400">
                               s
                             </span>
                             {isActive && (
-                              <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0 self-center" />
+                              <span className="ml-1.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0 self-center" />
                             )}
                           </div>
                         );
                       })()}
                     </div>
                   </div>
+                </div>
 
-                  {/* Time Log */}
-                  <div className="pt-4 border-t border-slate-100 dark:border-white/5 mt-4">
-                    <div className="flex items-center gap-2.5 mb-2 pb-1.5 border-b border-slate-100 dark:border-white/5">
-                      <FiClock size={16} className="text-slate-400" />
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                {/* Time Log Section - Full Width, Beautifully Aligned */}
+                <div className="bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4.5 shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400">
+                        <FiClock size={14} />
+                      </div>
+                      <h3 className="text-xs font-bold text-slate-800 dark:text-slate-100">
                         Time Log
                       </h3>
                     </div>
-                    {(!selectedTask.statusHistory || selectedTask.statusHistory.length === 0) ? (
-                      <p className="text-xs text-slate-500 italic">No time logs yet.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-[10px] text-left">
-                          <thead>
-                            <tr className="text-slate-500 font-semibold border-b border-slate-100 dark:border-white/5">
-                              <th className="py-1">Date</th>
-                              <th className="py-1">User</th>
-                              <th className="py-1">Status</th>
-                              <th className="py-1 text-right">Duration</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedTask.statusHistory.slice().reverse().map((h, i) => {
-                              const date = h.date || (h.startTime ? new Date(h.startTime).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "-");
-                              const user = h.user?.name || h.user?.firstName || "Unknown";
+                    {selectedTask.statusHistory &&
+                      selectedTask.statusHistory.length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
+                          {selectedTask.statusHistory.length} logs
+                        </span>
+                      )}
+                  </div>
+                  {!selectedTask.statusHistory ||
+                  selectedTask.statusHistory.length === 0 ? (
+                    <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">
+                      No time logs yet.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-[11px] text-left border-collapse">
+                        <thead>
+                          <tr className="text-slate-400 dark:text-slate-500 font-bold border-b border-slate-100 dark:border-white/5 text-[10px] uppercase tracking-wider">
+                            <th className="py-1.5 px-2">Date</th>
+                            <th className="py-1.5 px-2">User</th>
+                            <th className="py-1.5 px-2">Status</th>
+                            <th className="py-1.5 px-2 text-right">Duration</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                          {selectedTask.statusHistory
+                            .slice()
+                            .reverse()
+                            .map((h, i) => {
+                              const date =
+                                h.date ||
+                                (h.startTime
+                                  ? new Date(h.startTime).toLocaleDateString(
+                                      "en-US",
+                                      { month: "short", day: "numeric" },
+                                    )
+                                  : "-");
+                              const user =
+                                h.user?.name ||
+                                h.user?.firstName ||
+                                "Unknown";
                               const status = h.status;
                               let dur = h.duration || 0;
                               if (dur === 0 && h.startTime && h.endTime) {
-                                dur = new Date(h.endTime).getTime() - new Date(h.startTime).getTime();
+                                dur =
+                                  new Date(h.endTime).getTime() -
+                                  new Date(h.startTime).getTime();
                               }
-                              if (dur === 0 && !h.endTime && h.startTime && (h.status === "In Progress" || h.status === "On Hold" || h.status === "Correction")) {
-                                const endMs = selectedTask.pausedAt ? new Date(selectedTask.pausedAt).getTime() : Date.now();
-                                dur = Math.max(0, endMs - new Date(h.startTime).getTime());
+                              if (
+                                dur === 0 &&
+                                !h.endTime &&
+                                h.startTime &&
+                                (h.status === "In Progress" ||
+                                  h.status === "On Hold" ||
+                                  h.status === "Correction")
+                              ) {
+                                const endMs = selectedTask.pausedAt
+                                  ? new Date(selectedTask.pausedAt).getTime()
+                                  : Date.now();
+                                dur = Math.max(
+                                  0,
+                                  endMs - new Date(h.startTime).getTime(),
+                                );
                               }
                               return (
-                                <tr key={i} className="border-b border-slate-50 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5">
-                                  <td className="py-1.5 font-medium text-slate-600 dark:text-slate-300">{date}</td>
-                                  <td className="py-1.5 text-slate-600 dark:text-slate-400">{user}</td>
-                                  <td className="py-1.5">
-                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                      status === "In Progress" ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400" :
-                                      status === "On Hold" ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400" :
-                                      status === "Correction" ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" :
-                                      "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300"
-                                    }`}>{status}</span>
+                                <tr
+                                  key={i}
+                                  className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors"
+                                >
+                                  <td className="py-2 px-2 font-medium text-slate-600 dark:text-slate-300">
+                                    {date}
                                   </td>
-                                  <td className="py-1.5 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
-                                    {dur > 0 ? formatShortDuration(dur) : "0s"}
-                                    {!h.endTime && <span className="ml-1 text-emerald-500 animate-pulse">●</span>}
+                                  <td className="py-2 px-2 text-slate-600 dark:text-slate-400">
+                                    {user}
+                                  </td>
+                                  <td className="py-2 px-2">
+                                    <span
+                                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                        status === "In Progress"
+                                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                                          : status === "On Hold"
+                                            ? "bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
+                                            : status === "Correction"
+                                              ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+                                              : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300"
+                                      }`}
+                                    >
+                                      {status}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 px-2 text-right font-mono font-bold text-slate-700 dark:text-slate-200">
+                                    {dur > 0
+                                      ? formatShortDuration(dur)
+                                      : "0s"}
+                                    {!h.endTime && (
+                                      <span className="ml-1 text-emerald-500 animate-pulse">
+                                        ●
+                                      </span>
+                                    )}
                                   </td>
                                 </tr>
                               );
                             })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
                 {/* ── Asana-style Subtask Workspace ── */}
                 <div
                   id="drawer-subtasks-section"
-                  className="pt-4 border-t border-slate-100 dark:border-white/5"
+                  className="bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4.5 shadow-2xs space-y-3.5"
                 >
                   {/* Header */}
-                  <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100 dark:border-white/5">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
                     <div className="flex items-center gap-2.5">
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                        <FiCheckSquare size={14} />
+                      </div>
+                      <h3 className="text-xs font-bold text-slate-800 dark:text-slate-100">
                         Subtasks
                       </h3>
-                      <span className="px-2 py-2 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
                         {
                           (selectedTask.subtasks || []).filter(
                             (s) => s.status === "Completed",
@@ -7964,8 +8814,12 @@ const ProjectTaskBoard = ({
                         }
                         /{selectedTask.subtasks?.length || 0}
                       </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
                       {isAdminOrManager && (
                         <button
+                          type="button"
                           onClick={async () => {
                             const updatedSubtasks = [
                               ...(selectedTask.subtasks || []),
@@ -7990,47 +8844,48 @@ const ProjectTaskBoard = ({
                               console.error("Failed to add subtask:", err);
                             }
                           }}
-                          className="p-1 hover:bg-slate-150 dark:hover:bg-white/5 rounded text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
+                          className="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer flex items-center gap-1"
                           title="Add subtask"
                         >
-                          <FiPlus size={16} />
+                          <FiPlus size={13} />
+                          <span>Add Subtask</span>
                         </button>
                       )}
+                      <button 
+                        type="button"
+                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                        title="Filter / View"
+                      >
+                        <FiSliders size={13} />
+                      </button>
                     </div>
-                    <button className="p-1 hover:bg-slate-100 dark:hover:bg-white/5 rounded text-slate-400 hover:text-slate-655 dark:text-slate-500 dark:hover:text-slate-350 transition-colors">
-                      <FiSliders size={14} />
-                    </button>
                   </div>
 
                   {/* Subtask rows — Asana style */}
-                  <div className="rounded-xl border border-slate-150 dark:border-white/10 overflow-hidden bg-white dark:bg-[#0b0b0b] divide-y divide-slate-100/80 dark:divide-white/5 shadow-md shadow-slate-100 dark:shadow-none">
+                  <div className="rounded-xl border border-slate-200/80 dark:border-white/10 overflow-hidden bg-slate-50/50 dark:bg-[#111320] divide-y divide-slate-100 dark:divide-white/5 shadow-2xs">
                     {/* Empty state */}
                     {(!selectedTask.subtasks ||
                       selectedTask.subtasks.length === 0) && (
-                      <div className="flex flex-col items-center gap-2 py-8 text-slate-450 dark:text-slate-550">
-                        <FiCornerDownRight size={22} strokeWidth={1.5} />
-                        <span className="text-[11px] font-semibold">
+                      <div className="flex flex-col items-center gap-2 py-8 text-slate-400 dark:text-slate-500">
+                        <FiCornerDownRight size={20} strokeWidth={1.5} />
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                           No subtasks yet
                         </span>
-                        <span className="text-[10px] opacity-70">
-                          Add a subtask below to break this task down
+                        <span className="text-[11px] opacity-75">
+                          Add a subtask to break this work down into smaller steps
                         </span>
                       </div>
                     )}
 
                     {/* Subtask rows */}
                     {(selectedTask.subtasks || []).map((sub, subIdx) => {
-                      const isSubDone = sub.status === "Completed";
-                      const canEdit =
-                        isAdminOrManager ||
-                        sub.assignedTo?._id === currentUser?._id ||
-                        sub.assignedTo === currentUser?._id;
                       return (
                         <SubtaskRow
                           key={sub._id || subIdx}
                           sub={sub}
                           task={selectedTask}
                           users={users}
+                          filterDepartment={effectiveAssigneeDepartment}
                           getAvatarColor={getAvatarColor}
                           handleSubtaskFieldChange={handleSubtaskFieldChange}
                           handleDeleteSubtask={handleDeleteSubtask}
@@ -8049,6 +8904,7 @@ const ProjectTaskBoard = ({
                     {/* Add Subtask trigger button at bottom */}
                     {isAdminOrManager && (
                       <button
+                        type="button"
                         onClick={async () => {
                           const updatedSubtasks = [
                             ...(selectedTask.subtasks || []),
@@ -8073,9 +8929,9 @@ const ProjectTaskBoard = ({
                             console.error("Failed to add subtask:", err);
                           }
                         }}
-                        className="w-full text-left px-3.5 py-2 text-[11px] font-bold text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#3b82f6] hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-all flex items-center gap-1.5 cursor-pointer border-t border-slate-100 dark:border-white/5"
+                        className="w-full text-left px-3.5 py-2.5 text-xs font-bold text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-white/[0.03] transition-all flex items-center gap-2 cursor-pointer border-t border-slate-100 dark:border-white/5"
                       >
-                        <FiPlus size={12} />
+                        <FiPlus size={13} />
                         Add subtask
                       </button>
                     )}

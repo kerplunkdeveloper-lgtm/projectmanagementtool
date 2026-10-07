@@ -350,6 +350,17 @@ const Navbar = ({ setSidebarOpen, presence }) => {
     if (path.includes("clients")) return "Clients Management";
     if (path.includes("portfolio")) return "Portfolio Groups";
 
+    if (path.includes("designer-tasks") || path.includes("designer-task")) {
+      return "Designer Tasks";
+    }
+
+    if (
+      path.includes("cinematographer-tasks") ||
+      path.includes("cinematographer-task")
+    ) {
+      return "Cinematographer Tasks";
+    }
+
     if (path.includes("projects")) {
       const searchParams = new URLSearchParams(location.search);
       return searchParams.get("id")
@@ -422,6 +433,18 @@ const Navbar = ({ setSidebarOpen, presence }) => {
         category: "Navigation",
         title: "Go to Projects",
         path: `/${user?.role}/projects`,
+      },
+      {
+        id: "nav-designer-tasks",
+        category: "Navigation",
+        title: "Go to Designer Tasks",
+        path: `/${user?.role}/designer-tasks`,
+      },
+      {
+        id: "nav-cinematographer-tasks",
+        category: "Navigation",
+        title: "Go to Cinematographer Tasks",
+        path: `/${user?.role}/cinematographer-tasks`,
       },
       {
         id: "nav-tasks",
@@ -880,23 +903,29 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                               >
                                 {/* Sender Profile Avatar or Notification Icon */}
                                 <div className="relative shrink-0">
-                                  {n.sender?.profile?.profileImage?.url ? (
-                                    <img
-                                      src={n.sender.profile.profileImage.url}
-                                      alt={n.sender.name || "User"}
-                                      className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/20 shadow-sm"
-                                    />
-                                  ) : n.sender?.name ? (
-                                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
-                                      {n.sender.name.charAt(0).toUpperCase()}
-                                    </div>
-                                  ) : (
-                                    <div
-                                      className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}
-                                    >
-                                      <Icon size={14} />
-                                    </div>
-                                  )}
+                                  <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-indigo-500/20 shadow-sm">
+                                    {n.sender?.name ? (
+                                      <div className="w-full h-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
+                                        {n.sender.name.charAt(0).toUpperCase()}
+                                      </div>
+                                    ) : (
+                                      <div
+                                        className={`w-full h-full flex items-center justify-center shadow-sm ${details.bgColor}`}
+                                      >
+                                        <Icon size={14} />
+                                      </div>
+                                    )}
+                                    {n.sender?.profile?.profileImage?.url && (
+                                      <img
+                                        src={n.sender.profile.profileImage.url}
+                                        alt={n.sender.name || "User"}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = "none";
+                                        }}
+                                      />
+                                    )}
+                                  </div>
 
                                   {/* Floating type badge overlay if sender avatar exists */}
                                   {(n.sender?.profile?.profileImage?.url || n.sender?.name) && (
@@ -1039,17 +1068,21 @@ const Navbar = ({ setSidebarOpen, presence }) => {
             "
           >
             <div className="relative shrink-0">
-              {profile?.profileImage?.url ? (
-                <img
-                  src={profile.profileImage.url}
-                  alt="profile"
-                  className="w-7 h-7 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-full theme-bg-accent flex items-center justify-center text-white dark:text-black">
+              <div className="relative w-7 h-7 rounded-full overflow-hidden">
+                <div className="w-full h-full theme-bg-accent flex items-center justify-center text-white dark:text-black">
                   <FiUser size={13} />
                 </div>
-              )}
+                {profile?.profileImage?.url && (
+                  <img
+                    src={profile.profileImage.url}
+                    alt="profile"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                )}
+              </div>
               {/* Online status indicator dot */}
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 animate-pulse" />
             </div>

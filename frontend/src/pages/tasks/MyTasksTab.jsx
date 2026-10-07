@@ -1812,8 +1812,7 @@ const MyTasksTab = ({
       if (
         currentTaskObj &&
         !currentTaskObj.actualStartTime &&
-        !currentTaskObj.totalTrackedTime &&
-        currentTaskObj.contentType !== "MOM"
+        !currentTaskObj.totalTrackedTime
       ) {
         showStartInProgressWarning("hold");
         return;
@@ -1987,8 +1986,7 @@ const MyTasksTab = ({
       if (
         currentTaskObj &&
         !currentTaskObj.actualStartTime &&
-        !currentTaskObj.totalTrackedTime &&
-        currentTaskObj.contentType !== "MOM"
+        !currentTaskObj.totalTrackedTime
       ) {
         showStartInProgressWarning("hold");
         return;
@@ -3292,7 +3290,7 @@ const MyTasksTab = ({
                         label="Content Copy"
                         colWidths={colWidths}
                         handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[220px] max-w-[340px] w-[260px] whitespace-nowrap"
                       />
                     )}
                     {!hiddenColumns.client && (
@@ -3517,7 +3515,7 @@ const MyTasksTab = ({
                                 className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
+                                <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[320px]">
                                   {task.contentCopy ? (
                                     <>
                                       <span>{task.contentCopy}</span>
@@ -3873,17 +3871,21 @@ const MyTasksTab = ({
 
                                     return (
                                       <>
-                                        {profilePic ? (
-                                          <img
-                                            src={profilePic}
-                                            alt={name}
-                                            className="w-6 h-6 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm"
-                                          />
-                                        ) : (
-                                          <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-500 shrink-0 shadow-sm">
+                                        <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm">
+                                          <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500">
                                             {name.charAt(0).toUpperCase()}
                                           </div>
-                                        )}
+                                          {profilePic && (
+                                            <img
+                                              src={profilePic}
+                                              alt={name}
+                                              className="absolute inset-0 w-full h-full object-cover"
+                                              onError={(e) => {
+                                                e.currentTarget.style.display = "none";
+                                              }}
+                                            />
+                                          )}
+                                        </div>
                                         <div className="flex flex-col">
                                           <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200">
                                             {name}
@@ -4383,20 +4385,6 @@ const MyTasksTab = ({
                         </span>
                       </span>
                     </div>
-
-                    {selectedTask.contentType === "MOM" && (
-                      <div className="space-y-1 col-span-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
-                          Feedback MOM
-                        </span>
-                        <MomFeedbackInput
-                          task={selectedTask}
-                          onSave={(id, fields) =>
-                            handleTaskFieldChange(id, fields)
-                          }
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
 

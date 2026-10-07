@@ -8,6 +8,7 @@ import { apiSlice } from "../features/api/apiSlice";
 import { incrementUnreadCount } from "../features/chat/chatSlice";
 import toast from "react-hot-toast";
 import { FiBell, FiX } from "react-icons/fi";
+import { useSocketContext } from "../context/SocketContext";
 
 import { playNotificationSound } from "../utils/sound";
 
@@ -75,21 +76,32 @@ const getSocketUrl = () => {
   return baseUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
 };
 
-const useSocket = (externalSocket = null) => {
+const useSocket = (externalSocket) => {
   const socket = useRef();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const userId = user?._id || user?.id;
+  const userRole = user?.role;
+  const socketContext = useSocketContext?.();
+
+  // If externalSocket was passed explicitly (even if null while waiting), prioritize it.
+  // Otherwise, fallback to the socket from SocketContext.
+  const activeSocket = externalSocket !== undefined ? externalSocket : socketContext?.socket;
+  const isExternal = externalSocket !== undefined || Boolean(socketContext);
 
   useEffect(() => {
-    const userId = user?._id || user?.id;
-    if (user && userId) {
-      const isExternal = Boolean(externalSocket);
-      if (isExternal) {
-        socket.current = externalSocket;
-      } else {
+    if (userId) {
+      // If an external/shared socket is expected but still connecting, wait for it
+      if (isExternal && !activeSocket) {
+        return;
+      }
+
+      let socketInstance = activeSocket;
+
+      if (!isExternal) {
         const socketUrl = getSocketUrl();
-        socket.current = io(socketUrl, {
+        socketInstance = io(socketUrl, {
           transports: ["websocket", "polling"],
           withCredentials: true,
           reconnection: true,
@@ -97,14 +109,13 @@ const useSocket = (externalSocket = null) => {
           reconnectionDelay: 1000,
         });
 
-        socket.current.on("connect", () => {
-          socket.current.emit("join", userId.toString());
+        socketInstance.on("connect", () => {
+          socketInstance.emit("join", userId.toString());
         });
       }
 
-      if (!socket.current) return;
-
-      const currentSocket = socket.current;
+      socket.current = socketInstance;
+      if (!socketInstance) return;
 
       const handleTaskUpdated = () => {
         dispatch(apiSlice.util.invalidateTags(["Task"]));
@@ -124,10 +135,7 @@ const useSocket = (externalSocket = null) => {
         window.location.href = "/";
       };
 
-      currentSocket.on("task_updated", handleTaskUpdated);
-      currentSocket.on("account_deactivated", handleAccountDeactivated);
-
-      socket.current.on("notification", (notification) => {
+      const handleNotification = (notification) => {
         // Play premium audio chime
         playNotificationSound();
 
@@ -349,17 +357,26 @@ const useSocket = (externalSocket = null) => {
             },
           );
         }
-      });
+      };
+
+      socketInstance.on("task_updated", handleTaskUpdated);
+      socketInstance.on("account_deactivated", handleAccountDeactivated);
+      socketInstance.on("notification", handleNotification);
 
       return () => {
-        if (!isExternal && socket.current) {
-          socket.current.disconnect();
+        if (socketInstance) {
+          socketInstance.off("task_updated", handleTaskUpdated);
+          socketInstance.off("account_deactivated", handleAccountDeactivated);
+          socketInstance.off("notification", handleNotification);
+          if (!isExternal) {
+            socketInstance.disconnect();
+          }
         }
       };
     }
-  }, [user, dispatch, externalSocket]);
+  }, [userId, userRole, dispatch, navigate, activeSocket, isExternal]);
 
-  return socket.current;
+  return socket.current || activeSocket;
 };
 
 export default useSocket;

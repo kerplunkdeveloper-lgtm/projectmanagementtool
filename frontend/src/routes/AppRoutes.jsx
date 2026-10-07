@@ -33,6 +33,12 @@ const DashboardLayout = lazyWithRetry(
 );
 import Dashboardmain from "../pages/Dashboard/Dashboardmain.jsx";
 const Project = lazyWithRetry(() => import("../pages/projects/Project.jsx"));
+const DesignerTasks = lazyWithRetry(
+  () => import("../pages/projects/DesignerTasks.jsx"),
+);
+const CinematographerTasks = lazyWithRetry(
+  () => import("../pages/projects/CinematographerTasks.jsx"),
+);
 const AdminUsers = lazyWithRetry(() => import("../pages/admin/AdminUsers.jsx"));
 const PartnerHub = lazyWithRetry(
   () => import("../pages/admin/partnerhub/PartnerHub.jsx"),
@@ -91,6 +97,8 @@ const EventCalendar = lazyWithRetry(
 export const routePreloaders = {
   dashboard: () => import("../pages/Dashboard/Dashboardmain.jsx"),
   projects: () => import("../pages/projects/Project.jsx"),
+  designerTasks: () => import("../pages/projects/DesignerTasks.jsx"),
+  cinematographerTasks: () => import("../pages/projects/CinematographerTasks.jsx"),
   clients: () => import("../pages/admin/clients/Clients.jsx"),
   users: () => import("../pages/admin/AdminUsers.jsx"),
   tasks: () => import("../pages/tasks/Task.jsx"),
@@ -114,6 +122,8 @@ export const preloadRoute = (path) => {
   if (!path) return;
   const p = path.toLowerCase();
   if (p.endsWith("/projects")) routePreloaders.projects?.();
+  else if (p.endsWith("/designer-tasks")) routePreloaders.designerTasks?.();
+  else if (p.endsWith("/cinematographer-tasks")) routePreloaders.cinematographerTasks?.();
   else if (p.endsWith("/clients")) routePreloaders.clients?.();
   else if (p.endsWith("/users")) routePreloaders.users?.();
   else if (p.endsWith("/tasks")) routePreloaders.tasks?.();
@@ -292,6 +302,24 @@ const AppRoutes = () => {
           />
 
           <Route
+            path="designer-tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <DesignerTasks />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="cinematographer-tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <CinematographerTasks />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="tasks"
             element={
               <ProtectedRoute requiredPermission="manage_tasks">
@@ -411,6 +439,24 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requiredPermission="manage_projects">
                 <Project />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="designer-tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <DesignerTasks />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="cinematographer-tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <CinematographerTasks />
               </ProtectedRoute>
             }
           />
@@ -545,6 +591,24 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requiredPermission="manage_projects">
                 <Project />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="designer-tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <DesignerTasks />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="cinematographer-tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <CinematographerTasks />
               </ProtectedRoute>
             }
           />

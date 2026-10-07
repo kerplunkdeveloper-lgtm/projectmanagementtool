@@ -88,12 +88,12 @@ export const apiSlice = createApi({
         if (!params || Object.keys(params).length === 0) return "/tasks";
         const queryParams = new URLSearchParams();
         if (params.active_only) queryParams.append('active_only', params.active_only);
-        if (params.project) queryParams.append('project', params.project);
+        if (params.project && params.project !== "all") queryParams.append('project', params.project);
         if (params.department) queryParams.append('department', params.department);
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],
-      keepUnusedDataFor: 30, // 30 sec (was: 300 = 5 minutes stale data!)
+      keepUnusedDataFor: 120, // 2 minutes cache for snappy navigation
       transformResponse: (response) => response.data,
     }),
     createTask: builder.mutation({

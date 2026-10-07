@@ -12,6 +12,8 @@ import {
   LuPhoneCall,
   LuCalendarDays,
   LuCalendarCheck,
+  LuPalette,
+  LuVideo,
 } from "react-icons/lu";
 import { TbPencilHeart } from "react-icons/tb";
 import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings, FiFileText, FiKey } from "react-icons/fi";
@@ -30,6 +32,8 @@ export const sidebarConfig = {
     { name: "SM Credentials", path: "/admin/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Clients", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Projects", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    { name: "Designer Tasks", path: "/admin/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
+    { name: "Cinematographer Tasks", path: "/admin/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
     { name: "Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Reports", path: "/admin/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
@@ -53,6 +57,8 @@ export const sidebarConfig = {
     { name: "Reports", path: "/operationmanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Clients", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Projects", path: "/operationmanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    { name: "Designer Tasks", path: "/operationmanager/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
+    { name: "Cinematographer Tasks", path: "/operationmanager/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
     { name: "Tasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Portfolio", path: "/operationmanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     // { name: "Template Library", path: "/operationmanager/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
@@ -72,6 +78,8 @@ export const sidebarConfig = {
     { name: "Clients", path: "/team/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "SM Credentials", path: "/team/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Projects", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    { name: "Designer Tasks", path: "/team/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
+    { name: "Cinematographer Tasks", path: "/team/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
     { name: "Tasks", path: "/team/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "My Reports", path: "/team/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/team/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
