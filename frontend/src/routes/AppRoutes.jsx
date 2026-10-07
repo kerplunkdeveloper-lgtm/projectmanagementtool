@@ -66,6 +66,9 @@ const Notifications = lazyWithRetry(
   () => import("../pages/notifications/Notifications.jsx"),
 );
 const Task = lazyWithRetry(() => import("../pages/tasks/Task.jsx"));
+const TaskOverview = lazyWithRetry(
+  () => import("../pages/tasks/TaskOverview.jsx"),
+);
 const ChatPage = lazyWithRetry(() => import("../pages/chat/ChatPage.jsx"));
 const Portfolio = lazyWithRetry(
   () => import("../pages/admin/portfolio/Portfolio.jsx"),
@@ -102,6 +105,7 @@ export const routePreloaders = {
   clients: () => import("../pages/admin/clients/Clients.jsx"),
   users: () => import("../pages/admin/AdminUsers.jsx"),
   tasks: () => import("../pages/tasks/Task.jsx"),
+  taskOverview: () => import("../pages/tasks/TaskOverview.jsx"),
   settings: () => import("../pages/settings/Settings.jsx"),
   profile: () => import("../pages/profile/Profile.jsx"),
   notifications: () => import("../pages/notifications/Notifications.jsx"),
@@ -127,6 +131,7 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/clients")) routePreloaders.clients?.();
   else if (p.endsWith("/users")) routePreloaders.users?.();
   else if (p.endsWith("/tasks")) routePreloaders.tasks?.();
+  else if (p.endsWith("/task-overview") || p.endsWith("/status-overview")) routePreloaders.taskOverview?.();
   else if (p.endsWith("/settings")) routePreloaders.settings?.();
   else if (p.endsWith("/profile")) routePreloaders.profile?.();
   else if (p.endsWith("/notifications")) routePreloaders.notifications?.();
@@ -329,6 +334,23 @@ const AppRoutes = () => {
           />
 
           <Route
+            path="task-overview"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <TaskOverview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <TaskOverview />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="users"
             element={
               <ProtectedRoute requiredPermission="manage_users">
@@ -466,6 +488,23 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requiredPermission="manage_tasks">
                 <Task />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="task-overview"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <TaskOverview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <TaskOverview />
               </ProtectedRoute>
             }
           />
@@ -618,6 +657,23 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requiredPermission="manage_tasks">
                 <Task />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="task-overview"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <TaskOverview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <TaskOverview />
               </ProtectedRoute>
             }
           />

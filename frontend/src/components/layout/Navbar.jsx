@@ -367,7 +367,16 @@ const Navbar = ({ setSidebarOpen, presence }) => {
         ? "Project task assign"
         : "Projects Management";
     }
-    if (path.includes("tasks")) return "Tasks";
+
+    if (
+      path.includes("task-overview") ||
+      path.includes("taskoverview") ||
+      path.includes("status-overview") ||
+      path.includes("statusoverview")
+    ) {
+      return "Status Overview";
+    }
+    if (path.includes("tasks")) return "Assigned Tasks";
     if (path.includes("partnerhub")) return "PartnerHub";
     if (path.includes("profile")) return "Profile";
 

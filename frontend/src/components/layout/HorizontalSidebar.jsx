@@ -178,6 +178,28 @@ const HorizontalSidebar = ({ role }) => {
       }
     }
 
+    // Show Status Overview ONLY for Social Media Manager/Executive, Admin, Operation Manager, Managing Partner
+    if (
+      item.name === "Task Overview" ||
+      item.name === "Status Overview" ||
+      item.path?.includes("task-overview") ||
+      item.path?.includes("status-overview")
+    ) {
+      const deptLower = (currentUser?.department || "").toLowerCase();
+      const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+      const canSee =
+        deptLower.includes("social media") ||
+        roleLower === "admin" ||
+        roleLower === "operationmanager" ||
+        deptLower.includes("managing partner") ||
+        roleLower.includes("managing partner");
+
+      if (!canSee) {
+        return false;
+      }
+    }
+
     // Show Content Calendar ONLY for Social Media Manager department
     if (
       item.name === "Content Calendar" ||

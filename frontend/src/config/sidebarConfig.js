@@ -14,6 +14,7 @@ import {
   LuCalendarCheck,
   LuPalette,
   LuVideo,
+  LuBriefcase,
 } from "react-icons/lu";
 import { TbPencilHeart } from "react-icons/tb";
 import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings, FiFileText, FiKey } from "react-icons/fi";
@@ -34,7 +35,8 @@ export const sidebarConfig = {
     { name: "Projects", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "Designer Tasks", path: "/admin/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
     { name: "Cinematographer Tasks", path: "/admin/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
-    { name: "Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
+    { name: "Status Overview", path: "/admin/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
+    { name: "Assigned Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Reports", path: "/admin/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     // { name: "Template", path: "/admin/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
@@ -59,7 +61,8 @@ export const sidebarConfig = {
     { name: "Projects", path: "/operationmanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "Designer Tasks", path: "/operationmanager/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
     { name: "Cinematographer Tasks", path: "/operationmanager/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
-    { name: "Tasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
+    { name: "Status Overview", path: "/operationmanager/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
+    { name: "Assigned Tasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Portfolio", path: "/operationmanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     // { name: "Template Library", path: "/operationmanager/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
     { name: "Profile", path: "/operationmanager/profile", icon: FiUser },
@@ -80,7 +83,8 @@ export const sidebarConfig = {
     { name: "Projects", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "Designer Tasks", path: "/team/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
     { name: "Cinematographer Tasks", path: "/team/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
-    { name: "Tasks", path: "/team/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
+    { name: "Status Overview", path: "/team/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
+    { name: "Assigned Tasks", path: "/team/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "My Reports", path: "/team/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/team/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Users", path: "/team/users", icon: LuUsers, permissionKey: "manage_users" },
