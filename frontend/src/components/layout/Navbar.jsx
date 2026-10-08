@@ -395,12 +395,7 @@ const Navbar = ({ setSidebarOpen, presence }) => {
     if (path.includes("settings")) return "Settings";
 
     if (path.includes("report") || path.includes("eod")) return "EOD Reports";
-    if (
-      path.includes("content-calendar") ||
-      path.includes("contentcalendar") ||
-      path.includes("contentcalendor")
-    )
-      return "Content Calendar";
+
     if (
       path.includes("shootcalendor") ||
       path.includes("shootcalendar") ||

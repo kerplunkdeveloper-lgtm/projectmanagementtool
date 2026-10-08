@@ -200,23 +200,7 @@ const HorizontalSidebar = ({ role }) => {
       }
     }
 
-    // Show Content Calendar ONLY for Social Media Manager department
-    if (
-      item.name === "Content Calendar" ||
-      item.path?.includes("content-calendar")
-    ) {
-      const deptLower = (currentUser?.department || "").toLowerCase();
-      const roleLower = (currentUser?.role || role || "").toLowerCase();
 
-      const isSocialMedia =
-        deptLower.includes("social media manager") ||
-        deptLower.includes("social media") ||
-        roleLower === "socialmediamanager";
-
-      if (!isSocialMedia) {
-        return false;
-      }
-    }
 
     // Show Calendar ONLY for Admin, Operation Manager, and Social Media Manager department
     if (item.name === "Calendar" || item.path?.includes("all-calendar")) {

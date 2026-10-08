@@ -77,9 +77,6 @@ const Workload = lazyWithRetry(() => import("../pages/workload/Workload.jsx"));
 const Stickynotes = lazyWithRetry(
   () => import("../pages/admin/Stickynotes.jsx"),
 );
-const MomClientReport = lazyWithRetry(
-  () => import("../pages/admin/MomClientReport.jsx"),
-);
 const SocialAccounts = lazyWithRetry(
   () => import("../pages/socialAccounts/SocialAccounts.jsx"),
 );
@@ -89,9 +86,7 @@ const ClientCalls = lazyWithRetry(
 const AllCalendar = lazyWithRetry(
   () => import("../pages/calendar/AllCalendar.jsx"),
 );
-const ContentCalcendor = lazyWithRetry(
-  () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
-);
+
 const EventCalendar = lazyWithRetry(
   () => import("../pages/calendar/EventCalendar.jsx"),
 );
@@ -114,11 +109,10 @@ export const routePreloaders = {
   stickyNotes: () => import("../pages/admin/Stickynotes.jsx"),
   socialAccounts: () => import("../pages/socialAccounts/SocialAccounts.jsx"),
   clientCalls: () => import("../pages/client-calls/ClientCalls.jsx"),
-  mom: () => import("../pages/admin/MomClientReport.jsx"),
   chat: () => import("../pages/chat/ChatPage.jsx"),
   workload: () => import("../pages/workload/Workload.jsx"),
   calendar: () => import("../pages/calendar/AllCalendar.jsx"),
-  contentCalendar: () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
+
   eventCalendar: () => import("../pages/calendar/EventCalendar.jsx"),
 };
 
@@ -140,7 +134,6 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/stickynotes")) routePreloaders.stickyNotes?.();
   else if (p.endsWith("/social-accounts")) routePreloaders.socialAccounts?.();
   else if (p.endsWith("/client-calls")) routePreloaders.clientCalls?.();
-  else if (p.endsWith("/mom-report") || p.endsWith("/mom-client-report")) routePreloaders.mom?.();
   else if (p.endsWith("/chat")) routePreloaders.chat?.();
   else if (p.endsWith("/workload")) routePreloaders.workload?.();
   else if (
@@ -151,8 +144,7 @@ export const preloadRoute = (path) => {
     p.endsWith("/shootcalendar")
   )
     routePreloaders.calendar?.();
-  else if (p.endsWith("/content-calendar") || p.endsWith("/contentcalendor"))
-    routePreloaders.contentCalendar?.();
+
   else if (p.endsWith("/event-calendar"))
     routePreloaders.eventCalendar?.();
   else routePreloaders.dashboard?.(); // Fallback for root paths like /admin, /team
@@ -171,11 +163,7 @@ const PageLoader = () => (
   </div>
 );
 
-const ContentCalendarRedirect = () => {
-  const { user } = useSelector((state) => state.auth);
-  const role = user?.role || "admin";
-  return <Navigate to={`/${role}/content-calendar`} replace />;
-};
+
 
 const ShootCalendarRedirect = () => {
   const { user } = useSelector((state) => state.auth);
@@ -191,31 +179,7 @@ const AppRoutes = () => {
         {/* LOGIN */}
         <Route path="/" element={<Login />} />
 
-        {/* DIRECT CONTENT CALENDAR REDIRECT */}
-        <Route
-          path="/content-calendar"
-          element={
-            <ProtectedRoute>
-              <ContentCalendarRedirect />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/contentcalendar"
-          element={
-            <ProtectedRoute>
-              <ContentCalendarRedirect />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/contentcalendor"
-          element={
-            <ProtectedRoute>
-              <ContentCalendarRedirect />
-            </ProtectedRoute>
-          }
-        />
+
 
         {/* DIRECT SHOOT CALENDAR REDIRECT */}
         <Route
@@ -359,7 +323,7 @@ const AppRoutes = () => {
             }
           />
 
-          <Route path="mom-client-report" element={<MomClientReport />} />
+
 
           <Route path="workload" element={<Workload />} />
 
@@ -402,7 +366,7 @@ const AppRoutes = () => {
           <Route path="Shootcalendor" element={<AllCalendar />} />
           <Route path="shootcalendor" element={<AllCalendar />} />
           <Route path="shoot-calendar" element={<AllCalendar />} />
-          <Route path="content-calendar" element={<ContentCalcendor />} />
+
           <Route path="event-calendar" element={<EventCalendar />} />
 
           <Route path="chat" element={<ChatPage />} />
@@ -426,7 +390,7 @@ const AppRoutes = () => {
           <Route path="Shootcalendor" element={<AllCalendar />} />
           <Route path="shootcalendor" element={<AllCalendar />} />
           <Route path="shoot-calendar" element={<AllCalendar />} />
-          <Route path="content-calendar" element={<ContentCalcendor />} />
+
           <Route path="event-calendar" element={<EventCalendar />} />
 
           <Route
@@ -540,7 +504,7 @@ const AppRoutes = () => {
             }
           />
 
-          <Route path="mom-client-report" element={<MomClientReport />} />
+
 
           <Route path="workload" element={<Workload />} />
 
@@ -595,7 +559,7 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="content-calendar" element={<ContentCalcendor />} />
+
           <Route path="event-calendar" element={<EventCalendar />} />
 
           <Route
@@ -706,8 +670,6 @@ const AppRoutes = () => {
           <Route path="client-calls" element={<ClientCalls />} />
 
           <Route path="workload" element={<Workload />} />
-
-          <Route path="mom-client-report" element={<MomClientReport />} />
         </Route>
       </Routes>
     </Suspense>

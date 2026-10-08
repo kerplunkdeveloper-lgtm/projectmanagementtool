@@ -666,42 +666,6 @@ const ResizableHeader = ({
   );
 };
 
-const MomFeedbackInput = ({ task, onSave }) => {
-  const [value, setValue] = useState(task?.feedbackMom || "");
-
-  useEffect(() => {
-    setValue(task?.feedbackMom || "");
-  }, [task?.feedbackMom]);
-
-  const handleBlur = () => {
-    const trimmed = value.trim();
-    if (trimmed !== (task?.feedbackMom || "").trim()) {
-      onSave(task._id, { feedbackMom: trimmed });
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      e.target.blur();
-    }
-  };
-
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      placeholder="Enter MOM feedback..."
-      className="w-full bg-white dark:bg-[#11131e] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 dark:focus:border-blue-500 rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 transition-all shadow-2xs"
-      title="Click to edit MOM feedback"
-      onClick={(e) => e.stopPropagation()}
-    />
-  );
-};
-
 const DEFAULT_OFFICE_HOURS = { startTime: "09:00", endTime: "19:00" };
 
 const formatMsToHMS = (ms) => {
@@ -1233,7 +1197,6 @@ const COLUMN_OPTIONS = [
   { key: "contentType", label: "Content-type" },
   { key: "status", label: "Status" },
   { key: "holdReason", label: "Hold Reason" },
-  { key: "feedbackMom", label: "Feedback MOM" },
   { key: "activeTime", label: "Productivity" },
   { key: "timeTracker", label: "Total time spent for this task " },
   { key: "revision", label: "Revision" },
@@ -1346,7 +1309,6 @@ const MyTasksTab = ({
       client: false,
       contentType: false,
       status: false,
-      feedbackMom: false,
       activeTime: false,
       blockedTime: false,
       timeTracker: false,
@@ -2668,7 +2630,6 @@ const MyTasksTab = ({
                         { key: "blockedTime", label: "Blocked" },
                         { key: "revision", label: "Revision" },
                         { key: "correctionHistory", label: "Correction History" },
-                        { key: "feedbackMom", label: "Feedback MOM" },
                         { key: "timeTracker", label: "Total time spent for this task " },
                         { key: "startDate", label: "Start Date" },
                         { key: "endDate", label: "Due Date" },

@@ -34,11 +34,6 @@ const SubtaskSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
-  feedbackMom: {
-    type: String,
-    default: "",
-    trim: true,
-  },
   actualStartTime: {
     type: Date,
   },
@@ -257,11 +252,6 @@ const TaskSchema = new mongoose.Schema(
     contentCopy: {
       type: String,
       default: "",
-    },
-    feedbackMom: {
-      type: String,
-      default: "",
-      trim: true,
     },
     actualStartTime: {
       type: Date,

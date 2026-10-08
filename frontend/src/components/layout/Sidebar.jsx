@@ -153,12 +153,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     localUnreadChatCount,
     dbUnreadChatCount,
   );
-
-  // Fetch tasks for MOM reports count
-  const { data: allTasks = [] } = useGetTasksQuery(undefined, {
-    skip: !currentUser,
-  });
-
   // EOD Reports for Admin / Operation Manager count
   const { eodReports } = useSelector((state) => state.eodReports || {});
   const { designerEodReports } = useSelector(
@@ -177,25 +171,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       fetchedEodRef.current = true;
     }
   }, [dispatch, role, eodReports, designerEodReports]);
-
-  const [lastViewedMom, setLastViewedMom] = useState(() => {
-    try {
-      return parseInt(
-        localStorage.getItem(`lastViewedMom_${currentUser?._id || ""}`) || "0",
-        10,
-      );
-    } catch {
-      return 0;
-    }
-  });
-
-  const newMomCount = React.useMemo(() => {
-    return (allTasks || []).filter(
-      (t) =>
-        (t.contentType || "").toUpperCase() === "MOM" &&
-        new Date(t.createdAt).getTime() > lastViewedMom,
-    ).length;
-  }, [allTasks, lastViewedMom]);
 
   const newReportsCount = React.useMemo(() => {
     if (role !== "admin" && role !== "operationmanager") return 0;
@@ -296,23 +271,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         }
       }
 
-      // Show Content Calendar ONLY for Social Media Manager department
-      if (
-        item.name === "Content Calendar" ||
-        item.path?.includes("content-calendar")
-      ) {
-        const deptLower = (currentUser?.department || "").toLowerCase();
-        const roleLower = (currentUser?.role || role || "").toLowerCase();
 
-        const isSocialMedia =
-          deptLower.includes("social media manager") ||
-          deptLower.includes("social media") ||
-          roleLower === "socialmediamanager";
-
-        if (!isSocialMedia) {
-          return false;
-        }
-      }
 
       // Show Calendar ONLY for Admin, Operation Manager, and Social Media Manager department
       if (item.name === "Calendar" || item.path?.includes("all-calendar")) {
@@ -1044,17 +1003,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         dispatch(clearAllUnreadCounts());
                         dispatch(markAllChatAsRead());
                       }
-                      if (
-                        item.name === "MOM/ClientCall" ||
-                        item.name === "MOM Client Report" ||
-                        item.name === "MOM Report"
-                      ) {
-                        const now = Date.now();
-                        localStorage.setItem(
-                          `lastViewedMom_${currentUser?._id || ""}`,
-                          now.toString(),
-                        );
-                        setLastViewedMom(now);
+                      if (item.name === "Client Calls") {
                         if (notifications) {
                           notifications.forEach((n) => {
                             if (!n.isRead && n.type === "client_call_created") {
@@ -1166,27 +1115,22 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             {totalUnreadChatCount}
                           </span>
                         )}
-                        {(item.name === "MOM/ClientCall" ||
-                          item.name === "MOM Client Report" ||
-                          item.name === "MOM Report") &&
-                          newMomCount +
-                            (notifications
-                              ? notifications.filter(
-                                  (n) =>
-                                    !n.isRead &&
-                                    n.type === "client_call_created",
-                                ).length
-                              : 0) >
-                            0 && (
+                        {item.name === "Client Calls" &&
+                          (notifications
+                            ? notifications.filter(
+                                (n) =>
+                                  !n.isRead &&
+                                  n.type === "client_call_created",
+                              ).length
+                            : 0) > 0 && (
                             <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-indigo-600 dark:bg-indigo-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
-                              {newMomCount +
-                                (notifications
-                                  ? notifications.filter(
-                                      (n) =>
-                                        !n.isRead &&
-                                        n.type === "client_call_created",
-                                    ).length
-                                  : 0)}
+                              {notifications
+                                ? notifications.filter(
+                                    (n) =>
+                                      !n.isRead &&
+                                      n.type === "client_call_created",
+                                  ).length
+                                : 0}
                             </span>
                           )}
                         {item.name === "Reports" &&
@@ -1203,17 +1147,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           item.name !== "Notifications" &&
                           item.name !== "Chat" &&
                           !(
-                            (item.name === "MOM Report" ||
-                              item.name === "MOM Client Report") &&
-                            newMomCount +
-                              (notifications
-                                ? notifications.filter(
-                                    (n) =>
-                                      !n.isRead &&
-                                      n.type === "client_call_created",
-                                  ).length
-                                : 0) >
-                              0
+                            item.name === "Client Calls" &&
+                            (notifications
+                              ? notifications.filter(
+                                  (n) =>
+                                    !n.isRead &&
+                                    n.type === "client_call_created",
+                                ).length
+                              : 0) > 0
                           ) &&
                           !(
                             item.name === "Reports" &&
@@ -1257,7 +1198,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     "Users",
                     "Reports",
                     "SM Credentials",
-                    "MOM/ClientCall",
+                    "Client Calls",
                   ]
                 : [
                     "Home",
@@ -1265,7 +1206,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     "Chat",
                     "Users",
                     "SM Credentials",
-                    "MOM/ClientCall",
+                    "Client Calls",
                     "Reports",
                   ];
 
