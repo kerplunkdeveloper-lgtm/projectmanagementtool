@@ -382,7 +382,7 @@ const TimeTracker = React.memo(
     }
 
     return (
-      <div className="flex flex-col gap-1 w-full p-1 rounded-md bg-white dark:bg-[#1e1e24] shadow-sm border border-slate-200 dark:border-slate-700/50">
+      <div className="flex flex-col gap-1 w-full p-1 rounded-md bg-white dark:bg-[#1e1e24] shadow-sm border border-slate-200 dark:border-white/5">
         {todayMs > 0 && (
           <div className="flex justify-between items-center px-1.5 pb-1 border-b border-slate-100 dark:border-white/5">
             <span className="text-[10px] text-slate-800 dark:text-slate-200 font-bold">
@@ -588,7 +588,7 @@ const SubtaskRow = ({
           } ${
             isSubCompleted
               ? "bg-emerald-500 border-emerald-500 text-white"
-              : "border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
+              : "border-slate-200 dark:border-white/5 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
           }`}
         >
           <FiCheck size={9} />
@@ -1192,7 +1192,7 @@ const AssigneeDropdown = ({
               onClick={() => handleSelect(null)}
               className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white flex items-center gap-2 border-b border-slate-100 dark:border-white/5"
             >
-              <div className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400">
+              <div className="w-5 h-5 rounded-full border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-400">
                 <FiX size={10} />
               </div>
               <span>Unassigned</span>
@@ -1447,7 +1447,7 @@ const ClientDropdown = ({
         type="button"
         disabled={!isAdminOrManager}
         onClick={() => setIsOpen(!isOpen)}
-        className={`group/assign relative flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 transition-all ${
+        className={`group/assign relative flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-200 dark:border-white/10 transition-all ${
           isAdminOrManager
             ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
             : "cursor-not-allowed"
@@ -1496,7 +1496,7 @@ const ClientDropdown = ({
               onClick={() => handleSelect(null)}
               className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white flex items-center gap-2 border-b border-slate-100 dark:border-white/5"
             >
-              <div className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400">
+              <div className="w-5 h-5 rounded-full border border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-400">
                 <FiX size={10} />
               </div>
               <span>None</span>
@@ -1606,7 +1606,7 @@ const ContentCopyInput = ({
         }
       }}
       placeholder={placeholder}
-      className={`w-full bg-transparent border border-slate-200 dark:border-slate-700 rounded px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all placeholder:font-normal hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-[#0f172a] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] focus:shadow-[0_0_0_2px_rgba(59,130,246,0.15)] text-left ${className}`}
+      className={`w-full bg-transparent border border-slate-200 dark:border-white/5 rounded px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all placeholder:font-normal hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-[#0f172a] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] focus:shadow-[0_0_0_2px_rgba(59,130,246,0.15)] text-left ${className}`}
     />
   );
 };
@@ -4421,11 +4421,11 @@ const ProjectTaskBoard = ({
                 : {};
               return (
                 <tr
-                  className={`border-b border-slate-300 dark:border-slate-700 ${rowBg}`}
+                  className={`border-b border-slate-200 dark:border-white/5 ${rowBg}`}
                 >
                   {showSelectionColumn && (
                     <td
-                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent"
+                      className="px-3 py-1 border-b border-slate-200 dark:border-white/5 w-10 md:sticky md:left-0 z-10 bg-transparent"
                       style={{
                         width: "40px",
                         minWidth: "40px",
@@ -4437,7 +4437,7 @@ const ProjectTaskBoard = ({
                   )}
                   {/* Chevron column spacer */}
                   <td
-                    className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent"
+                    className="px-3 py-1 border-b border-slate-200 dark:border-white/5 md:sticky z-10 bg-transparent"
                     style={{
                       left: showSelectionColumn ? "40px" : "0px",
                       width: "40px",
@@ -4449,7 +4449,7 @@ const ProjectTaskBoard = ({
                   />
                   {/* ID column spacer */}
                   <td
-                    className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10"
+                    className="px-3 py-1 border-b border-slate-200 dark:border-white/5 md:sticky z-10"
                     style={{
                       left: showSelectionColumn ? "80px" : "40px",
                       backgroundColor: "inherit",
@@ -4460,7 +4460,7 @@ const ProjectTaskBoard = ({
                     }}
                   />
                   <td
-                    className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
+                    className="px-3 py-1 border-b border-slate-200 dark:border-white/5 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
                     style={{
                       left: showSelectionColumn ? "140px" : "100px",
                       backgroundColor: "inherit",
@@ -4575,7 +4575,7 @@ const ProjectTaskBoard = ({
                   </td>
                   <td
                     colSpan={visibleColsAfterTaskName}
-                    className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-transparent"
+                    className="px-3 py-1 border-b border-slate-200 dark:border-white/5 bg-transparent"
                     style={{
                       backgroundColor: "inherit",
                       ...bBottom,
@@ -4638,7 +4638,7 @@ const ProjectTaskBoard = ({
                           <tr className="bg-slate-50 dark:bg-[#16161b] text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
                             {showSelectionColumn && (
                               <th
-                                className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
+                                className="px-3 py-1 border-b border-slate-200 dark:border-white/5 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
                                 style={{
                                   width: "40px",
                                   minWidth: "40px",
@@ -4649,7 +4649,7 @@ const ProjectTaskBoard = ({
                               </th>
                             )}
                             <th
-                              className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center whitespace-nowrap md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                              className="px-3 py-1 border-b border-slate-200 dark:border-white/5 text-center whitespace-nowrap md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                               style={{
                                 left: showSelectionColumn ? "40px" : "0px",
                                 width: "60px",
@@ -4675,7 +4675,7 @@ const ProjectTaskBoard = ({
                               </div>
                             </th>
                             <th
-                              className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                              className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                               style={{
                                 left: showSelectionColumn ? "100px" : "60px",
                               }}
@@ -4683,7 +4683,7 @@ const ProjectTaskBoard = ({
                               ID
                             </th>
                             <th
-                              className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[80px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                              className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[250px] md:min-w-[80px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                               style={{
                                 left: showSelectionColumn ? "160px" : "120px",
                               }}
@@ -4692,7 +4692,7 @@ const ProjectTaskBoard = ({
                             </th>
                             {/* Content Copy Column */}
                             {!hiddenColumns.contentCopy && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[240px] w-[260px] group relative">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[240px] w-[260px] group relative">
                                 <div className="flex items-center justify-between gap-2">
                                   <span>Content Copy</span>
                                   <div className="relative col-header-menu">
@@ -4712,7 +4712,7 @@ const ProjectTaskBoard = ({
                                       <FiMoreVertical size={13} />
                                     </button>
                                     {openColMenu === "contentCopy" && (
-                                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
+                                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
                                         <button
                                           type="button"
                                           onClick={(e) => {
@@ -4736,74 +4736,74 @@ const ProjectTaskBoard = ({
                             )}
                             {/* Client Column */}
                             {!hiddenColumns.client && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[120px]">
                                 Client
                               </th>
                             )}
                             {/* Created By Column */}
                             {!hiddenColumns.createdBy && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[100px]">
                                 Owner
                               </th>
                             )}
                             {/* Start Date Column */}
                             {!hiddenColumns.startDate && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[90px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[90px]">
                                 Start Date
                               </th>
                             )}
                             {/* End Date Column */}
                             {!hiddenColumns.endDate && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[90px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[90px]">
                                 End Date
                               </th>
                             )}
                             {/* Content Type Column */}
                             {!hiddenColumns.contentType && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[160px] w-[180px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[160px] w-[180px]">
                                 Content Type
                               </th>
                             )}
                             {/* Assignee Column */}
                             {!hiddenColumns.assignee && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[150px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[150px]">
                                 Assignee
                               </th>
                             )}
                             {/* Department Column */}
                             {!hiddenColumns.department && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[130px]">
                                 Department
                               </th>
                             )}
 
                             {/* Priority Column */}
                             {!hiddenColumns.priority && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[120px]">
                                 Priority
                               </th>
                             )}
                             {/* Status Column */}
                             {!hiddenColumns.status && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[120px]">
                                 Status
                               </th>
                             )}
                             {/* Productivity Column */}
                             {!hiddenColumns.productivity && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px] text-center">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[130px] text-center">
                                 Productivity
                               </th>
                             )}
                             {/* Hold Reason Column */}
                             {!hiddenColumns.holdReason && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[120px]">
                                 Reason for Hold
                               </th>
                             )}
                             {/* Revision Column */}
                             {!hiddenColumns.revision && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px] group relative">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[100px] group relative">
                                 <div className="flex items-center justify-between gap-1.5">
                                   <span>Revision</span>
                                   <div className="relative col-header-menu">
@@ -4823,7 +4823,7 @@ const ProjectTaskBoard = ({
                                       <FiMoreVertical size={13} />
                                     </button>
                                     {openColMenu === "revision" && (
-                                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
+                                      <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-white/5 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
                                         <button
                                           type="button"
                                           onClick={(e) => {
@@ -4846,11 +4846,11 @@ const ProjectTaskBoard = ({
                               </th>
                             )}
                             {!hiddenColumns.approvalInfo && (
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[200px]">
+                              <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[200px]">
                                 Approval Info
                               </th>
                             )}
-                            <th className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 text-center whitespace-nowrap min-w-[80px]">
+                            <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 text-center whitespace-nowrap min-w-[80px]">
                               Actions
                             </th>
                           </tr>
@@ -4935,7 +4935,7 @@ const ProjectTaskBoard = ({
                                       )}
                                       {/* SECTION HEADER ROW */}
                                       <tr
-                                        className={`theme-bg-accent-ultrasubtle  border-b border-slate-300 dark:border-slate-700 select-none group/secrow transition-colors ${
+                                        className={`theme-bg-accent-ultrasubtle  border-b border-slate-200 dark:border-white/5 select-none group/secrow transition-colors ${
                                           openSectionMenu === sectionName
                                             ? "relative z-50"
                                             : ""
@@ -4943,7 +4943,7 @@ const ProjectTaskBoard = ({
                                       >
                                         {showSelectionColumn && (
                                           <td
-                                            className={`px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 sidebar-bg  relative ${
+                                            className={`px-3 py-1 border-b border-slate-200 dark:border-white/5 text-center w-10 md:sticky md:left-0 sidebar-bg  relative ${
                                               openSectionMenu === sectionName
                                                 ? "z-50"
                                                 : "z-30"
@@ -4986,7 +4986,7 @@ const ProjectTaskBoard = ({
                                         )}
                                         {/* Chevron + 3-dots Column */}
                                         <td
-                                          className={`px-2 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky sidebar-bg relative ${
+                                          className={`px-2 py-1 border-b border-slate-200 dark:border-white/5 md:sticky sidebar-bg relative ${
                                             openSectionMenu === sectionName
                                               ? "z-50"
                                               : "z-30"
@@ -5128,7 +5128,7 @@ const ProjectTaskBoard = ({
                                         </td>
                                         {/* ID Column */}
                                         <td
-                                          className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-30 sidebar-bg"
+                                          className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-30 sidebar-bg"
                                           style={{
                                             left: showSelectionColumn
                                               ? "80px"
@@ -5137,7 +5137,7 @@ const ProjectTaskBoard = ({
                                         />
                                         {/* Task Name Column */}
                                         <td
-                                          className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-30 sidebar-bg"
+                                          className="px-3 py-1 border-b border-slate-200 dark:border-white/5 md:sticky z-30 sidebar-bg"
                                           style={{
                                             left: showSelectionColumn
                                               ? "140px"
@@ -5398,7 +5398,7 @@ const ProjectTaskBoard = ({
                                         {/* Empty Column Cells merged into one to remove vertical gridlines */}
                                         <td
                                           colSpan={visibleColsAfterTaskName}
-                                          className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 sidebar-bg"
+                                          className="px-3 py-1 border-b border-slate-200 dark:border-white/5 sidebar-bg"
                                           style={{
                                             borderRight: `2.5px solid ${sColor.hex}`,
                                           }}
@@ -5466,7 +5466,7 @@ const ProjectTaskBoard = ({
                                                         onClick={(e) =>
                                                           e.stopPropagation()
                                                         }
-                                                        className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
+                                                        className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
                                                         style={{
                                                           width: "40px",
                                                           minWidth: "40px",
@@ -5503,7 +5503,7 @@ const ProjectTaskBoard = ({
                                                     )}
                                                     {/* Dropdown Chevron Column */}
                                                     <td
-                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky z-30 ${rowBg}`}
+                                                      className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-center w-10 md:sticky z-30 ${rowBg}`}
                                                       style={{
                                                         left: showSelectionColumn
                                                           ? "40px"
@@ -5548,7 +5548,7 @@ const ProjectTaskBoard = ({
                                                     </td>
                                                     {/* ID Column */}
                                                     <td
-                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
+                                                      className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
                                                       style={{
                                                         left: showSelectionColumn
                                                           ? "80px"
@@ -5565,7 +5565,7 @@ const ProjectTaskBoard = ({
                                                       onClick={(e) =>
                                                         e.stopPropagation()
                                                       }
-                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                                      className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
                                                       style={{
                                                         left: showSelectionColumn
                                                           ? "140px"
@@ -5719,7 +5719,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Content Copy */}
                                                     <td
-                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? "hidden" : ""} min-w-[240px] w-[260px]`}
+                                                      className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 ${hiddenColumns.contentCopy ? "hidden" : ""} min-w-[240px] w-[260px]`}
                                                     >
                                                       <div
                                                         onClick={(e) =>
@@ -5746,7 +5746,7 @@ const ProjectTaskBoard = ({
                                                     </td>
                                                     {/* Client Column */}
                                                     {!hiddenColumns.client && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 font-medium">
                                                         <div
                                                           onClick={(e) =>
                                                             e.stopPropagation()
@@ -5791,7 +5791,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Created By Column */}
                                                     {!hiddenColumns.createdBy && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                         {task.createdBy ? (
                                                           <div className="flex items-center gap-2">
                                                             <div className="relative w-4 h-4 rounded-full overflow-hidden shrink-0 border border-slate-250 dark:border-white/10">
@@ -5878,7 +5878,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Start Date */}
                                                     {!hiddenColumns.startDate && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                         <div
                                                           className={`relative h-6 flex items-center justify-start transition-all ${
                                                             task.startDate
@@ -5964,7 +5964,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* End Date */}
                                                     {!hiddenColumns.endDate && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                         <div
                                                           className={`relative h-6 flex items-center justify-start transition-all ${
                                                             task.dueDate
@@ -6059,7 +6059,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Content Type Column */}
                                                     {!hiddenColumns.contentType && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 min-w-[160px] w-[180px]">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 min-w-[160px] w-[180px]">
                                                         <div
                                                           onClick={(e) =>
                                                             e.stopPropagation()
@@ -6246,7 +6246,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Assignee Selection */}
                                                     {!hiddenColumns.assignee && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                         <div
                                                           className="flex items-center gap-1.5"
                                                           onClick={(e) =>
@@ -6299,7 +6299,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Department Column */}
                                                     {!hiddenColumns.department && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 font-medium">
                                                         <div
                                                           onClick={(e) =>
                                                             e.stopPropagation()
@@ -6360,7 +6360,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Priority */}
                                                     {!hiddenColumns.priority && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                         <div
                                                           onClick={(e) =>
                                                             e.stopPropagation()
@@ -6440,7 +6440,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Status Column */}
                                                     {!hiddenColumns.status && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                         <div
                                                           onClick={(e) =>
                                                             e.stopPropagation()
@@ -6554,7 +6554,7 @@ const ProjectTaskBoard = ({
                                                     {/* Productivity Column */}
                                                     {!hiddenColumns.productivity && (
                                                       <td
-                                                        className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center whitespace-nowrap"
+                                                        className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-center whitespace-nowrap"
                                                         onClick={(e) =>
                                                           e.stopPropagation()
                                                         }
@@ -6566,7 +6566,7 @@ const ProjectTaskBoard = ({
                                                     )}
                                                     {/* Hold Reason Column (Tasks) */}
                                                     {!hiddenColumns.holdReason && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                         {task.status ===
                                                           "On Hold" &&
                                                           (() => {
@@ -6605,7 +6605,7 @@ const ProjectTaskBoard = ({
                                                     {/* Revision Column */}
                                                     {!hiddenColumns.revision && (
                                                       <td
-                                                        className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
+                                                        className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5"
                                                         onClick={(e) =>
                                                           e.stopPropagation()
                                                         }
@@ -6628,7 +6628,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Approval Info */}
                                                     {!hiddenColumns.approvalInfo && (
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
+                                                      <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
                                                         <ApprovalTimeDisplay
                                                           reviewStartedAt={
                                                             task.reviewStartedAt
@@ -6652,7 +6652,7 @@ const ProjectTaskBoard = ({
 
                                                     {/* Action Controls */}
                                                     <td
-                                                      className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center"
+                                                      className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-center"
                                                       style={{
                                                         borderRight: `2.5px solid ${sColor.hex}`,
                                                       }}
@@ -6741,7 +6741,7 @@ const ProjectTaskBoard = ({
                                                           >
                                                             {showSelectionColumn && (
                                                               <td
-                                                                className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBgSub}`}
+                                                                className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-center w-10 md:sticky md:left-0 z-30 ${rowBgSub}`}
                                                                 style={{
                                                                   width: "40px",
                                                                   minWidth:
@@ -6754,7 +6754,7 @@ const ProjectTaskBoard = ({
                                                             )}
                                                             {/* Empty Chevron Column for Subtask */}
                                                             <td
-                                                              className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 md:sticky z-30 ${rowBgSub}`}
+                                                              className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 md:sticky z-30 ${rowBgSub}`}
                                                               style={{
                                                                 left: showSelectionColumn
                                                                   ? "40px"
@@ -6772,7 +6772,7 @@ const ProjectTaskBoard = ({
                                                             />
                                                             {/* Subtask ID Column */}
                                                             <td
-                                                              className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-500 dark:text-slate-500 whitespace-nowrap md:sticky z-30 ${rowBgSub}`}
+                                                              className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 font-bold text-slate-500 dark:text-slate-500 whitespace-nowrap md:sticky z-30 ${rowBgSub}`}
                                                               style={{
                                                                 left: showSelectionColumn
                                                                   ? "80px"
@@ -6791,7 +6791,7 @@ const ProjectTaskBoard = ({
                                                             </td>
                                                             {/* 1. Name Column */}
                                                             <td
-                                                              className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
+                                                              className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
                                                               style={{
                                                                 left: showSelectionColumn
                                                                   ? "140px"
@@ -6966,7 +6966,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* Content Copy Column */}
                                                             <td
-                                                              className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? "hidden" : ""} min-w-[240px] w-[260px]`}
+                                                              className={`px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 ${hiddenColumns.contentCopy ? "hidden" : ""} min-w-[240px] w-[260px]`}
                                                             >
                                                               <div
                                                                 onClick={(e) =>
@@ -6996,7 +6996,7 @@ const ProjectTaskBoard = ({
                                                             </td>
                                                             {/* 2. Client Column */}
                                                             {!hiddenColumns.client && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                                 <div
                                                                   onClick={(
                                                                     e,
@@ -7050,7 +7050,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* Created By Column */}
                                                             {!hiddenColumns.createdBy && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 opacity-60">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 opacity-60">
                                                                 {task.createdBy ? (
                                                                   <div className="flex items-center gap-2">
                                                                     <div className="relative w-4 h-4 rounded-full overflow-hidden shrink-0 border border-slate-200 dark:border-white/10">
@@ -7145,7 +7145,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* 3. Start Date Column */}
                                                             {!hiddenColumns.startDate && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                                 <div
                                                                   className={`relative h-7 flex items-center justify-start transition-all ${
                                                                     sub.startDate
@@ -7242,7 +7242,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* 4. End Date Column */}
                                                             {!hiddenColumns.endDate && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                                 <div
                                                                   className={`relative h-7 flex items-center justify-start transition-all ${
                                                                     sub.dueDate
@@ -7350,7 +7350,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* 5. Content Type Column */}
                                                             {!hiddenColumns.contentType && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 min-w-[160px] w-[180px]">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 min-w-[160px] w-[180px]">
                                                                 <div
                                                                   onClick={(
                                                                     e,
@@ -7571,7 +7571,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* 6. Assignee Column */}
                                                             {!hiddenColumns.assignee && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                                 <div
                                                                   className="flex items-center gap-1.5"
                                                                   onClick={(
@@ -7629,7 +7629,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* Department Column */}
                                                             {!hiddenColumns.department && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 font-medium">
                                                                 <div
                                                                   onClick={(
                                                                     e,
@@ -7693,7 +7693,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* 8. Priority Column */}
                                                             {!hiddenColumns.priority && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                                 <div
                                                                   onClick={(
                                                                     e,
@@ -7782,7 +7782,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* 8. Status Column */}
                                                             {!hiddenColumns.status && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                                 <div
                                                                   onClick={(
                                                                     e,
@@ -7904,7 +7904,7 @@ const ProjectTaskBoard = ({
                                                             {/* Subtask Productivity Column */}
                                                               {!hiddenColumns.productivity && (
                                                                 <td
-                                                                  className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center whitespace-nowrap"
+                                                                  className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-center whitespace-nowrap"
                                                                   onClick={(e) =>
                                                                     e.stopPropagation()
                                                                   }
@@ -7917,7 +7917,7 @@ const ProjectTaskBoard = ({
 
                                                               {/* Hold Reason Column (Subtasks) */}
                                                             {!hiddenColumns.holdReason && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5">
                                                                 {sub.status ===
                                                                   "On Hold" &&
                                                                   (() => {
@@ -7957,7 +7957,7 @@ const ProjectTaskBoard = ({
                                                             {/* Subtask Revision Column */}
                                                             {!hiddenColumns.revision && (
                                                               <td
-                                                                className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
+                                                                className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5"
                                                                 onClick={(e) =>
                                                                   e.stopPropagation()
                                                                 }
@@ -7980,7 +7980,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* Approval Info Column */}
                                                             {!hiddenColumns.approvalInfo && (
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
+                                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
                                                                 <ApprovalTimeDisplay
                                                                   reviewStartedAt={
                                                                     sub.reviewStartedAt
@@ -8006,7 +8006,7 @@ const ProjectTaskBoard = ({
 
                                                             {/* 9. Actions Column */}
                                                             <td
-                                                              className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center"
+                                                              className="px-3 py-1 border-b border-t border-slate-200 dark:border-white/5 text-center"
                                                               style={{
                                                                 borderRight: `2.5px solid ${sColor.hex}`,
                                                               }}

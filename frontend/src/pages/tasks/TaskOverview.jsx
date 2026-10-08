@@ -59,36 +59,24 @@ const TaskOverview = () => {
 
   return (
     <div className="px-0 py-1 space-y-4 pb-16">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 px-2 pb-3 pt-1">
+      <div className="relative z-20 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 px-2 pb-3 pt-1">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-base font-black text-slate-900 dark:text-[#f8fafc] tracking-tight">
               Status Overview
             </h1>
             <span className="text-[11px] px-2.5 py-0.5 rounded-full font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
               {filteredOverviewCount !== null ? filteredOverviewCount : tasks.length} Tasks
             </span>
-            <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 uppercase tracking-wider">
-              🔒 Read-Only Live View
-            </span>
           </div>
-          <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-[11px] font-semibold text-slate-500 dark:text-[#94a3b8] mt-0.5">
             Live cross-project status monitoring, stage progression, and operational delivery metrics
           </p>
         </div>
 
         {/* Right-side actions */}
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setIsActiveOnly(!isActiveOnly)}
-            className={`text-[11px] px-3 py-1.5 rounded-xl font-bold transition-all border cursor-pointer ${
-              isActiveOnly
-                ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300 shadow-2xs"
-                : "bg-white text-slate-600 border-slate-200 dark:bg-[#161826] dark:border-white/10 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
-            }`}
-          >
-            {isActiveOnly ? "Active Tasks Only" : "All Tasks"}
-          </button>
+         
 
           {/* Portal target for right-side actions (like Export / Hide Column) */}
           <div id="task-actions-portal" className="flex items-center gap-2 shrink-0" />

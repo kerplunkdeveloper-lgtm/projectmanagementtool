@@ -1207,33 +1207,21 @@ const getTaskStatsForDateFilter = (task, dateFilter, officeHours, nowTick) => {
 
 const PriorityBadge = ({ priority, isTopHigh }) => {
   const p = isTopHigh ? "Top High" : priority || "Medium";
-  let bgClass, textClass;
-  switch (p) {
-    case "Top High":
-      bgClass = "bg-red-50 dark:bg-red-500/10";
-      textClass = "text-red-500";
-      break;
-    case "High":
-      bgClass = "bg-orange-50 dark:bg-orange-500/10";
-      textClass = "text-orange-500";
-      break;
-    case "Low":
-      bgClass = "bg-green-50 dark:bg-green-500/10";
-      textClass = "text-green-500";
-      break;
-    case "Medium":
-    default:
-      bgClass = "bg-yellow-50 dark:bg-yellow-500/10";
-      textClass = "text-yellow-600 dark:text-yellow-500";
-      break;
-  }
+  
   return (
-    <div
-      className={`flex items-center justify-center gap-1.5 px-3.5 py-3 rounded-full text-[11px] font-bold w-max mx-auto border ${bgClass.replace("bg-", "border-").replace("dark:bg-", "dark:border-")} ${bgClass} ${textClass} ${p === "Top High" ? "animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" : ""}`}
+    <span
+      className={`badge-span ${
+        p === "Top High"
+          ? "badge-priority-top-high"
+          : p === "High"
+          ? "badge-priority-high"
+          : p === "Low"
+          ? "badge-priority-low"
+          : "badge-priority-medium"
+      }`}
     >
-      {p !== "Top High" && <FiFlag size={12} />}
-      {p}
-    </div>
+      {p === "Top High" ? "🔴 Top High" : p}
+    </span>
   );
 };
 
@@ -3574,122 +3562,90 @@ const MyTasksTab = ({
                             {!hiddenColumns.contentType && (
                               <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent whitespace-nowrap text-center">
                                 <span
-                                  className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-pink-50 text-pink-600 dark:bg-pink-500/10 dark:text-pink-400 whitespace-nowrap`}
+                                  className={`badge-span ${
+                                    task.contentType === "VIDEO"
+                                      ? "badge-type-video"
+                                      : task.contentType === "IMAGE"
+                                        ? "badge-type-image"
+                                        : task.contentType === "CAROUSEL"
+                                          ? "badge-type-carousel"
+                                          : task.contentType === "REEL"
+                                            ? "badge-type-reel"
+                                            : task.contentType === "POST"
+                                              ? "badge-type-post"
+                                              : task.contentType === "STORY"
+                                                ? "badge-type-story"
+                                                : task.contentType === "Website"
+                                                  ? "badge-type-video"
+                                                  : task.contentType === "SEO"
+                                                    ? "badge-type-image"
+                                                    : task.contentType === "Video shoot"
+                                                      ? "badge-type-carousel"
+                                                      : "badge-type-none"
+                                  }`}
                                 >
-                                  {task.contentType || "None"}
+                                  {typeof task.contentType === "string" ? task.contentType || "None" : "None"}
                                 </span>
                               </td>
                             )}
 
                             {!hiddenColumns.status && (
                               <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px] text-center"
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] text-center"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {task.status === "Completed" ? (
-                                  <div
-                                    className={`px-3 py-3 text-[13px] flex items-center justify-center gap-1.5 shadow-2xs ${statusStyle.bg}`}
-                                  >
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`}
-                                    />
+                                  <span className="badge-span badge-status-completed">
                                     Completed
-                                  </div>
+                                  </span>
                                 ) : task.status === "In Review" ? (
-                                  <div
-                                    className={`px-3 py-3 text-[13px] flex items-center justify-center gap-1.5 shadow-2xs ${statusStyle.bg}`}
-                                  >
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`}
-                                    />
+                                  <span className="badge-span badge-status-in-review">
                                     In Review
-                                  </div>
+                                  </span>
                                 ) : task.status === "Correction" ? (
-                                  <div className="flex flex-col gap-1 items-center">
-                                    <div
-                                      className={`px-3 py-3 text-[13px] flex items-center justify-center gap-1.5 shadow-2xs ${statusStyle.bg}`}
-                                    >
-                                      <span
-                                        className={`w-1.5 h-1.5 rounded-full animate-pulse ${statusStyle.dot}`}
-                                      />
-                                      Corrections Required
-                                    </div>
+                                  <div className="flex flex-col gap-1 items-center justify-center">
+                                    <span className="badge-span badge-status-correction animate-pulse">
+                                      Correction
+                                    </span>
                                     <button
                                       type="button"
-                                      onClick={() =>
-                                        handleStatusChange(
-                                          task._id,
-                                          "In Progress",
-                                        )
-                                      }
+                                      onClick={() => handleStatusChange(task._id, "In Progress")}
                                       className="px-2.5 py-0.5 text-[9px] font-extrabold bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-2xs transition-all cursor-pointer"
                                     >
                                       Resume Work
                                     </button>
                                   </div>
                                 ) : task.status === "Rejected" ? (
-                                  <div
-                                    className={`px-3 py-3 text-[13px] flex items-center justify-center gap-1.5 shadow-2xs ${statusStyle.bg}`}
-                                  >
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`}
-                                    />
+                                  <span className="badge-span badge-status-rejected">
                                     Rejected
-                                  </div>
+                                  </span>
                                 ) : (
-                                  <div className="relative w-full group">
-                                    <div
-                                      className={`px-3 py-3 text-[13px] flex items-center justify-center gap-1.5 shadow-sm transition-all group-hover:shadow ${statusStyle.bg}`}
-                                    >
-                                      <span
-                                        className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`}
-                                      />
-                                      <span className="pr-3 whitespace-nowrap">
-                                        {task.status}
-                                      </span>
-                                      <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-                                        <FiChevronDown
-                                          size={10}
-                                          strokeWidth={2.5}
-                                        />
-                                      </div>
-                                    </div>
-                                    <select
-                                      value={task.status}
-                                      onChange={(e) =>
-                                        handleStatusChange(
-                                          task._id,
-                                          e.target.value,
-                                        )
-                                      }
-                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    >
-                                      <option
-                                        value="Not Started"
-                                        className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white"
-                                      >
-                                        Not Started
-                                      </option>
-                                      <option
-                                        value="In Progress"
-                                        className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white"
-                                      >
-                                        In Progress
-                                      </option>
-                                      <option
-                                        value="In Review"
-                                        className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white"
-                                      >
-                                        In Review
-                                      </option>
-                                      <option
-                                        value="On Hold"
-                                        className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white"
-                                      >
-                                        On Hold
-                                      </option>
-                                    </select>
-                                  </div>
+                                  <select
+                                    value={task.status || "Not Started"}
+                                    onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                                    className={`badge-select ${
+                                      task.status === "In Progress"
+                                        ? "badge-status-in-progress"
+                                        : task.status === "In Review"
+                                          ? "badge-status-in-review"
+                                          : task.status === "On Hold"
+                                            ? "badge-status-on-hold"
+                                            : "badge-status-not-started"
+                                    }`}
+                                  >
+                                    <option value="Not Started" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                      Not Started
+                                    </option>
+                                    <option value="In Progress" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                      In Progress
+                                    </option>
+                                    <option value="In Review" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                      In Review
+                                    </option>
+                                    <option value="On Hold" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                      On Hold
+                                    </option>
+                                  </select>
                                 )}
                               </td>
                             )}
@@ -3849,7 +3805,7 @@ const MyTasksTab = ({
 
                             {!hiddenColumns.assignedBy && (
                               <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 text-left">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2.5">
                                   {(() => {
                                     const assignerId =
                                       typeof task.assignedBy === "object"
@@ -3868,11 +3824,15 @@ const MyTasksTab = ({
                                       task.assignedBy?.name ||
                                       task.createdBy?.name ||
                                       "Internal";
+                                    const dept = 
+                                      assignerUser?.department ||
+                                      assignerUser?.profile?.department ||
+                                      "No Department";
 
                                     return (
                                       <>
-                                        <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm">
-                                          <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm">
+                                          <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[11px] font-bold text-slate-500">
                                             {name.charAt(0).toUpperCase()}
                                           </div>
                                           {profilePic && (
@@ -3886,9 +3846,12 @@ const MyTasksTab = ({
                                             />
                                           )}
                                         </div>
-                                        <div className="flex flex-col">
-                                          <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200">
+                                        <div className="flex flex-col justify-center">
+                                          <span className="font-extrabold text-[12px] text-slate-800 dark:text-slate-200 leading-tight">
                                             {name}
+                                          </span>
+                                          <span className="text-[10px] text-slate-500 font-medium">
+                                            {dept}
                                           </span>
                                         </div>
                                       </>

@@ -309,19 +309,19 @@ const SimpleTimeTracker = ({
   const totalMs = getTotalTrackedMs(taskObj, now);
 
   if (status === "Not Started" || (!startTime && totalMs === 0)) {
-    return <span className="text-slate-400 dark:text-slate-500 font-medium text-[11px]">—</span>;
+    return <span className="text-slate-400 dark:text-[#64748b] font-medium text-[11px]">—</span>;
   }
 
   const colorClasses =
     status === "In Progress"
-      ? "bg-blue-50/90 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40"
+      ? "bg-blue-50/90 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-[#93c5fd] dark:border-blue-700/50"
       : status === "In Review"
-        ? "bg-amber-50/90 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40"
+        ? "bg-amber-50/90 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-[#fde047] dark:border-amber-700/50"
         : status === "On Hold"
-          ? "bg-purple-50/90 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/40"
+          ? "bg-purple-50/90 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-[#d8b4fe] dark:border-purple-700/50"
           : status === "Completed"
-            ? "bg-emerald-50/90 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40"
-            : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
+            ? "bg-emerald-50/90 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-[#86efac] dark:border-emerald-700/50"
+            : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-[#1a202c] dark:text-[#cbd5e1] dark:border-[#334155]";
 
   return (
     <span
@@ -368,12 +368,12 @@ const TimeTrackerBox = ({
   const totalMs = getTotalTrackedMs(taskObj, now);
 
   if (status === "Not Started" || (!startTime && totalMs === 0)) {
-    return <span className="text-slate-400 dark:text-slate-500 font-medium text-[11px]">—</span>;
+    return <span className="text-slate-400 dark:text-[#64748b] font-medium text-[11px]">—</span>;
   }
 
   return (
-    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/80 dark:bg-slate-800/70 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 text-[11px] font-black shadow-2xs">
-      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">Total</span>
+    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100/80 dark:bg-[#1a202c] border border-slate-200 dark:border-[#334155] text-slate-700 dark:text-[#cbd5e1] text-[11px] font-black shadow-2xs">
+      <span className="text-[10px] text-slate-400 dark:text-[#94a3b8] font-bold uppercase">Total</span>
       <span>{formatShortDuration(totalMs)}</span>
     </div>
   );
@@ -443,7 +443,7 @@ const ApprovalTimeDisplay = React.memo(
         : null);
 
     if (!effectiveReviewStart && !approvalWaitingMs) {
-      return <span className="text-slate-400 dark:text-slate-600 text-[11px]">—</span>;
+      return <span className="text-slate-400 dark:text-[#64748b] text-[11px]">—</span>;
     }
 
     const formatDateTime = (dateStr) => {
@@ -513,7 +513,7 @@ const ApprovalTimeDisplay = React.memo(
             ref={buttonRef}
             type="button"
             onClick={handleToggle}
-            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500 dark:text-slate-500 dark:hover:text-blue-400 transition-colors cursor-pointer"
+            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-blue-500 dark:text-[#94a3b8] dark:hover:text-blue-400 transition-colors cursor-pointer"
             title="View approval timeline"
           >
             <FiEye size={13} />
@@ -538,13 +538,13 @@ const ApprovalTimeDisplay = React.memo(
                 className="z-[9999] w-60 p-3 bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl flex flex-col gap-2 text-left backdrop-blur-md"
               >
                 <div className="flex justify-between items-center pb-1.5 border-b border-slate-100 dark:border-white/5">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-[#94a3b8]">
                     Approval Timeline
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowPopup(false)}
-                    className="text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-white cursor-pointer"
+                    className="text-slate-400 hover:text-slate-600 dark:text-[#94a3b8] dark:hover:text-[#ffffff] cursor-pointer"
                   >
                     <FiX size={12} />
                   </button>
@@ -555,7 +555,7 @@ const ApprovalTimeDisplay = React.memo(
                     <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                       Review Started
                     </span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                    <span className="font-bold text-slate-800 dark:text-[#f8fafc] text-[11px]">
                       {revInfo.date} · {revInfo.time}
                     </span>
                     <span className="text-[9px] text-blue-500 dark:text-blue-400 font-semibold">
@@ -569,7 +569,7 @@ const ApprovalTimeDisplay = React.memo(
                     <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                       Approved & Completed
                     </span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                    <span className="font-bold text-slate-800 dark:text-[#f8fafc] text-[11px]">
                       {doneInfo.date} · {doneInfo.time}
                     </span>
                     <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-semibold">
@@ -623,7 +623,7 @@ const renderUserAvatarSmall = (u, sizeClass = "w-6 h-6 text-[9px]") => {
       className={`relative ${sizeClass} rounded-full overflow-hidden shrink-0 border border-slate-200/80 dark:border-white/10 shadow-2xs`}
     >
       <div
-        className={`w-full h-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black`}
+        className={`w-full h-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-[#ffffff] font-black`}
       >
         {initials}
       </div>
@@ -659,7 +659,7 @@ const getDeptBadgeStyle = (dept) => {
   if (d.includes("admin") || d.includes("operation")) {
     return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-800/40";
   }
-  return "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
+  return "bg-slate-50 text-slate-700 border-slate-200 dark:bg-[#1a202c] dark:text-[#cbd5e1] dark:border-[#334155]";
 };
 
 const shortenDept = (dept) => {
@@ -687,21 +687,21 @@ const PriorityBadge = ({ priority }) => {
   switch (p) {
     case "Top High":
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-rose-500/10 text-rose-600 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40 shadow-2xs uppercase tracking-wider">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-rose-500/10 text-rose-600 border border-rose-300 dark:bg-rose-950/60 dark:text-[#fda4af] dark:border-rose-700/60 shadow-2xs uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
           Top High
         </span>
       );
     case "High":
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-amber-500/10 text-amber-600 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 shadow-2xs uppercase tracking-wider">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-amber-500/10 text-amber-600 border border-amber-300 dark:bg-amber-950/60 dark:text-[#fde047] dark:border-amber-700/60 shadow-2xs uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
           High
         </span>
       );
     case "Low":
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-slate-500/10 text-slate-600 border border-slate-300 dark:bg-slate-500/20 dark:text-slate-400 dark:border-slate-500/40 shadow-2xs uppercase tracking-wider">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-slate-500/10 text-slate-700 border border-slate-300 dark:bg-[#1a202c] dark:text-[#cbd5e1] dark:border-[#334155] shadow-2xs uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
           Low
         </span>
@@ -709,7 +709,7 @@ const PriorityBadge = ({ priority }) => {
     case "Medium":
     default:
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-blue-500/10 text-blue-600 border border-blue-300 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 shadow-2xs uppercase tracking-wider">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-black bg-blue-500/10 text-blue-600 border border-blue-300 dark:bg-blue-950/60 dark:text-[#93c5fd] dark:border-blue-700/60 shadow-2xs uppercase tracking-wider">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
           Medium
         </span>
@@ -721,7 +721,7 @@ const PriorityBadge = ({ priority }) => {
 const StatusBadge = ({ status, isBlocked }) => {
   if (isBlocked) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-red-100 text-red-700 border border-red-300 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/50 shadow-2xs uppercase tracking-wider">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-red-100 text-red-700 border border-red-300 dark:bg-red-950/60 dark:text-[#fca5a5] dark:border-red-700/60 shadow-2xs uppercase tracking-wider">
         <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
         BLOCKED
       </span>
@@ -732,7 +732,7 @@ const StatusBadge = ({ status, isBlocked }) => {
 
   if (s.includes("PROGRESS")) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-blue-100/90 text-blue-700 border border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/60 shadow-2xs uppercase tracking-wider">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-blue-100/90 text-blue-700 border border-blue-300 dark:bg-blue-950/60 dark:text-[#93c5fd] dark:border-blue-700/60 shadow-2xs uppercase tracking-wider">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
@@ -744,7 +744,7 @@ const StatusBadge = ({ status, isBlocked }) => {
 
   if (s.includes("REVIEW")) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-amber-100/90 text-amber-800 border border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60 shadow-2xs uppercase tracking-wider">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-amber-100/90 text-amber-800 border border-amber-300 dark:bg-amber-950/60 dark:text-[#fde047] dark:border-amber-700/60 shadow-2xs uppercase tracking-wider">
         <span className="w-2 h-2 rounded-full bg-amber-500" />
         IN REVIEW
       </span>
@@ -753,7 +753,7 @@ const StatusBadge = ({ status, isBlocked }) => {
 
   if (s.includes("CORRECTION")) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-orange-100/90 text-orange-800 border border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-800/60 shadow-2xs uppercase tracking-wider">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-orange-100/90 text-orange-800 border border-orange-300 dark:bg-orange-950/60 dark:text-[#fdba74] dark:border-orange-700/60 shadow-2xs uppercase tracking-wider">
         <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
         CORRECTION
       </span>
@@ -762,7 +762,7 @@ const StatusBadge = ({ status, isBlocked }) => {
 
   if (s.includes("HOLD")) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-purple-100/90 text-purple-800 border border-purple-300 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800/60 shadow-2xs uppercase tracking-wider">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-purple-100/90 text-purple-800 border border-purple-300 dark:bg-purple-950/60 dark:text-[#d8b4fe] dark:border-purple-700/60 shadow-2xs uppercase tracking-wider">
         <span className="w-2 h-2 rounded-full bg-purple-500" />
         ON HOLD
       </span>
@@ -771,7 +771,7 @@ const StatusBadge = ({ status, isBlocked }) => {
 
   if (s.includes("COMPLETED") || s.includes("DONE") || s.includes("APPROVE")) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-emerald-100/90 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60 shadow-2xs uppercase tracking-wider">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-emerald-100/90 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-[#86efac] dark:border-emerald-700/60 shadow-2xs uppercase tracking-wider">
         <FiCheck className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
         COMPLETED
       </span>
@@ -780,7 +780,7 @@ const StatusBadge = ({ status, isBlocked }) => {
 
   if (s.includes("REJECT")) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-rose-100/90 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60 shadow-2xs uppercase tracking-wider">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-rose-100/90 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-[#fca5a5] dark:border-rose-700/60 shadow-2xs uppercase tracking-wider">
         <span className="w-2 h-2 rounded-full bg-rose-500" />
         REJECTED
       </span>
@@ -788,8 +788,8 @@ const StatusBadge = ({ status, isBlocked }) => {
   }
 
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-slate-200/80 text-slate-700 border border-slate-300 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700 shadow-2xs uppercase tracking-wider">
-      <span className="w-2 h-2 rounded-full bg-slate-400" />
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-slate-200/80 text-slate-700 border border-slate-300 dark:bg-[#1a202c] dark:text-[#cbd5e1] dark:border-[#334155] shadow-2xs uppercase tracking-wider">
+      <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500" />
       NOT STARTED
     </span>
   );
@@ -797,29 +797,29 @@ const StatusBadge = ({ status, isBlocked }) => {
 
 // SaaS Content Type Pill (read-only)
 const ContentTypeBadge = ({ type }) => {
-  if (!type) return <span className="text-slate-400 dark:text-slate-600 text-[11px]">—</span>;
+  if (!type) return <span className="text-slate-400 dark:text-[#64748b] text-[11px]">—</span>;
 
   const t = String(type).toUpperCase();
-  let badgeStyle = "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+  let badgeStyle = "bg-slate-100 text-slate-700 border-slate-200 dark:bg-[#1a202c] dark:text-[#cbd5e1] dark:border-[#334155]";
 
   if (t === "VIDEO") {
-    badgeStyle = "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800/40";
+    badgeStyle = "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/50 dark:text-[#c4b5fd] dark:border-violet-700/50";
   } else if (t === "IMAGE") {
-    badgeStyle = "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/40";
+    badgeStyle = "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-[#7dd3fc] dark:border-sky-700/50";
   } else if (t === "CAROUSEL") {
-    badgeStyle = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40";
+    badgeStyle = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-[#fcd34d] dark:border-amber-700/50";
   } else if (t === "REEL") {
-    badgeStyle = "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40";
+    badgeStyle = "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-[#fda4af] dark:border-rose-700/50";
   } else if (t === "POST") {
-    badgeStyle = "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40";
+    badgeStyle = "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-[#5eead4] dark:border-teal-700/50";
   } else if (t === "STORY") {
-    badgeStyle = "bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800/40";
+    badgeStyle = "bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/50 dark:text-[#f472b6] dark:border-pink-700/50";
   } else if (t === "WEBSITE") {
-    badgeStyle = "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800/40";
+    badgeStyle = "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/50 dark:text-[#67e8f9] dark:border-cyan-700/50";
   } else if (t === "SEO") {
-    badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40";
+    badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-[#6ee7b7] dark:border-emerald-700/50";
   } else if (t.includes("SHOOT")) {
-    badgeStyle = "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40";
+    badgeStyle = "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-[#a5b4fc] dark:border-indigo-700/50";
   }
 
   return (
@@ -1003,10 +1003,16 @@ const TaskOverviewTab = ({
       ) {
         setShowContentTypeDropdown(false);
       }
+      if (
+        dateDropdownRef?.current &&
+        !dateDropdownRef.current.contains(event.target)
+      ) {
+        setShowDateDropdown?.(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [dateDropdownRef, setShowDateDropdown]);
 
   // Reset page when filter changes
   useEffect(() => {
@@ -1510,32 +1516,71 @@ const TaskOverviewTab = ({
   return (
     <div className="space-y-4">
       {/* 1. EXECUTIVE LIVE STATUS KPI METRICS BAR */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+      <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
         {/* KPI: Total Overview */}
         <motion.div
           whileHover={{ y: -2 }}
           onClick={() => setOverviewStatusFilter("All")}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${
             overviewStatusFilter === "All"
-              ? "bg-slate-900 text-white border-slate-700 shadow-md dark:bg-white dark:text-slate-900 dark:border-white"
-              : "bg-white/80 dark:bg-[#131625]/90 border-slate-200/80 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-2xs"
+              ? "bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-700 text-[#ffffff] border-indigo-400 shadow-lg shadow-indigo-600/35 ring-2 ring-indigo-300 dark:ring-indigo-400"
+              : "bg-white dark:bg-[#121626] border-slate-200/90 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider opacity-70">
+            <span
+              className={`text-[11px] font-black uppercase tracking-wider ${
+                overviewStatusFilter === "All"
+                  ? "text-indigo-100"
+                  : "text-slate-600 dark:text-[#94a3b8]"
+              }`}
+            >
               Total Monitored
             </span>
-            <div className="w-7 h-7 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center shrink-0">
-              <FiLayers size={14} />
+            <div className="flex items-center gap-1.5">
+              {overviewStatusFilter === "All" && (
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                  Active
+                </span>
+              )}
+              <div
+                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                  overviewStatusFilter === "All"
+                    ? "bg-white/20 text-[#ffffff] border border-white/20"
+                    : "bg-slate-100 dark:bg-[#1e2433] text-slate-700 dark:text-[#cbd5e1] border border-slate-200/60 dark:border-[#334155]"
+                }`}
+              >
+                <FiLayers size={14} />
+              </div>
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black tracking-tight">
+            <span
+              className={`text-2xl font-black tracking-tight ${
+                overviewStatusFilter === "All"
+                  ? "text-[#ffffff]"
+                  : "text-slate-900 dark:text-[#f8fafc]"
+              }`}
+            >
               {kpiStats.total}
             </span>
-            <span className="text-[10px] font-bold opacity-75">All Tasks</span>
+            <span
+              className={`text-[10px] font-bold ${
+                overviewStatusFilter === "All"
+                  ? "text-indigo-100"
+                  : "text-slate-500 dark:text-[#94a3b8]"
+              }`}
+            >
+              All Tasks
+            </span>
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold opacity-60">
+          <div
+            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
+              overviewStatusFilter === "All"
+                ? "text-indigo-200"
+                : "text-slate-500 dark:text-[#94a3b8]"
+            }`}
+          >
             <span>Read-only tracking</span>
           </div>
         </motion.div>
@@ -1550,28 +1595,79 @@ const TaskOverviewTab = ({
           }
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${
             overviewStatusFilter === "In Progress"
-              ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/25 ring-2 ring-blue-400/50"
-              : "bg-white/80 dark:bg-[#131625]/90 border-slate-200/80 dark:border-white/10 hover:border-blue-300 dark:hover:border-blue-900/60 shadow-2xs"
+              ? "bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-600 text-[#ffffff] border-cyan-400 shadow-lg shadow-cyan-500/35 ring-2 ring-cyan-300 dark:ring-cyan-400"
+              : "bg-white dark:bg-[#0c1a2e] border-sky-200/90 dark:border-cyan-900/60 hover:border-sky-300 dark:hover:border-cyan-700/60 shadow-xs"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider opacity-85">
+            <span
+              className={`text-[11px] font-black uppercase tracking-wider ${
+                overviewStatusFilter === "In Progress"
+                  ? "text-cyan-100"
+                  : "text-sky-900 dark:text-[#38bdf8]"
+              }`}
+            >
               In Progress
             </span>
-            <div className="w-7 h-7 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
-              </span>
+            <div className="flex items-center gap-1.5">
+              {overviewStatusFilter === "In Progress" && (
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                  Active
+                </span>
+              )}
+              <div
+                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                  overviewStatusFilter === "In Progress"
+                    ? "bg-white/20 text-[#ffffff] border border-white/20"
+                    : "bg-sky-100/90 dark:bg-sky-950/80 text-sky-600 dark:text-[#38bdf8] border border-sky-200/70 dark:border-sky-800/60"
+                }`}
+              >
+                <span className="relative flex h-2.5 w-2.5">
+                  <span
+                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                      overviewStatusFilter === "In Progress"
+                        ? "bg-white"
+                        : "bg-sky-400"
+                    }`}
+                  ></span>
+                  <span
+                    className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                      overviewStatusFilter === "In Progress"
+                        ? "bg-white"
+                        : "bg-sky-600 dark:bg-[#38bdf8]"
+                    }`}
+                  ></span>
+                </span>
+              </div>
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+            <span
+              className={`text-2xl font-black tracking-tight ${
+                overviewStatusFilter === "In Progress"
+                  ? "text-[#ffffff]"
+                  : "text-sky-600 dark:text-[#38bdf8]"
+              }`}
+            >
               {kpiStats.inProgress}
             </span>
-            <span className="text-[10px] font-bold opacity-75">Active Now</span>
+            <span
+              className={`text-[10px] font-bold ${
+                overviewStatusFilter === "In Progress"
+                  ? "text-cyan-100"
+                  : "text-slate-600 dark:text-[#94a3b8]"
+              }`}
+            >
+              Active Now
+            </span>
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-blue-600/80 dark:text-blue-400/80">
+          <div
+            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
+              overviewStatusFilter === "In Progress"
+                ? "text-cyan-100"
+                : "text-sky-600 dark:text-[#38bdf8]"
+            }`}
+          >
             <span>Live production</span>
           </div>
         </motion.div>
@@ -1586,25 +1682,64 @@ const TaskOverviewTab = ({
           }
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${
             overviewStatusFilter === "In Review"
-              ? "bg-amber-600 text-white border-amber-600 shadow-lg shadow-amber-500/25 ring-2 ring-amber-400/50"
-              : "bg-white/80 dark:bg-[#131625]/90 border-slate-200/80 dark:border-white/10 hover:border-amber-300 dark:hover:border-amber-900/60 shadow-2xs"
+              ? "bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 text-[#ffffff] border-amber-400 shadow-lg shadow-amber-500/35 ring-2 ring-amber-300 dark:ring-amber-400"
+              : "bg-white dark:bg-[#211a0f] border-amber-200/90 dark:border-amber-900/60 hover:border-amber-300 dark:hover:border-amber-700/60 shadow-xs"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider opacity-85">
+            <span
+              className={`text-[11px] font-black uppercase tracking-wider ${
+                overviewStatusFilter === "In Review"
+                  ? "text-amber-100"
+                  : "text-amber-900 dark:text-[#fbbf24]"
+              }`}
+            >
               In Review
             </span>
-            <div className="w-7 h-7 rounded-xl bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 flex items-center justify-center shrink-0">
-              <FiEye size={14} />
+            <div className="flex items-center gap-1.5">
+              {overviewStatusFilter === "In Review" && (
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                  Active
+                </span>
+              )}
+              <div
+                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                  overviewStatusFilter === "In Review"
+                    ? "bg-white/20 text-[#ffffff] border border-white/20"
+                    : "bg-amber-100/90 dark:bg-amber-950/80 text-amber-600 dark:text-[#fbbf24] border border-amber-200/70 dark:border-amber-800/60"
+                }`}
+              >
+                <FiEye size={14} />
+              </div>
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400">
+            <span
+              className={`text-2xl font-black tracking-tight ${
+                overviewStatusFilter === "In Review"
+                  ? "text-[#ffffff]"
+                  : "text-amber-600 dark:text-[#fbbf24]"
+              }`}
+            >
               {kpiStats.inReview}
             </span>
-            <span className="text-[10px] font-bold opacity-75">Waiting Sign-off</span>
+            <span
+              className={`text-[10px] font-bold ${
+                overviewStatusFilter === "In Review"
+                  ? "text-amber-100"
+                  : "text-slate-600 dark:text-[#94a3b8]"
+              }`}
+            >
+              Waiting Sign-off
+            </span>
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-amber-600/80 dark:text-amber-400/80">
+          <div
+            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
+              overviewStatusFilter === "In Review"
+                ? "text-amber-100"
+                : "text-amber-600 dark:text-[#fbbf24]"
+            }`}
+          >
             <span>Manager verification</span>
           </div>
         </motion.div>
@@ -1619,25 +1754,64 @@ const TaskOverviewTab = ({
           }
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${
             overviewStatusFilter === "Needs Attention"
-              ? "bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-500/25 ring-2 ring-rose-400/50"
-              : "bg-white/80 dark:bg-[#131625]/90 border-slate-200/80 dark:border-white/10 hover:border-rose-300 dark:hover:border-rose-900/60 shadow-2xs"
+              ? "bg-gradient-to-br from-rose-600 via-rose-600 to-red-600 text-[#ffffff] border-rose-400 shadow-lg shadow-rose-500/35 ring-2 ring-rose-300 dark:ring-rose-400"
+              : "bg-white dark:bg-[#241118] border-rose-200/90 dark:border-rose-900/60 hover:border-rose-300 dark:hover:border-rose-700/60 shadow-xs"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider opacity-85">
+            <span
+              className={`text-[11px] font-black uppercase tracking-wider ${
+                overviewStatusFilter === "Needs Attention"
+                  ? "text-rose-100"
+                  : "text-rose-900 dark:text-[#fb7185]"
+              }`}
+            >
               Needs Attention
             </span>
-            <div className="w-7 h-7 rounded-xl bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
-              <FiAlertTriangle size={14} />
+            <div className="flex items-center gap-1.5">
+              {overviewStatusFilter === "Needs Attention" && (
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                  Active
+                </span>
+              )}
+              <div
+                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                  overviewStatusFilter === "Needs Attention"
+                    ? "bg-white/20 text-[#ffffff] border border-white/20"
+                    : "bg-rose-100/90 dark:bg-rose-950/80 text-rose-600 dark:text-[#fb7185] border border-rose-200/70 dark:border-rose-800/60"
+                }`}
+              >
+                <FiAlertTriangle size={14} />
+              </div>
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black tracking-tight text-rose-600 dark:text-rose-400">
+            <span
+              className={`text-2xl font-black tracking-tight ${
+                overviewStatusFilter === "Needs Attention"
+                  ? "text-[#ffffff]"
+                  : "text-rose-600 dark:text-[#fb7185]"
+              }`}
+            >
               {kpiStats.needsAttention}
             </span>
-            <span className="text-[10px] font-bold opacity-75">Hold / Block</span>
+            <span
+              className={`text-[10px] font-bold ${
+                overviewStatusFilter === "Needs Attention"
+                  ? "text-rose-100"
+                  : "text-slate-600 dark:text-[#94a3b8]"
+              }`}
+            >
+              Hold / Block
+            </span>
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-rose-600/80 dark:text-rose-400/80">
+          <div
+            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
+              overviewStatusFilter === "Needs Attention"
+                ? "text-rose-100"
+                : "text-rose-600 dark:text-[#fb7185]"
+            }`}
+          >
             <span>Corrections & Blocker</span>
           </div>
         </motion.div>
@@ -1652,53 +1826,87 @@ const TaskOverviewTab = ({
           }
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md col-span-2 sm:col-span-1 ${
             overviewStatusFilter === "Completed"
-              ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/50"
-              : "bg-white/80 dark:bg-[#131625]/90 border-slate-200/80 dark:border-white/10 hover:border-emerald-300 dark:hover:border-emerald-900/60 shadow-2xs"
+              ? "bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-[#ffffff] border-emerald-400 shadow-lg shadow-emerald-500/35 ring-2 ring-emerald-300 dark:ring-emerald-400"
+              : "bg-white dark:bg-[#0c1e18] border-emerald-200/90 dark:border-emerald-900/60 hover:border-emerald-300 dark:hover:border-emerald-700/60 shadow-xs"
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-wider opacity-85">
+            <span
+              className={`text-[11px] font-black uppercase tracking-wider ${
+                overviewStatusFilter === "Completed"
+                  ? "text-emerald-100"
+                  : "text-emerald-900 dark:text-[#34d399]"
+              }`}
+            >
               Completed
             </span>
-            <div className="w-7 h-7 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
-              <FiCheckCircle size={14} />
+            <div className="flex items-center gap-1.5">
+              {overviewStatusFilter === "Completed" && (
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                  Active
+                </span>
+              )}
+              <div
+                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
+                  overviewStatusFilter === "Completed"
+                    ? "bg-white/20 text-[#ffffff] border border-white/20"
+                    : "bg-emerald-100/90 dark:bg-emerald-950/80 text-emerald-600 dark:text-[#34d399] border border-emerald-200/70 dark:border-emerald-800/60"
+                }`}
+              >
+                <FiCheckCircle size={14} />
+              </div>
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+            <span
+              className={`text-2xl font-black tracking-tight ${
+                overviewStatusFilter === "Completed"
+                  ? "text-[#ffffff]"
+                  : "text-emerald-600 dark:text-[#34d399]"
+              }`}
+            >
               {kpiStats.completed}
             </span>
-            <span className="text-[10px] font-bold opacity-75">
+            <span
+              className={`text-[10px] font-bold ${
+                overviewStatusFilter === "Completed"
+                  ? "text-emerald-100"
+                  : "text-slate-600 dark:text-[#94a3b8]"
+              }`}
+            >
               {kpiStats.completionRate}% Done
             </span>
           </div>
-          <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold text-emerald-600/80 dark:text-emerald-400/80">
+          <div
+            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
+              overviewStatusFilter === "Completed"
+                ? "text-emerald-100"
+                : "text-emerald-600 dark:text-[#34d399]"
+            }`}
+          >
             <span>Successfully delivered</span>
           </div>
         </motion.div>
       </div>
 
       {/* 2. SAAS CONTROL TOOLBAR: SEARCH & SMART FILTERS */}
-      <div className="bg-white/95 dark:bg-[#131625]/95 border border-slate-200/80 dark:border-white/10 rounded-2xl p-2.5 shadow-xs backdrop-blur-xl space-y-2">
+      <div className="relative z-30 bg-white/95 dark:bg-[#131625]/95 border border-slate-200/80 dark:border-white/10 rounded-2xl p-2.5 shadow-xs backdrop-blur-xl space-y-2">
         <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5">
           {/* Search bar */}
           <div className="relative flex-1 min-w-[260px]">
-            <FiSearch
-              size={14}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none"
-            />
+           
             <input
               type="text"
-              placeholder="Search tasks by name, project, client, copy, assignee, creator..."
+              placeholder="Search tasks by name, client, copy, assignee, creator..."
               value={projectSearch}
               onChange={(e) => setProjectSearch(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-[12px] font-semibold rounded-xl bg-slate-50/80 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 dark:focus:border-blue-400 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 transition-all shadow-inner"
+              className="w-full pl-9 pr-8 py-2 text-[12px] font-semibold rounded-xl bg-slate-50/80 dark:bg-[#161826] border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 dark:focus:border-blue-400 text-slate-800 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b] transition-all shadow-inner"
             />
             {projectSearch && (
               <button
                 type="button"
                 onClick={() => setProjectSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-[#ffffff] cursor-pointer"
               >
                 <FiX size={13} />
               </button>
@@ -1708,14 +1916,14 @@ const TaskOverviewTab = ({
           {/* SaaS Filter Pills Row */}
           <div className="flex items-center gap-1.5 flex-wrap shrink-0">
             {/* Client Filter */}
-            <div className="relative" ref={clientDropdownRef}>
+            <div className={`relative ${showClientDropdown ? "z-50" : "z-10"}`} ref={clientDropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowClientDropdown((prev) => !prev)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                   overviewClientFilter !== "All"
-                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
-                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-[#93c5fd] dark:border-blue-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                 }`}
               >
                 <span className="truncate max-w-[90px]">
@@ -1738,7 +1946,7 @@ const TaskOverviewTab = ({
                     initial={{ opacity: 0, y: 6, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute left-0 xl:right-0 xl:left-auto top-full mt-1.5 w-64 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
+                    className="absolute left-0 top-full mt-1.5 w-64 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
                   >
                     <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
                       <input
@@ -1746,7 +1954,7 @@ const TaskOverviewTab = ({
                         placeholder="Search clients..."
                         value={clientSearchQuery}
                         onChange={(e) => setClientSearchQuery(e.target.value)}
-                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-800 dark:text-slate-200"
+                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
                         onClick={(e) => e.stopPropagation()}
                       />
                     </div>
@@ -1759,8 +1967,8 @@ const TaskOverviewTab = ({
                         }}
                         className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
                           overviewClientFilter === "All"
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-[#93c5fd]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
                         }`}
                       >
                         All Clients
@@ -1781,7 +1989,7 @@ const TaskOverviewTab = ({
                             }}
                             className={`w-full text-left px-2 py-1 rounded-xl transition-all flex items-center ${
                               overviewClientFilter === client._id
-                                ? "bg-blue-50 dark:bg-blue-900/30"
+                                ? "bg-blue-50 dark:bg-blue-900/40"
                                 : "hover:bg-slate-50 dark:hover:bg-white/5"
                             }`}
                           >
@@ -1799,14 +2007,14 @@ const TaskOverviewTab = ({
             </div>
 
             {/* Department Filter */}
-            <div className="relative" ref={departmentDropdownRef}>
+            <div className={`relative ${showDepartmentDropdown ? "z-50" : "z-10"}`} ref={departmentDropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowDepartmentDropdown((prev) => !prev)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                   overviewDepartmentFilter !== "All"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
-                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-[#86efac] dark:border-emerald-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                 }`}
               >
                 <span className="truncate max-w-[85px]">
@@ -1828,7 +2036,7 @@ const TaskOverviewTab = ({
                     initial={{ opacity: 0, y: 6, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute left-0 xl:right-0 xl:left-auto top-full mt-1.5 w-56 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
+                    className="absolute left-0 top-full mt-1.5 w-56 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
                   >
                     <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
                       <input
@@ -1836,7 +2044,7 @@ const TaskOverviewTab = ({
                         placeholder="Search department..."
                         value={departmentSearchQuery}
                         onChange={(e) => setDepartmentSearchQuery(e.target.value)}
-                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-800 dark:text-slate-200"
+                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
                         onClick={(e) => e.stopPropagation()}
                       />
                     </div>
@@ -1849,8 +2057,8 @@ const TaskOverviewTab = ({
                         }}
                         className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
                           overviewDepartmentFilter === "All"
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
                         }`}
                       >
                         All Departments
@@ -1871,8 +2079,8 @@ const TaskOverviewTab = ({
                             }}
                             className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] transition-all font-bold ${
                               overviewDepartmentFilter === dept
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                                : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
+                                : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
                             }`}
                           >
                             {dept}
@@ -1885,14 +2093,14 @@ const TaskOverviewTab = ({
             </div>
 
             {/* Assignee Filter */}
-            <div className="relative" ref={assigneeDropdownRef}>
+            <div className={`relative ${showAssigneeDropdown ? "z-50" : "z-10"}`} ref={assigneeDropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowAssigneeDropdown((prev) => !prev)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                   overviewAssigneeFilter !== "All"
-                    ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800"
-                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-[#d8b4fe] dark:border-purple-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                 }`}
               >
                 <span className="truncate max-w-[85px]">
@@ -1916,7 +2124,7 @@ const TaskOverviewTab = ({
                     initial={{ opacity: 0, y: 6, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute left-0 xl:right-0 xl:left-auto top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
+                    className="absolute left-0 lg:left-auto lg:right-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
                   >
                     <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
                       <input
@@ -1924,7 +2132,7 @@ const TaskOverviewTab = ({
                         placeholder="Search assignee..."
                         value={assigneeSearchQuery}
                         onChange={(e) => setAssigneeSearchQuery(e.target.value)}
-                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-800 dark:text-slate-200"
+                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
                         onClick={(e) => e.stopPropagation()}
                       />
                     </div>
@@ -1937,8 +2145,8 @@ const TaskOverviewTab = ({
                         }}
                         className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
                           overviewAssigneeFilter === "All"
-                            ? "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            ? "bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-[#d8b4fe]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
                         }`}
                       >
                         All Assignees
@@ -1961,12 +2169,12 @@ const TaskOverviewTab = ({
                               }}
                               className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${
                                 overviewAssigneeFilter === uid
-                                  ? "bg-purple-50 dark:bg-purple-900/30 font-bold"
+                                  ? "bg-purple-50 dark:bg-purple-900/40 font-bold"
                                   : "hover:bg-slate-50 dark:hover:bg-white/5"
                               }`}
                             >
                               {renderUserAvatarSmall(u)}
-                              <span className="truncate text-[11px] text-slate-800 dark:text-slate-200">
+                              <span className="truncate text-[11px] text-slate-900 dark:text-[#f8fafc] font-bold">
                                 {u.name}
                               </span>
                             </button>
@@ -1979,14 +2187,14 @@ const TaskOverviewTab = ({
             </div>
 
             {/* Status Filter Dropdown */}
-            <div className="relative" ref={statusDropdownRef}>
+            <div className={`relative ${showStatusDropdown ? "z-50" : "z-10"}`} ref={statusDropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowStatusDropdown((prev) => !prev)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                   overviewStatusFilter !== "All"
-                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
-                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-[#a5b4fc] dark:border-indigo-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                 }`}
               >
                 <span className="truncate max-w-[85px]">
@@ -2032,8 +2240,8 @@ const TaskOverviewTab = ({
                         }}
                         className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${
                           overviewStatusFilter === st
-                            ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-[#a5b4fc]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
                         }`}
                       >
                         <span>{st === "All" ? "All Statuses" : st}</span>
@@ -2048,14 +2256,14 @@ const TaskOverviewTab = ({
             </div>
 
             {/* Priority Filter */}
-            <div className="relative" ref={priorityDropdownRef}>
+            <div className={`relative ${showPriorityDropdown ? "z-50" : "z-10"}`} ref={priorityDropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowPriorityDropdown((prev) => !prev)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                   overviewPriorityFilter !== "All"
-                    ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800"
-                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-[#fde047] dark:border-amber-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                 }`}
               >
                 <span className="truncate max-w-[70px]">
@@ -2089,8 +2297,8 @@ const TaskOverviewTab = ({
                         }}
                         className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${
                           overviewPriorityFilter === pr
-                            ? "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            ? "bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-[#fde047]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
                         }`}
                       >
                         <span>{pr === "All" ? "All Priorities" : pr}</span>
@@ -2105,14 +2313,14 @@ const TaskOverviewTab = ({
             </div>
 
             {/* Date Quick Filter */}
-            <div className="relative" ref={dateDropdownRef}>
+            <div className={`relative ${showDateDropdown ? "z-50" : "z-10"}`} ref={dateDropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowDateDropdown((prev) => !prev)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
                   dateFilter !== "All"
-                    ? "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800"
-                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    ? "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/40 dark:text-[#5eead4] dark:border-teal-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                 }`}
               >
                 <FiCalendar size={12} className="opacity-70" />
@@ -2149,8 +2357,8 @@ const TaskOverviewTab = ({
                         }}
                         className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${
                           dateFilter === opt.value
-                            ? "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            ? "bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-[#5eead4]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
                         }`}
                       >
                         <span>{opt.label}</span>
@@ -2169,12 +2377,12 @@ const TaskOverviewTab = ({
         {/* Active Filter Tags Row & Clear Button */}
         {hasActiveFilters && (
           <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-white/5 flex-wrap">
-            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mr-1">
+            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-[#94a3b8] mr-1">
               Active:
             </span>
 
             {projectSearch && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-200">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-[#f8fafc]">
                 "{projectSearch}"
                 <button
                   onClick={() => setProjectSearch("")}
@@ -2186,7 +2394,7 @@ const TaskOverviewTab = ({
             )}
 
             {overviewStatusFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-[#a5b4fc] border border-indigo-200 dark:border-indigo-700/50">
                 Status: {overviewStatusFilter}
                 <button
                   onClick={() => setOverviewStatusFilter("All")}
@@ -2198,7 +2406,7 @@ const TaskOverviewTab = ({
             )}
 
             {overviewClientFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-[#93c5fd] border border-blue-200 dark:border-blue-700/50">
                 Client:{" "}
                 {clients?.find((c) => c._id === overviewClientFilter)
                   ?.companyName || "Client"}
@@ -2212,7 +2420,7 @@ const TaskOverviewTab = ({
             )}
 
             {overviewDepartmentFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-[#86efac] border border-emerald-200 dark:border-emerald-700/50">
                 Dept: {overviewDepartmentFilter}
                 <button
                   onClick={() => setOverviewDepartmentFilter("All")}
@@ -2224,7 +2432,7 @@ const TaskOverviewTab = ({
             )}
 
             {overviewAssigneeFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-[#d8b4fe] border border-purple-200 dark:border-purple-700/50">
                 Assignee:{" "}
                 {uniqueAssignees.find(
                   (u) => (u._id || u.id) === overviewAssigneeFilter,
@@ -2239,7 +2447,7 @@ const TaskOverviewTab = ({
             )}
 
             {dateFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/40">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-[#5eead4] border border-teal-200 dark:border-teal-700/50">
                 Date: {dateFilter}
                 <button
                   onClick={() => setDateFilter("All")}
@@ -2253,7 +2461,7 @@ const TaskOverviewTab = ({
             <button
               type="button"
               onClick={handleResetAllFilters}
-              className="ml-auto text-[11px] font-extrabold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+              className="ml-auto text-[11px] font-extrabold text-blue-600 dark:text-[#38bdf8] hover:underline cursor-pointer"
             >
               Reset All
             </button>
@@ -2275,16 +2483,16 @@ const TaskOverviewTab = ({
                 <span>Export CSV</span>
               </button>
 
-              <div className="relative" ref={colsDropdownRef}>
+              <div className={`relative ${isColsOpen ? "z-50" : "z-10"}`} ref={colsDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setIsColsOpen(!isColsOpen)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-[11px] font-bold cursor-pointer transition-all shadow-2xs hover:bg-slate-50 dark:bg-[#161826] dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-[11px] font-bold cursor-pointer transition-all shadow-2xs hover:bg-slate-50 dark:bg-[#161826] dark:border-white/10 dark:text-[#f8fafc] dark:hover:bg-white/5"
                 >
                   <FiColumns size={13} className="text-blue-500" />
                   <span>Columns</span>
                   {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
-                    <span className="text-[9px] font-black bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center">
+                    <span className="text-[9px] font-black bg-blue-500 text-[#ffffff] rounded-full w-4 h-4 flex items-center justify-center">
                       {Object.values(hiddenColumns).filter(Boolean).length}
                     </span>
                   )}
@@ -2296,10 +2504,10 @@ const TaskOverviewTab = ({
                       initial={{ opacity: 0, y: 6, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                      className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
+                      className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-[70] space-y-1 backdrop-blur-md"
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-1.5 px-1">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                        <span className="text-[11px] font-black text-slate-800 dark:text-[#f8fafc] uppercase tracking-wider">
                           Toggle Columns
                         </span>
                         {Object.values(hiddenColumns).some(Boolean) && (
@@ -2334,9 +2542,7 @@ const TaskOverviewTab = ({
                       <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto custom-scrollbar">
                         {[
                           { key: "taskName", label: "Task Name" },
-                          { key: "projectName", label: "Project Name" },
                           { key: "clientName", label: "Client Name" },
-                          { key: "contentCopy", label: "Content Copy" },
                           { key: "contentType", label: "Content Type" },
                           { key: "createdBy", label: "Created By" },
                           { key: "assignee", label: "Assignee" },
@@ -2352,7 +2558,7 @@ const TaskOverviewTab = ({
                         ].map((col) => (
                           <label
                             key={col.key}
-                            className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-[11px] font-bold text-slate-700 dark:text-slate-300 select-none"
+                            className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-[11px] font-bold text-slate-700 dark:text-[#cbd5e1] select-none"
                           >
                             <input
                               type="checkbox"
@@ -2379,31 +2585,23 @@ const TaskOverviewTab = ({
         : null}
 
       {/* 3. PREMIUM SAAS DATA TABLE CONTAINER */}
-      <div className="bg-white dark:bg-[#11131e] border border-slate-200/90 dark:border-white/10 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+      <div className="relative z-10 rounded-2xl bg-white dark:bg-[#11131e] border border-slate-200/90 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 relative min-h-[420px]">
           <table className="w-full text-left border-collapse min-w-max">
             <thead className="sticky top-0 z-20 bg-slate-50/95 dark:bg-[#161826]/95 backdrop-blur-md shadow-2xs">
-              <tr className="border-b border-slate-200 dark:border-white/10 text-[10.5px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-slate-200 dark:border-white/10 text-[10.5px] font-black text-slate-700 dark:text-[#f8fafc] uppercase tracking-wider">
                 {!hiddenColumns.taskName && (
                   <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
                     Task Details
                   </th>
                 )}
-                {!hiddenColumns.projectName && (
-                  <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
-                    Project
-                  </th>
-                )}
+               
                 {!hiddenColumns.clientName && (
                   <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
                     Client
                   </th>
                 )}
-                {!hiddenColumns.contentCopy && (
-                  <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
-                    Content Copy
-                  </th>
-                )}
+               
                 {!hiddenColumns.contentType && (
                   <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                     Type
@@ -2478,7 +2676,7 @@ const TaskOverviewTab = ({
                   >
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      <span className="text-xs font-bold text-slate-500 dark:text-[#94a3b8]">
                         Loading Status Overview...
                       </span>
                     </div>
@@ -2496,17 +2694,17 @@ const TaskOverviewTab = ({
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-400 flex items-center justify-center">
                         <FiSearch size={22} />
                       </div>
-                      <h3 className="text-sm font-black text-slate-700 dark:text-slate-200 mt-1">
+                      <h3 className="text-sm font-black text-slate-700 dark:text-[#f8fafc] mt-1">
                         No tasks match your criteria
                       </h3>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
+                      <p className="text-xs text-slate-400 dark:text-[#94a3b8] leading-relaxed">
                         Try adjusting your search keywords, status filters, or date range options.
                       </p>
                       {hasActiveFilters && (
                         <button
                           type="button"
                           onClick={handleResetAllFilters}
-                          className="mt-2 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 font-bold text-xs hover:bg-blue-100 transition-colors cursor-pointer"
+                          className="mt-2 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-[#93c5fd] font-bold text-xs hover:bg-blue-100 transition-colors cursor-pointer"
                         >
                           Clear All Filters
                         </button>
@@ -2549,23 +2747,18 @@ const TaskOverviewTab = ({
                       <tr
                         key={task._id || `task-ov-${idx}`}
                         onClick={() => setSelectedTaskId(task._id)}
-                        className="group transition-colors border-b border-slate-100 dark:border-white/5 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 cursor-pointer text-slate-800 dark:text-slate-100"
+                        className="group transition-colors border-b border-slate-100 dark:border-white/5 hover:bg-blue-50/40 dark:hover:bg-blue-950/25 cursor-pointer text-slate-800 dark:text-[#f8fafc]"
                       >
                         {/* Task Details */}
                         {!hiddenColumns.taskName && (
                           <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              {displayId && (
-                                <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 shrink-0">
-                                  {displayId}
-                                </span>
-                              )}
                               <BiFile
-                                className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0"
+                                className="text-slate-400 dark:text-[#94a3b8] group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors shrink-0"
                                 size={15}
                               />
                               <span
-                                className="text-[12px] font-bold text-slate-800 dark:text-slate-100 max-w-[280px] truncate block"
+                                className="text-[12px] font-bold text-slate-900 dark:text-[#f8fafc] max-w-[280px] truncate block group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
                                 title={task.title || "Untitled Task"}
                               >
                                 {task.title || "Untitled Task"}
@@ -2576,26 +2769,11 @@ const TaskOverviewTab = ({
                                   e.stopPropagation();
                                   handleCopyText(task.title, "Task title");
                                 }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-400 hover:text-blue-600 dark:text-[#94a3b8] dark:hover:text-blue-300"
                                 title="Copy task name"
                               >
                                 <FiCopy size={11} />
                               </button>
-                            </div>
-                          </td>
-                        )}
-
-                        {/* Project */}
-                        {!hiddenColumns.projectName && (
-                          <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
-                            <div
-                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-extrabold shadow-2xs"
-                              style={{
-                                backgroundColor: `${clientBranding.color}15`,
-                                color: clientBranding.color,
-                              }}
-                            >
-                              <span>{projectObj?.name || "No Project"}</span>
                             </div>
                           </td>
                         )}
@@ -2610,38 +2788,9 @@ const TaskOverviewTab = ({
                                 className="!text-[11px] !px-2 !py-0.5"
                               />
                             ) : (
-                              <span className="text-slate-400 dark:text-slate-500 text-[11px] font-semibold">
+                              <span className="text-slate-600 dark:text-[#cbd5e1] text-[11px] font-bold">
                                 {clientName}
                               </span>
-                            )}
-                          </td>
-                        )}
-
-                        {/* Content Copy */}
-                        {!hiddenColumns.contentCopy && (
-                          <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
-                            {task.contentCopy ? (
-                              <div className="flex items-center gap-1.5 max-w-[180px]">
-                                <span
-                                  className="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate block"
-                                  title={task.contentCopy}
-                                >
-                                  {task.contentCopy}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCopyText(task.contentCopy, "Content copy");
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 shrink-0"
-                                  title="Copy content copy"
-                                >
-                                  <FiCopy size={10} />
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400 dark:text-slate-600 text-[11px]">—</span>
                             )}
                           </td>
                         )}
@@ -2656,12 +2805,32 @@ const TaskOverviewTab = ({
                         {/* Created By */}
                         {!hiddenColumns.createdBy && (
                           <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              {renderUserAvatarSmall(task.createdBy)}
-                              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[110px]">
-                                {task.createdBy?.name || "Unknown"}
-                              </span>
-                            </div>
+                            {task.createdBy ? (
+                              <div className="flex items-center gap-2">
+                                {renderUserAvatarSmall(task.createdBy)}
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-[11px] font-bold text-slate-900 dark:text-[#f8fafc] truncate max-w-[120px]">
+                                    {task.createdBy.name || "Unknown"}
+                                  </span>
+                                  {task.createdBy.department && (
+                                    <span
+                                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border w-fit ${getDeptBadgeStyle(
+                                        task.createdBy.department,
+                                      )}`}
+                                    >
+                                      {task.createdBy.department}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                {renderUserAvatarSmall(task.createdBy)}
+                                <span className="text-[11px] font-bold text-slate-800 dark:text-[#f8fafc] truncate max-w-[110px]">
+                                  Unknown
+                                </span>
+                              </div>
+                            )}
                           </td>
                         )}
 
@@ -2669,12 +2838,12 @@ const TaskOverviewTab = ({
                         {!hiddenColumns.startDate && (
                           <td className="py-2 px-2.5 border-r border-slate-100 dark:border-white/5 text-center whitespace-nowrap">
                             {task.startDate ? (
-                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-white/10 text-[10.5px] font-bold text-slate-700 dark:text-slate-300 bg-slate-50/70 dark:bg-white/5">
-                                <FiCalendar size={10} className="text-slate-400" />
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-slate-200 dark:border-white/10 text-[10.5px] font-bold text-slate-800 dark:text-[#f8fafc] bg-slate-50/70 dark:bg-white/5">
+                                <FiCalendar size={10} className="text-slate-400 dark:text-[#94a3b8]" />
                                 <span>{formatDate(task.startDate)}</span>
                               </div>
                             ) : (
-                              <span className="text-slate-400 dark:text-slate-600 text-[11px]">—</span>
+                              <span className="text-slate-400 dark:text-[#64748b] text-[11px]">—</span>
                             )}
                           </td>
                         )}
@@ -2686,10 +2855,10 @@ const TaskOverviewTab = ({
                               <div
                                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10.5px] font-bold ${
                                   isOverdue
-                                    ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                                    ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800"
                                     : isDueToday
-                                      ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                                      : "bg-slate-50/70 dark:bg-white/5 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
+                                      ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800"
+                                      : "bg-slate-50/70 dark:bg-white/5 text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10"
                                 }`}
                               >
                                 <FiClock
@@ -2697,18 +2866,18 @@ const TaskOverviewTab = ({
                                   className={
                                     isOverdue
                                       ? "text-rose-500 animate-pulse"
-                                      : "text-slate-400"
+                                      : "text-slate-400 dark:text-[#94a3b8]"
                                   }
                                 />
                                 <span>{formatDate(task.dueDate)}</span>
                                 {isOverdue && (
-                                  <span className="ml-0.5 text-[8.5px] font-black uppercase text-rose-600 dark:text-rose-400">
+                                  <span className="ml-0.5 text-[8.5px] font-black uppercase text-rose-600 dark:text-rose-300">
                                     !
                                   </span>
                                 )}
                               </div>
                             ) : (
-                              <span className="text-slate-400 dark:text-slate-600 text-[11px]">—</span>
+                              <span className="text-slate-400 dark:text-[#64748b] text-[11px]">—</span>
                             )}
                           </td>
                         )}
@@ -2720,7 +2889,7 @@ const TaskOverviewTab = ({
                               <div className="flex items-center gap-2">
                                 {renderUserAvatarSmall(task.assignedTo)}
                                 <div className="flex flex-col min-w-0">
-                                  <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
+                                  <span className="text-[11px] font-bold text-slate-900 dark:text-[#f8fafc] truncate max-w-[120px]">
                                     {task.assignedTo.name}
                                   </span>
                                   {task.assignedTo.department && (
@@ -2729,13 +2898,13 @@ const TaskOverviewTab = ({
                                         task.assignedTo.department,
                                       )}`}
                                     >
-                                      {shortenDept(task.assignedTo.department)}
+                                      {task.assignedTo.department}
                                     </span>
                                   )}
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-slate-400 dark:text-slate-500 text-[11px] italic">
+                              <span className="text-slate-500 dark:text-[#94a3b8] text-[11px] font-semibold italic">
                                 Unassigned
                               </span>
                             )}
@@ -2764,20 +2933,20 @@ const TaskOverviewTab = ({
                           <td className="py-2 px-2.5 border-r border-slate-100 dark:border-white/5 text-center whitespace-nowrap">
                             {task.isBlocked && task.blockedReason ? (
                               <span
-                                className="inline-block px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-900/30 max-w-[130px] truncate"
+                                className="inline-block px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800 max-w-[130px] truncate"
                                 title={task.blockedReason}
                               >
                                 {task.blockedReason}
                               </span>
                             ) : task.status === "On Hold" && task.holdReason ? (
                               <span
-                                className="inline-block px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-900/30 max-w-[130px] truncate"
+                                className="inline-block px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-200 dark:border-purple-800 max-w-[130px] truncate"
                                 title={task.holdReason}
                               >
                                 {task.holdReason}
                               </span>
                             ) : (
-                              <span className="text-slate-400 dark:text-slate-600 text-[11px]">—</span>
+                              <span className="text-slate-400 dark:text-[#64748b] text-[11px]">—</span>
                             )}
                           </td>
                         )}
@@ -2834,7 +3003,7 @@ const TaskOverviewTab = ({
                               <button
                                 type="button"
                                 onClick={() => setSelectedTaskId(task._id)}
-                                className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-white/10 text-[11px] font-extrabold text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-300 hover:border-blue-200 transition-all cursor-pointer shadow-2xs flex items-center gap-1"
+                                className="px-2.5 py-1 rounded-xl border border-slate-200 dark:border-white/10 text-[11px] font-extrabold text-slate-700 dark:text-[#f8fafc] hover:bg-blue-50 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-[#93c5fd] hover:border-blue-200 transition-all cursor-pointer shadow-2xs flex items-center gap-1"
                               >
                                 <FiEye size={12} />
                                 <span>Inspect</span>
@@ -2852,7 +3021,7 @@ const TaskOverviewTab = ({
                                     `/${userRole}/projects?id=${projId}&taskId=${task._id}`,
                                   );
                                 }}
-                                className="p-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all cursor-pointer shadow-2xs"
+                                className="p-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:text-[#94a3b8] dark:hover:text-[#93c5fd] dark:hover:bg-blue-900/40 transition-all cursor-pointer shadow-2xs"
                                 title="Open in Project Workspace"
                               >
                                 <FiArrowUpRight size={13} />
@@ -2871,7 +3040,7 @@ const TaskOverviewTab = ({
         {/* 4. SAAS PAGINATION CONTROLS */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/60 dark:bg-[#161826]/70 shrink-0 gap-3">
-            <div className="text-[12px] font-bold text-slate-500 dark:text-slate-400">
+            <div className="text-[12px] font-bold text-slate-600 dark:text-[#94a3b8]">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(
                 currentPage * itemsPerPage,
@@ -2885,7 +3054,7 @@ const TaskOverviewTab = ({
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[12px] font-extrabold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white dark:hover:bg-white/5 transition-all shadow-2xs cursor-pointer"
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[12px] font-extrabold text-slate-800 dark:text-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white dark:hover:bg-white/5 transition-all shadow-2xs cursor-pointer"
               >
                 Previous
               </button>
@@ -2910,7 +3079,7 @@ const TaskOverviewTab = ({
                     return (
                       <span
                         key={`ellipsis-${index}`}
-                        className="px-2 text-[12px] text-slate-400 font-bold select-none"
+                        className="px-2 text-[12px] text-slate-400 dark:text-[#64748b] font-bold select-none"
                       >
                         ...
                       </span>
@@ -2923,8 +3092,8 @@ const TaskOverviewTab = ({
                       onClick={() => setCurrentPage(page)}
                       className={`px-3 py-1.5 text-[12px] rounded-xl border transition-all cursor-pointer font-black ${
                         currentPage === page
-                          ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                          : "border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/5 text-slate-600 dark:text-slate-300"
+                          ? "bg-blue-600 text-[#ffffff] border-blue-600 shadow-sm"
+                          : "border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/5 text-slate-700 dark:text-[#cbd5e1]"
                       }`}
                     >
                       {page}
@@ -2937,7 +3106,7 @@ const TaskOverviewTab = ({
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[12px] font-extrabold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white dark:hover:bg-white/5 transition-all shadow-2xs cursor-pointer"
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-[12px] font-extrabold text-slate-800 dark:text-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white dark:hover:bg-white/5 transition-all shadow-2xs cursor-pointer"
               >
                 Next
               </button>
@@ -2978,14 +3147,14 @@ const TaskOverviewTab = ({
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-200 dark:bg-[#1a202c] text-slate-700 dark:text-[#cbd5e1]">
                         {getTaskDisplayId(selectedTask) || "TASK"}
                       </span>
                       <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-amber-200/80 dark:border-amber-800/40">
                         🔒 Read-Only
                       </span>
                     </div>
-                    <h2 className="text-sm font-black text-slate-800 dark:text-white truncate mt-1">
+                    <h2 className="text-sm font-black text-slate-800 dark:text-[#f8fafc] truncate mt-1">
                       {selectedTask.title || "Status Overview"}
                     </h2>
                   </div>
@@ -2994,7 +3163,7 @@ const TaskOverviewTab = ({
                 <button
                   type="button"
                   onClick={() => setSelectedTaskId(null)}
-                  className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:text-[#94a3b8] dark:hover:text-[#ffffff] transition-colors cursor-pointer"
                 >
                   <FiX size={18} />
                 </button>
@@ -3003,9 +3172,9 @@ const TaskOverviewTab = ({
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar text-[12px]">
                 {/* Status & Priority Ribbon */}
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 flex-wrap">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-4 flex-wrap">
                   <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                    <span className="text-[10px] font-black text-slate-500 dark:text-[#94a3b8] uppercase tracking-wider block mb-1">
                       Status
                     </span>
                     <StatusBadge
@@ -3014,13 +3183,13 @@ const TaskOverviewTab = ({
                     />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                    <span className="text-[10px] font-black text-slate-500 dark:text-[#94a3b8] uppercase tracking-wider block mb-1">
                       Priority
                     </span>
                     <PriorityBadge priority={selectedTask.priority} />
                   </div>
                   <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">
+                    <span className="text-[10px] font-black text-slate-500 dark:text-[#94a3b8] uppercase tracking-wider block mb-1">
                       Content Type
                     </span>
                     <ContentTypeBadge type={selectedTask.contentType} />
@@ -3029,20 +3198,20 @@ const TaskOverviewTab = ({
 
                 {/* Core Attributes */}
                 <div className="p-4 rounded-2xl bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 shadow-2xs space-y-3">
-                  <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <h3 className="text-[11px] font-black text-slate-500 dark:text-[#94a3b8] uppercase tracking-wider">
                     Core Attributes
                   </h3>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400">Project</span>
-                      <p className="font-extrabold text-slate-800 dark:text-slate-100 truncate">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-[#94a3b8]">Project</span>
+                      <p className="font-extrabold text-slate-900 dark:text-[#f8fafc] truncate">
                         {projectsMap.get(String(selectedTask.project?._id || selectedTask.project))?.name || "Internal Project"}
                       </p>
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400">Client</span>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-[#94a3b8]">Client</span>
                       <div>
                         {(() => {
                           const projId = selectedTask.project?._id || selectedTask.project;
@@ -3065,7 +3234,7 @@ const TaskOverviewTab = ({
                             );
                           }
                           return (
-                            <span className="font-bold text-slate-700 dark:text-slate-300">
+                            <span className="font-bold text-slate-800 dark:text-[#cbd5e1]">
                               {clientObj?.companyName || "No Client"}
                             </span>
                           );
@@ -3074,20 +3243,20 @@ const TaskOverviewTab = ({
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400">Assigned Member</span>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-[#94a3b8]">Assigned Member</span>
                       <div className="flex items-center gap-2 mt-1">
                         {renderUserAvatarSmall(selectedTask.assignedTo)}
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                        <span className="font-bold text-slate-900 dark:text-[#f8fafc]">
                           {selectedTask.assignedTo?.name || "Unassigned"}
                         </span>
                       </div>
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400">Created By</span>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-[#94a3b8]">Created By</span>
                       <div className="flex items-center gap-2 mt-1">
                         {renderUserAvatarSmall(selectedTask.createdBy)}
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                        <span className="font-bold text-slate-900 dark:text-[#f8fafc]">
                           {selectedTask.createdBy?.name || "Unknown"}
                         </span>
                       </div>
@@ -3097,35 +3266,35 @@ const TaskOverviewTab = ({
 
                 {/* Timeline & Schedule */}
                 <div className="p-4 rounded-2xl bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 shadow-2xs space-y-3">
-                  <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  <h3 className="text-[11px] font-black text-slate-500 dark:text-[#94a3b8] uppercase tracking-wider">
                     Schedule & Durations
                   </h3>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400">Start Date</span>
-                      <p className="font-extrabold text-slate-800 dark:text-slate-200">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-[#94a3b8]">Start Date</span>
+                      <p className="font-extrabold text-slate-900 dark:text-[#f8fafc]">
                         {selectedTask.startDate ? formatDate(selectedTask.startDate) : "Not specified"}
                       </p>
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400">End Date / Due Date</span>
-                      <p className="font-extrabold text-slate-800 dark:text-slate-200">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-[#94a3b8]">End Date / Due Date</span>
+                      <p className="font-extrabold text-slate-900 dark:text-[#f8fafc]">
                         {selectedTask.dueDate ? formatDate(selectedTask.dueDate) : "Not specified"}
                       </p>
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400">Total Tracked Time</span>
-                      <p className="font-extrabold text-blue-600 dark:text-blue-400">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-[#94a3b8]">Total Tracked Time</span>
+                      <p className="font-extrabold text-blue-600 dark:text-[#38bdf8]">
                         {formatShortDuration(getTotalTrackedMs(selectedTask, Date.now()))}
                       </p>
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400">Approval Waiting Time</span>
-                      <p className="font-extrabold text-amber-600 dark:text-amber-400">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-[#94a3b8]">Approval Waiting Time</span>
+                      <p className="font-extrabold text-amber-600 dark:text-[#fbbf24]">
                         {selectedTask.approvalWaitingMs
                           ? formatBusinessDuration(selectedTask.approvalWaitingMs)
                           : "—"}
@@ -3138,19 +3307,19 @@ const TaskOverviewTab = ({
                 {selectedTask.contentCopy && (
                   <div className="p-4 rounded-2xl bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 shadow-2xs space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                      <h3 className="text-[11px] font-black text-slate-500 dark:text-[#94a3b8] uppercase tracking-wider">
                         Content Copy
                       </h3>
                       <button
                         type="button"
                         onClick={() => handleCopyText(selectedTask.contentCopy, "Content Copy")}
-                        className="text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-blue-600 dark:text-[#38bdf8] font-bold hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         <FiCopy size={11} />
                         <span>Copy</span>
                       </button>
                     </div>
-                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-slate-700 dark:text-slate-200 text-xs font-medium whitespace-pre-wrap leading-relaxed">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 text-slate-800 dark:text-[#f8fafc] text-xs font-medium whitespace-pre-wrap leading-relaxed">
                       {selectedTask.contentCopy}
                     </div>
                   </div>
@@ -3159,14 +3328,14 @@ const TaskOverviewTab = ({
                 {/* Hold / Blocker Notes */}
                 {(selectedTask.holdReason || selectedTask.blockedReason) && (
                   <div className="p-4 rounded-2xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/30 space-y-2">
-                    <h3 className="text-[11px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                    <h3 className="text-[11px] font-black text-rose-600 dark:text-[#fb7185] uppercase tracking-wider">
                       {selectedTask.isBlocked ? "Blocker Details" : "Hold Details"}
                     </h3>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    <p className="text-xs font-bold text-slate-900 dark:text-[#f8fafc]">
                       Reason: {selectedTask.blockedReason || selectedTask.holdReason}
                     </p>
                     {(selectedTask.blockedComment || selectedTask.holdComment) && (
-                      <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+                      <p className="text-xs text-slate-600 dark:text-[#cbd5e1] italic">
                         "{selectedTask.blockedComment || selectedTask.holdComment}"
                       </p>
                     )}
@@ -3174,7 +3343,7 @@ const TaskOverviewTab = ({
                 )}
 
                 {/* Read-only notification pill */}
-                <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[11px]">
+                <div className="p-3 rounded-xl bg-slate-100 dark:bg-[#1a202c] border border-slate-200 dark:border-white/10 flex items-center gap-2 text-slate-600 dark:text-[#cbd5e1] text-[11px]">
                   <FiLock size={14} className="text-amber-500 shrink-0" />
                   <span>
                     Status Overview is in <strong>Read-Only Monitoring Mode</strong>. To modify tasks, navigate to the Project Workspace.
@@ -3187,7 +3356,7 @@ const TaskOverviewTab = ({
                 <button
                   type="button"
                   onClick={() => setSelectedTaskId(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-[#cbd5e1] hover:bg-slate-200 dark:hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   Close
                 </button>
@@ -3205,7 +3374,7 @@ const TaskOverviewTab = ({
                       `/${userRole}/projects?id=${projId}&taskId=${selectedTask._id}`,
                     );
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-[#ffffff] bg-blue-600 hover:bg-blue-700 transition-all shadow-md shadow-blue-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95"
                 >
                   <span>Open in Project</span>
                   <FiExternalLink size={13} />
