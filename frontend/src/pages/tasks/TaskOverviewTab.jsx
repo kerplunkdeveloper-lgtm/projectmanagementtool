@@ -160,12 +160,31 @@ const checkTaskProductivityAndDate = (
     endOfWeek.setDate(endOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
-    const currDay = new Date(startOfWeek);
-    while (currDay <= endOfWeek && currDay <= now) {
-      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
-        return true;
+    const hasActivityInPeriod = (t, start, end) => {
+      if (Array.isArray(t.statusHistory) && t.statusHistory.length > 0) {
+        if (t.statusHistory.some((h) => {
+          const entryDateStr = h.date || h.startTime || h.endTime;
+          if (!entryDateStr) return false;
+          const d = new Date(entryDateStr);
+          return d >= start && d <= end && (h.duration > 0 || h.endTime);
+        })) return true;
       }
-      currDay.setDate(currDay.getDate() + 1);
+      if (Array.isArray(t.timeLog) && t.timeLog.length > 0) {
+        if (t.timeLog.some((tl) => {
+          const entryDateStr = tl.startTime;
+          if (!entryDateStr) return false;
+          const d = new Date(entryDateStr);
+          return d >= start && d <= end && tl.duration > 0;
+        })) return true;
+      }
+      if (Array.isArray(t.subtasks) && t.subtasks.length > 0) {
+        return t.subtasks.some(sub => hasActivityInPeriod(sub, start, end));
+      }
+      return false;
+    };
+
+    if (hasActivityInPeriod(task, startOfWeek, endOfWeek)) {
+      return true;
     }
 
     if (task.status === "In Progress" && !task.actualEndTime) return true;
@@ -247,12 +266,31 @@ const checkTaskProductivityAndDate = (
 
     if (task.status === "In Progress" && !task.actualEndTime) return true;
 
-    const currDay = new Date(startOfMonth);
-    while (currDay <= endOfMonth && currDay <= now) {
-      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
-        return true;
+    const hasActivityInPeriod = (t, start, end) => {
+      if (Array.isArray(t.statusHistory) && t.statusHistory.length > 0) {
+        if (t.statusHistory.some((h) => {
+          const entryDateStr = h.date || h.startTime || h.endTime;
+          if (!entryDateStr) return false;
+          const d = new Date(entryDateStr);
+          return d >= start && d <= end && (h.duration > 0 || h.endTime);
+        })) return true;
       }
-      currDay.setDate(currDay.getDate() + 1);
+      if (Array.isArray(t.timeLog) && t.timeLog.length > 0) {
+        if (t.timeLog.some((tl) => {
+          const entryDateStr = tl.startTime;
+          if (!entryDateStr) return false;
+          const d = new Date(entryDateStr);
+          return d >= start && d <= end && tl.duration > 0;
+        })) return true;
+      }
+      if (Array.isArray(t.subtasks) && t.subtasks.length > 0) {
+        return t.subtasks.some(sub => hasActivityInPeriod(sub, start, end));
+      }
+      return false;
+    };
+
+    if (hasActivityInPeriod(task, startOfMonth, endOfMonth)) {
+      return true;
     }
 
     return false;
@@ -1038,6 +1076,14 @@ const TaskOverviewTab = ({
     return map;
   }, [projects]);
 
+  const usersMap = useMemo(() => {
+    const map = new Map();
+    (users || []).forEach((u) => {
+      if (u && (u._id || u.id)) map.set(String(u._id || u.id), u);
+    });
+    return map;
+  }, [users]);
+
   const uniqueCreators = useMemo(() => {
     const map = new Map();
     (tasks || []).forEach((t) => {
@@ -1258,7 +1304,7 @@ const TaskOverviewTab = ({
           const assignedUserObj =
             typeof task.assignedTo === "object"
               ? task.assignedTo
-              : users?.find((u) => (u._id || u.id) === assigneeId);
+              : usersMap.get(String(assigneeId));
 
           const creatorId =
             typeof task.createdBy === "object"
@@ -1267,7 +1313,7 @@ const TaskOverviewTab = ({
           const creatorUserObj =
             typeof task.createdBy === "object"
               ? task.createdBy
-              : users?.find((u) => (u._id || u.id) === creatorId);
+              : usersMap.get(String(creatorId));
 
           const taskDept =
             assignedUserObj?.department || creatorUserObj?.department || "";
@@ -1348,7 +1394,7 @@ const TaskOverviewTab = ({
     user?.role,
     projectSearch,
     projectsMap,
-    users,
+    usersMap,
     overviewPriorityFilter,
     overviewStatusFilter,
     overviewDepartmentFilter,
