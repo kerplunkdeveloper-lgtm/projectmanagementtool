@@ -264,6 +264,16 @@ const Navbar = ({ setSidebarOpen, presence }) => {
       };
     }
     if (
+      message &&
+      message.toLowerCase().includes("mom point")
+    ) {
+      return {
+        icon: FiFileText,
+        bgColor:
+          "bg-teal-50 dark:bg-teal-950/20 text-teal-600 dark:text-teal-400 border border-teal-100/50 dark:border-teal-900/30",
+      };
+    }
+    if (
       type === "report_submitted" ||
       (message &&
         (message.toLowerCase().includes("submitted a new designer eod report") ||
@@ -311,6 +321,19 @@ const Navbar = ({ setSidebarOpen, presence }) => {
           icon: FiInfo,
           bgColor:
             "bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30",
+        };
+      case "mom_assigned":
+      case "mom_updated":
+        return {
+          icon: FiFileText,
+          bgColor:
+            "bg-teal-50 dark:bg-teal-950/20 text-teal-600 dark:text-teal-400 border border-teal-100/50 dark:border-teal-900/30",
+        };
+      case "mom_overdue":
+        return {
+          icon: FiInfo,
+          bgColor:
+            "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-900/30 ring-2 ring-rose-500/20 animate-pulse",
         };
       default:
         return {
@@ -879,6 +902,11 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                                       n.message.toLowerCase().includes("client:"))
                                   ) {
                                     navigate(`/${user?.role}/clients`);
+                                  } else if (
+                                    n.message &&
+                                    n.message.toLowerCase().includes("mom point")
+                                  ) {
+                                    navigate(`/${user?.role}/mom-points`);
                                   } else if (n.type === "task_assigned" || n.type?.startsWith("task_")) {
                                     const isProjectRedirect = n.message && /in-review|in progress|on-hold|on hold/i.test(n.message);
                                     if (n.project && (user?.role !== "team" || isProjectRedirect)) {

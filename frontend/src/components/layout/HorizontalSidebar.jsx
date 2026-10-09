@@ -314,6 +314,20 @@ const HorizontalSidebar = ({ role }) => {
                     dispatch(clearAllUnreadCounts());
                     dispatch(markAllChatAsRead());
                   }
+                  if (item.name === "Client Calls" && notifications) {
+                    notifications.forEach((n) => {
+                      if (!n.isRead && n.type === "client_call_created") {
+                        dispatch(markAsRead(n._id));
+                      }
+                    });
+                  }
+                  if (item.name === "MOM Points" && notifications) {
+                    notifications.forEach((n) => {
+                      if (!n.isRead && ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
+                        dispatch(markAsRead(n._id));
+                      }
+                    });
+                  }
                 }}
                 end={item.path === `/${role}`}
                 className={({ isActive }) =>
@@ -331,6 +345,36 @@ const HorizontalSidebar = ({ role }) => {
                     {totalUnreadChatCount}
                   </span>
                 )}
+                {item.name === "Client Calls" &&
+                  (notifications 
+                    ? notifications.filter(
+                        (n) =>
+                          !n.isRead &&
+                          n.type === "client_call_created",
+                      ).length
+                    : 0) > 0 && (
+                    <span className="ml-1 bg-indigo-600 dark:bg-indigo-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center justify-center animate-pulse shadow-sm">
+                      {notifications
+                        ? notifications.filter(
+                            (n) =>
+                              !n.isRead &&
+                              n.type === "client_call_created",
+                          ).length
+                        : 0}
+                    </span>
+                  )}
+                {item.name === "MOM Points" &&
+                  (notifications
+                    ? notifications.filter(
+                        (n) =>
+                          !n.isRead &&
+                          ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
+                      ).length
+                    : 0) > 0 && (
+                    <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center justify-center animate-pulse shadow-sm uppercase tracking-widest">
+                      New
+                    </span>
+                  )}
               </NavLink>
             );
           })}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   useGetTasksQuery,
@@ -6,14 +6,9 @@ import {
 } from "../../features/api/apiSlice";
 import { getUsers } from "../../features/users/userSlice";
 
-const TaskOverviewTab = lazy(() => import("./TaskOverviewTab"));
+import TaskOverviewTab from "./TaskOverviewTab";
 
-const TabLoadingFallback = () => (
-  <div className="flex items-center justify-center p-12 space-x-2">
-    <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Loading status overview...</span>
-  </div>
-);
+const EMPTY_ARRAY = [];
 
 const TaskOverview = () => {
   const { user } = useSelector((state) => state.auth);
@@ -48,12 +43,12 @@ const TaskOverview = () => {
 
   const [isActiveOnly, setIsActiveOnly] = useState(true);
 
-  const { data: tasks = [], isLoading: loading } = useGetTasksQuery(
-    isActiveOnly ? { active_only: true } : undefined,
+  const { data: tasks = EMPTY_ARRAY, isLoading: loading } = useGetTasksQuery(
+    isActiveOnly ? { active_only: true, minimal: true } : { minimal: true },
     { skip: !user }
   );
 
-  const { data: projects = [] } = useGetProjectsQuery(undefined, {
+  const { data: projects = EMPTY_ARRAY } = useGetProjectsQuery({ minimal: true }, {
     skip: !user,
   });
 
@@ -83,7 +78,6 @@ const TaskOverview = () => {
         </div>
       </div>
 
-      <Suspense fallback={<TabLoadingFallback />}>
         <TaskOverviewTab
           tasks={tasks}
           projects={projects}
@@ -97,7 +91,6 @@ const TaskOverview = () => {
           dateDropdownRef={dateDropdownRef}
           onFilteredCountChange={setFilteredOverviewCount}
         />
-      </Suspense>
     </div>
   );
 };

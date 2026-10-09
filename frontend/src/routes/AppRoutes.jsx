@@ -83,6 +83,9 @@ const SocialAccounts = lazyWithRetry(
 const ClientCalls = lazyWithRetry(
   () => import("../pages/client-calls/ClientCalls.jsx"),
 );
+const MomPoints = lazyWithRetry(
+  () => import("../pages/mom/MomPoints.jsx"),
+);
 const AllCalendar = lazyWithRetry(
   () => import("../pages/calendar/AllCalendar.jsx"),
 );
@@ -109,6 +112,7 @@ export const routePreloaders = {
   stickyNotes: () => import("../pages/admin/Stickynotes.jsx"),
   socialAccounts: () => import("../pages/socialAccounts/SocialAccounts.jsx"),
   clientCalls: () => import("../pages/client-calls/ClientCalls.jsx"),
+  momPoints: () => import("../pages/mom/MomPoints.jsx"),
   chat: () => import("../pages/chat/ChatPage.jsx"),
   workload: () => import("../pages/workload/Workload.jsx"),
   calendar: () => import("../pages/calendar/AllCalendar.jsx"),
@@ -134,6 +138,7 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/stickynotes")) routePreloaders.stickyNotes?.();
   else if (p.endsWith("/social-accounts")) routePreloaders.socialAccounts?.();
   else if (p.endsWith("/client-calls")) routePreloaders.clientCalls?.();
+  else if (p.endsWith("/mom-points")) routePreloaders.momPoints?.();
   else if (p.endsWith("/chat")) routePreloaders.chat?.();
   else if (p.endsWith("/workload")) routePreloaders.workload?.();
   else if (
@@ -371,6 +376,7 @@ const AppRoutes = () => {
 
           <Route path="chat" element={<ChatPage />} />
           <Route path="client-calls" element={<ClientCalls />} />
+          <Route path="mom-points" element={<MomPoints />} />
         </Route>
 
         {/* OPERATION MANAGER ROUTES */}
@@ -512,6 +518,7 @@ const AppRoutes = () => {
 
           <Route path="chat" element={<ChatPage />} />
           <Route path="client-calls" element={<ClientCalls />} />
+          <Route path="mom-points" element={<MomPoints />} />
         </Route>
 
         {/* TEAM ROUTES */}
@@ -668,6 +675,7 @@ const AppRoutes = () => {
 
           <Route path="chat" element={<ChatPage />} />
           <Route path="client-calls" element={<ClientCalls />} />
+          <Route path="mom-points" element={<MomPoints />} />
 
           <Route path="workload" element={<Workload />} />
         </Route>

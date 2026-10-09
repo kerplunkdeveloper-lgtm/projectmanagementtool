@@ -88,6 +88,7 @@ export const apiSlice = createApi({
         if (!params || Object.keys(params).length === 0) return "/tasks";
         const queryParams = new URLSearchParams();
         if (params.active_only) queryParams.append('active_only', params.active_only);
+        if (params.minimal) queryParams.append('minimal', params.minimal);
         if (params.project && params.project !== "all") queryParams.append('project', params.project);
         if (params.department) queryParams.append('department', params.department);
         return `/tasks?${queryParams.toString()}`;
@@ -165,7 +166,12 @@ export const apiSlice = createApi({
     // PROJECTS ENDPOINTS
     // ==========================================
     getProjects: builder.query({
-      query: () => "/projects",
+      query: (params) => {
+        if (!params || Object.keys(params).length === 0) return "/projects";
+        const queryParams = new URLSearchParams();
+        if (params.minimal) queryParams.append('minimal', params.minimal);
+        return `/projects?${queryParams.toString()}`;
+      },
       providesTags: ["Project"],
       transformResponse: (response) => response.data,
     }),

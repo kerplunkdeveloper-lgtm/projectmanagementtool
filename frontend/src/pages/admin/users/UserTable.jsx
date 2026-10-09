@@ -150,17 +150,20 @@ const UserTable = ({
   const { user: currentUser } = useSelector((state) => state.auth);
   const [copiedId, setCopiedId] = useState(null);
   // Online presence from shared SocketContext (no duplicate socket)
-  const { onlineUserIds, isOnline } = useSocketContext() || { onlineUserIds: [], isOnline: () => false };
+  const { onlineUserIds, isOnline } = useSocketContext() || {
+    onlineUserIds: [],
+    isOnline: () => false,
+  };
 
   const checkUserOnline = (u) => {
     if (!u) return false;
     const uid = (u._id || u.id)?.toString();
     if (!uid) return false;
     if (isOnline && isOnline(uid)) return true;
-    if (onlineUserIds && onlineUserIds.some((id) => id.toString() === uid)) return true;
+    if (onlineUserIds && onlineUserIds.some((id) => id.toString() === uid))
+      return true;
     return u.presenceStatus === "online";
   };
-
 
   const handleEdit = (u) => {
     setEditUser(u);

@@ -103,9 +103,15 @@ const UserHeader = ({
             onChange={(e) => setFilterRelieved(e.target.value)}
             className="rounded-md outline-none text-xs text-gray-700 dark:text-slate-200 w-full cursor-pointer appearance-none"
           >
-            <option value="active" className="bg-white dark:bg-slate-900">Active</option>
-            <option value="relieved" className="bg-white dark:bg-slate-900">Relieved</option>
-            <option value="all" className="bg-white dark:bg-slate-900">All</option>
+            <option value="active" className="bg-white dark:bg-slate-900">
+              Active
+            </option>
+            <option value="relieved" className="bg-white dark:bg-slate-900">
+              Relieved
+            </option>
+            <option value="all" className="bg-white dark:bg-slate-900">
+              All
+            </option>
           </select>
         </div>
 
@@ -131,8 +137,6 @@ const UserHeader = ({
           )}
         </div>
       </div>
-
-      
     </div>
   );
 };

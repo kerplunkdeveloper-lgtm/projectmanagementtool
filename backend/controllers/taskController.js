@@ -393,14 +393,6 @@ const calculateItemWorkingTime = (item) => {
 
 
 
-
-
-
-
-
-
-
-
 // @desc    Get all tasks
 // @route   GET /api/tasks
 // @access  Private
@@ -509,37 +501,63 @@ exports.getTasks = async (req, res) => {
       }
     }
 
-    const tasks = await Task.find(query)
-      .sort({ updatedAt: -1 })
-      .populate({
-        path: "project",
-        select: "name client",
-        populate: {
-          path: "client",
-          select: "companyName color icon"
-        }
-      })
-      .populate({
-        path: "assignedTo",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "createdBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "subtasks.assignedTo",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate("comments.user", "name email department")
-      .populate("attachments.uploadedBy", "name email department")
-      .populate("feedbacks.addedBy", "name email department")
-      .populate("correctionHistory.requestedBy", "name email department")
-      .populate("rejectionHistory.rejectedBy", "name email department")
-      .lean();
+    let mongooseQuery = Task.find(query).sort({ updatedAt: -1 });
+
+    if (req.query.minimal === 'true') {
+      mongooseQuery = mongooseQuery
+        .populate({
+          path: "project",
+          select: "name client",
+          populate: {
+            path: "client",
+            select: "companyName color icon"
+          }
+        })
+        .populate({
+          path: "assignedTo",
+          select: "name email department profile",
+          populate: { path: "profile", select: "profileImage" }
+        })
+        .populate({
+          path: "createdBy",
+          select: "name email department profile",
+          populate: { path: "profile", select: "profileImage" }
+        })
+        // Omit massive nested arrays for blazing fast overview load
+        .select("-comments -attachments -feedbacks -correctionHistory -rejectionHistory");
+    } else {
+      mongooseQuery = mongooseQuery
+        .populate({
+          path: "project",
+          select: "name client",
+          populate: {
+            path: "client",
+            select: "companyName color icon"
+          }
+        })
+        .populate({
+          path: "assignedTo",
+          select: "name email department profile",
+          populate: { path: "profile", select: "profileImage" }
+        })
+        .populate({
+          path: "createdBy",
+          select: "name email department profile",
+          populate: { path: "profile", select: "profileImage" }
+        })
+        .populate({
+          path: "subtasks.assignedTo",
+          select: "name email department profile",
+          populate: { path: "profile", select: "profileImage" }
+        })
+        .populate("comments.user", "name email department")
+        .populate("attachments.uploadedBy", "name email department")
+        .populate("feedbacks.addedBy", "name email department")
+        .populate("correctionHistory.requestedBy", "name email department")
+        .populate("rejectionHistory.rejectedBy", "name email department");
+    }
+
+    const tasks = await mongooseQuery.lean();
 
     res.status(200).json({
       success: true,

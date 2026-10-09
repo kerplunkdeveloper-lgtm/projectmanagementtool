@@ -1,14 +1,8 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
+import React, { useEffect, useState } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
-import {
-  useDispatch,
-  useSelector,
-} from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import toast from "react-hot-toast";
 
@@ -35,43 +29,48 @@ import RelieveUserModal from "./users/RelieveUserModal";
 const USERS_PER_PAGE = 7;
 
 const AdminUsers = () => {
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const {
-    users,
-    loading,
-    error,
-  } = useSelector(
-    (state) => state.users
-  );
+  const { users, loading, error } = useSelector((state) => state.users);
 
-  const { user } = useSelector(
-    (state) => state.auth
-  );
+  const { user } = useSelector((state) => state.auth);
 
-  const userPerms = user?.permissions?.['manage_users'];
-  const canWrite = user?.role === "admin" || userPerms === true || userPerms?.write;
+  const userPerms = user?.permissions?.["manage_users"];
+  const canWrite =
+    user?.role === "admin" || userPerms === true || userPerms?.write;
   const isReadOnly = !canWrite;
 
-  const [openModal, setOpenModal] =
-    useState(false);
+  const [openModal, setOpenModal] = useState(false);
 
-  const [editUser, setEditUser] =
-    useState(null);
+  const [editUser, setEditUser] = useState(null);
 
-  const [currentPage, setCurrentPage] =
-    useState(() => parseInt(localStorage.getItem("adminUsers_currentPage")) || 1);
+  const [currentPage, setCurrentPage] = useState(
+    () => parseInt(localStorage.getItem("adminUsers_currentPage")) || 1,
+  );
 
-  const [searchTerm, setSearchTerm] =
-    useState(() => localStorage.getItem("adminUsers_searchTerm") || "");
+  const [searchTerm, setSearchTerm] = useState(
+    () => localStorage.getItem("adminUsers_searchTerm") || "",
+  );
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
 
-  const [filterDept, setFilterDept] =
-    useState(() => localStorage.getItem("adminUsers_filterDept") || "");
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
-  const [filterLocation, setFilterLocation] = useState(() => localStorage.getItem("adminUsers_filterLocation") || "");
-  const [filterRelieved, setFilterRelieved] = useState(() => localStorage.getItem("adminUsers_filterRelieved") || "active");
+  const [filterDept, setFilterDept] = useState(
+    () => localStorage.getItem("adminUsers_filterDept") || "",
+  );
+
+  const [filterLocation, setFilterLocation] = useState(
+    () => localStorage.getItem("adminUsers_filterLocation") || "",
+  );
+  const [filterRelieved, setFilterRelieved] = useState(
+    () => localStorage.getItem("adminUsers_filterRelieved") || "active",
+  );
 
   useEffect(() => {
     localStorage.setItem("adminUsers_currentPage", currentPage);
@@ -81,11 +80,9 @@ const AdminUsers = () => {
     localStorage.setItem("adminUsers_filterRelieved", filterRelieved);
   }, [currentPage, searchTerm, filterDept, filterLocation, filterRelieved]);
 
-  const [openDeleteModal, setOpenDeleteModal] =
-    useState(false);
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
 
-  const [userToDelete, setUserToDelete] =
-    useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const [openPermissionsModal, setOpenPermissionsModal] = useState(false);
   const [permissionsUser, setPermissionsUser] = useState(null);
@@ -95,45 +92,31 @@ const AdminUsers = () => {
   const [relieveMode, setRelieveMode] = useState("relieve");
   const [relieveLoading, setRelieveLoading] = useState(false);
 
-
-
   // GET USERS
   useEffect(() => {
-
     dispatch(getUsers());
-
   }, [dispatch]);
 
   // ERROR
   useEffect(() => {
-
     if (error) {
-
       toast.error(error);
 
       dispatch(clearUserError());
-
     }
-
   }, [error, dispatch]);
 
   // RESET PAGE ON FILTER
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterDept, filterLocation, filterRelieved]);
+  }, [debouncedSearchTerm, filterDept, filterLocation, filterRelieved]);
 
   // CREATE USER
-  const handleCreateUser = async (
-    userData
-  ) => {
+  const handleCreateUser = async (userData) => {
     try {
-      await dispatch(
-        createUser(userData)
-      ).unwrap();
+      await dispatch(createUser(userData)).unwrap();
 
-      toast.success(
-        "User Created Successfully"
-      );
+      toast.success("User Created Successfully");
 
       setOpenModal(false);
     } catch (err) {
@@ -141,9 +124,7 @@ const AdminUsers = () => {
     }
   };
 
-  const handleUpdateUser = async (
-    userData
-  ) => {
+  const handleUpdateUser = async (userData) => {
     try {
       const targetId = editUser?._id || permissionsUser?._id;
       if (!targetId) return;
@@ -152,12 +133,10 @@ const AdminUsers = () => {
         updateUser({
           id: targetId,
           userData,
-        })
+        }),
       ).unwrap();
 
-      toast.success(
-        "User Updated Successfully"
-      );
+      toast.success("User Updated Successfully");
 
       setOpenModal(false);
       setEditUser(null);
@@ -177,13 +156,9 @@ const AdminUsers = () => {
   // DELETE USER (FINAL CONFIRMATION)
   const handleDeleteUser = async () => {
     try {
-      await dispatch(
-        deleteUser(userToDelete._id)
-      ).unwrap();
+      await dispatch(deleteUser(userToDelete._id)).unwrap();
 
-      toast.success(
-        "User Deleted Successfully"
-      );
+      toast.success("User Deleted Successfully");
 
       setOpenDeleteModal(false);
       setUserToDelete(null);
@@ -245,49 +220,56 @@ const AdminUsers = () => {
   };
 
   // FILTER & SORT LOGIC
-  const filteredUsers = [...users]
-    .filter((user) => {
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user.location && user.location.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesDept = filterDept === "" || user.department === filterDept;
-      const matchesLoc = filterLocation === "" || user.location === filterLocation;
-      
-      let matchesRelieved = true;
-      const isRelieved = user.employmentStatus === "relieved" || user.accountStatus === "inactive";
-      if (filterRelieved === "active") matchesRelieved = !isRelieved;
-      else if (filterRelieved === "relieved") matchesRelieved = isRelieved;
+  const filteredUsers = React.useMemo(() => {
+    return [...(users || [])]
+      .filter((user) => {
+        if (!user) return false;
+        const searchLower = debouncedSearchTerm.toLowerCase();
+        const matchesSearch =
+          (user.name && user.name.toLowerCase().includes(searchLower)) ||
+          (user.email && user.email.toLowerCase().includes(searchLower)) ||
+          (user.location && user.location.toLowerCase().includes(searchLower));
+        const matchesDept = filterDept === "" || user.department === filterDept;
+        const matchesLoc =
+          filterLocation === "" || user.location === filterLocation;
 
-      return matchesSearch && matchesDept && matchesLoc && matchesRelieved;
-    })
-    .sort((a, b) => {
-      if (a.role === 'admin' && b.role !== 'admin') return -1;
-      if (b.role === 'admin' && a.role !== 'admin') return 1;
+        let matchesRelieved = true;
+        const isRelieved =
+          user.employmentStatus === "relieved" ||
+          user.accountStatus === "inactive";
+        if (filterRelieved === "active") matchesRelieved = !isRelieved;
+        else if (filterRelieved === "relieved") matchesRelieved = isRelieved;
 
-      if (a.role === 'operationmanager' && b.role !== 'operationmanager') return -1;
-      if (b.role === 'operationmanager' && a.role !== 'operationmanager') return 1;
+        return matchesSearch && matchesDept && matchesLoc && matchesRelieved;
+      })
+      .sort((a, b) => {
+        if (a.role === "admin" && b.role !== "admin") return -1;
+        if (b.role === "admin" && a.role !== "admin") return 1;
 
-      const isASocial = a.department?.toLowerCase()?.includes('social media');
-      const isBSocial = b.department?.toLowerCase()?.includes('social media');
-      
-      if (isASocial && !isBSocial) return -1;
-      if (isBSocial && !isASocial) return 1;
+        if (a.role === "operationmanager" && b.role !== "operationmanager")
+          return -1;
+        if (b.role === "operationmanager" && a.role !== "operationmanager")
+          return 1;
 
-      const deptA = a.department || "ZZZ";
-      const deptB = b.department || "ZZZ";
-      
-      if (deptA !== deptB) {
-         return deptA.localeCompare(deptB);
-      }
-      
-      return a.name.localeCompare(b.name);
-    });
+        const isASocial = a.department?.toLowerCase()?.includes("social media");
+        const isBSocial = b.department?.toLowerCase()?.includes("social media");
+
+        if (isASocial && !isBSocial) return -1;
+        if (isBSocial && !isASocial) return 1;
+
+        const deptA = a.department || "ZZZ";
+        const deptB = b.department || "ZZZ";
+
+        if (deptA !== deptB) {
+          return deptA.localeCompare(deptB);
+        }
+
+        return (a.name || "").localeCompare(b.name || "");
+      });
+  }, [users, debouncedSearchTerm, filterDept, filterLocation, filterRelieved]);
 
   // PAGINATION
-  const totalPages = Math.ceil(
-    filteredUsers.length / USERS_PER_PAGE
-  );
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -297,29 +279,30 @@ const AdminUsers = () => {
     }
   }, [totalPages, currentPage]);
 
-  const startIndex =
-    (currentPage - 1) *
-    USERS_PER_PAGE;
+  const startIndex = (currentPage - 1) * USERS_PER_PAGE;
 
-  const currentUsers =
-    filteredUsers.slice(
-      startIndex,
-      startIndex + USERS_PER_PAGE
-    );
+  const currentUsers = filteredUsers.slice(
+    startIndex,
+    startIndex + USERS_PER_PAGE,
+  );
 
   // COUNT DETAILS
   const totalEntries = filteredUsers.length;
   const startEntry = totalEntries === 0 ? 0 : startIndex + 1;
   const endEntry = Math.min(startIndex + USERS_PER_PAGE, totalEntries);
 
-  const { onlineUserIds, isOnline } = useSocketContext() || { onlineUserIds: [], isOnline: () => false };
+  const { onlineUserIds, isOnline } = useSocketContext() || {
+    onlineUserIds: [],
+    isOnline: () => false,
+  };
 
   const checkUserOnline = (u) => {
     if (!u) return false;
     const uid = (u._id || u.id)?.toString();
     if (!uid) return false;
     if (isOnline && isOnline(uid)) return true;
-    if (onlineUserIds && onlineUserIds.some((id) => id.toString() === uid)) return true;
+    if (onlineUserIds && onlineUserIds.some((id) => id.toString() === uid))
+      return true;
     return u.presenceStatus === "online";
   };
 
@@ -361,12 +344,15 @@ const AdminUsers = () => {
       const roleStr = roleMap[u.role] || u.role || "Team Member";
 
       const isRelieved =
-        u.employmentStatus === "relieved" ||
-        u.accountStatus === "inactive";
+        u.employmentStatus === "relieved" || u.accountStatus === "inactive";
       const empStatusStr = isRelieved ? "Relieved" : "Active";
 
       const online = checkUserOnline(u);
-      const presenceStr = isRelieved ? "Relieved" : online ? "Online" : "Offline";
+      const presenceStr = isRelieved
+        ? "Relieved"
+        : online
+          ? "Online"
+          : "Offline";
 
       const phoneStr = u.profile?.phone || "-";
 
@@ -409,7 +395,9 @@ const AdminUsers = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    const filterTag = filterDept ? `_${filterDept.replace(/[^a-zA-Z0-9]/g, "_")}` : "";
+    const filterTag = filterDept
+      ? `_${filterDept.replace(/[^a-zA-Z0-9]/g, "_")}`
+      : "";
     const todayStr = new Date().toISOString().split("T")[0];
     const fileName = `Users_List${filterTag}_${todayStr}.csv`;
     link.setAttribute("download", fileName);
@@ -422,7 +410,6 @@ const AdminUsers = () => {
 
   return (
     <div className="w-full">
-
       {/* HEADER */}
       <UserHeader
         users={users}
@@ -440,50 +427,45 @@ const AdminUsers = () => {
         onExportExcel={handleExportExcel}
       />
 
+      <div className="flex flex-wrap items-center justify-between gap-4 p-1 mt-[-10px]">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="px-3 py-1">
+            <span className="font-semibold">Department:</span>{" "}
+            <span className="font-light">
+              {filterDept || "All Departments"}
+            </span>
+          </div>
 
-     <div className="flex flex-wrap items-center justify-between gap-4 p-1 mt-[-10px]">
+          <div className="px-3 py-1">
+            <span className="font-semibold">Location:</span>{" "}
+            <span className="font-light ">
+              {filterLocation || "All Locations"}
+            </span>
+          </div>
 
-  <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="px-3 py-1">
+            <span className="font-semibold">Status:</span>{" "}
+            <span className="font-light ">
+              {filterRelieved === "all"
+                ? "All Users"
+                : filterRelieved === "active"
+                  ? "Active Users"
+                  : "Relieved Users"}
+            </span>
+          </div>
 
-    <div className="px-3 py-1">
-      <span className="font-semibold">Department:</span>{" "}
-      <span className="font-light">
-        {filterDept || "All Departments"}
-      </span>
-    </div>
-
-    <div className="px-3 py-1">
-      <span className="font-semibold">Location:</span>{" "}
-      <span className="font-light ">
-        {filterLocation || "All Locations"}
-      </span>
-    </div>
-
-    <div className="px-3 py-1">
-      <span className="font-semibold">Status:</span>{" "}
-      <span className="font-light ">
-        {filterRelieved === "all" ? "All Users" : filterRelieved === "active" ? "Active Users" : "Relieved Users"}
-      </span>
-    </div>
-
-    {searchTerm && (
-      <div className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-        🔍 <span className="italic">{searchTerm}</span>
+          {searchTerm && (
+            <div className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+              🔍 <span className="italic">{searchTerm}</span>
+            </div>
+          )}
+        </div>
       </div>
-    )}
-
-  </div>
-
-  
-
-</div>
 
       <UserTable
         users={currentUsers}
         loading={loading}
-        handleDeleteUser={
-          requestDeleteUser
-        }
+        handleDeleteUser={requestDeleteUser}
         handleRequestRelieve={handleRequestRelieve}
         handleRequestReactivate={handleRequestReactivate}
         setOpenModal={setOpenModal}
@@ -499,9 +481,17 @@ const AdminUsers = () => {
         <div className="mt-2 flex flex-col md:flex-row items-center justify-between gap-6 px-2">
           {/* Count Details */}
           <p className="theme-text-secondary text-[13px] font-medium order-2 md:order-1">
-            Showing <span className="theme-text-primary font-semibold">{startEntry}</span> to{" "}
-            <span className="theme-text-primary font-semibold">{endEntry}</span> of{" "}
-            <span className="theme-text-primary font-semibold">{totalEntries}</span> entries
+            Showing{" "}
+            <span className="theme-text-primary font-semibold">
+              {startEntry}
+            </span>{" "}
+            to{" "}
+            <span className="theme-text-primary font-semibold">{endEntry}</span>{" "}
+            of{" "}
+            <span className="theme-text-primary font-semibold">
+              {totalEntries}
+            </span>{" "}
+            entries
           </p>
 
           {/* Pagination Buttons */}
@@ -509,12 +499,12 @@ const AdminUsers = () => {
             <div className="flex items-center gap-1.5 order-1 md:order-2 overflow-x-auto pb-1 md:pb-0 w-full md:w-auto justify-center">
               <button
                 disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => prev - 1)}
+                onClick={() => setCurrentPage((prev) => prev - 1)}
                 className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 <FiChevronLeft size={14} />
               </button>
-              
+
               {[...Array(totalPages)].map((_, index) => (
                 <button
                   key={index}
@@ -539,7 +529,7 @@ const AdminUsers = () => {
 
               <button
                 disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => prev + 1)}
+                onClick={() => setCurrentPage((prev) => prev + 1)}
                 className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 <FiChevronRight size={14} />
@@ -553,12 +543,8 @@ const AdminUsers = () => {
       <UserModal
         openModal={openModal}
         setOpenModal={setOpenModal}
-        handleCreateUser={
-          handleCreateUser
-        }
-        handleUpdateUser={
-          handleUpdateUser
-        }
+        handleCreateUser={handleCreateUser}
+        handleUpdateUser={handleUpdateUser}
         editUser={editUser}
         setEditUser={setEditUser}
         users={users}
@@ -583,13 +569,12 @@ const AdminUsers = () => {
       />
 
       {/* PERMISSIONS MODAL */}
-      <PermissionsModal 
+      <PermissionsModal
         open={openPermissionsModal}
         setOpen={setOpenPermissionsModal}
         user={permissionsUser}
         handleUpdateUser={(permissions) => handleUpdateUser({ permissions })}
       />
-
     </div>
   );
 };

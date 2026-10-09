@@ -896,6 +896,14 @@ const TaskOverviewTab = ({
 
   // Search & Filters State
   const [projectSearch, setProjectSearch] = useState("");
+  const [debouncedProjectSearch, setDebouncedProjectSearch] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedProjectSearch(projectSearch);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [projectSearch]);
   const [overviewClientFilter, setOverviewClientFilter] = useState("All");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
@@ -1056,7 +1064,7 @@ const TaskOverviewTab = ({
   useEffect(() => {
     setCurrentPage(1);
   }, [
-    projectSearch,
+    debouncedProjectSearch,
     overviewPriorityFilter,
     overviewStatusFilter,
     overviewDepartmentFilter,
@@ -1355,8 +1363,8 @@ const TaskOverviewTab = ({
           return false;
         }
 
-        if (!projectSearch.trim()) return true;
-        const q = projectSearch.toLowerCase();
+        if (!debouncedProjectSearch.trim()) return true;
+        const q = debouncedProjectSearch.toLowerCase();
         const title = task.title || "";
         const contentCopy = task.contentCopy || "";
         const contentType = task.contentType || "";
@@ -1392,7 +1400,7 @@ const TaskOverviewTab = ({
     tasks,
     currentUserId,
     user?.role,
-    projectSearch,
+    debouncedProjectSearch,
     projectsMap,
     usersMap,
     overviewPriorityFilter,
@@ -1549,7 +1557,7 @@ const TaskOverviewTab = ({
   };
 
   const hasActiveFilters =
-    projectSearch ||
+    debouncedProjectSearch ||
     overviewClientFilter !== "All" ||
     overviewCreatedByFilter !== "All" ||
     overviewAssigneeFilter !== "All" ||
@@ -3434,4 +3442,4 @@ const TaskOverviewTab = ({
   );
 };
 
-export default TaskOverviewTab;
+export default React.memo(TaskOverviewTab);

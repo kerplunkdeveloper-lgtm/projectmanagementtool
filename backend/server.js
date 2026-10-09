@@ -190,6 +190,7 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const socialAccountRoutes = require("./routes/socialAccountRoutes");
 const clientCallRoutes = require("./routes/clientCallRoutes");
 const shootRoutes = require("./routes/shoot.routes");
+const momRoutes = require("./routes/momRoutes");
 
 const calendarEventRoutes = require("./routes/calendarEventRoutes");
 
@@ -242,6 +243,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/social-accounts', socialAccountRoutes);
 app.use('/api/client-calls', clientCallRoutes);
 app.use('/api/shoot-calendar', shootRoutes);
+app.use('/api/moms', momRoutes);
 
 app.use('/api/calendar-events', calendarEventRoutes);
 
@@ -500,6 +502,10 @@ app.set('io', io);
 // Start office hours auto-pause scheduler
 const { startOfficeHoursScheduler } = require("./utils/officeHoursScheduler");
 startOfficeHoursScheduler(app);
+
+// Start MOM overdue scheduler
+const { startMomScheduler } = require("./utils/momScheduler");
+startMomScheduler(app);
 
 // Global error handler
 app.use((err, req, res, next) => {

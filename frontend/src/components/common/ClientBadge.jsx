@@ -43,8 +43,8 @@ export const getClientBranding = (client) => {
   const colorIndex = Math.abs(hash) % nameHexes.length;
 
   const clientColor = client.color || "#3b82f6";
-  const hasCustomColor = true; // Always use the chosen or default color, never hash
-  const hexColor = clientColor;
+  const hasCustomColor = client.color && client.color !== "#3b82f6"; 
+  const hexColor = hasCustomColor ? clientColor : nameHexes[colorIndex];
 
   return {
     color: hexColor,

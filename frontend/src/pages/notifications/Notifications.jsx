@@ -287,6 +287,17 @@ const Notifications = () => {
           icon: FiFileText,
           bgColor: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100",
         };
+      case "mom_assigned":
+      case "mom_updated":
+        return {
+          icon: FiFileText,
+          bgColor: "bg-teal-50 text-teal-600 border-teal-100",
+        };
+      case "mom_overdue":
+        return {
+          icon: FiInfo,
+          bgColor: "bg-rose-50 text-rose-600 border-rose-200 ring-2 ring-rose-500/20 animate-pulse",
+        };
       default:
         return {
           icon: FiBell,
@@ -443,6 +454,11 @@ const Notifications = () => {
                           (n.message && n.message.toLowerCase().includes("client:"))
                         ) {
                           navigate(`/${user?.role}/clients`);
+                        } else if (
+                          n.type?.startsWith("mom_") ||
+                          (n.message && n.message.toLowerCase().includes("mom point"))
+                        ) {
+                          navigate(`/${user?.role}/mom-points`);
                         } else if (n.type === "task_assigned") {
                           navigate(`/${user?.role}/tasks`);
                         } else if (n.type?.startsWith("task_")) {
