@@ -1560,10 +1560,10 @@ td:first-child {
 
 /* DEFAULT (OCEAN BLUE) */
 :root[data-accent="default"] {
-  --accent-color: #3b82f6;
-  --accent-color-dark: #60a5fa;
-  --accent-gradient: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%);
-  --accent-gradient-dark: linear-gradient(135deg, #3b82f6, #60a5fa);
+  --accent-color: #1c93f5;
+  --accent-color-dark: #2c8bff;
+  --accent-gradient: linear-gradient(180deg, #3fc2ff 0%, #69afe2 50%, #408ed8 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #5e98f4, #60a5fa);
   --accent-hover-shadow: rgba(64, 142, 216, 0.25);
   --accent-hover-shadow-dark: rgba(96, 165, 250, 0.25);
   --accent-light-bg-subtle: rgba(59, 130, 246, 0.1);
@@ -1572,7 +1572,7 @@ td:first-child {
 
 /* CYAN */
 :root[data-accent="cyan"] {
-  --accent-color: #06b6d4;
+  --accent-color: #11d6f9;
   --accent-color-dark: #22d3ee;
   --accent-gradient: linear-gradient(135deg, #06b6d4, #22d3ee);
   --accent-gradient-dark: linear-gradient(135deg, #06b6d4, #22d3ee);
@@ -1630,21 +1630,11 @@ td:first-child {
   --accent-dark-bg-subtle: rgba(248, 113, 113, 0.1);
 }
 
-/* INDIGO */
-:root[data-accent="indigo"] {
-  --accent-color: #4f46e5;
-  --accent-color-dark: #818cf8;
-  --accent-gradient: linear-gradient(135deg, #4f46e5, #818cf8);
-  --accent-gradient-dark: linear-gradient(135deg, #4f46e5, #818cf8);
-  --accent-hover-shadow: rgba(79, 70, 229, 0.3);
-  --accent-hover-shadow-dark: rgba(129, 140, 248, 0.3);
-  --accent-light-bg-subtle: rgba(79, 70, 229, 0.1);
-  --accent-dark-bg-subtle: rgba(129, 140, 248, 0.1);
-}
+/* MODERN INDIGO — PREMIUM SAAS */ :root[data-accent="indigo"] { --accent-color: #4F46E5; --accent-color-dark: #818CF8; --accent-gradient: linear-gradient(135deg, #4F46E5, #6366F1); --accent-gradient-dark: linear-gradient(135deg, #6366F1, #818CF8); --accent-hover-shadow: rgba(79, 70, 229, 0.25); --accent-hover-shadow-dark: rgba(129, 140, 248, 0.25); --accent-light-bg-subtle: rgba(79, 70, 229, 0.08); --accent-dark-bg-subtle: rgba(129, 140, 248, 0.12); }
 
 /* GOLD */
 :root[data-accent="gold"] {
-  --accent-color: #b45309;
+  --accent-color: #cb5e0a;
   --accent-color-dark: #f59e0b;
   --accent-gradient: linear-gradient(135deg, #b45309, #d97706);
   --accent-gradient-dark: linear-gradient(135deg, #b45309, #f59e0b);
