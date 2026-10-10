@@ -48,8 +48,9 @@ const clearTabTitleFlash = () => {
   }
 };
 
-// Clear title flash on user activity / focus
-if (typeof window !== "undefined") {
+// Clear title flash on user activity / focus (BUG-12 FIX: prevent duplicate listeners)
+if (typeof window !== "undefined" && !window.__titleFlashListenersAttached) {
+  window.__titleFlashListenersAttached = true;
   window.addEventListener("focus", clearTabTitleFlash);
   window.addEventListener("click", clearTabTitleFlash);
   document.addEventListener("visibilitychange", () => {

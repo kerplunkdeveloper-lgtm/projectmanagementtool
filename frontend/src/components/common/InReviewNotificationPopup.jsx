@@ -23,33 +23,38 @@ const InReviewNotificationPopup = () => {
   }, [user]);
 
   const { data: allTasks = [] } = useGetTasksQuery(undefined, {
-    pollingInterval: 30000, // Poll every 30 seconds to keep fresh
+    pollingInterval: 120000, // BUG-02 FIX: 30s → 120s. Socket task_updated events keep data fresh.
     skip: !isAuthorized,
   });
 
   const [isOpen, setIsOpen] = useState(false);
 
-  // Synthesize a clean, premium double-tone chime sound programmatically
-  const playBeep = () => {
+  // BUG-04 FIX: AudioContext must be resumed after user gesture (browser policy)
+  const playBeep = async () => {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
+
+      // Must resume after user gesture to comply with browser autoplay policy
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+
       // Tone 1: 830Hz (Sine wave, warm tone)
       const osc1 = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
-      
+
       osc1.type = "sine";
       osc1.frequency.setValueAtTime(830, audioCtx.currentTime);
-      
+
       gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
-      
+
       osc1.connect(gainNode);
       gainNode.connect(audioCtx.destination);
-      
+
       osc1.start();
       osc1.stop(audioCtx.currentTime + 0.6);
-      
+
       // Tone 2: 1100Hz (Harmonic tone, slightly delayed by 80ms)
       setTimeout(() => {
         try {

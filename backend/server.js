@@ -106,6 +106,7 @@ connectDB().then(() => {
 });
 
 const app = express();
+app.set('trust proxy', 1); // Trust reverse proxy (e.g. Nginx, Cloudflare) so req.ip is real client IP
 
 // Body parser with high limit for image uploads & content calendar bulk import
 app.use(express.json({ limit: '50mb' }));
@@ -154,10 +155,14 @@ app.use(helmet());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === "development" ? 100000 : 5000, // higher limit in development
+  max: process.env.NODE_ENV === "development" ? 500000 : 50000, // 50000 requests per 15 min per IP in production
+  standardHeaders: true,   // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false,    // Disable the `X-RateLimit-*` headers
+  skipSuccessfulRequests: false, // Count all requests
+  skip: (req) => req.method === "OPTIONS",
 
   handler: (req, res) => {
-    console.log("RATE LIMIT HIT =>", req.originalUrl);
+    console.log("RATE LIMIT HIT =>", req.originalUrl, "IP:", req.ip);
 
     res.status(429).json({
       success: false,

@@ -6,6 +6,8 @@ import {
   FiCalendar,
   FiFilter,
   FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
   FiColumns,
   FiX,
   FiTag,
@@ -15,6 +17,7 @@ import {
   FiClock,
   FiDownload,
   FiUser,
+  FiUserCheck,
   FiLock,
   FiExternalLink,
   FiLayers,
@@ -26,7 +29,24 @@ import {
   FiBriefcase,
   FiArrowUpRight,
   FiTrendingUp,
+  FiRotateCcw,
 } from "react-icons/fi";
+import { LuBuilding2 } from "react-icons/lu";
+import {
+  format,
+  subDays,
+  addDays,
+  isSameDay,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameMonth,
+  addMonths,
+  subMonths,
+  isToday,
+} from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSelector } from "react-redux";
 import ClientBadge, {
@@ -44,6 +64,35 @@ import {
   formatHMS,
   formatShortDuration,
 } from "../../utils/taskTimerUtils";
+
+// Status display priority ranking: Not Started (1) -> In Progress (2) -> On Hold (3) -> In Review (4) -> Completed (5)
+const getStatusRank = (status) => {
+  if (!status) return 99;
+  const s = String(status).toLowerCase().trim();
+  if (s === "not started" || s === "notstarted" || s === "pending" || s === "todo")
+    return 1;
+  if (s === "in progress" || s === "inprogress") return 2;
+  if (
+    s === "on hold" ||
+    s === "on-hold" ||
+    s === "onhold" ||
+    s === "hold" ||
+    s === "blocked" ||
+    s === "needs attention"
+  )
+    return 3;
+  if (
+    s === "in review" ||
+    s === "in-review" ||
+    s === "inreview" ||
+    s === "review" ||
+    s === "correction"
+  )
+    return 4;
+  if (s === "completed" || s === "done") return 5;
+  if (s === "rejected" || s === "cancelled") return 6;
+  return 10;
+};
 
 // Date comparison helper
 const isSameDate = (d1, d2) => {
@@ -85,17 +134,65 @@ const checkTaskProductivityAndDate = (
 
   const todayStr = getLocalDateStr(now);
 
-  if (dateFilter === "Today") {
-    const assignmentDate = getTaskAssignmentDate(task);
-    if (assignmentDate && getLocalDateStr(assignmentDate) === todayStr) {
+  const targetDateStr =
+    dateFilter === "Today"
+      ? todayStr
+      : /^\d{4}-\d{2}-\d{2}$/.test(dateFilter)
+      ? dateFilter
+      : null;
+
+  if (targetDateStr) {
+    const taskStartStr = getLocalDateStr(task.startDate);
+    const taskDueStr = getLocalDateStr(task.dueDate);
+    const taskCreatedStr = getLocalDateStr(task.createdAt);
+    const taskAssignedStr = getLocalDateStr(task.assignedDate);
+    if (
+      taskStartStr === targetDateStr ||
+      taskDueStr === targetDateStr ||
+      taskCreatedStr === targetDateStr ||
+      taskAssignedStr === targetDateStr
+    ) {
       return true;
     }
+
+    const assignmentDate = getTaskAssignmentDate(task);
+    if (assignmentDate && getLocalDateStr(assignmentDate) === targetDateStr) {
+      return true;
+    }
+
+    if (Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
+      const hasDateWork = task.statusHistory.some((h) => {
+        const entryDate =
+          h.date || getLocalDateStr(h.startTime) || getLocalDateStr(h.endTime);
+        return entryDate === targetDateStr && (h.duration > 0 || h.endTime);
+      });
+      if (hasDateWork) return true;
+    }
+
+    if (Array.isArray(task.timeLog) && task.timeLog.length > 0) {
+      const hasTimeLog = task.timeLog.some((tl) => {
+        const entryDate =
+          getLocalDateStr(tl.startTime) || getLocalDateStr(tl.endTime);
+        return entryDate === targetDateStr && tl.duration > 0;
+      });
+      if (hasTimeLog) return true;
+    }
+
     if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
       return task.subtasks.some((sub) => {
         const subAssignDate = getTaskAssignmentDate(sub);
-        return subAssignDate && getLocalDateStr(subAssignDate) === todayStr;
+        const subStart = getLocalDateStr(sub.startDate);
+        const subDue = getLocalDateStr(sub.dueDate);
+        const subCreated = getLocalDateStr(sub.createdAt);
+        return (
+          (subAssignDate && getLocalDateStr(subAssignDate) === targetDateStr) ||
+          subStart === targetDateStr ||
+          subDue === targetDateStr ||
+          subCreated === targetDateStr
+        );
       });
     }
+
     return false;
   }
 
@@ -876,6 +973,8 @@ const TaskOverviewTab = ({
   currentUserId,
   user,
   loading = false,
+  departmentFilter: propDepartmentFilter,
+  setDepartmentFilter: propSetDepartmentFilter,
   dateFilter,
   setDateFilter,
   showDateDropdown,
@@ -919,7 +1018,13 @@ const TaskOverviewTab = ({
   const [assigneeSearchQuery, setAssigneeSearchQuery] = useState("");
   const assigneeDropdownRef = useRef(null);
 
-  const [overviewDepartmentFilter, setOverviewDepartmentFilter] = useState("All");
+  const [internalDepartmentFilter, setInternalDepartmentFilter] = useState("Graphic Designer");
+  const overviewDepartmentFilter =
+    propDepartmentFilter !== undefined
+      ? propDepartmentFilter
+      : internalDepartmentFilter;
+  const setOverviewDepartmentFilter =
+    propSetDepartmentFilter || setInternalDepartmentFilter;
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
   const [departmentSearchQuery, setDepartmentSearchQuery] = useState("");
   const departmentDropdownRef = useRef(null);
@@ -928,6 +1033,60 @@ const TaskOverviewTab = ({
   const [showContentTypeDropdown, setShowContentTypeDropdown] = useState(false);
   const [contentTypeSearchQuery, setContentTypeSearchQuery] = useState("");
   const contentTypeDropdownRef = useRef(null);
+
+  // Date Navigator Helpers
+  const currentDateObj = useMemo(() => {
+    if (!dateFilter || dateFilter === "All") return new Date();
+    if (dateFilter === "Today") return new Date();
+    if (dateFilter === "Yesterday") return subDays(new Date(), 1);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateFilter)) {
+      try {
+        return new Date(dateFilter + "T00:00:00");
+      } catch {
+        return new Date();
+      }
+    }
+    return new Date();
+  }, [dateFilter]);
+
+  const isTodaySelected = useMemo(() => {
+    if (dateFilter === "Today") return true;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateFilter)) {
+      try {
+        return isSameDay(new Date(dateFilter + "T00:00:00"), new Date());
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }, [dateFilter]);
+
+  const displayDateText = useMemo(() => {
+    if (!dateFilter || dateFilter === "All") return "All Dates";
+    if (dateFilter === "Today") return format(new Date(), "MMM dd, yyyy");
+    if (dateFilter === "Yesterday")
+      return format(subDays(new Date(), 1), "MMM dd, yyyy");
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateFilter)) {
+      try {
+        return format(new Date(dateFilter + "T00:00:00"), "MMM dd, yyyy");
+      } catch {
+        return dateFilter;
+      }
+    }
+    return dateFilter;
+  }, [dateFilter]);
+
+  const [showCalendarDropdown, setShowCalendarDropdown] = useState(false);
+  const calendarDropdownRef = useRef(null);
+  const [calendarViewMonth, setCalendarViewMonth] = useState(() => new Date());
+
+  const calendarDays = useMemo(() => {
+    const monthStart = startOfMonth(calendarViewMonth);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
+    return eachDayOfInterval({ start: startDate, end: endDate });
+  }, [calendarViewMonth]);
 
   const statusParam = searchParams.get("status");
   const departmentParam =
@@ -1054,6 +1213,12 @@ const TaskOverviewTab = ({
         !dateDropdownRef.current.contains(event.target)
       ) {
         setShowDateDropdown?.(false);
+      }
+      if (
+        calendarDropdownRef?.current &&
+        !calendarDropdownRef.current.contains(event.target)
+      ) {
+        setShowCalendarDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -1334,10 +1499,11 @@ const TaskOverviewTab = ({
               taskDeptLower.includes("design");
           } else if (
             targetDeptLower.includes("video") ||
-            targetDeptLower.includes("videographer")
+            targetDeptLower.includes("videographer") ||
+            targetDeptLower.includes("cinematographer")
           ) {
             matchesDept =
-              taskDeptLower.includes("video") || taskDeptLower.includes("edit");
+              taskDeptLower.includes("video") || taskDeptLower.includes("edit") || taskDeptLower.includes("cinematographer");
           } else if (targetDeptLower.includes("web")) {
             matchesDept =
               taskDeptLower.includes("web") || taskDeptLower.includes("dev");
@@ -1384,6 +1550,10 @@ const TaskOverviewTab = ({
         );
       })
       .sort((a, b) => {
+        const rankA = getStatusRank(a.status);
+        const rankB = getStatusRank(b.status);
+        if (rankA !== rankB) return rankA - rankB;
+
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         if (timeA !== timeB) return timeB - timeA;
@@ -1570,6 +1740,7 @@ const TaskOverviewTab = ({
   return (
     <div className="space-y-4">
       {/* 1. EXECUTIVE LIVE STATUS KPI METRICS BAR */}
+      {false && (
       <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
         {/* KPI: Total Overview */}
         <motion.div
@@ -1942,8 +2113,10 @@ const TaskOverviewTab = ({
           </div>
         </motion.div>
       </div>
+      )}
 
       {/* 2. SAAS CONTROL TOOLBAR: SEARCH & SMART FILTERS */}
+      {false && (
       <div className="relative z-30 bg-white/95 dark:bg-[#131625]/95 border border-slate-200/80 dark:border-white/10 rounded-2xl p-2.5 shadow-xs backdrop-blur-xl space-y-2">
         <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5">
           {/* Search bar */}
@@ -2522,6 +2695,638 @@ const TaskOverviewTab = ({
           </div>
         )}
       </div>
+      )}
+
+      {/* PORTAL FILTERS: DATE, CLIENT, ASSIGNEE, CREATED BY, STATUS */}
+      {portalReady && document.getElementById("task-header-filters-portal")
+        ? createPortal(
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Date Filter & Navigator Group */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs">
+                {/* Today Quick Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const todayStr = format(new Date(), "yyyy-MM-dd");
+                    setDateFilter(todayStr);
+                  }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
+                    isTodaySelected
+                      ? "bg-blue-600 text-white shadow-sm shadow-blue-500/25"
+                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                  title="Filter for today's tasks"
+                >
+                  Today
+                </button>
+
+                {/* Calendar Date Picker Button & Custom Dropdown matching screenshot */}
+                <div className="relative" ref={calendarDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCalendarDropdown((prev) => !prev);
+                      if (!showCalendarDropdown) {
+                        setCalendarViewMonth(currentDateObj);
+                      }
+                    }}
+                    className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all select-none shadow-2xs ${
+                      dateFilter !== "All"
+                        ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/50"
+                        : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    }`}
+                    title="Click to open calendar picker"
+                  >
+                    <FiCalendar
+                      size={13}
+                      className={
+                        dateFilter !== "All"
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-emerald-500 dark:text-emerald-400"
+                      }
+                    />
+                    <span className="min-w-[85px] text-center font-bold">
+                      {displayDateText}
+                    </span>
+                    <FiChevronDown
+                      size={12}
+                      className={`text-slate-400 transition-transform duration-200 ${
+                        showCalendarDropdown ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {showCalendarDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                        className="absolute left-0 top-full mt-2 w-[270px] bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[80] p-3.5 select-none backdrop-blur-md"
+                      >
+                        {/* Month / Year header with navigation */}
+                        <div className="flex items-center justify-between mb-2.5 px-1">
+                          <div className="flex items-center gap-1 text-xs font-extrabold text-slate-900 dark:text-[#f8fafc]">
+                            <span>{format(calendarViewMonth, "MMMM, yyyy")}</span>
+                            <FiChevronDown size={13} className="text-slate-400" />
+                          </div>
+                          <div className="flex items-center gap-0.5 text-slate-600 dark:text-slate-300">
+                            <button
+                              type="button"
+                              onClick={() => setCalendarViewMonth((prev) => subMonths(prev, 1))}
+                              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                              title="Previous month"
+                            >
+                              <FiChevronLeft size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCalendarViewMonth((prev) => addMonths(prev, 1))}
+                              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                              title="Next month"
+                            >
+                              <FiChevronRight size={15} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Weekday headers: Su Mo Tu We Th Fr Sa */}
+                        <div className="grid grid-cols-7 mb-1.5 text-center text-[11px] font-bold text-slate-700 dark:text-slate-400">
+                          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((dayName) => (
+                            <span key={dayName} className="py-0.5">
+                              {dayName}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Calendar Day Grid */}
+                        <div className="grid grid-cols-7 gap-y-1 text-center text-xs">
+                          {calendarDays.map((day) => {
+                            const isCurrentMonth = isSameMonth(day, calendarViewMonth);
+                            const isSelected =
+                              (dateFilter === "Today" && isToday(day)) ||
+                              (dateFilter &&
+                                /^\d{4}-\d{2}-\d{2}$/.test(dateFilter) &&
+                                isSameDay(day, new Date(dateFilter + "T00:00:00")));
+                            const isDayToday = isToday(day);
+
+                            return (
+                              <button
+                                key={day.toISOString()}
+                                type="button"
+                                onClick={() => {
+                                  setDateFilter(format(day, "yyyy-MM-dd"));
+                                  setShowCalendarDropdown(false);
+                                }}
+                                className={`h-7 w-7 mx-auto flex items-center justify-center rounded-sm transition-all cursor-pointer font-bold ${
+                                  isSelected
+                                    ? "bg-blue-600 text-white border-2 border-slate-900 dark:border-white shadow-xs"
+                                    : isDayToday
+                                    ? "text-blue-600 dark:text-blue-400 font-extrabold hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                    : isCurrentMonth
+                                    ? "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10"
+                                    : "text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-white/5"
+                                }`}
+                              >
+                                {format(day, "d")}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Footer: Clear & Today */}
+                        <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-100 dark:border-white/10 px-1 text-xs font-bold">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDateFilter("All");
+                              setShowCalendarDropdown(false);
+                            }}
+                            className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const todayStr = format(new Date(), "yyyy-MM-dd");
+                              setDateFilter(todayStr);
+                              setCalendarViewMonth(new Date());
+                              setShowCalendarDropdown(false);
+                            }}
+                            className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          >
+                            Today
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Prev / Next buttons */}
+                <div className="flex items-center bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 rounded-xl overflow-hidden shadow-2xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextDate = subDays(currentDateObj, 1);
+                      setDateFilter(format(nextDate, "yyyy-MM-dd"));
+                    }}
+                    className="px-2 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 border-r border-slate-200/80 dark:border-white/10 transition-colors cursor-pointer"
+                    title="Previous Day"
+                  >
+                    <FiChevronLeft size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextDate = addDays(currentDateObj, 1);
+                      setDateFilter(format(nextDate, "yyyy-MM-dd"));
+                    }}
+                    className="px-2 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    title="Next Day"
+                  >
+                    <FiChevronRight size={13} />
+                  </button>
+                </div>
+
+                {/* Clear Date Filter Button */}
+                {dateFilter !== "All" && (
+                  <button
+                    type="button"
+                    onClick={() => setDateFilter("All")}
+                    className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                    title="Clear date filter (All dates)"
+                  >
+                    <FiX size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Client Filter */}
+              <div
+                className={`relative ${showClientDropdown ? "z-50" : "z-10"}`}
+                ref={clientDropdownRef}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowClientDropdown((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${
+                    overviewClientFilter !== "All"
+                      ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-[#93c5fd] dark:border-blue-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <LuBuilding2
+                    size={13}
+                    className={
+                      overviewClientFilter !== "All"
+                        ? "text-blue-600"
+                        : "text-slate-400"
+                    }
+                  />
+                  <span className="truncate max-w-[100px]">
+                    {overviewClientFilter === "All"
+                      ? "Client"
+                      : clients?.find((c) => c._id === overviewClientFilter)
+                          ?.companyName || "Client"}
+                  </span>
+                  <FiChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 text-slate-400 ${
+                      showClientDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showClientDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      className="absolute left-0 top-full mt-1.5 w-64 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
+                    >
+                      <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                        <input
+                          type="text"
+                          placeholder="Search clients..."
+                          value={clientSearchQuery}
+                          onChange={(e) => setClientSearchQuery(e.target.value)}
+                          className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOverviewClientFilter("All");
+                            setShowClientDropdown(false);
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            overviewClientFilter === "All"
+                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-[#93c5fd]"
+                              : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                          }`}
+                        >
+                          All Clients
+                        </button>
+                        {clients
+                          ?.filter((c) =>
+                            c.companyName
+                              ?.toLowerCase()
+                              .includes(clientSearchQuery.toLowerCase()),
+                          )
+                          .map((client) => (
+                            <button
+                              key={client._id}
+                              type="button"
+                              onClick={() => {
+                                setOverviewClientFilter(client._id);
+                                setShowClientDropdown(false);
+                              }}
+                              className={`w-full text-left px-2 py-1 rounded-xl transition-all flex items-center ${
+                                overviewClientFilter === client._id
+                                  ? "bg-blue-50 dark:bg-blue-900/40"
+                                  : "hover:bg-slate-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <ClientBadge
+                                client={client}
+                                size="sm"
+                                className="w-full justify-start !text-[11px]"
+                              />
+                            </button>
+                          ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Assignee Filter */}
+              <div
+                className={`relative ${showAssigneeDropdown ? "z-50" : "z-10"}`}
+                ref={assigneeDropdownRef}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowAssigneeDropdown((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${
+                    overviewAssigneeFilter !== "All"
+                      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-[#d8b4fe] dark:border-purple-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <FiUser
+                    size={13}
+                    className={
+                      overviewAssigneeFilter !== "All"
+                        ? "text-purple-600"
+                        : "text-slate-400"
+                    }
+                  />
+                  <span className="truncate max-w-[95px]">
+                    {overviewAssigneeFilter === "All"
+                      ? "Assignee"
+                      : uniqueAssignees.find(
+                          (u) => (u._id || u.id) === overviewAssigneeFilter,
+                        )?.name || "Assignee"}
+                  </span>
+                  <FiChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 text-slate-400 ${
+                      showAssigneeDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showAssigneeDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      className="absolute left-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
+                    >
+                      <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                        <input
+                          type="text"
+                          placeholder="Search assignee..."
+                          value={assigneeSearchQuery}
+                          onChange={(e) => setAssigneeSearchQuery(e.target.value)}
+                          className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOverviewAssigneeFilter("All");
+                            setShowAssigneeDropdown(false);
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            overviewAssigneeFilter === "All"
+                              ? "bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-[#d8b4fe]"
+                              : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                          }`}
+                        >
+                          All Assignees
+                        </button>
+                        {uniqueAssignees
+                          ?.filter((u) =>
+                            u.name
+                              ?.toLowerCase()
+                              .includes(assigneeSearchQuery.toLowerCase()),
+                          )
+                          .map((u) => {
+                            const uid = u._id || u.id;
+                            return (
+                              <button
+                                key={uid}
+                                type="button"
+                                onClick={() => {
+                                  setOverviewAssigneeFilter(uid);
+                                  setShowAssigneeDropdown(false);
+                                }}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${
+                                  overviewAssigneeFilter === uid
+                                    ? "bg-purple-50 dark:bg-purple-900/40 font-bold"
+                                    : "hover:bg-slate-50 dark:hover:bg-white/5"
+                                }`}
+                              >
+                                {renderUserAvatarSmall(u)}
+                                <span className="truncate text-xs text-slate-900 dark:text-[#f8fafc] font-bold">
+                                  {u.name}
+                                </span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Created By Filter */}
+              <div
+                className={`relative ${showCreatedByDropdown ? "z-50" : "z-10"}`}
+                ref={createdByDropdownRef}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowCreatedByDropdown((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${
+                    overviewCreatedByFilter !== "All"
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-[#a5b4fc] dark:border-indigo-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <FiUserCheck
+                    size={13}
+                    className={
+                      overviewCreatedByFilter !== "All"
+                        ? "text-indigo-600"
+                        : "text-slate-400"
+                    }
+                  />
+                  <span className="truncate max-w-[95px]">
+                    {overviewCreatedByFilter === "All"
+                      ? "Created By"
+                      : uniqueCreators.find(
+                          (u) => (u._id || u.id) === overviewCreatedByFilter,
+                        )?.name || "Created By"}
+                  </span>
+                  <FiChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 text-slate-400 ${
+                      showCreatedByDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showCreatedByDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      className="absolute left-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
+                    >
+                      <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                        <input
+                          type="text"
+                          placeholder="Search creator..."
+                          value={createdBySearchQuery}
+                          onChange={(e) =>
+                            setCreatedBySearchQuery(e.target.value)
+                          }
+                          className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOverviewCreatedByFilter("All");
+                            setShowCreatedByDropdown(false);
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                            overviewCreatedByFilter === "All"
+                              ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-[#a5b4fc]"
+                              : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                          }`}
+                        >
+                          All Creators
+                        </button>
+                        {uniqueCreators
+                          ?.filter((u) =>
+                            u.name
+                              ?.toLowerCase()
+                              .includes(createdBySearchQuery.toLowerCase()),
+                          )
+                          .map((u) => {
+                            const uid = u._id || u.id;
+                            return (
+                              <button
+                                key={uid}
+                                type="button"
+                                onClick={() => {
+                                  setOverviewCreatedByFilter(uid);
+                                  setShowCreatedByDropdown(false);
+                                }}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${
+                                  overviewCreatedByFilter === uid
+                                    ? "bg-indigo-50 dark:bg-indigo-900/40 font-bold"
+                                    : "hover:bg-slate-50 dark:hover:bg-white/5"
+                                }`}
+                              >
+                                {renderUserAvatarSmall(u)}
+                                <span className="truncate text-xs text-slate-900 dark:text-[#f8fafc] font-bold">
+                                  {u.name}
+                                </span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Status Filter Dropdown */}
+              <div
+                className={`relative ${showStatusDropdown ? "z-50" : "z-10"}`}
+                ref={statusDropdownRef}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowStatusDropdown((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${
+                    overviewStatusFilter !== "All"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-[#86efac] dark:border-emerald-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <FiFilter
+                    size={13}
+                    className={
+                      overviewStatusFilter !== "All"
+                        ? "text-emerald-600"
+                        : "text-slate-400"
+                    }
+                  />
+                  <span className="truncate max-w-[90px]">
+                    {overviewStatusFilter === "All"
+                      ? "Status"
+                      : overviewStatusFilter}
+                  </span>
+                  <FiChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 text-slate-400 ${
+                      showStatusDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showStatusDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      className="absolute left-0 lg:left-auto lg:right-0 top-full mt-1.5 w-48 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5 backdrop-blur-md"
+                    >
+                      {[
+                        "All",
+                        "Active Tasks",
+                        "Not Started",
+                        "In Progress",
+                        "On Hold",
+                        "In Review",
+                        "Completed",
+                        "Needs Attention",
+                        "Correction",
+                        "Overdue",
+                        "Due Today",
+                        "Rejected",
+                      ].map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => {
+                            setOverviewStatusFilter(st);
+                            setShowStatusDropdown(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                            overviewStatusFilter === st
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
+                              : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                          }`}
+                        >
+                          <span>{st === "All" ? "All Statuses" : st}</span>
+                          {overviewStatusFilter === st && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Reset All Filters button if any filter is active */}
+              {(dateFilter !== "All" ||
+                overviewClientFilter !== "All" ||
+                overviewAssigneeFilter !== "All" ||
+                overviewCreatedByFilter !== "All" ||
+                overviewStatusFilter !== "All") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDateFilter("All");
+                    setOverviewClientFilter("All");
+                    setOverviewAssigneeFilter("All");
+                    setOverviewCreatedByFilter("All");
+                    setOverviewStatusFilter("All");
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 hover:bg-rose-100 transition-all cursor-pointer shadow-2xs"
+                  title="Reset all filters"
+                >
+                  <FiRotateCcw size={12} />
+                  <span>Reset</span>
+                </button>
+              )}
+            </div>,
+            document.getElementById("task-header-filters-portal"),
+          )
+        : null}
 
       {/* PORTAL ACTIONS: EXPORT & COLUMNS */}
       {portalReady && document.getElementById("task-actions-portal")
@@ -2644,26 +3449,24 @@ const TaskOverviewTab = ({
           <table className="w-full text-left border-collapse min-w-max">
             <thead className="sticky top-0 z-20 bg-slate-50/95 dark:bg-[#161826]/95 backdrop-blur-md shadow-2xs">
               <tr className="border-b border-slate-200 dark:border-white/10 text-[10.5px] font-black text-slate-700 dark:text-[#f8fafc] uppercase tracking-wider">
-                {!hiddenColumns.taskName && (
+                {!hiddenColumns.assignee && (
                   <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
-                    Task Details
+                    Assignee
                   </th>
                 )}
-               
                 {!hiddenColumns.clientName && (
                   <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
                     Client
                   </th>
                 )}
-               
+                {!hiddenColumns.taskName && (
+                  <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
+                    Task Details
+                  </th>
+                )}
                 {!hiddenColumns.contentType && (
                   <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                     Type
-                  </th>
-                )}
-                {!hiddenColumns.createdBy && (
-                  <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
-                    Created By
                   </th>
                 )}
                 {!hiddenColumns.startDate && (
@@ -2676,11 +3479,6 @@ const TaskOverviewTab = ({
                     End Date
                   </th>
                 )}
-                {!hiddenColumns.assignee && (
-                  <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
-                    Assignee
-                  </th>
-                )}
                 {!hiddenColumns.priority && (
                   <th className="py-2.5 px-2.5 border-r border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                     Priority
@@ -2689,6 +3487,11 @@ const TaskOverviewTab = ({
                 {!hiddenColumns.status && (
                   <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                     Status
+                  </th>
+                )}
+                {!hiddenColumns.createdBy && (
+                  <th className="py-2.5 px-3 border-r border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
+                    Created By
                   </th>
                 )}
                 {!hiddenColumns.holdReason && (
@@ -2720,22 +3523,93 @@ const TaskOverviewTab = ({
             </thead>
 
             <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-[12px] font-semibold">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={
-                      Object.values(hiddenColumns).filter((isHidden) => !isHidden).length
-                    }
-                    className="py-16 text-center"
+              {loading && (!tasks || tasks.length === 0) ? (
+                Array.from({ length: 8 }).map((_, rIdx) => (
+                  <tr
+                    key={`skeleton-row-${rIdx}`}
+                    className="border-b border-slate-100 dark:border-white/5 animate-pulse"
                   >
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <div className="w-7 h-7 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-xs font-bold text-slate-500 dark:text-[#94a3b8]">
-                        Loading Status Overview...
-                      </span>
-                    </div>
-                  </td>
-                </tr>
+                    {!hiddenColumns.assignee && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-white/10 shrink-0" />
+                          <div className="h-3 w-20 bg-slate-200 dark:bg-white/10 rounded" />
+                        </div>
+                      </td>
+                    )}
+                    {!hiddenColumns.clientName && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5">
+                        <div className="h-4 w-24 bg-slate-200 dark:bg-white/10 rounded-full" />
+                      </td>
+                    )}
+                    {!hiddenColumns.taskName && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5">
+                        <div className="space-y-1.5">
+                          <div className="h-3.5 w-44 bg-slate-200 dark:bg-white/10 rounded" />
+                          <div className="h-2.5 w-28 bg-slate-100 dark:bg-white/5 rounded" />
+                        </div>
+                      </td>
+                    )}
+                    {!hiddenColumns.contentType && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5 text-center">
+                        <div className="h-4 w-14 bg-slate-200 dark:bg-white/10 rounded-full mx-auto" />
+                      </td>
+                    )}
+                    {!hiddenColumns.startDate && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5">
+                        <div className="h-3 w-16 bg-slate-200 dark:bg-white/10 rounded" />
+                      </td>
+                    )}
+                    {!hiddenColumns.dueDate && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5">
+                        <div className="h-3 w-16 bg-slate-200 dark:bg-white/10 rounded" />
+                      </td>
+                    )}
+                    {!hiddenColumns.priority && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5 text-center">
+                        <div className="h-4 w-14 bg-slate-200 dark:bg-white/10 rounded-full mx-auto" />
+                      </td>
+                    )}
+                    {!hiddenColumns.status && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5 text-center">
+                        <div className="h-4 w-20 bg-slate-200 dark:bg-white/10 rounded-full mx-auto" />
+                      </td>
+                    )}
+                    {!hiddenColumns.createdBy && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/10" />
+                          <div className="h-3 w-16 bg-slate-200 dark:bg-white/10 rounded" />
+                        </div>
+                      </td>
+                    )}
+                    {!hiddenColumns.holdReason && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5">
+                        <div className="h-3 w-12 bg-slate-200 dark:bg-white/10 rounded" />
+                      </td>
+                    )}
+                    {!hiddenColumns.totalHours && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5 text-center">
+                        <div className="h-3 w-12 bg-slate-200 dark:bg-white/10 rounded mx-auto" />
+                      </td>
+                    )}
+                    {!hiddenColumns.timeTracker && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5 text-center">
+                        <div className="h-3 w-12 bg-slate-200 dark:bg-white/10 rounded mx-auto" />
+                      </td>
+                    )}
+                    {!hiddenColumns.approvalInfo && (
+                      <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5 text-center">
+                        <div className="h-3 w-10 bg-slate-200 dark:bg-white/10 rounded mx-auto" />
+                      </td>
+                    )}
+                    {!hiddenColumns.action && (
+                      <td className="py-2.5 px-3 text-right">
+                        <div className="h-6 w-12 bg-slate-200 dark:bg-white/10 rounded-lg ml-auto" />
+                      </td>
+                    )}
+                  </tr>
+                ))
               ) : filteredOverviewTasks.length === 0 ? (
                 <tr>
                   <td
@@ -2803,6 +3677,52 @@ const TaskOverviewTab = ({
                         onClick={() => setSelectedTaskId(task._id)}
                         className="group transition-colors border-b border-slate-100 dark:border-white/5 hover:bg-blue-50/40 dark:hover:bg-blue-950/25 cursor-pointer text-slate-800 dark:text-[#f8fafc]"
                       >
+                        {/* Assignee */}
+                        {!hiddenColumns.assignee && (
+                          <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
+                            {task.assignedTo ? (
+                              <div className="flex items-center gap-2">
+                                {renderUserAvatarSmall(task.assignedTo)}
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-[11px] font-bold text-slate-900 dark:text-[#f8fafc] truncate max-w-[120px]">
+                                    {task.assignedTo.name}
+                                  </span>
+                                  {task.assignedTo.department && (
+                                    <span
+                                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border w-fit ${getDeptBadgeStyle(
+                                        task.assignedTo.department,
+                                      )}`}
+                                    >
+                                      {task.assignedTo.department}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-slate-500 dark:text-[#94a3b8] text-[11px] font-semibold italic">
+                                Unassigned
+                              </span>
+                            )}
+                          </td>
+                        )}
+
+                        {/* Client */}
+                        {!hiddenColumns.clientName && (
+                          <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
+                            {clientObj && clientObj.companyName ? (
+                              <ClientBadge
+                                client={clientObj}
+                                size="sm"
+                                className="!text-[11px] !px-2 !py-0.5"
+                              />
+                            ) : (
+                              <span className="text-slate-600 dark:text-[#cbd5e1] text-[11px] font-bold">
+                                {clientName}
+                              </span>
+                            )}
+                          </td>
+                        )}
+
                         {/* Task Details */}
                         {!hiddenColumns.taskName && (
                           <td className="py-2.5 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
@@ -2832,59 +3752,10 @@ const TaskOverviewTab = ({
                           </td>
                         )}
 
-                        {/* Client */}
-                        {!hiddenColumns.clientName && (
-                          <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
-                            {clientObj && clientObj.companyName ? (
-                              <ClientBadge
-                                client={clientObj}
-                                size="sm"
-                                className="!text-[11px] !px-2 !py-0.5"
-                              />
-                            ) : (
-                              <span className="text-slate-600 dark:text-[#cbd5e1] text-[11px] font-bold">
-                                {clientName}
-                              </span>
-                            )}
-                          </td>
-                        )}
-
                         {/* Content Type */}
                         {!hiddenColumns.contentType && (
                           <td className="py-2 px-3 border-r border-slate-100 dark:border-white/10 text-center whitespace-nowrap">
                             <ContentTypeBadge type={task.contentType} />
-                          </td>
-                        )}
-
-                        {/* Created By */}
-                        {!hiddenColumns.createdBy && (
-                          <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
-                            {task.createdBy ? (
-                              <div className="flex items-center gap-2">
-                                {renderUserAvatarSmall(task.createdBy)}
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-[11px] font-bold text-slate-900 dark:text-[#f8fafc] truncate max-w-[120px]">
-                                    {task.createdBy.name || "Unknown"}
-                                  </span>
-                                  {task.createdBy.department && (
-                                    <span
-                                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border w-fit ${getDeptBadgeStyle(
-                                        task.createdBy.department,
-                                      )}`}
-                                    >
-                                      {task.createdBy.department}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1.5">
-                                {renderUserAvatarSmall(task.createdBy)}
-                                <span className="text-[11px] font-bold text-slate-800 dark:text-[#f8fafc] truncate max-w-[110px]">
-                                  Unknown
-                                </span>
-                              </div>
-                            )}
                           </td>
                         )}
 
@@ -2936,35 +3807,6 @@ const TaskOverviewTab = ({
                           </td>
                         )}
 
-                        {/* Assignee */}
-                        {!hiddenColumns.assignee && (
-                          <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
-                            {task.assignedTo ? (
-                              <div className="flex items-center gap-2">
-                                {renderUserAvatarSmall(task.assignedTo)}
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-[11px] font-bold text-slate-900 dark:text-[#f8fafc] truncate max-w-[120px]">
-                                    {task.assignedTo.name}
-                                  </span>
-                                  {task.assignedTo.department && (
-                                    <span
-                                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border w-fit ${getDeptBadgeStyle(
-                                        task.assignedTo.department,
-                                      )}`}
-                                    >
-                                      {task.assignedTo.department}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-slate-500 dark:text-[#94a3b8] text-[11px] font-semibold italic">
-                                Unassigned
-                              </span>
-                            )}
-                          </td>
-                        )}
-
                         {/* Priority */}
                         {!hiddenColumns.priority && (
                           <td className="py-2 px-2.5 border-r border-slate-100 dark:border-white/5 text-center whitespace-nowrap">
@@ -2979,6 +3821,38 @@ const TaskOverviewTab = ({
                               status={task.status}
                               isBlocked={task.isBlocked}
                             />
+                          </td>
+                        )}
+
+                        {/* Created By */}
+                        {!hiddenColumns.createdBy && (
+                          <td className="py-2 px-3 border-r border-slate-100 dark:border-white/5 text-left whitespace-nowrap">
+                            {task.createdBy ? (
+                              <div className="flex items-center gap-2">
+                                {renderUserAvatarSmall(task.createdBy)}
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-[11px] font-bold text-slate-900 dark:text-[#f8fafc] truncate max-w-[120px]">
+                                    {task.createdBy.name || "Unknown"}
+                                  </span>
+                                  {task.createdBy.department && (
+                                    <span
+                                      className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md border w-fit ${getDeptBadgeStyle(
+                                        task.createdBy.department,
+                                      )}`}
+                                    >
+                                      {task.createdBy.department}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                {renderUserAvatarSmall(task.createdBy)}
+                                <span className="text-[11px] font-bold text-slate-800 dark:text-[#f8fafc] truncate max-w-[110px]">
+                                  Unknown
+                                </span>
+                              </div>
+                            )}
                           </td>
                         )}
 

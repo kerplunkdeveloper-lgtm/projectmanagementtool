@@ -43,10 +43,10 @@ export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Task", "Project", "Notification", "Goal"],
-  keepUnusedDataFor: 30,           // 30 sec மட்டுமே cache (was: no global setting)
-  refetchOnMountOrArgChange: true, // Page திரும்பி வந்தா always fresh fetch
-  refetchOnFocus: true,            // Tab switch பண்ணா auto refetch
-  refetchOnReconnect: true,        // Internet reconnect-ல் refetch
+  keepUnusedDataFor: 60,           // 60 sec cache
+  refetchOnMountOrArgChange: 60,   // 60 sec-க்கு மேல் ஆனா மட்டும் refetch (was: true = always)
+  refetchOnFocus: false,           // BUG-05 FIX: Tab switch-ல் refetch வேண்டாம் → 429 error குறையும்
+  refetchOnReconnect: true,        // Internet reconnect-ல் refetch (இது OK)
   endpoints: (builder) => ({
     // ==========================================
     // GOALS ENDPOINTS
@@ -113,29 +113,44 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Task"],
       async onQueryStarted({ id, taskData }, { dispatch, queryFulfilled }) {
-        const patchResult = dispatch(
-          apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {
-            const task = draft.find((t) => t._id === id);
-            if (task) {
-              Object.assign(task, taskData);
-              if (taskData.status && taskData.status !== "In Progress") {
-                task.actualStartTime = null;
-              }
-            }
-          })
-        );
-        try {
-          const { data: updatedTaskResponse } = await queryFulfilled;
+        // BUG-09 FIX: Update all cached task query variants (not just undefined key)
+        const cacheKeys = [
+          undefined,
+          { active_only: true, minimal: true },
+          { minimal: true },
+          { active_only: true },
+        ];
+
+        const patchResults = cacheKeys.map((cacheKey) =>
           dispatch(
-            apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {
-              const index = draft.findIndex((t) => t._id === id);
-              if (index !== -1 && updatedTaskResponse?.data) {
-                draft[index] = updatedTaskResponse.data;
+            apiSlice.util.updateQueryData("getTasks", cacheKey, (draft) => {
+              if (!Array.isArray(draft)) return;
+              const task = draft.find((t) => t._id === id);
+              if (task) {
+                Object.assign(task, taskData);
+                if (taskData.status && taskData.status !== "In Progress") {
+                  task.actualStartTime = null;
+                }
               }
             })
-          );
+          )
+        );
+
+        try {
+          const { data: updatedTaskResponse } = await queryFulfilled;
+          cacheKeys.forEach((cacheKey) => {
+            dispatch(
+              apiSlice.util.updateQueryData("getTasks", cacheKey, (draft) => {
+                if (!Array.isArray(draft)) return;
+                const index = draft.findIndex((t) => t._id === id);
+                if (index !== -1 && updatedTaskResponse?.data) {
+                  draft[index] = updatedTaskResponse.data;
+                }
+              })
+            );
+          });
         } catch {
-          patchResult.undo();
+          patchResults.forEach((p) => p.undo());
         }
       },
     }),

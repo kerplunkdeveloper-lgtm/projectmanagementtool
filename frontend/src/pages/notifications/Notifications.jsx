@@ -31,7 +31,7 @@ const Notifications = () => {
   const { data: notifications = [], isLoading: loading } =
     useGetNotificationsQuery(undefined, {
       skip: !user,
-      pollingInterval: 60000,
+      pollingInterval: 120000, // 2 min polling - real-time sockets deliver instant notifications
     });
 
   const [markAsReadTrigger] = useMarkAsReadMutation();

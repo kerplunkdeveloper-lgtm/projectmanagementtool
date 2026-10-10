@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiCoffee } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import { useSelector } from "react-redux";
+import roboticGif from "../../assets/lunch_robot.gif";
 
 const LunchBreakPopup = () => {
   const { user } = useSelector((state) => state.auth);
@@ -12,9 +13,11 @@ const LunchBreakPopup = () => {
   const [currentTimeStr, setCurrentTimeStr] = useState("");
   const [hasSkipped, setHasSkipped] = useState(false);
 
+  const userId = user?._id || user?.id;
+
   // Fetch office hours configuration
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     const fetchOfficeHours = async () => {
       try {
         const response = await axiosInstance.get("/settings/office-hours");
@@ -26,11 +29,11 @@ const LunchBreakPopup = () => {
       }
     };
     fetchOfficeHours();
-    
+
     // Refresh settings every 15 mins just in case admin changes them
     const interval = setInterval(fetchOfficeHours, 15 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [userId]);
 
   // Check time every minute to see if we are in lunch break
   useEffect(() => {
@@ -52,13 +55,15 @@ const LunchBreakPopup = () => {
 
       const breakStartTimeStr = officeHours.breakStartTime ?? "13:00";
       const breakEndTimeStr = officeHours.breakEndTime ?? "14:00";
-      const [startH, startM] = breakStartTimeStr.split(':').map(Number);
-      const [endH, endM] = breakEndTimeStr.split(':').map(Number);
+      const [startH, startM] = breakStartTimeStr.split(":").map(Number);
+      const [endH, endM] = breakEndTimeStr.split(":").map(Number);
 
       // Ensure we format the display time beautifully
       let hoursDisplay = currentHour % 12 || 12;
       const ampm = currentHour >= 12 ? "PM" : "AM";
-      setCurrentTimeStr(`${hoursDisplay.toString().padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")} ${ampm}`);
+      setCurrentTimeStr(
+        `${hoursDisplay.toString().padStart(2, "0")}:${currentMinute.toString().padStart(2, "0")} ${ampm}`,
+      );
 
       const nowMins = currentHour * 60 + currentMinute;
       const startMins = startH * 60 + startM;
@@ -79,7 +84,7 @@ const LunchBreakPopup = () => {
     checkTime();
     const intervalId = setInterval(checkTime, 30000); // Check every 30 seconds
     return () => clearInterval(intervalId);
-  }, [officeHours, user, hasSkipped]);
+  }, [officeHours, userId, hasSkipped]);
 
   const handleContinueWorking = () => {
     if (!user?._id) return;
@@ -103,16 +108,19 @@ const LunchBreakPopup = () => {
           >
             {/* Decorative top strip */}
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500" />
-            
+
             <div className="flex flex-col items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-500 shadow-inner">
-                <FiCoffee size={32} className="animate-pulse" />
-              </div>
+              <img
+                src={roboticGif}
+                alt="Lunch Robot"
+                className="w-40 h-40 rounded-full object-contain drop-shadow-md mix-blend-multiply dark:mix-blend-screen"
+              />
               <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5 mt-2 tracking-tight">
                 Scheduled Lunch Break
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[280px] leading-relaxed font-semibold">
-                Your scheduled lunch break is now active. Productivity tracking is paused during this period.
+                Your scheduled lunch break is now active. Productivity tracking
+                is paused during this period.
               </p>
             </div>
 
@@ -155,7 +163,8 @@ const LunchBreakPopup = () => {
               </button>
             </div>
             <div className="mt-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 max-w-[280px] mx-auto leading-relaxed">
-              The screen will automatically unlock when the break ends if you choose to take lunch.
+              The screen will automatically unlock when the break ends if you
+              choose to take lunch.
             </div>
           </motion.div>
         </div>

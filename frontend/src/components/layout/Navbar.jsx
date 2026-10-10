@@ -61,15 +61,18 @@ const Navbar = ({ setSidebarOpen, presence }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // BUG-06 FIX: Only fetch projects & tasks when search modal is open (lazy fetch)
   const { data: projects = [] } = useGetProjectsQuery(undefined, {
-    skip: !user,
+    skip: !user || !showSearchModal,
   });
-  const { data: tasks = [] } = useGetTasksQuery(undefined, { skip: !user });
+  const { data: tasks = [] } = useGetTasksQuery(undefined, {
+    skip: !user || !showSearchModal,
+  });
 
   const { data: notifications = [] } = useGetNotificationsQuery(undefined, {
     skip: !user,
-    pollingInterval: 60000,
-    refetchOnFocus: true,
+    pollingInterval: 120000, // 2 min polling instead of 60s
+    refetchOnFocus: false,   // avoid tab-switch refetch storms
     refetchOnReconnect: true,
   });
 

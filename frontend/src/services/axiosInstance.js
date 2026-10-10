@@ -20,11 +20,71 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
+// BUG-10 FIX: Office hours in-memory caching & request deduplication
+let officeHoursCache = null;
+let officeHoursCacheTime = 0;
+let officeHoursInFlight = null;
+
+const originalGet = axiosInstance.get.bind(axiosInstance);
+axiosInstance.get = function (url, config) {
+  if (typeof url === "string" && url.includes("/settings/office-hours")) {
+    const now = Date.now();
+    // Return cached office hours if fresh (< 3 minutes)
+    if (officeHoursCache && now - officeHoursCacheTime < 180000) {
+      return Promise.resolve({
+        data: officeHoursCache,
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config: config || {},
+      });
+    }
+    // Deduplicate concurrent in-flight requests (e.g. 5 popups mounting at once)
+    if (officeHoursInFlight) {
+      return officeHoursInFlight;
+    }
+    officeHoursInFlight = originalGet(url, config)
+      .then((res) => {
+        if (res.data?.success) {
+          officeHoursCache = res.data;
+          officeHoursCacheTime = Date.now();
+        }
+        officeHoursInFlight = null;
+        return res;
+      })
+      .catch((err) => {
+        officeHoursInFlight = null;
+        // Fall back gracefully to cached data if available on 429
+        if (officeHoursCache) {
+          return {
+            data: officeHoursCache,
+            status: 200,
+            statusText: "OK",
+            headers: {},
+            config: config || {},
+          };
+        }
+        throw err;
+      });
+    return officeHoursInFlight;
+  }
+  return originalGet(url, config);
+};
+
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Clear office-hours cache when updated
+  if (
+    (config.method === "put" || config.method === "post") &&
+    config.url?.includes("/settings/office-hours")
+  ) {
+    officeHoursCache = null;
+    officeHoursCacheTime = 0;
   }
 
   // Browser HTTP cache bypass — API always fresh

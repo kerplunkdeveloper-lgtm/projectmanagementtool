@@ -4,8 +4,10 @@ import { useGetTasksQuery } from "../../features/api/apiSlice";
 
 const PresenceWidget = ({ presence, layout = "floating" }) => {
   const { user } = useSelector((state) => state.auth);
+  // BUG-11 FIX: No polling needed — socket events (user:presence, online_users_list) keep this fresh.
+  // Removed pollingInterval: 30000 to reduce API load.
   const { data: tasksData } = useGetTasksQuery(undefined, {
-    pollingInterval: 30000,
+    pollingInterval: 120000, // Fallback sync every 2 min only
   });
 
   const [productiveTime, setProductiveTime] = useState("");

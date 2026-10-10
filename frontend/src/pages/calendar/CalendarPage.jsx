@@ -26,6 +26,7 @@ import EventModal from "./EventModal";
 import toast from "react-hot-toast";
 import ClientBadge from "../../components/common/ClientBadge";
 import { getClientIconComponent } from "../../utils/clientHelpers";
+import { playNotificationSound } from "../../utils/sound";
 
 const locales = { "en-IN": enIN };
 
@@ -44,29 +45,6 @@ const TYPE_COLORS = {
   Ad: "#f59e0b",
   Report: "#10b981",
   "Birthday Celebration": "#ec4899",
-};
-
-const playNotificationSound = () => {
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const playTone = (frequency, startTime, duration) => {
-      const osc = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(frequency, startTime);
-      gainNode.gain.setValueAtTime(0.15, startTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-      osc.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
-    };
-    const now = audioCtx.currentTime;
-    playTone(1046.5, now, 0.15); // C6 tone
-    playTone(1567.98, now + 0.1, 0.3); // G6 tone
-  } catch (error) {
-    console.error("Audio Context not supported or allowed:", error);
-  }
 };
 
 const CalendarPage = () => {

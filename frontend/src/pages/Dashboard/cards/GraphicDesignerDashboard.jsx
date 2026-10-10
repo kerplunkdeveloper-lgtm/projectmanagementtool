@@ -1636,8 +1636,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   } = useGetTasksQuery(
     { active_only: true, department: targetDept },
     {
-      pollingInterval: 30000,
-      refetchOnFocus: true,
+      pollingInterval: 120000, // BUG-03 FIX: 30s → 120s. Socket task_updated events handle real-time.
       refetchOnReconnect: true,
     },
   );

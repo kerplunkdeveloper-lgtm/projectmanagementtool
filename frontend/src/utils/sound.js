@@ -1,9 +1,13 @@
 // Utility for playing high-quality, web-audio based notification sounds
 let sharedAudioCtx = null;
 let lastPlayTimestamp = 0;
+let userHasInteracted = false;
 
 const getAudioContext = () => {
   if (typeof window === "undefined") return null;
+  // Comply with browser autoplay policy: only initialize/resume after user gesture
+  if (!userHasInteracted) return null;
+
   if (!sharedAudioCtx) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (AudioContextClass) {
@@ -18,12 +22,18 @@ const getAudioContext = () => {
 
 // Global interaction unlocker
 const unlockAudio = () => {
-  const ctx = getAudioContext();
-  if (ctx && ctx.state === "suspended") {
-    ctx.resume().then(() => {
+  userHasInteracted = true;
+  if (!sharedAudioCtx && typeof window !== "undefined") {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      sharedAudioCtx = new AudioContextClass();
+    }
+  }
+  if (sharedAudioCtx && sharedAudioCtx.state === "suspended") {
+    sharedAudioCtx.resume().then(() => {
       cleanupListeners();
     }).catch(() => {});
-  } else if (ctx && ctx.state === "running") {
+  } else if (sharedAudioCtx && sharedAudioCtx.state === "running") {
     cleanupListeners();
   }
 };
@@ -38,10 +48,10 @@ const cleanupListeners = () => {
 };
 
 if (typeof window !== "undefined") {
-  window.addEventListener("click", unlockAudio);
-  window.addEventListener("keydown", unlockAudio);
-  window.addEventListener("touchstart", unlockAudio);
-  window.addEventListener("pointerdown", unlockAudio);
+  window.addEventListener("click", unlockAudio, { once: true, passive: true });
+  window.addEventListener("keydown", unlockAudio, { once: true, passive: true });
+  window.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
+  window.addEventListener("pointerdown", unlockAudio, { once: true, passive: true });
 }
 
 const isSoundEnabled = () => {

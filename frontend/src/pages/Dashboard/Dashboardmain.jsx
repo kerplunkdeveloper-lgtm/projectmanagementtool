@@ -140,11 +140,11 @@ const isSameDateHelper = (d1, d2) => {
   }
 };
 
-const GraphicDesignerDeadlines = ({ user }) => {
+const GraphicDesignerDeadlines = React.memo(({ user }) => {
   const navigate = useNavigate();
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
-  const { data: tasks = [], isLoading } = useGetTasksQuery();
+  const { data: tasks = [], isLoading } = useGetTasksQuery({ active_only: true });
 
   const getTodayDateString = () => {
     const today = new Date();
@@ -635,7 +635,7 @@ const GraphicDesignerDeadlines = ({ user }) => {
       </div>
     </div>
   );
-};
+});
 
 const Dashboardmain = () => {
   const dispatch = useDispatch();
@@ -648,7 +648,7 @@ const Dashboardmain = () => {
     theme === "dark" ||
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
-  const { data: tasks = [] } = useGetTasksQuery();
+  const { data: tasks = [] } = useGetTasksQuery({ active_only: true });
   const [updateTask] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
   const { projects } = useSelector((state) => state.projects);
@@ -1269,49 +1269,50 @@ const Dashboardmain = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Process chart data for departments
-  const departmentCounts =
-    users?.reduce((acc, user) => {
-      if (user.department) {
-        acc[user.department] = (acc[user.department] || 0) + 1;
-      }
-      return acc;
-    }, {}) || {};
+  const chartData = React.useMemo(() => {
+    const departmentCounts =
+      users?.reduce((acc, user) => {
+        if (user.department) {
+          acc[user.department] = (acc[user.department] || 0) + 1;
+        }
+        return acc;
+      }, {}) || {};
 
-  const chartData = {
-    labels: Object.keys(departmentCounts),
-    datasets: [
-      {
-        data: Object.values(departmentCounts),
-        backgroundColor: [
-          "rgba(59, 130, 246, 0.8)", // blue-500
-          "rgba(16, 185, 129, 0.8)", // emerald-500
-          "rgba(245, 158, 11, 0.8)", // amber-500
-          "rgba(239, 68, 68, 0.8)", // red-500
-          "rgba(139, 92, 246, 0.8)", // violet-500
-          "rgba(236, 72, 153, 0.8)", // pink-500
-          "rgba(6, 182, 212, 0.8)", // cyan-500
-          "rgba(249, 115, 22, 0.8)", // orange-500
-        ],
-        borderColor: [
-          "#3b82f6",
-          "#10b981",
-          "#f59e0b",
-          "#ef4444",
-          "#8b5cf6",
-          "#ec4899",
-          "#06b6d4",
-          "#f97316",
-        ],
-        borderWidth: 1,
-        hoverOffset: 6,
-      },
-    ],
-  };
+    return {
+      labels: Object.keys(departmentCounts),
+      datasets: [
+        {
+          data: Object.values(departmentCounts),
+          backgroundColor: [
+            "rgba(59, 130, 246, 0.8)", // blue-500
+            "rgba(16, 185, 129, 0.8)", // emerald-500
+            "rgba(245, 158, 11, 0.8)", // amber-500
+            "rgba(239, 68, 68, 0.8)", // red-500
+            "rgba(139, 92, 246, 0.8)", // violet-500
+            "rgba(236, 72, 153, 0.8)", // pink-500
+            "rgba(6, 182, 212, 0.8)", // cyan-500
+            "rgba(249, 115, 22, 0.8)", // orange-500
+          ],
+          borderColor: [
+            "#3b82f6",
+            "#10b981",
+            "#f59e0b",
+            "#ef4444",
+            "#8b5cf6",
+            "#ec4899",
+            "#06b6d4",
+            "#f97316",
+          ],
+          borderWidth: 1,
+          hoverOffset: 6,
+        },
+      ],
+    };
+  }, [users]);
 
   const legendColor = isDark ? "#94a3b8" : "#475569";
 
-  const chartOptions = {
+  const chartOptions = React.useMemo(() => ({
     plugins: {
       legend: {
         position: isMobile ? "bottom" : "right",
@@ -1346,7 +1347,7 @@ const Dashboardmain = () => {
       animateScale: true,
       animateRotate: true,
     },
-  };
+  }), [isMobile, isDark, legendColor]);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState("");

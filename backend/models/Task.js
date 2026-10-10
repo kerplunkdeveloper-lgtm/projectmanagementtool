@@ -480,6 +480,9 @@ TaskSchema.index({ startDate: 1 });
 TaskSchema.index({ dueDate: 1 });
 TaskSchema.index({ assignedTo: 1, updatedAt: -1 });
 TaskSchema.index({ status: 1, updatedAt: -1 });
+TaskSchema.index({ createdBy: 1, updatedAt: -1 });
+TaskSchema.index({ project: 1, updatedAt: -1 });
+TaskSchema.index({ "subtasks.assignedTo": 1, updatedAt: -1 });
 
 const isSameDay = (d1, d2) => {
   if (!d1 || !d2) return false;

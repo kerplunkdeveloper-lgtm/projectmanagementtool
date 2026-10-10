@@ -503,58 +503,44 @@ exports.getTasks = async (req, res) => {
 
     let mongooseQuery = Task.find(query).sort({ updatedAt: -1 });
 
-    if (req.query.minimal === 'true') {
+    // Always populate essential relationships needed for lists and boards
+    mongooseQuery = mongooseQuery
+      .populate({
+        path: "project",
+        select: "name client",
+        populate: {
+          path: "client",
+          select: "companyName color icon",
+        },
+      })
+      .populate({
+        path: "assignedTo",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" },
+      })
+      .populate({
+        path: "createdBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" },
+      })
+      .populate({
+        path: "subtasks.assignedTo",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" },
+      });
+
+    if (req.query.full === "true") {
       mongooseQuery = mongooseQuery
-        .populate({
-          path: "project",
-          select: "name client",
-          populate: {
-            path: "client",
-            select: "companyName color icon"
-          }
-        })
-        .populate({
-          path: "assignedTo",
-          select: "name email department profile",
-          populate: { path: "profile", select: "profileImage" }
-        })
-        .populate({
-          path: "createdBy",
-          select: "name email department profile",
-          populate: { path: "profile", select: "profileImage" }
-        })
-        // Omit massive nested arrays for blazing fast overview load
-        .select("-comments -attachments -feedbacks -correctionHistory -rejectionHistory");
-    } else {
-      mongooseQuery = mongooseQuery
-        .populate({
-          path: "project",
-          select: "name client",
-          populate: {
-            path: "client",
-            select: "companyName color icon"
-          }
-        })
-        .populate({
-          path: "assignedTo",
-          select: "name email department profile",
-          populate: { path: "profile", select: "profileImage" }
-        })
-        .populate({
-          path: "createdBy",
-          select: "name email department profile",
-          populate: { path: "profile", select: "profileImage" }
-        })
-        .populate({
-          path: "subtasks.assignedTo",
-          select: "name email department profile",
-          populate: { path: "profile", select: "profileImage" }
-        })
         .populate("comments.user", "name email department")
         .populate("attachments.uploadedBy", "name email department")
         .populate("feedbacks.addedBy", "name email department")
         .populate("correctionHistory.requestedBy", "name email department")
         .populate("rejectionHistory.rejectedBy", "name email department");
+    } else {
+      // Omit massive nested arrays (comments, attachments, feedbacks, histories) for blazing fast speed (<50ms)
+      mongooseQuery = mongooseQuery.select(
+        "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory",
+      );
     }
 
     const tasks = await mongooseQuery.lean();

@@ -384,7 +384,7 @@ const Workload = () => {
     isLoading: tasksLoading,
     refetch: refetchTasks,
   } = useGetTasksQuery(undefined, {
-    pollingInterval: 15000,
+    pollingInterval: 120000, // BUG-01 FIX: 15s → 120s (2 min). Socket events handle real-time updates.
   });
 
   // Real-time Online / Offline state from shared SocketContext (no duplicate socket)
