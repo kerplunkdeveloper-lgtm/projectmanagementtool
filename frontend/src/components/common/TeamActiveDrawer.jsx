@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FiX,
   FiSearch,
-  FiCalendar,
   FiUsers,
   FiRefreshCw,
   FiSettings,
@@ -153,40 +152,7 @@ const THEME_COLOR_LIST = [
   { id: "teal", hex: "#0d9488", name: "Teal" },
 ];
 
-// Format YYYY-MM-DD
-const formatDateStr = (d = new Date()) => {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
 
-// Friendly date display
-const formatFriendlyDate = (dateStr) => {
-  if (!dateStr) return "";
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const target = new Date(y, m - 1, d);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  target.setHours(0, 0, 0, 0);
-
-  const diffDays = Math.round((today - target) / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  return target.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-};
-
-// Format milliseconds to "Xh Ym"
-const formatMsToHours = (ms) => {
-  if (!ms || ms <= 0) return "0h 0m";
-  const totalMin = Math.floor(ms / (1000 * 60));
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return `${h}h ${m}m`;
-};
 
 // Initials helper
 const getInitials = (name) => {
@@ -204,35 +170,26 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
   const { accentColor = "emerald", setAccentColor } = useTheme();
   const activeStyle = ACCENT_STYLES[accentColor] || ACCENT_STYLES.emerald;
 
-  const todayStr = useMemo(() => formatDateStr(new Date()), []);
-  const [selectedDate, setSelectedDate] = useState(todayStr);
   const [searchQuery, setSearchQuery] = useState("");
-  const [, setLiveTick] = useState(0);
 
   // Settings State (persisted in localStorage)
   const [showSettings, setShowSettings] = useState(false);
   const [showOnlineOnly, setShowOnlineOnly] = useState(() => {
     return localStorage.getItem("team_active_online_only") === "true";
   });
-  const [showRatioBar, setShowRatioBar] = useState(() => {
-    return localStorage.getItem("team_active_show_ratio") !== "false";
-  });
   const [groupByDept, setGroupByDept] = useState(() => {
     return localStorage.getItem("team_active_group_by_dept") !== "false";
   });
 
   const { socket } = useSocketContext() || {};
-  const dateInputRef = useRef(null);
 
   const isAuthorized = currentUser?.role === "admin" || currentUser?.role === "operationmanager";
 
   // Fetch team activity
-  const { data, isLoading, isFetching, refetch } = useGetTeamActivityQuery(selectedDate, {
+  const { data, isLoading, isFetching, refetch } = useGetTeamActivityQuery(undefined, {
     skip: !isOpen || !isAuthorized,
     refetchOnMountOrArgChange: true,
   });
-
-  const isToday = selectedDate === todayStr;
 
   // Toggle handlers
   const handleToggleOnlineOnly = () => {
@@ -241,26 +198,11 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
     localStorage.setItem("team_active_online_only", String(nextVal));
   };
 
-  const handleToggleRatioBar = () => {
-    const nextVal = !showRatioBar;
-    setShowRatioBar(nextVal);
-    localStorage.setItem("team_active_show_ratio", String(nextVal));
-  };
-
   const handleToggleGroupByDept = () => {
     const nextVal = !groupByDept;
     setGroupByDept(nextVal);
     localStorage.setItem("team_active_group_by_dept", String(nextVal));
   };
-
-  // Real-time ticking timer (every 15s) for live session duration updates
-  useEffect(() => {
-    if (!isOpen || !isToday) return;
-    const interval = setInterval(() => {
-      setLiveTick((prev) => prev + 1);
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [isOpen, isToday]);
 
   // Socket updates
   useEffect(() => {
@@ -341,11 +283,6 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
     return list;
   }, [filteredCategories]);
 
-  const yesterdayStr = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return formatDateStr(d);
-  }, []);
 
   const handleOpenChat = (targetUserId) => {
     onClose();
@@ -489,29 +426,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
                       </button>
                     </div>
 
-                    {/* Toggle: Show Workday Ratio Bar */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-bold text-slate-800 dark:text-white">
-                          Show Workday Ratio Bar
-                        </p>
-                        <p className="text-[10px] text-slate-400">
-                          Display online vs offline progress line
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleToggleRatioBar}
-                        className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${
-                          showRatioBar ? activeStyle.primary : "bg-slate-200 dark:bg-white/10"
-                        }`}
-                      >
-                        <span
-                          className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-xs transition-transform ${
-                            showRatioBar ? "right-0.5" : "left-0.5"
-                          }`}
-                        />
-                      </button>
-                    </div>
+
 
                     {/* Toggle: Group by Department */}
                     <div className="flex items-center justify-between gap-3">
@@ -565,93 +480,39 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
                 )}
               </AnimatePresence>
 
-              {/* 2. DATE SELECTOR PILLS */}
-              <div className="mt-3 flex items-center gap-1.5">
-                <button
-                  onClick={() => setSelectedDate(todayStr)}
-                  className={`
-                    px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer
-                    ${
-                      isToday
-                        ? activeStyle.primary
-                        : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-                    }
-                  `}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${isToday ? "bg-white animate-pulse" : "bg-slate-400"}`} />
-                  Today
-                </button>
-
-                <button
-                  onClick={() => setSelectedDate(yesterdayStr)}
-                  className={`
-                    px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer
-                    ${
-                      selectedDate === yesterdayStr
-                        ? activeStyle.primary
-                        : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-                    }
-                  `}
-                >
-                  Yesterday
-                </button>
-
-                <label
-                  className={`
-                    relative px-2.5 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer
-                    ${
-                      !isToday && selectedDate !== yesterdayStr
-                        ? activeStyle.primary
-                        : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-                    }
-                  `}
-                >
-                  <FiCalendar size={12} />
-                  <span>{!isToday && selectedDate !== yesterdayStr ? formatFriendlyDate(selectedDate) : "Calendar"}</span>
+              {/* 2. SEARCH BAR & ONLINE FILTER */}
+              <div className="mt-3 flex items-center gap-2">
+                <div className="relative flex-1">
                   <input
-                    ref={dateInputRef}
-                    type="date"
-                    max={todayStr}
-                    value={selectedDate}
-                    onChange={(e) => {
-                      if (e.target.value) setSelectedDate(e.target.value);
-                    }}
-                    className="absolute inset-0 opacity-0 cursor-pointer pointer-events-auto"
+                    type="text"
+                    placeholder="Search members..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={`
+                      w-full pl-4 pr-9 py-2.5 text-sm rounded-xl
+                      bg-slate-100/90 dark:bg-white/5 border border-transparent
+                      text-slate-900 dark:text-white placeholder:text-slate-400
+                      focus:outline-hidden focus:bg-white dark:focus:bg-[#1a1d28]
+                      ${activeStyle.ring}
+                      transition-all
+                    `}
                   />
-                </label>
+                  {searchQuery ? (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    >
+                      <FiX size={15} />
+                    </button>
+                  ) : (
+                    <FiSearch className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                  )}
+                </div>
 
                 {showOnlineOnly && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${activeStyle.badge} ml-auto`}>
+                  <span className={`text-[10px] font-bold px-2.5 py-2 rounded-xl ${activeStyle.badge} shrink-0`}>
                     Online Only
                   </span>
-                )}
-              </div>
-
-              {/* 3. SEARCH BAR */}
-              <div className="mt-3 relative">
-                <input
-                  type="text"
-                  placeholder="Search members..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`
-                    w-full pl-4 pr-9 py-2.5 text-sm rounded-xl
-                    bg-slate-100/90 dark:bg-white/5 border border-transparent
-                    text-slate-900 dark:text-white placeholder:text-slate-400
-                    focus:outline-hidden focus:bg-white dark:focus:bg-[#1a1d28]
-                    ${activeStyle.ring}
-                    transition-all
-                  `}
-                />
-                {searchQuery ? (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
-                  >
-                    <FiX size={15} />
-                  </button>
-                ) : (
-                  <FiSearch className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
                 )}
               </div>
             </div>
@@ -674,7 +535,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
                     No members found
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    {searchQuery ? `No matches for "${searchQuery}"` : "No members found for this day."}
+                    {searchQuery ? `No matches for "${searchQuery}"` : "No active team members found."}
                   </p>
                 </div>
               )}
@@ -715,10 +576,6 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
   );
 
   function renderUserRow(user) {
-    const onlineMs = user.totalOnlineMs || 0;
-    const offlineMs = user.totalOfflineMs || 0;
-    const totalMs = onlineMs + offlineMs;
-    const onlinePercent = totalMs > 0 ? Math.round((onlineMs / totalMs) * 100) : user.isOnline ? 100 : 0;
     const isCurrent =
       (currentUser?._id && currentUser._id.toString() === user._id.toString()) ||
       (currentUser?.id && currentUser.id.toString() === user._id.toString());
@@ -782,8 +639,8 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
                   }`}
             </p>
 
-            {/* Online / Offline Hours & Status line */}
-            <div className="flex items-center gap-1.5 text-xs mt-1 flex-wrap">
+            {/* Online / Offline Status */}
+            <div className="flex items-center gap-1.5 text-xs mt-1">
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${
                   user.isOnline ? `${activeStyle.dot} animate-pulse` : "bg-slate-400"
@@ -796,35 +653,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
               >
                 {user.isOnline ? "Online" : "Offline"}
               </span>
-
-              <span className="text-slate-300 dark:text-slate-600">•</span>
-              <span className={`font-bold text-[11px] ${user.isOnline ? activeStyle.text : "text-slate-600 dark:text-slate-300"}`}>
-                {formatMsToHours(onlineMs)} online
-              </span>
-
-              {user.hasLoggedToday && offlineMs > 0 && (
-                <>
-                  <span className="text-slate-300 dark:text-slate-600">•</span>
-                  <span className="text-slate-500 dark:text-slate-400 text-[11px]">
-                    {formatMsToHours(offlineMs)} off
-                  </span>
-                </>
-              )}
             </div>
-
-            {/* Optional Progress Ratio Bar (can be toggled in settings) */}
-            {showRatioBar && user.hasLoggedToday && totalMs > 0 && (
-              <div className="w-28 h-1 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden flex mt-1.5">
-                <div
-                  style={{ width: `${onlinePercent}%` }}
-                  className={`h-full ${activeStyle.bar} transition-all duration-300`}
-                />
-                <div
-                  style={{ width: `${100 - onlinePercent}%` }}
-                  className="h-full bg-slate-300 dark:bg-white/20 transition-all duration-300"
-                />
-              </div>
-            )}
           </div>
         </div>
 
