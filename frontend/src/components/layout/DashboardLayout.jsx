@@ -7,6 +7,7 @@ import Sidebar from "./Sidebar";
 import useSocket from "../../hooks/useSocket.jsx";
 import { exitImpersonation } from "../../features/auth/authSlice";
 import { apiSlice } from "../../features/api/apiSlice";
+import { fetchUnreadChatCounts } from "../../features/chat/chatSlice";
 import HorizontalSidebar from "./HorizontalSidebar";
 import { useTheme } from "../../context/ThemeContext";
 import { usePresence } from "../../hooks/usePresence";
@@ -29,6 +30,13 @@ const DashboardLayoutInner = ({ role }) => {
     () => window.innerWidth >= 1024,
   );
   const mainContainerRef = useRef(null);
+
+  // Fetch unread chat counts from server on initial mount / user change
+  useEffect(() => {
+    if (user?._id || user?.id) {
+      dispatch(fetchUnreadChatCounts());
+    }
+  }, [dispatch, user?._id, user?.id]);
 
   // Core page chunks are now preloaded on hover in the Sidebar instead of all at once here.
   useEffect(() => {

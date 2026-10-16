@@ -138,20 +138,21 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     (state) => state.auth,
   );
   const { profile } = useSelector((state) => state.profile);
-  const { unreadCounts = {} } = useSelector((state) => state.chat);
+  const { unreadCounts = {}, totalUnreadCount: reduxTotalUnread = 0 } = useSelector((state) => state.chat);
   const localUnreadChatCount = Object.values(unreadCounts).reduce(
     (sum, val) => sum + (val || 0),
     0,
   );
   const dbUnreadChatCount = notifications
-    ? notifications.filter((n) => !n.isRead && n.type === "message_received")
+    ? notifications.filter((n) => !n.isRead && (n.type === "message_received" || n.type === "mention_received"))
         .length
     : 0;
 
-  // Use the database notifications count as the source of truth if it exists, otherwise fallback to local session state
+  // Real-time unread chat count (server persisted + local session sync)
   const totalUnreadChatCount = Math.max(
     localUnreadChatCount,
     dbUnreadChatCount,
+    reduxTotalUnread || 0,
   );
   // EOD Reports for Admin / Operation Manager count
   const { eodReports } = useSelector((state) => state.eodReports || {});
@@ -1134,8 +1135,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           </span>
                         )}
                         {item.name === "Chat" && totalUnreadChatCount > 0 && (
-                          <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[0.5625rem] font-black text-white animate-pulse shrink-0">
-                            {totalUnreadChatCount}
+                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[10px] font-black text-white shadow-sm shadow-rose-500/40 animate-pulse shrink-0">
+                            {totalUnreadChatCount > 99 ? "99+" : totalUnreadChatCount}
                           </span>
                         )}
                         {item.name === "Client Calls" &&

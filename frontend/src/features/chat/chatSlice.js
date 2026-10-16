@@ -152,6 +152,32 @@ export const toggleReactionAction = createAsyncThunk(
   }
 );
 
+// Fetch unread chat counts from server (persisted in DB)
+export const fetchUnreadChatCounts = createAsyncThunk(
+  "chat/fetchUnreadChatCounts",
+  async (_, thunkAPI) => {
+    try {
+      const response = await axiosInstance.get("/notifications/unread-chat-counts");
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to fetch unread counts");
+    }
+  }
+);
+
+// Mark specific chat room notifications as read in DB
+export const markChatAsReadAction = createAsyncThunk(
+  "chat/markChatAsReadAction",
+  async (chatRoomId, thunkAPI) => {
+    try {
+      const response = await axiosInstance.put(`/notifications/chat/${encodeURIComponent(chatRoomId)}/read`);
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to mark chat as read");
+    }
+  }
+);
+
 // Helper to safely get a string ID from a field that could be an object or string
 const getIdString = (field) => {
   if (!field) return "";
@@ -171,6 +197,7 @@ const chatSlice = createSlice({
     error: null,
     activeChatId: null, // Track the current active chat for proper message routing
     unreadCounts: {},
+    totalUnreadCount: 0,
     lastMessages: {},
   },
   reducers: {
@@ -246,20 +273,26 @@ const chatSlice = createSlice({
       // 2. The sender is not the current user (don't count own messages)
       if (chatId !== state.activeChatId && senderId !== currentUserId) {
         state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
+        state.totalUnreadCount = (state.totalUnreadCount || 0) + 1;
       }
     },
     markChatAsRead: (state, action) => {
       const chatId = action.payload;
-      state.unreadCounts[chatId] = 0;
+      if (chatId && state.unreadCounts[chatId]) {
+        const count = state.unreadCounts[chatId];
+        delete state.unreadCounts[chatId];
+        state.totalUnreadCount = Math.max(0, (state.totalUnreadCount || 0) - count);
+      }
     },
     clearAllUnreadCounts: (state) => {
       state.unreadCounts = {};
+      state.totalUnreadCount = 0;
     },
     incrementUnreadCount: (state, action) => {
-      const chatId = action.payload;
-      // If we are currently active on this chat, do not increment
-      if (state.activeChatId === chatId) return;
+      const chatId = typeof action.payload === "object" ? action.payload?.chatId : action.payload;
+      if (!chatId || state.activeChatId === chatId) return;
       state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
+      state.totalUnreadCount = (state.totalUnreadCount || 0) + 1;
     },
     removeMessage: (state, action) => {
       state.messages = state.messages.filter((m) => m._id !== action.payload);
@@ -395,6 +428,18 @@ const chatSlice = createSlice({
         const msg = state.messages.find((m) => m._id === messageId);
         if (msg) {
           msg.reactions = reactions;
+        }
+      })
+      .addCase(fetchUnreadChatCounts.fulfilled, (state, action) => {
+        state.unreadCounts = action.payload?.unreadByChat || {};
+        state.totalUnreadCount = action.payload?.totalUnread || 0;
+      })
+      .addCase(markChatAsReadAction.fulfilled, (state, action) => {
+        const { chatRoomId } = action.payload || {};
+        if (chatRoomId) {
+          const count = state.unreadCounts[chatRoomId] || 0;
+          delete state.unreadCounts[chatRoomId];
+          state.totalUnreadCount = Math.max(0, (state.totalUnreadCount || 0) - count);
         }
       });
   },

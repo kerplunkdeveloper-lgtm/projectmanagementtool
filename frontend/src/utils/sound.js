@@ -1,4 +1,6 @@
-// Utility for playing high-quality, web-audio based notification sounds
+// Utility for playing high-quality notification sounds
+import notificationSoundFile from "../assets/notification.mp3";
+
 let sharedAudioCtx = null;
 let lastPlayTimestamp = 0;
 let userHasInteracted = false;
@@ -70,12 +72,43 @@ const canPlaySoundNow = () => {
   return true;
 };
 
+let notificationAudio = null;
+
+const playNotificationAudioFile = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    if (!notificationAudio) {
+      notificationAudio = new Audio(notificationSoundFile);
+      notificationAudio.preload = "auto";
+    }
+    notificationAudio.currentTime = 0;
+    const playPromise = notificationAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Fallback to web audio synthesis if browser blocks audio element
+        playDirectMessageSoundSynth();
+      });
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
+};
+
 /**
- * Play a crisp, crystal-clear double bell chime for Direct Messages
+ * Play notification.mp3 for Direct Messages
  */
 export const playDirectMessageSound = () => {
   if (!isSoundEnabled() || !canPlaySoundNow()) return;
 
+  const played = playNotificationAudioFile();
+  if (!played) {
+    playDirectMessageSoundSynth();
+  }
+};
+
+// Web audio fallback synthesizer for direct messages
+const playDirectMessageSoundSynth = () => {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -98,20 +131,27 @@ export const playDirectMessageSound = () => {
     };
 
     const now = ctx.currentTime;
-    // Pleasant 2-note crystal chime: A5 (880Hz) followed by E6 (1318.51Hz)
     playTone(880, now, 0.35, 0.25, 0.001, "sine");
     playTone(1318.51, now + 0.08, 0.5, 0.3, 0.001, "sine");
   } catch (err) {
-    console.error("Direct Message audio playback error:", err);
+    console.error("Direct Message audio fallback error:", err);
   }
 };
 
 /**
- * Play a warm, rich multi-note bubble chime for Group Messages
+ * Play notification.mp3 for Group Messages
  */
 export const playGroupMessageSound = () => {
   if (!isSoundEnabled() || !canPlaySoundNow()) return;
 
+  const played = playNotificationAudioFile();
+  if (!played) {
+    playGroupMessageSoundSynth();
+  }
+};
+
+// Web audio fallback synthesizer for group messages
+const playGroupMessageSoundSynth = () => {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -134,20 +174,22 @@ export const playGroupMessageSound = () => {
     };
 
     const now = ctx.currentTime;
-    // Warm 3-note ascending chime: C5 (523.25Hz) -> G5 (783.99Hz) -> C6 (1046.50Hz)
     playTone(523.25, now, 0.25, 0.2, 0.001, "sine");
     playTone(783.99, now + 0.06, 0.3, 0.25, 0.001, "sine");
     playTone(1046.50, now + 0.12, 0.45, 0.28, 0.001, "sine");
   } catch (err) {
-    console.error("Group Message audio playback error:", err);
+    console.error("Group Message audio fallback error:", err);
   }
 };
 
 /**
- * General Notification sound chime
+ * General Notification sound chime - uses notification.mp3 with synthesis fallback
  */
 export const playNotificationSound = (type = "default") => {
   if (!isSoundEnabled() || !canPlaySoundNow()) return;
+
+  const played = playNotificationAudioFile();
+  if (played) return;
 
   try {
     const ctx = getAudioContext();

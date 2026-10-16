@@ -5,12 +5,26 @@ import { useNavigate } from "react-router-dom";
 import { addNotification } from "../features/notifications/notificationSlice";
 import { logoutUser } from "../features/auth/authSlice";
 import { apiSlice } from "../features/api/apiSlice";
-import { incrementUnreadCount } from "../features/chat/chatSlice";
+import { incrementUnreadCount, receiveMessage } from "../features/chat/chatSlice";
 import toast from "react-hot-toast";
-import { FiBell, FiX } from "react-icons/fi";
+import { FiBell, FiX, FiMessageSquare, FiArrowRight, FiFileText } from "react-icons/fi";
 import { useSocketContext } from "../context/SocketContext";
 
-import { playNotificationSound } from "../utils/sound";
+import { playNotificationSound, playDirectMessageSound } from "../utils/sound";
+
+const getSenderAvatar = (sender) => {
+  if (!sender) return "";
+  return (
+    (typeof sender?.profile?.profileImage === "object"
+      ? sender?.profile?.profileImage?.url
+      : sender?.profile?.profileImage) ||
+    (typeof sender?.profileImage === "object"
+      ? sender?.profileImage?.url
+      : sender?.profileImage) ||
+    sender?.avatar ||
+    ""
+  );
+};
 
 
 let titleFlashInterval = null;
@@ -82,6 +96,13 @@ const useSocket = (externalSocket) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const { activeChatId } = useSelector((state) => state.chat);
+  const activeChatIdRef = useRef(activeChatId);
+
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
+
   const userId = user?._id || user?.id;
   const userRole = user?.role;
   const socketContext = useSocketContext?.();
@@ -136,117 +157,181 @@ const useSocket = (externalSocket) => {
         window.location.href = "/";
       };
 
+      const handleDirectMessage = (msg) => {
+        if (!msg) return;
+        dispatch(receiveMessage({ message: msg, currentUserId: userId }));
+      };
+
+      const handleGroupMessage = (msg) => {
+        if (!msg) return;
+        dispatch(receiveMessage({ message: msg, currentUserId: userId }));
+      };
+
       const handleNotification = (notification) => {
-        // Play premium audio chime
-        playNotificationSound();
+        if (!notification) return;
 
-        // Sync local notification store and force RTK Query refetch so the Navbar bell updates instantly
-        dispatch(addNotification(notification));
-        dispatch(apiSlice.util.invalidateTags(["Notification"]));
+        // Skip own message notifications if looped back
+        const senderId = notification.sender?._id || notification.sender;
+        if (senderId && senderId.toString() === userId?.toString()) {
+          return;
+        }
 
-        if (
+        const isChatRelated =
           notification.type === "message_received" ||
           notification.type === "mention_received" ||
-          notification.type === "reaction_received"
-        ) {
+          notification.type === "reaction_received";
+
+        if (isChatRelated) {
+          // Play premium chat chime
+          playDirectMessageSound();
+
           const isMention = notification.type === "mention_received";
           const isReaction = notification.type === "reaction_received";
 
-          // If it's a message or mention, increment the sidebar chat unread count
+          // Increment unread count in Redux if it's not a reaction
           if (notification.chatRoomId && !isReaction) {
-            dispatch(incrementUnreadCount(notification.chatRoomId));
+            dispatch(incrementUnreadCount({ chatId: notification.chatRoomId }));
+          }
+
+          // If the user is currently viewing this exact chat conversation, suppress the popup
+          if (
+            activeChatIdRef.current &&
+            notification.chatRoomId &&
+            activeChatIdRef.current.toString() === notification.chatRoomId.toString()
+          ) {
+            return;
+          }
+
+          const senderName = notification.sender?.name || "Team Member";
+          const senderAvatar = getSenderAvatar(notification.sender);
+          const isGroup = notification.chatRoomType === "group" || notification.chatRoomId === "group";
+          const roomName = notification.roomName || (isGroup ? "Kerplunk Group" : "Direct Message");
+
+          // Clean message text preview
+          let displayMessage = notification.messageData?.text || notification.message || "";
+          if (notification.messageData?.messageType === "file") {
+            displayMessage = `📁 Sent file: ${notification.messageData?.filename || "Attachment"}`;
+          } else if (notification.messageData?.messageType === "sticker") {
+            displayMessage = `🎨 Sent a sticker: ${notification.messageData?.sticker || "Sticker"}`;
+          } else if (notification.messageData?.messageType === "call") {
+            displayMessage = "📞 Started a Video/Audio Meeting";
+          } else {
+            displayMessage = displayMessage.replace(/^New message( in [^:]+)? from [^:]+: /, "");
+            if (displayMessage.startsWith('"') && displayMessage.endsWith('"')) {
+              displayMessage = displayMessage.slice(1, -1);
+            }
           }
 
           // Flash tab title
-          const senderName = notification.sender?.name || "Someone";
           flashTabTitle(
             isReaction
               ? `${senderName} reacted to your message`
               : isMention
               ? `🔔 ${senderName} mentioned you!`
-              : `New Message from ${senderName}`
+              : `New message from ${senderName}`
           );
 
-          // Premium Chatting-Style Toast Card on the Top Right
-          const senderImage = notification.sender?.profile?.profileImage?.url;
-
+          // Render High-End SaaS Floating Notification Popup Card
           toast.custom(
             (t) => (
               <div
                 className={`${
                   t.visible ? "animate-enter" : "animate-leave"
-                } max-w-[360px] w-full bg-white dark:bg-[#0f172a] shadow-2xl rounded-2xl pointer-events-auto flex items-start p-4 border ${
+                } max-w-[380px] w-full bg-white/95 dark:bg-[#0c1222]/95 backdrop-blur-xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)] rounded-2xl pointer-events-auto border ${
                   isReaction
-                    ? "border-amber-300/80 dark:border-amber-600/40 bg-gradient-to-r from-amber-50/40 to-transparent dark:from-amber-950/20"
+                    ? "border-amber-400/50 dark:border-amber-500/30"
                     : isMention
-                    ? "border-amber-400/60 dark:border-amber-500/40 bg-gradient-to-r from-amber-50/30 to-transparent dark:from-amber-950/20"
-                    : "border-slate-100 dark:border-slate-800"
-                } relative cursor-pointer`}
+                    ? "border-amber-500/60 dark:border-amber-400/40"
+                    : "border-slate-200/90 dark:border-slate-800/90 hover:border-indigo-400/50 dark:hover:border-indigo-500/40"
+                } p-3.5 transition-all duration-200 hover:scale-[1.01] cursor-pointer relative group overflow-hidden`}
                 onClick={() => {
                   toast.dismiss(t.id);
-                  const targetUrl = `/${user?.role}/chat?id=${notification.chatRoomId}${notification.messageId ? `&messageId=${notification.messageId}` : ''}`;
+                  const targetUrl = `/${userRole || "team"}/chat?id=${notification.chatRoomId || ""}${
+                    notification.messageId ? `&messageId=${notification.messageId}` : ""
+                  }`;
                   navigate(targetUrl);
                 }}
               >
-                {/* Sender Image / Initials */}
-                <div className="shrink-0">
-                  {senderImage ? (
-                    <img
-                      src={senderImage}
-                      alt={senderName}
-                      className={`w-10 h-10 rounded-full object-cover border-2 ${
-                        isReaction
-                          ? "border-amber-400"
-                          : isMention
-                          ? "border-amber-500"
-                          : "border-indigo-500/10"
-                      }`}
-                    />
-                  ) : (
-                    <div className={`w-10 h-10 rounded-full ${
-                      isReaction
-                        ? "bg-gradient-to-tr from-amber-400 to-orange-500"
-                        : isMention
-                        ? "bg-gradient-to-tr from-amber-500 to-orange-600"
-                        : "bg-gradient-to-tr from-indigo-500 to-purple-600"
-                    } flex items-center justify-center text-white text-xs font-black shadow-inner`}>
-                      {senderName.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
+                {/* Top Subtle Ambient Glow */}
+                <div
+                  className={`absolute top-0 left-0 right-0 h-[2.5px] ${
+                    isReaction
+                      ? "bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400"
+                      : isMention
+                      ? "bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 animate-pulse"
+                      : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+                  }`}
+                />
 
-                {/* Chat Message details */}
-                <div className="ml-3 flex-1 min-w-0 pr-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate">
-                      {senderName}
-                    </p>
-                    {isReaction ? (
-                      <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50">
-                        Reaction
-                      </span>
-                    ) : isMention ? (
-                      <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
-                        notification.message.includes("@all")
-                          ? "bg-amber-500 text-white shadow-xs"
-                          : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
-                      }`}>
-                        {notification.message.includes("@all") ? "📢 @ALL" : "@Mention"}
-                      </span>
+                <div className="flex items-start gap-3">
+                  {/* Sender Avatar with live status */}
+                  <div className="relative shrink-0 pt-0.5">
+                    {senderAvatar ? (
+                      <img
+                        src={senderAvatar}
+                        alt={senderName}
+                        className="w-11 h-11 rounded-full object-cover ring-2 ring-indigo-500/20 dark:ring-white/10 shadow-sm"
+                      />
                     ) : (
-                      <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md text-indigo-600 dark:text-[#3b82f6] bg-indigo-50 dark:bg-[#3b82f6]/10">
-                        Message
-                      </span>
+                      <div
+                        className={`w-11 h-11 rounded-full ${
+                          isReaction
+                            ? "bg-gradient-to-tr from-amber-400 to-orange-500"
+                            : isMention
+                            ? "bg-gradient-to-tr from-amber-500 to-orange-600"
+                            : "bg-gradient-to-tr from-indigo-600 to-purple-600"
+                        } flex items-center justify-center text-white text-sm font-black shadow-inner`}
+                      >
+                        {senderName.charAt(0).toUpperCase()}
+                      </div>
                     )}
+                    {/* Glowing Online Ring */}
+                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#0c1222] shadow-xs" />
                   </div>
-                  <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                    {isReaction
-                      ? notification.message
-                      : notification.message.replace(
-                          /^New message( in [^:]+)? from [^:]+: /,
-                          "",
-                        )}
-                  </p>
+
+                  {/* Body Content */}
+                  <div className="flex-1 min-w-0 pr-5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[13px] font-black text-slate-900 dark:text-white truncate max-w-[140px]">
+                        {senderName}
+                      </span>
+
+                      {isReaction ? (
+                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300/40">
+                          Reacted
+                        </span>
+                      ) : isMention ? (
+                        <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-amber-800 dark:text-amber-200 bg-amber-100 dark:bg-amber-500/25 border border-amber-400/50 animate-pulse">
+                          📢 @Mention
+                        </span>
+                      ) : isGroup ? (
+                        <span className="text-[9px] font-bold tracking-wide px-2 py-0.5 rounded-full text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/50 dark:border-indigo-800/50 truncate max-w-[110px]">
+                          {roomName}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-bold tracking-wide px-2 py-0.5 rounded-full text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-800/50">
+                          Direct
+                        </span>
+                      )}
+
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium ml-auto">
+                        Just now
+                      </span>
+                    </div>
+
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed line-clamp-2">
+                      {displayMessage}
+                    </p>
+
+                    <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px]">
+                      <span className="text-indigo-600 dark:text-indigo-400 font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                        <FiMessageSquare size={12} />
+                        Open Conversation
+                        <FiArrowRight size={11} className="transition-transform group-hover:translate-x-1" />
+                      </span>
+                      <span className="text-[10px] text-slate-400">Click to reply</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Dismiss Button */}
@@ -255,18 +340,27 @@ const useSocket = (externalSocket) => {
                     e.stopPropagation();
                     toast.dismiss(t.id);
                   }}
-                  className="absolute top-3 right-3 w-5 h-5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+                  className="absolute top-3 right-3 w-6 h-6 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                  title="Dismiss"
                 >
-                  <FiX size={12} />
+                  <FiX size={13} />
                 </button>
               </div>
             ),
             {
-              duration: 4000,
+              duration: 5000,
               position: "top-right",
-            },
+              id: `chat-${notification._id || Date.now()}`,
+            }
           );
         } else {
+          // Play notification chime
+          playNotificationSound();
+
+          // Sync local notification store and force RTK Query refetch so the Navbar bell updates instantly
+          dispatch(addNotification(notification));
+          dispatch(apiSlice.util.invalidateTags(["Notification"]));
+
           // Flash tab title for system notifications
           flashTabTitle(`New Alert: ${notification.message}`);
 
@@ -285,19 +379,19 @@ const useSocket = (externalSocket) => {
                     (notification.message &&
                       notification.message.toLowerCase().includes("shoot"))
                   ) {
-                    navigate(`/${user?.role}/Shootcalendor`);
+                    navigate(`/${userRole}/Shootcalendor`);
                   } else if (
                     notification.type === "client_assigned" ||
                     (notification.message &&
                       notification.message.toLowerCase().includes("client:"))
                   ) {
-                    navigate(`/${user?.role}/clients`);
+                    navigate(`/${userRole}/clients`);
                   } else if (notification.type?.startsWith("task_")) {
                     if (notification.project) {
                       const projectId = typeof notification.project === 'object' ? notification.project._id : notification.project;
-                      navigate(`/${user?.role}/projects?id=${projectId}`);
+                      navigate(`/${userRole}/projects?id=${projectId}`);
                     } else {
-                      navigate(`/${user?.role}/tasks`);
+                      navigate(`/${userRole}/tasks`);
                     }
                   }
                 }}
@@ -363,12 +457,16 @@ const useSocket = (externalSocket) => {
       socketInstance.on("task_updated", handleTaskUpdated);
       socketInstance.on("account_deactivated", handleAccountDeactivated);
       socketInstance.on("notification", handleNotification);
+      socketInstance.on("direct_message", handleDirectMessage);
+      socketInstance.on("group_message", handleGroupMessage);
 
       return () => {
         if (socketInstance) {
           socketInstance.off("task_updated", handleTaskUpdated);
           socketInstance.off("account_deactivated", handleAccountDeactivated);
           socketInstance.off("notification", handleNotification);
+          socketInstance.off("direct_message", handleDirectMessage);
+          socketInstance.off("group_message", handleGroupMessage);
           if (!isExternal) {
             socketInstance.disconnect();
           }

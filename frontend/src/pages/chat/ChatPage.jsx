@@ -16,6 +16,7 @@ import {
   updateRoomAction,
   deleteRoomAction,
   markChatAsRead,
+  markChatAsReadAction,
   fetchLastMessages,
   setActiveChatId,
   clearChatAction,
@@ -566,12 +567,13 @@ const ChatPage = () => {
     if (activeChat) {
       dispatch(setActiveChatId(activeChat));
       dispatch(markChatAsRead(activeChat));
+      dispatch(markChatAsReadAction(activeChat));
 
       if (notifications && notifications.length > 0) {
         notifications.forEach((n) => {
           if (
             !n.isRead &&
-            n.type === "message_received" &&
+            (n.type === "message_received" || n.type === "mention_received") &&
             n.chatRoomId === activeChat
           ) {
             dispatch(markAsRead(n._id));
@@ -580,6 +582,13 @@ const ChatPage = () => {
       }
     }
   }, [activeChat, dispatch, notifications]);
+
+  // Reset activeChatId when leaving ChatPage
+  useEffect(() => {
+    return () => {
+      dispatch(setActiveChatId(null));
+    };
+  }, [dispatch]);
 
   // Load directories and rooms
   useEffect(() => {
@@ -687,16 +696,14 @@ const ChatPage = () => {
 
     const onDirectMessage = (msg) => {
       dispatch(receiveMessage({ message: msg, currentUserId }));
-      if (msg.sender?._id !== currentUserId) {
+      if (msg.sender?._id !== currentUserId && activeChatRef.current === msg.sender?._id) {
         playDirectMessageSound();
-        if (activeChatRef.current !== msg.sender?._id) showNewMessageToast(msg);
       }
     };
     const onGroupMessage = (msg) => {
       dispatch(receiveMessage({ message: msg, currentUserId }));
-      if (msg.sender?._id !== currentUserId) {
+      if (msg.sender?._id !== currentUserId && activeChatRef.current === msg.chatRoom) {
         playGroupMessageSound();
-        if (activeChatRef.current !== msg.chatRoom) showNewMessageToast(msg);
       }
     };
     const onMessageDeleted = ({ messageId }) => dispatch(removeMessage(messageId));

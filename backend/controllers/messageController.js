@@ -209,7 +209,7 @@ exports.sendMessage = async (req, res) => {
       if (io) {
         io.to("group_chat").emit("group_message", populatedMessage);
 
-        const allUsers = await User.find({ _id: { $ne: req.user.id } });
+        const allUsers = await User.find({ _id: { $ne: req.user.id }, accountStatus: { $ne: 'inactive' } });
         
         for (const otherUser of allUsers) {
           const otherUserIdStr = otherUser._id.toString();
@@ -226,13 +226,20 @@ exports.sendMessage = async (req, res) => {
               : `New message in General Group Chat from ${req.user.name}: "${notificationText}"`,
             chatRoomId: "group",
             chatRoomType: "group",
+            roomName: "Kerplunk Group",
+            messageData: {
+              text: notificationText,
+              messageType: messageType || "text",
+              filename: file?.filename || "",
+              sticker: sticker || "",
+            },
             messageId: message._id,
           });
 
           const populatedNotification = await Notification.findById(notification._id).populate({
             path: "sender",
-            select: "name profile",
-            populate: { path: "profile" }
+            select: "name profile role department profileImage",
+            populate: { path: "profile", select: "profileImage" }
           });
 
           io.to(otherUserIdStr).emit("notification", populatedNotification);
@@ -271,13 +278,20 @@ exports.sendMessage = async (req, res) => {
                 : `New message in ${room.name} from ${req.user.name}: "${notificationText}"`,
               chatRoomId: room._id.toString(),
               chatRoomType: "group",
+              roomName: room.name,
+              messageData: {
+                text: notificationText,
+                messageType: messageType || "text",
+                filename: file?.filename || "",
+                sticker: sticker || "",
+              },
               messageId: message._id,
             });
 
             const populatedNotification = await Notification.findById(notification._id).populate({
               path: "sender",
-              select: "name profile",
-              populate: { path: "profile" }
+              select: "name profile role department profileImage",
+              populate: { path: "profile", select: "profileImage" }
             });
 
             io.to(memberIdStr).emit("notification", populatedNotification);
@@ -308,13 +322,20 @@ exports.sendMessage = async (req, res) => {
           message: `New message from ${req.user.name}: "${notificationText}"`,
           chatRoomId: req.user.id.toString(),
           chatRoomType: "direct",
+          roomName: req.user.name,
+          messageData: {
+            text: notificationText,
+            messageType: messageType || "text",
+            filename: file?.filename || "",
+            sticker: sticker || "",
+          },
           messageId: message._id,
         });
         
         const populatedNotification = await Notification.findById(notification._id).populate({
           path: "sender",
-          select: "name profile",
-          populate: { path: "profile" }
+          select: "name profile role department profileImage",
+          populate: { path: "profile", select: "profileImage" }
         });
         io.to(recipient.toString()).emit("notification", populatedNotification);
       }

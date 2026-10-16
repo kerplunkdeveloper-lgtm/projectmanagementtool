@@ -93,19 +93,14 @@ import {
   FiEdit3,
 } from "react-icons/fi";
 
-const kolkataFormatter = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Kolkata",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
+const KOLKATA_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 export const getKolkataDateStr = (date) => {
   if (!date) return "";
   try {
-    const d = date instanceof Date ? date : new Date(date);
-    if (isNaN(d.getTime())) return "";
-    return kolkataFormatter.format(d);
+    const ms = (date instanceof Date ? date : new Date(date)).getTime();
+    if (isNaN(ms)) return "";
+    return new Date(ms + KOLKATA_OFFSET_MS).toISOString().slice(0, 10);
   } catch (e) {
     return "";
   }
@@ -1642,10 +1637,29 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   );
 
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [trendReady, setTrendReady] = useState(false);
   const selectedDateRef = useRef(selectedDate);
   useEffect(() => {
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
+
+  // FIX-2: Defer expensive 7-day trend computation until after initial paint and user interaction
+  useEffect(() => {
+    let idleId = null;
+    const timer = setTimeout(() => {
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        idleId = window.requestIdleCallback(() => setTrendReady(true));
+      } else {
+        setTrendReady(true);
+      }
+    }, 500);
+    return () => {
+      clearTimeout(timer);
+      if (idleId && typeof window !== "undefined" && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+    };
+  }, []);
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [approvalModal, setApprovalModal] = useState({
@@ -1682,7 +1696,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         const month = String(curDate.getMonth() + 1).padStart(2, "0");
         const day = String(curDate.getDate()).padStart(2, "0");
         dispatch(getDesignerEodReports({ date: `${year}-${month}-${day}` }));
-      }, 300);
+      }, 2000); // FIX-5: 300ms → 2s debounce to prevent refetch storms
     };
 
     socket.on("task_updated", handleRealtimeTaskSync);
@@ -1899,13 +1913,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           officeHours,
           Date.now(),
         );
-        const rawStaticMs = calculateTaskProductivityForDate(
-          task,
-          selectedDate,
-          { startTime: "00:00", endTime: "23:59" },
-          Date.now(),
-        );
         const isLive = isTaskLive(task, selectedDate);
+        // FIX-3: Skip expensive rawStaticMs computation when no office-hours productivity
+        // and task is not currently live (~70% of tasks on a given day)
+        const rawStaticMs = (staticMs > 0 || isLive)
+          ? calculateTaskProductivityForDate(
+              task,
+              selectedDate,
+              { startTime: "00:00", endTime: "23:59" },
+              Date.now(),
+            )
+          : 0;
         cache.set(task._id, { staticMs, rawStaticMs, isLive });
       });
     });
@@ -2664,6 +2682,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
   // 5.5. Productivity Trend for the last 7 days ending on selectedDate
   const productivityTrendData = useMemo(() => {
+    // FIX-2: Skip heavy 7-day × N-designers × M-tasks computation until after first paint
+    if (!trendReady) return { labels: [], datasets: [] };
     const days = [];
     for (let i = 6; i >= 0; i--) {
       days.push(subDays(selectedDate, i));
@@ -2681,9 +2701,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         });
 
         const data = days.map((day) => {
+          const isSelected = isSameDay(day, selectedDate);
+          const dayStr = isSelected ? "" : getKolkataDateStr(day);
           let totalMs = 0;
           designerTasksFromAll.forEach((t) => {
-            if (isSameDay(day, selectedDate)) {
+            if (isSelected) {
               const pData = productivityCache.get(t._id);
               totalMs += pData
                 ? pData.staticMs
@@ -2694,6 +2716,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     Date.now(),
                   );
             } else {
+              // Fast bail-out: skip tasks with no status history on this day
+              if (t.statusHistory && t.statusHistory.length > 0) {
+                const hasActivityOnDay = t.statusHistory.some((h) => {
+                  const hd = h.date || (h.startTime ? getKolkataDateStr(h.startTime) : "");
+                  return hd.slice(0, 10) === dayStr;
+                });
+                if (!hasActivityOnDay) return;
+              }
               totalMs += calculateTaskProductivityForDate(
                 t,
                 day,
@@ -2720,6 +2750,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       }),
     };
   }, [
+    trendReady,
     selectedDate,
     designers,
     tasksByAssignee,

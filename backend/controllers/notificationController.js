@@ -73,14 +73,80 @@ exports.markAllAsRead = async (req, res) => {
   }
 };
 
+// @desc    Get unread chat notification counts
+// @route   GET /api/notifications/unread-chat-counts
+// @access  Private
+exports.getUnreadChatCounts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const unreadNotifications = await Notification.find({
+      recipient: userId,
+      isRead: false,
+      type: { $in: ['message_received', 'mention_received'] },
+    }).select('chatRoomId chatRoomType');
+
+    const unreadByChat = {};
+    unreadNotifications.forEach((n) => {
+      const key = n.chatRoomId || 'group';
+      unreadByChat[key] = (unreadByChat[key] || 0) + 1;
+    });
+
+    res.status(200).json({
+      success: true,
+      totalUnread: unreadNotifications.length,
+      unreadByChat,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Mark notifications for a specific chat room as read
+// @route   PUT /api/notifications/chat/:chatRoomId/read
+// @access  Private
+exports.markChatAsRead = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { chatRoomId } = req.params;
+
+    await Notification.updateMany(
+      {
+        recipient: userId,
+        chatRoomId: chatRoomId,
+        isRead: false,
+        type: { $in: ['message_received', 'mention_received'] },
+      },
+      { $set: { isRead: true } }
+    );
+
+    const remainingUnread = await Notification.countDocuments({
+      recipient: userId,
+      isRead: false,
+      type: { $in: ['message_received', 'mention_received'] },
+    });
+
+    res.status(200).json({
+      success: true,
+      chatRoomId,
+      remainingUnread,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Mark all chat notifications as read
 // @route   PUT /api/notifications/read-all-chat
 // @access  Private
 exports.markAllChatAsRead = async (req, res) => {
   try {
     await Notification.updateMany(
-      { recipient: req.user._id, isRead: false, type: 'message_received' },
-      { isRead: true }
+      {
+        recipient: req.user._id,
+        isRead: false,
+        type: { $in: ['message_received', 'mention_received'] },
+      },
+      { $set: { isRead: true } }
     );
 
     res.status(200).json({

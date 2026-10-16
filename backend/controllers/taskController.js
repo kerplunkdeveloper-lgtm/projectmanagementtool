@@ -414,16 +414,19 @@ exports.getTasks = async (req, res) => {
       );
     }
 
-    let query = {};
+    const andConditions = [];
+
     if (req.query.project && req.query.project !== "all") {
-      query.project = req.query.project;
+      andConditions.push({ project: req.query.project });
       if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-        query.$or = [
-          { createdBy: req.user._id },
-          { assignedTo: req.user._id },
-          { "subtasks.assignedTo": req.user._id },
-          { project: req.query.project }
-        ];
+        andConditions.push({
+          $or: [
+            { createdBy: req.user._id },
+            { assignedTo: req.user._id },
+            { "subtasks.assignedTo": req.user._id },
+            { project: req.query.project }
+          ]
+        });
       }
     } else if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const Client = require("../models/Client");
@@ -451,55 +454,53 @@ exports.getTasks = async (req, res) => {
       const projectIdsSet = new Set([...projectIds.map(id => id.toString()), ...deptProjIds]);
       projectIds = Array.from(projectIdsSet);
 
-      query.$or = [
-        { createdBy: req.user._id },
-        { assignedTo: req.user._id },
-        { "subtasks.assignedTo": req.user._id },
-        { project: { $in: projectIds } }
-      ];
+      andConditions.push({
+        $or: [
+          { createdBy: req.user._id },
+          { assignedTo: req.user._id },
+          { "subtasks.assignedTo": req.user._id },
+          { project: { $in: projectIds } }
+        ]
+      });
     }
 
     if (req.query.department) {
-      const usersInDept = await User.find({
-        department: { $regex: req.query.department, $options: "i" }
-      }).select("_id").lean();
+      const deptStr = req.query.department.trim();
+      const isGraphic = /graphic/i.test(deptStr);
+      const userDeptQuery = isGraphic
+        ? { department: { $regex: /graphic|design/i } }
+        : { department: { $regex: deptStr, $options: "i" } };
+
+      const usersInDept = await User.find(userDeptQuery).select("_id").lean();
       const userIds = usersInDept.map(u => u._id);
       
-      const deptCondition = {
-        $or: [
-          { assignedTo: { $in: userIds } },
-          { "subtasks.assignedTo": { $in: userIds } },
-          { assignedTo: null },
-          { assignedTo: { $exists: false } }
-        ]
-      };
-      
-      if (query.$or || query.$and) {
-        query = { $and: [query, deptCondition] };
-      } else {
-        query = { ...query, ...deptCondition };
+      const deptOr = [
+        { assignedTo: { $in: userIds } },
+        { "subtasks.assignedTo": { $in: userIds } }
+      ];
+      if (req.query.include_unassigned === 'true') {
+        deptOr.push({ assignedTo: null }, { assignedTo: { $exists: false } });
       }
+      andConditions.push({ $or: deptOr });
     }
 
     if (req.query.active_only === 'true') {
       const fourteenDaysAgo = new Date();
       fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
       
-      const activeCondition = {
+      andConditions.push({
         $or: [
           { status: { $nin: ['Completed', 'Rejected', 'Approved', 'Cancelled'] } },
           { updatedAt: { $gte: fourteenDaysAgo } },
           { completedAt: { $gte: fourteenDaysAgo } },
           { rejectedAt: { $gte: fourteenDaysAgo } }
         ]
-      };
-      
-      if (query.$or) {
-        query = { $and: [{ $or: query.$or }, activeCondition] };
-      } else {
-        query = { ...query, ...activeCondition };
-      }
+      });
     }
+
+    const query = andConditions.length > 1
+      ? { $and: andConditions }
+      : (andConditions[0] || {});
 
     let mongooseQuery = Task.find(query).sort({ updatedAt: -1 });
 
@@ -520,13 +521,11 @@ exports.getTasks = async (req, res) => {
       })
       .populate({
         path: "createdBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" },
+        select: "name email department",
       })
       .populate({
         path: "subtasks.assignedTo",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" },
+        select: "name email department",
       });
 
     if (req.query.full === "true") {

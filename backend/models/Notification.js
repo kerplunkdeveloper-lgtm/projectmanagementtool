@@ -46,6 +46,15 @@ const NotificationSchema = new mongoose.Schema({
   chatRoomType: {
     type: String,
   },
+  roomName: {
+    type: String,
+  },
+  messageData: {
+    text: { type: String },
+    messageType: { type: String },
+    filename: { type: String },
+    sticker: { type: String },
+  },
   isRead: {
     type: Boolean,
     default: false,
@@ -57,7 +66,8 @@ const NotificationSchema = new mongoose.Schema({
 });
 
 // Optimize queries for finding user notifications, sorting by date, and checking unread counts
-NotificationSchema.index({ recipient: 1, isRead: 1 });
+NotificationSchema.index({ recipient: 1, isRead: 1, type: 1 });
+NotificationSchema.index({ recipient: 1, chatRoomId: 1, isRead: 1 });
 NotificationSchema.index({ recipient: 1, createdAt: -1 });
 NotificationSchema.index({ createdAt: -1 });
 

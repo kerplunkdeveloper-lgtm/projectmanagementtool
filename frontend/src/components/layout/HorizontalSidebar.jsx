@@ -21,7 +21,6 @@ const HorizontalSidebar = ({ role }) => {
   const { user: currentUser, originalAdminUser } = useSelector(
     (state) => state.auth,
   );
-  const { unreadCounts = {} } = useSelector((state) => state.chat);
   const { notifications } = useSelector((state) => state.notifications);
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
@@ -109,19 +108,21 @@ const HorizontalSidebar = ({ role }) => {
     window.location.href = "/admin";
   };
 
+  const { unreadCounts = {}, totalUnreadCount: reduxTotalUnread = 0 } = useSelector((state) => state.chat);
   const localUnreadChatCount = Object.values(unreadCounts).reduce(
     (sum, val) => sum + (val || 0),
     0,
   );
 
   const dbUnreadChatCount = notifications
-    ? notifications.filter((n) => !n.isRead && n.type === "message_received")
+    ? notifications.filter((n) => !n.isRead && (n.type === "message_received" || n.type === "mention_received"))
         .length
     : 0;
 
   const totalUnreadChatCount = Math.max(
     localUnreadChatCount,
     dbUnreadChatCount,
+    reduxTotalUnread || 0,
   );
 
   const menuItems = (sidebarConfig[role] || []).filter((item) => {
@@ -341,8 +342,8 @@ const HorizontalSidebar = ({ role }) => {
                 <Icon className="w-4 h-4" />
                 <span>{item.name}</span>
                 {isChat && totalUnreadChatCount > 0 && (
-                  <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center justify-center animate-pulse shadow-sm">
-                    {totalUnreadChatCount}
+                  <span className="ml-1 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-rose-500/30">
+                    {totalUnreadChatCount > 99 ? "99+" : totalUnreadChatCount}
                   </span>
                 )}
                 {item.name === "Client Calls" &&
