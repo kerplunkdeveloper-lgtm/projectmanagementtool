@@ -281,6 +281,9 @@ const onlineUsers = {}; // userId -> Array of socketId
 const socketToUser = {}; // socketId -> userId
 const userPresence = {}; // userId -> { status: 'online' | 'offline', lastSeen: Date }
 
+app.set('onlineUsers', onlineUsers);
+app.set('userPresence', userPresence);
+
 // Lazy require for models in socket event handlers
 const Message = require('./models/Message');
 const ChatRoom = require('./models/ChatRoom');

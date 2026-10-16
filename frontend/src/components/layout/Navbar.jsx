@@ -13,6 +13,7 @@ import {
   useDeleteNotificationMutation,
   useGetProjectsQuery,
   useGetTasksQuery,
+  useGetTeamActivityQuery,
 } from "../../features/api/apiSlice";
 import toast from "react-hot-toast";
 import { HiOutlineMenuAlt3 } from "react-icons/hi";
@@ -39,8 +40,69 @@ import {
   FiVideo,
   FiCalendar,
   FiClock,
+  FiUsers,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
+import TeamActiveDrawer from "../common/TeamActiveDrawer";
+
+const ACCENT_NAVBAR_MAP = {
+  emerald: {
+    hoverBorder: "hover:border-emerald-500/50",
+    dot: "bg-emerald-500",
+    ping: "bg-emerald-400",
+    badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    hoverText: "group-hover:text-emerald-500",
+  },
+  default: {
+    hoverBorder: "hover:border-blue-500/50",
+    dot: "bg-blue-500",
+    ping: "bg-blue-400",
+    badge: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
+    hoverText: "group-hover:text-blue-500",
+  },
+  violet: {
+    hoverBorder: "hover:border-violet-500/50",
+    dot: "bg-violet-500",
+    ping: "bg-violet-400",
+    badge: "bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/20",
+    hoverText: "group-hover:text-violet-500",
+  },
+  amber: {
+    hoverBorder: "hover:border-amber-500/50",
+    dot: "bg-amber-500",
+    ping: "bg-amber-400",
+    badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
+    hoverText: "group-hover:text-amber-500",
+  },
+  rose: {
+    hoverBorder: "hover:border-rose-500/50",
+    dot: "bg-rose-500",
+    ping: "bg-rose-400",
+    badge: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/20",
+    hoverText: "group-hover:text-rose-500",
+  },
+  cyan: {
+    hoverBorder: "hover:border-cyan-500/50",
+    dot: "bg-cyan-500",
+    ping: "bg-cyan-400",
+    badge: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+    hoverText: "group-hover:text-cyan-500",
+  },
+  indigo: {
+    hoverBorder: "hover:border-indigo-500/50",
+    dot: "bg-indigo-500",
+    ping: "bg-indigo-400",
+    badge: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+    hoverText: "group-hover:text-indigo-500",
+  },
+  teal: {
+    hoverBorder: "hover:border-teal-500/50",
+    dot: "bg-teal-500",
+    ping: "bg-teal-400",
+    badge: "bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/20",
+    hoverText: "group-hover:text-teal-500",
+  },
+};
 
 const Navbar = ({ setSidebarOpen, presence }) => {
   const dispatch = useDispatch();
@@ -51,11 +113,21 @@ const Navbar = ({ setSidebarOpen, presence }) => {
   const notificationRef = useRef(null);
   const [openDropdown, setOpenDropdown] = useState(false);
   const [openNotifications, setOpenNotifications] = useState(false);
+  const [isTeamActiveOpen, setIsTeamActiveOpen] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
+  const canViewTeamActive = user?.role === "admin" || user?.role === "operationmanager";
+
+  // Real-time team activity summary for live active counter badge (Admin & Operation Manager only)
+  const { data: teamActivitySummary } = useGetTeamActivityQuery(undefined, {
+    skip: !canViewTeamActive,
+    pollingInterval: 30000,
+  });
+  const teamOnlineCount = teamActivitySummary?.summary?.onlineCount || 0;
   const { profile, loading: profileLoading } = useSelector((state) => state.profile);
   const { clients = [], loading: clientsLoading } = useSelector((state) => state.clients);
-  const { theme, setTheme, sidebarLayout } = useTheme();
+  const { theme, setTheme, sidebarLayout, accentColor = "emerald" } = useTheme();
+  const activeAccent = ACCENT_NAVBAR_MAP[accentColor] || ACCENT_NAVBAR_MAP.emerald;
 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1090,6 +1162,39 @@ const Navbar = ({ setSidebarOpen, presence }) => {
           {getThemeIcon()}
         </button>
 
+        {/* TEAM ACTIVE BUTTON (Admin & Operation Manager only) */}
+        {canViewTeamActive && (
+          <button
+            id="team-active-navbar-btn"
+            onClick={() => setIsTeamActiveOpen(true)}
+            className={`
+              flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-lg border transition-all duration-200 cursor-pointer
+              theme-border theme-bg-card hover:theme-bg-main ${activeAccent.hoverBorder}
+              hover:shadow-xs group relative
+            `}
+            title="View Active Team Members & Online Hours"
+          >
+            <div className="relative flex items-center justify-center">
+              <FiUsers
+                size={14}
+                className={`text-slate-600 dark:text-slate-300 ${activeAccent.hoverText} transition-colors`}
+              />
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${activeAccent.ping} opacity-75`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${activeAccent.dot}`} />
+              </span>
+            </div>
+
+            <span className="text-[11px] sm:text-[12px] font-bold theme-text-primary whitespace-nowrap">
+              Team Active
+            </span>
+
+            <span className={`text-[10px] font-black px-1.5 py-0.5 leading-none rounded-full ${activeAccent.badge} border`}>
+              {teamOnlineCount}
+            </span>
+          </button>
+        )}
+
         {/* PROFILE DROPDOWN */}
         <div className="relative" ref={dropdownRef}>
           <button
@@ -1357,6 +1462,14 @@ const Navbar = ({ setSidebarOpen, presence }) => {
           )}
         </AnimatePresence>,
         document.body
+      )}
+
+      {/* TEAM ACTIVE OFFCANVAS DRAWER */}
+      {canViewTeamActive && (
+        <TeamActiveDrawer
+          isOpen={isTeamActiveOpen}
+          onClose={() => setIsTeamActiveOpen(false)}
+        />
       )}
     </motion.div>
   );

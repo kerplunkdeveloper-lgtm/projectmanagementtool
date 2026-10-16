@@ -42,7 +42,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Task", "Project", "Notification", "Goal"],
+  tagTypes: ["Task", "Project", "Notification", "Goal", "User"],
   keepUnusedDataFor: 60,           // 60 sec cache
   refetchOnMountOrArgChange: 60,   // 60 sec-க்கு மேல் ஆனா மட்டும் refetch (was: true = always)
   refetchOnFocus: false,           // BUG-05 FIX: Tab switch-ல் refetch வேண்டாம் → 429 error குறையும்
@@ -91,6 +91,7 @@ export const apiSlice = createApi({
         if (params.minimal) queryParams.append('minimal', params.minimal);
         if (params.project && params.project !== "all") queryParams.append('project', params.project);
         if (params.department) queryParams.append('department', params.department);
+        if (params.include_unassigned) queryParams.append('include_unassigned', params.include_unassigned);
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],
@@ -310,6 +311,11 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Task"],
     }),
+
+    getTeamActivity: builder.query({
+      query: (date) => (date ? `/users/team-activity?date=${date}` : `/users/team-activity`),
+      providesTags: ["User"],
+    }),
   }),
 });
 
@@ -335,6 +341,7 @@ export const {
 
   // User hooks
   useUpdateUserMutation,
+  useGetTeamActivityQuery,
 
   // Goal hooks
   useGetGoalsQuery,

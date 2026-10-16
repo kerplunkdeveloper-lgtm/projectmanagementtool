@@ -3,6 +3,7 @@ const express = require('express');
 const {
   getUsers,
   getUser,
+  getTeamActivity,
   createUser,
   updateUser,
   deleteUser,
@@ -21,6 +22,13 @@ router.get(
   protect,
   authorize('admin', 'operationmanager', 'team'),
   getUsers
+);
+
+router.get(
+  '/team-activity',
+  protect,
+  authorize('admin', 'operationmanager'),
+  getTeamActivity
 );
 
 router.get(

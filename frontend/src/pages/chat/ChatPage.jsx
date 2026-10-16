@@ -555,6 +555,15 @@ const ChatPage = () => {
     if (queryId) {
       setActiveChat(queryId);
       setShowChatWindowMobile(true);
+      const isGroup = queryId === "group" || roomsRef.current.some((r) => r._id === queryId);
+      if (!isGroup) {
+        setSidebarTab("direct");
+      } else {
+        setSidebarTab("groups");
+      }
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 300);
     }
     const queryRoomId = searchParams.get("roomID");
     const queryType = searchParams.get("type");
