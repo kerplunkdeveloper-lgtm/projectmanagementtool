@@ -9,8 +9,11 @@ import { loginUser, clearError } from "../../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 
 import toast from "react-hot-toast";
+import { apiSlice } from "../../features/api/apiSlice";
+import { preloadRoute } from "../../routes/AppRoutes";
 
 import lightlogin from "../../assets/logol.png";
+import darklogo from "../../assets/darklogo.png";
 import sorted from "../../assets/sorted.png";
 import darksorted from "../../assets/darksorted.png";
 
@@ -28,6 +31,11 @@ const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
 
+  // Preload primary dashboard chunk while user types credentials
+  useEffect(() => {
+    preloadRoute("/admin");
+  }, []);
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -37,23 +45,26 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
+    // Reset any previous user's API cache so new user gets fresh data instantly
+    dispatch(apiSlice.util.resetApiState());
     dispatch(loginUser(formData));
   };
 
   useEffect(() => {
-    if (user?.role === "admin") {
-      toast.success(" Admin Login ");
+    if (!user) return;
+    const roleNorm = (user.role?.name || user.role || "")
+      .toString()
+      .toLowerCase()
+      .replace(/[\s_]+/g, "");
+
+    if (roleNorm === "admin") {
+      toast.success("Admin Login");
       navigate("/admin");
-    }
-
-    if (user?.role === "operationmanager") {
-      toast.success(" Operation Manager Login  ");
+    } else if (roleNorm === "operationmanager") {
+      toast.success("Operation Manager Login");
       navigate("/operationmanager");
-    }
-
-    if (user?.role === "team") {
-      toast.success(" Team Login");
+    } else if (roleNorm === "team") {
+      toast.success("Team Login");
       navigate("/team");
     }
   }, [user, navigate]);
@@ -75,7 +86,12 @@ const Login = () => {
         <img
           src={lightlogin}
           alt="Project Management Background"
-          className="absolute inset-0 w-full h-full  z-0"
+          className="absolute inset-0 w-full h-full z-0 dark:hidden"
+        />
+        <img
+          src={darklogo}
+          alt="Project Management Background Dark"
+          className="absolute inset-0 w-full h-full z-0 hidden dark:block"
         />
 
       </div>
@@ -188,9 +204,33 @@ const Login = () => {
               />
 
               {/* BUTTON TEXT */}
-              <span className="relative z-10">
-                {loading ? "Loading..." : "Login"}
-              </span>
+              {loading ? (
+                <span className="relative z-10 flex items-center justify-center gap-2 font-bold tracking-wide">
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    />
+                  </svg>
+                  <span>Signing in...</span>
+                </span>
+              ) : (
+                <span className="relative z-10 font-bold tracking-wide">Login</span>
+              )}
             </button>
 
             {/* FOOTER */}

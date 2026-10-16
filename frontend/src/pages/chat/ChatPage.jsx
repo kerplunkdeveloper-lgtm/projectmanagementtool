@@ -701,7 +701,7 @@ const ChatPage = () => {
             </div>
           </motion.div>
         ),
-        { position: "top-right", duration: 5000 },
+        { position: "top-center", duration: 5000 },
       );
     };
 

@@ -519,38 +519,70 @@ const Notifications = () => {
 
                       {/* MESSAGE AND TIME */}
                       <div className="flex-1 space-y-1.5 pr-6">
-                        {n.sender?.name && (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-200/50 dark:border-indigo-800/40">
-                              {n.sender.name}
-                            </span>
-                            {(() => {
-                              const dept = getSenderDepartment(n);
-                              return dept ? (
-                                <span
-                                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg border tracking-wider uppercase shadow-2xs ${getDepartmentBadgeStyle(
-                                    dept,
-                                  )}`}
-                                >
-                                  {dept}
-                                </span>
-                              ) : null;
-                            })()}
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                              {n.type === "shoot_assigned" ? "Assigned Shoot" : n.type === "task_assigned" ? "Assigned task" : "Notification sent"}
-                            </span>
-                          </div>
-                        )}
+                        {(() => {
+                          const clientName =
+                            n.clientName ||
+                            n.client?.companyName ||
+                            n.project?.client?.companyName ||
+                            n.task?.project?.client?.companyName ||
+                            (n.message?.match(/for client\s+["']?([^"'.\n]+)["']?/i)?.[1]?.trim());
 
-                        <p
-                          className={`text-xs sm:text-sm leading-relaxed ${
-                            !n.isRead
-                              ? "text-slate-800 font-extrabold"
-                              : "text-slate-600 font-medium"
-                          }`}
-                        >
-                          {n.message}
-                        </p>
+                          return (
+                            <>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {n.sender?.name && (
+                                  <>
+                                    <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-200/50 dark:border-indigo-800/40">
+                                      {n.sender.name}
+                                    </span>
+                                    {(() => {
+                                      const dept = getSenderDepartment(n);
+                                      return dept ? (
+                                        <span
+                                          className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg border tracking-wider uppercase shadow-2xs ${getDepartmentBadgeStyle(
+                                            dept,
+                                          )}`}
+                                        >
+                                          {dept}
+                                        </span>
+                                      ) : null;
+                                    })()}
+                                  </>
+                                )}
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  {n.type === "shoot_assigned"
+                                    ? "Shoot Assigned"
+                                    : n.type === "task_assigned"
+                                    ? "Task Assigned"
+                                    : n.type === "task_updated"
+                                    ? "Task Update"
+                                    : "Notification"}
+                                </span>
+
+                                {/* Client Pill Badge */}
+                                {clientName && (
+                                  <span
+                                    className="inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25 shadow-2xs"
+                                    title={`Client: ${clientName}`}
+                                  >
+                                    <FiBriefcase size={10} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                                    <span>Client: {clientName}</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              <p
+                                className={`text-xs sm:text-sm leading-relaxed ${
+                                  !n.isRead
+                                    ? "text-slate-800 dark:text-slate-100 font-extrabold"
+                                    : "text-slate-600 dark:text-slate-300 font-medium"
+                                }`}
+                              >
+                                {n.message}
+                              </p>
+                            </>
+                          );
+                        })()}
 
                         {(() => {
                           const timeInfo = getNotificationTimeInfo(n.createdAt);

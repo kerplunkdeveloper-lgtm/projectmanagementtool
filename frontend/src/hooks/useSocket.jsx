@@ -7,7 +7,7 @@ import { logoutUser } from "../features/auth/authSlice";
 import { apiSlice } from "../features/api/apiSlice";
 import { incrementUnreadCount, receiveMessage } from "../features/chat/chatSlice";
 import toast from "react-hot-toast";
-import { FiBell, FiX, FiMessageSquare, FiArrowRight, FiFileText } from "react-icons/fi";
+import { FiBell, FiX, FiMessageSquare, FiArrowRight, FiFileText, FiBriefcase } from "react-icons/fi";
 import { useSocketContext } from "../context/SocketContext";
 
 import { playNotificationSound, playDirectMessageSound } from "../utils/sound";
@@ -346,7 +346,7 @@ const useSocket = (externalSocket) => {
             ),
             {
               duration: 5000,
-              position: "top-right",
+              position: "top-center",
               id: `chat-${notification._id || Date.now()}`,
             }
           );
@@ -363,89 +363,106 @@ const useSocket = (externalSocket) => {
 
           // Standard Alert Toast
           toast.custom(
-            (t) => (
-              <div
-                className={`${
-                  t.visible ? "animate-enter" : "animate-leave"
-                } max-w-[340px] w-full bg-white dark:bg-[#0f172a] shadow-xl border border-slate-200/60 dark:border-slate-800/80 rounded-xl pointer-events-auto flex items-center p-3 pr-8 relative cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50`}
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  if (
-                    notification.type === "shoot_assigned" ||
-                    notification.shoot ||
-                    (notification.message &&
-                      notification.message.toLowerCase().includes("shoot"))
-                  ) {
-                    navigate(`/${userRole}/Shootcalendor`);
-                  } else if (
-                    notification.type === "client_assigned" ||
-                    (notification.message &&
-                      notification.message.toLowerCase().includes("client:"))
-                  ) {
-                    navigate(`/${userRole}/clients`);
-                  } else if (notification.type?.startsWith("task_")) {
-                    if (notification.project) {
-                      const projectId = typeof notification.project === 'object' ? notification.project._id : notification.project;
-                      navigate(`/${userRole}/projects?id=${projectId}`);
-                    } else {
-                      navigate(`/${userRole}/tasks`);
-                    }
-                  }
-                }}
-              >
-                {/* Sender Avatar or Icon */}
-                <div className="flex-shrink-0 relative">
-                  {notification.sender?.profile?.profileImage?.url ? (
-                    <img
-                      src={notification.sender.profile.profileImage.url}
-                      alt={notification.sender.name || "User"}
-                      className="h-9 w-9 rounded-full object-cover border-2 border-indigo-500/20 shadow-sm"
-                    />
-                  ) : notification.sender?.name ? (
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
-                      {notification.sender.name.charAt(0).toUpperCase()}
-                    </div>
-                  ) : (
-                    <div className="h-9 w-9 rounded-xl bg-indigo-50 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-white shadow-sm">
-                      <FiBell size={14} />
-                    </div>
-                  )}
-                </div>
+            (t) => {
+              const clientName =
+                notification.clientName ||
+                notification.client?.companyName ||
+                notification.project?.client?.companyName ||
+                notification.task?.project?.client?.companyName ||
+                (notification.message?.match(/for client\s+["']?([^"'.\n]+)["']?/i)?.[1]?.trim());
 
-                <div className="ml-3 flex-1 min-w-0">
-                  {notification.sender?.name ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 truncate">
-                        {notification.sender.name}
-                      </span>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                        • {notification.type === "shoot_assigned" ? "Shoot Assigned" : notification.type === "task_assigned" ? "Assigned task" : "Alert"}
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-550 tracking-wider uppercase">
-                      System Alert
-                    </p>
-                  )}
-                  <p className="mt-0.5 text-[11px] font-bold text-slate-800 dark:text-slate-100 leading-normal">
-                    {notification.message}
-                  </p>
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
+              return (
+                <div
+                  className={`${
+                    t.visible ? "animate-enter" : "animate-leave"
+                  } max-w-[360px] w-full bg-white dark:bg-[#0f172a] shadow-xl border border-slate-200/80 dark:border-slate-800/90 rounded-xl pointer-events-auto flex items-start p-3 pr-8 relative cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors`}
+                  onClick={() => {
                     toast.dismiss(t.id);
+                    if (
+                      notification.type === "shoot_assigned" ||
+                      notification.shoot ||
+                      (notification.message &&
+                        notification.message.toLowerCase().includes("shoot"))
+                    ) {
+                      navigate(`/${userRole}/Shootcalendor`);
+                    } else if (
+                      notification.type === "client_assigned" ||
+                      (notification.message &&
+                        notification.message.toLowerCase().includes("client:"))
+                    ) {
+                      navigate(`/${userRole}/clients`);
+                    } else if (notification.type?.startsWith("task_")) {
+                      if (notification.project) {
+                        const projectId = typeof notification.project === 'object' ? notification.project._id : notification.project;
+                        navigate(`/${userRole}/projects?id=${projectId}`);
+                      } else {
+                        navigate(`/${userRole}/tasks`);
+                      }
+                    }
                   }}
-                  className="absolute top-2.5 right-2.5 w-5 h-5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors"
                 >
-                  <FiX size={12} />
-                </button>
-              </div>
-            ),
+                  {/* Sender Avatar or Icon */}
+                  <div className="flex-shrink-0 relative mt-0.5">
+                    {notification.sender?.profile?.profileImage?.url ? (
+                      <img
+                        src={notification.sender.profile.profileImage.url}
+                        alt={notification.sender.name || "User"}
+                        className="h-9 w-9 rounded-full object-cover border-2 border-indigo-500/20 shadow-sm"
+                      />
+                    ) : notification.sender?.name ? (
+                      <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
+                        {notification.sender.name.charAt(0).toUpperCase()}
+                      </div>
+                    ) : (
+                      <div className="h-9 w-9 rounded-xl bg-indigo-50 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-white shadow-sm">
+                        <FiBell size={14} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="ml-3 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {notification.sender?.name ? (
+                        <>
+                          <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 truncate">
+                            {notification.sender.name}
+                          </span>
+                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                            • {notification.type === "shoot_assigned" ? "Shoot Assigned" : notification.type === "task_assigned" ? "Task Assigned" : notification.type?.startsWith("task_") ? "Task Update" : "Alert"}
+                          </span>
+                        </>
+                      ) : (
+                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase">
+                          System Alert
+                        </p>
+                      )}
+                      {clientName && (
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 shadow-xs">
+                          <FiBriefcase size={8} className="text-amber-600 dark:text-amber-400" />
+                          <span className="truncate max-w-[120px]">{clientName}</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] font-medium text-slate-800 dark:text-slate-100 leading-snug">
+                      {notification.message}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.dismiss(t.id);
+                    }}
+                    className="absolute top-2.5 right-2.5 w-5 h-5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors"
+                  >
+                    <FiX size={12} />
+                  </button>
+                </div>
+              );
+            },
             {
               duration: 3000,
-              position: "bottom-right",
+              position: "top-center",
             },
           );
         }

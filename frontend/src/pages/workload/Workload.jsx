@@ -68,7 +68,6 @@ const getHeaderBannerGradient = (accent) => {
     case "emerald":
       return "bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-950 dark:from-[#064e3b] dark:via-[#047857] dark:to-[#0f172a] border-emerald-500/30";
     case "violet":
-    case "mauve":
       return "bg-gradient-to-r from-purple-950 via-violet-900 to-indigo-950 dark:from-[#4c1d95] dark:via-[#5b21b6] dark:to-[#0f172a] border-purple-500/30";
     case "amber":
     case "gold":

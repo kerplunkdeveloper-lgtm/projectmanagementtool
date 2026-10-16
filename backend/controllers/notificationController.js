@@ -15,7 +15,31 @@ exports.getNotifications = async (req, res) => {
           select: 'profileImage',
         },
       })
-      .limit(20)
+      .populate({
+        path: 'client',
+        select: 'companyName',
+      })
+      .populate({
+        path: 'project',
+        select: 'name client',
+        populate: {
+          path: 'client',
+          select: 'companyName',
+        },
+      })
+      .populate({
+        path: 'task',
+        select: 'title project client',
+        populate: {
+          path: 'project',
+          select: 'name client',
+          populate: {
+            path: 'client',
+            select: 'companyName',
+          },
+        },
+      })
+      .limit(30)
       .lean();
 
     res.status(200).json({

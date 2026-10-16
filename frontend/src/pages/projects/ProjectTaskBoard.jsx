@@ -3330,7 +3330,7 @@ const ProjectTaskBoard = ({
               </div>
             </div>
           ),
-          { duration: 6000, position: "bottom-right" },
+          { duration: 6000, position: "top-center" },
         );
       } else {
         toast.error("Failed to update task");

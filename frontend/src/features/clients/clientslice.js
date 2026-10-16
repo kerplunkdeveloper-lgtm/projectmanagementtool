@@ -119,6 +119,17 @@ const clientSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
+      // RESET ON LOGOUT / LOGIN
+      .addCase("auth/logoutUser/fulfilled", (state) => {
+        state.clients = [];
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase("auth/loginUser/fulfilled", (state) => {
+        state.clients = [];
+        state.loading = false;
+        state.error = null;
+      })
 
       // GET CLIENTS
       .addCase(

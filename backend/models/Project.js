@@ -39,6 +39,7 @@ const ProjectSchema = new mongoose.Schema(
 ProjectSchema.index({ client: 1 });
 ProjectSchema.index({ status: 1 });
 ProjectSchema.index({ createdBy: 1 });
+ProjectSchema.index({ createdBy: 1, createdAt: -1 });
 ProjectSchema.index({ client: 1, status: 1 });
 
 module.exports = mongoose.model("Project", ProjectSchema);

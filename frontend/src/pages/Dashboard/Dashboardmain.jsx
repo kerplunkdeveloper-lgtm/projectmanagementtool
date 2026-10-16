@@ -144,7 +144,10 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
   const navigate = useNavigate();
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
-  const { data: tasks = [], isLoading } = useGetTasksQuery({ active_only: true });
+  const { data: tasks = [], isLoading } = useGetTasksQuery(
+    { active_only: true },
+    { refetchOnMountOrArgChange: true },
+  );
 
   const getTodayDateString = () => {
     const today = new Date();
@@ -159,11 +162,21 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
 
   // Filter tasks assigned to this user
-  const currentUserId = user?._id || user?.id;
+  const currentUserId = (user?._id || user?.id)?.toString();
   const myTasks = React.useMemo(() => {
+    if (!currentUserId) return [];
     return tasks.filter((t) => {
-      const assignedId = t.assignedTo?._id || t.assignedTo;
-      return assignedId === currentUserId;
+      const assignedId = (
+        typeof t.assignedTo === "object" ? t.assignedTo?._id : t.assignedTo
+      )?.toString();
+      const hasSubtask = t.subtasks?.some(
+        (s) =>
+          (typeof s.assignedTo === "object"
+            ? s.assignedTo?._id
+            : s.assignedTo
+          )?.toString() === currentUserId,
+      );
+      return (assignedId && assignedId === currentUserId) || hasSubtask;
     });
   }, [tasks, currentUserId]);
 
@@ -648,12 +661,18 @@ const Dashboardmain = () => {
     theme === "dark" ||
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
-  const { data: tasks = [] } = useGetTasksQuery({ active_only: true });
+  const {
+    data: tasks = [],
+    isLoading: tasksLoading,
+    isFetching: tasksFetching,
+  } = useGetTasksQuery({ active_only: true }, { refetchOnMountOrArgChange: true });
   const [updateTask] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
-  const { projects } = useSelector((state) => state.projects);
-  const { clients } = useSelector((state) => state.clients);
-  const { users } = useSelector((state) => state.users);
+  const { projects = [], loading: projectsLoading } = useSelector(
+    (state) => state.projects,
+  );
+  const { clients = [] } = useSelector((state) => state.clients);
+  const { users = [] } = useSelector((state) => state.users);
 
   // Shoot Calendar permission check
   const userRole = (user?.role?.name || user?.role || "")
@@ -674,7 +693,12 @@ const Dashboardmain = () => {
   const canReadShootCalendar = isSuperOrAdmin || isLegacyTrue || !!shootPerms.read;
 
   // Goals logic
-  const { data: goals = [] } = useGetGoalsQuery();
+  const {
+    data: goals = [],
+    isLoading: goalsLoading,
+    isFetching: goalsFetching,
+    refetch: refetchGoals,
+  } = useGetGoalsQuery(undefined, { refetchOnMountOrArgChange: true });
   const [createGoal] = useCreateGoalMutation();
   const [updateGoal] = useUpdateGoalMutation();
   const [deleteGoal] = useDeleteGoalMutation();
@@ -759,12 +783,30 @@ const Dashboardmain = () => {
   const [projectPage, setProjectPage] = useState(1);
 
   const userProjects = React.useMemo(() => {
-    if (!projects) return [];
-    const currentUserId = user?._id || user?.id;
-    return projects.filter((p) => {
-      const creatorId = p.createdBy?._id || p.createdBy;
-      return creatorId === currentUserId;
+    if (!projects || !Array.isArray(projects)) return [];
+    const currentUserId = (user?._id || user?.id)?.toString();
+    if (!currentUserId) return [];
+
+    const createdByUser = projects.filter((p) => {
+      const creatorId = (
+        typeof p.createdBy === "object" ? p.createdBy?._id : p.createdBy
+      )?.toString();
+      return creatorId && creatorId === currentUserId;
     });
+
+    if (createdByUser.length > 0) return createdByUser;
+
+    // For Admin / Operation Manager: if they haven't personally created any project,
+    // display active accessible projects so the dashboard is never a blank box
+    const r = (user?.role?.name || user?.role || "")
+      .toString()
+      .toLowerCase()
+      .replace(/[\s_]+/g, "");
+    if (r === "admin" || r === "operationmanager") {
+      return projects.filter((p) => p.status === "Active" || !p.status);
+    }
+
+    return createdByUser;
   }, [projects, user]);
 
   const PROJECTS_PER_PAGE = 5;
@@ -1212,10 +1254,20 @@ const Dashboardmain = () => {
   const [taskTab, setTaskTab] = useState("Upcoming");
 
   const myTasks = React.useMemo(() => {
-    const currentUserId = user?._id || user?.id;
+    const currentUserId = (user?._id || user?.id)?.toString();
+    if (!currentUserId) return [];
     return tasks.filter((t) => {
-      const assignedId = t.assignedTo?._id || t.assignedTo;
-      return assignedId === currentUserId;
+      const assignedId = (
+        typeof t.assignedTo === "object" ? t.assignedTo?._id : t.assignedTo
+      )?.toString();
+      const hasSubtask = t.subtasks?.some(
+        (s) =>
+          (typeof s.assignedTo === "object"
+            ? s.assignedTo?._id
+            : s.assignedTo
+          )?.toString() === currentUserId,
+      );
+      return (assignedId && assignedId === currentUserId) || hasSubtask;
     });
   }, [tasks, user]);
 
@@ -1465,21 +1517,19 @@ const Dashboardmain = () => {
 
   const initialFetchDoneRef = React.useRef(null);
   useEffect(() => {
-    const currentUserId = user?._id || user?.id;
+    const currentUserId = (user?._id || user?.id)?.toString();
     if (!currentUserId) return;
-    if (initialFetchDoneRef.current === currentUserId) return;
-    initialFetchDoneRef.current = currentUserId;
 
-    dispatch(getProjects());
-    dispatch(getUsers());
     if (
-      user?.role === "admin" ||
-      user?.role === "operationmanager" ||
-      user?.role === "team"
+      initialFetchDoneRef.current !== currentUserId ||
+      (!projectsLoading && (!projects || projects.length === 0))
     ) {
+      initialFetchDoneRef.current = currentUserId;
+      dispatch(getProjects());
+      dispatch(getUsers());
       dispatch(getClients());
     }
-  }, [dispatch, user?._id, user?.id, user?.role]);
+  }, [dispatch, user?._id, user?.id, projects?.length, projectsLoading]);
 
   useEffect(() => {
     if (clients && clients.length > 0 && !clientId && clients[0]?._id) {
@@ -1687,153 +1737,181 @@ const Dashboardmain = () => {
           <div className="flex-1 flex flex-col pt-0.5">
             {/* Tasks List with bottom border lines */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 mt-0.5 divide-y divide-slate-100 dark:divide-white/5">
-              {paginatedGoals.map((g) => {
-                const dateText = formatGoalDates(g.startDate, g.endDate);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const isOverdueGoal =
-                  g.endDate && new Date(g.endDate) < today && !g.completed;
-
-                return (
-                  <div
-                    key={g._id}
-                    className="flex items-center justify-between py-1.5 bg-transparent group/row"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pl-0.5">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleGoalComplete(g);
-                        }}
-                        className="shrink-0 focus:outline-none cursor-pointer"
-                      >
-                        {g.completed ? (
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 border border-emerald-600 shadow-sm shadow-emerald-500/40 flex items-center justify-center text-white transform transition-all duration-300 scale-105">
-                            <FiCheck size={11} className="stroke-[4]" />
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all duration-300 group-hover:border-emerald-400">
-                            <FiCheck
-                              size={11}
-                              className="text-transparent group-hover/row:text-slate-200 dark:group-hover/row:text-slate-700 transition-colors"
-                            />
-                          </div>
-                        )}
-                      </button>
-
-                      {/* Title Editable Directly */}
-                      <div className="flex-1 min-w-0">
-                        <input
-                          type="text"
-                          placeholder="Write a task name"
-                          defaultValue={g.taskName}
-                          autoFocus={g._id === newCreatedGoalId}
-                          onFocus={() => {
-                            if (g._id === newCreatedGoalId) {
-                              setTimeout(() => {
-                                setNewCreatedGoalId(null);
-                              }, 50);
-                            }
-                          }}
-                          onBlur={async (e) => {
-                            const val = e.target.value.trim();
-                            if (val !== g.taskName) {
-                              try {
-                                await updateGoal({
-                                  id: g._id,
-                                  goalData: { taskName: val },
-                                }).unwrap();
-                                toast.success("Goal updated");
-                              } catch {
-                                toast.error("Failed to update goal name");
-                              }
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleExistingGoalEnter(g, e.target.value);
-                            }
-                          }}
-                          className={`goal-inline-input text-xs w-full focus:outline-none py-0.5 ${
-                            g.completed
-                              ? "goal-completed-text"
-                              : "text-slate-700 dark:text-slate-200"
-                          }`}
-                        />
-                        {g.completed && g.completedAt && (
-                          <span className="text-[9px] text-slate-400 dark:text-slate-500 block -mt-0.5 font-medium pl-0.5">
-                            {(() => {
-                              const d = new Date(g.completedAt);
-                              const timeStr = d.toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              });
-                              const dateStr = d.toLocaleDateString([], {
-                                month: "short",
-                                day: "numeric",
-                              });
-                              return `Completed at ${timeStr}, ${dateStr}`;
-                            })()}
-                          </span>
-                        )}
+              {goalsLoading || (goalsFetching && goals.length === 0) ? (
+                <div className="space-y-2 py-2">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div
+                      key={n}
+                      className="flex items-center justify-between py-2 px-1 animate-pulse"
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-white/10 shrink-0" />
+                        <div className="h-3.5 bg-slate-200 dark:bg-white/10 rounded w-48 max-w-[70%]" />
                       </div>
+                      <div className="w-16 h-3.5 bg-slate-200 dark:bg-white/10 rounded-full" />
                     </div>
-
-                    {/* Right Date and Actions */}
-                    <div className="flex items-center gap-2 shrink-0 pr-0.5">
-                      {/* Start Date Badge */}
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveCalendarGoalId(
-                            activeCalendarGoalId === g._id ? null : g._id,
-                          );
-                          setCalendarTarget("start");
-                        }}
-                        className="text-[11px] text-slate-450 dark:text-slate-500 font-normal cursor-pointer hover:underline flex items-center gap-1"
-                      >
-                        {dateText ? (
-                          <span
-                            className={`px-1.5 py-0.5 rounded-full font-semibold text-[10px] border ${
-                              isOverdueGoal
-                                ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/25"
-                                : "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-white/5"
-                            }`}
-                          >
-                            {dateText}
-                          </span>
-                        ) : (
-                          /* Dashed circle wrapper around calendar icon when date is missing */
-                          <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-455 hover:text-blue-500 cursor-pointer">
-                            <FiCalendar size={10} />
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteGoalClick(g._id);
-                        }}
-                        className="w-5 h-5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors cursor-pointer shrink-0 opacity-0 group-hover/row:opacity-100"
-                      >
-                        <FiTrash2 size={11} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {activeTabGoals.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center py-8">
-                  <FiCheck className="w-6 h-6 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 rounded-full p-1 mb-1 animate-bounce" />
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Target & Overdue Tasks
-                  </span>
+                  ))}
                 </div>
+              ) : (
+                <>
+                  {paginatedGoals.map((g) => {
+                    const dateText = formatGoalDates(g.startDate, g.endDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const isOverdueGoal =
+                      g.endDate && new Date(g.endDate) < today && !g.completed;
+
+                    return (
+                      <div
+                        key={g._id}
+                        className="flex items-center justify-between py-1.5 bg-transparent group/row"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1 pl-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleGoalComplete(g);
+                            }}
+                            className="shrink-0 focus:outline-none cursor-pointer"
+                          >
+                            {g.completed ? (
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 border border-emerald-600 shadow-sm shadow-emerald-500/40 flex items-center justify-center text-white transform transition-all duration-300 scale-105">
+                                <FiCheck size={11} className="stroke-[4]" />
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all duration-300 group-hover:border-emerald-400">
+                                <FiCheck
+                                  size={11}
+                                  className="text-transparent group-hover/row:text-slate-200 dark:group-hover/row:text-slate-700 transition-colors"
+                                />
+                              </div>
+                            )}
+                          </button>
+
+                          {/* Title Editable Directly */}
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="text"
+                              placeholder="Write a task name"
+                              defaultValue={g.taskName}
+                              autoFocus={g._id === newCreatedGoalId}
+                              onFocus={() => {
+                                if (g._id === newCreatedGoalId) {
+                                  setTimeout(() => {
+                                    setNewCreatedGoalId(null);
+                                  }, 50);
+                                }
+                              }}
+                              onBlur={async (e) => {
+                                const val = e.target.value.trim();
+                                if (val !== g.taskName) {
+                                  try {
+                                    await updateGoal({
+                                      id: g._id,
+                                      goalData: { taskName: val },
+                                    }).unwrap();
+                                    toast.success("Goal updated");
+                                  } catch {
+                                    toast.error("Failed to update goal name");
+                                  }
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleExistingGoalEnter(g, e.target.value);
+                                }
+                              }}
+                              className={`goal-inline-input text-xs w-full focus:outline-none py-0.5 ${
+                                g.completed
+                                  ? "goal-completed-text"
+                                  : "text-slate-700 dark:text-slate-200"
+                              }`}
+                            />
+                            {g.completed && g.completedAt && (
+                              <span className="text-[9px] text-slate-400 dark:text-slate-550 block -mt-0.5 font-medium pl-0.5">
+                                {(() => {
+                                  const d = new Date(g.completedAt);
+                                  const timeStr = d.toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  });
+                                  const dateStr = d.toLocaleDateString([], {
+                                    month: "short",
+                                    day: "numeric",
+                                  });
+                                  return `Completed at ${timeStr}, ${dateStr}`;
+                                })()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right Date and Actions */}
+                        <div className="flex items-center gap-2 shrink-0 pr-0.5">
+                          {/* Start Date Badge */}
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveCalendarGoalId(
+                                activeCalendarGoalId === g._id ? null : g._id,
+                              );
+                              setCalendarTarget("start");
+                            }}
+                            className="text-[11px] text-slate-450 dark:text-slate-500 font-normal cursor-pointer hover:underline flex items-center gap-1"
+                          >
+                            {dateText ? (
+                              <span
+                                className={`px-1.5 py-0.5 rounded-full font-semibold text-[10px] border ${
+                                  isOverdueGoal
+                                    ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/25"
+                                    : "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-white/5"
+                                }`}
+                              >
+                                {dateText}
+                              </span>
+                            ) : (
+                              /* Dashed circle wrapper around calendar icon when date is missing */
+                              <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-455 hover:text-blue-500 cursor-pointer">
+                                <FiCalendar size={10} />
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteGoalClick(g._id);
+                            }}
+                            className="w-5 h-5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors cursor-pointer shrink-0 opacity-0 group-hover/row:opacity-100"
+                          >
+                            <FiTrash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {activeTabGoals.length === 0 && (
+                    <div className="h-full flex flex-col items-center justify-center text-center py-8">
+                      <FiCheck className="w-6 h-6 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 rounded-full p-1 mb-1" />
+                      <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                        {goalTab === "Upcoming"
+                          ? "No upcoming goals yet"
+                          : goalTab === "Overdue"
+                          ? "No overdue goals — you're all caught up!"
+                          : "No completed goals yet"}
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">
+                        {goalTab === "Upcoming"
+                          ? "Click '+ Create task' above to add your first goal"
+                          : "Track your target & completed goals here"}
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -1968,38 +2046,61 @@ const Dashboardmain = () => {
                 </div>
 
                 {/* Paginated projects list */}
-                {paginatedUserProjects &&
-                  paginatedUserProjects.map((proj) => {
-                    const clientObj = getClientObjectForProject(proj);
-                    return (
-                      <Link
-                        key={proj._id}
-                        to={`/${user?.role}/projects?id=${proj._id}`}
-                        className="w-48 sm:w-52 h-12 bg-white dark:bg-[#131d2e] rounded-xl px-3 py-1.5 flex items-center gap-2.5 border border-slate-200/90 dark:border-[#223149] shadow-2xs hover:shadow-md hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all cursor-pointer text-left block shrink-0 group"
-                      >
-                        <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/40 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                          <FiLayers size={13} />
-                        </div>
-                        <div className="min-w-0 flex-1 flex flex-col justify-center">
-                          <h4 className="text-[11.5px] font-black text-[#0f172a] dark:text-[#f8fafc] truncate leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                            {proj.name}
-                          </h4>
-                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                            {clientObj && (
-                              <ClientBadge
-                                client={clientObj}
-                                size="sm"
-                                className="!text-[8px] !py-[0.5px] !px-1.5 font-black"
-                              />
-                            )}
-                            <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                              {proj.status || "Active"}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                {projectsLoading && (!projects || projects.length === 0) ? (
+                  [1, 2, 3].map((n) => (
+                    <div
+                      key={n}
+                      className="w-48 sm:w-52 h-12 bg-slate-100 dark:bg-white/5 rounded-xl px-3 py-1.5 flex items-center gap-2.5 animate-pulse border border-slate-200/50 dark:border-white/5 shrink-0"
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-white/10 shrink-0" />
+                      <div className="flex-1 space-y-1.5 min-w-0">
+                        <div className="h-3 bg-slate-200 dark:bg-white/10 rounded w-24 max-w-[80%]" />
+                        <div className="h-2 bg-slate-200 dark:bg-white/10 rounded w-14" />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    {paginatedUserProjects &&
+                      paginatedUserProjects.map((proj) => {
+                        const clientObj = getClientObjectForProject(proj);
+                        return (
+                          <Link
+                            key={proj._id}
+                            to={`/${user?.role}/projects?id=${proj._id}`}
+                            className="w-48 sm:w-52 h-12 bg-white dark:bg-[#131d2e] rounded-xl px-3 py-1.5 flex items-center gap-2.5 border border-slate-200/90 dark:border-[#223149] shadow-2xs hover:shadow-md hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all cursor-pointer text-left block shrink-0 group"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 border border-indigo-100 dark:border-indigo-900/40 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                              <FiLayers size={13} />
+                            </div>
+                            <div className="min-w-0 flex-1 flex flex-col justify-center">
+                              <h4 className="text-[11.5px] font-black text-[#0f172a] dark:text-[#f8fafc] truncate leading-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                {proj.name}
+                              </h4>
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                {clientObj && (
+                                  <ClientBadge
+                                    client={clientObj}
+                                    size="sm"
+                                    className="!text-[8px] !py-[0.5px] !px-1.5 font-black"
+                                  />
+                                )}
+                                <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                                  {proj.status || "Active"}
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+
+                    {(!paginatedUserProjects || paginatedUserProjects.length === 0) && !projectsLoading && (
+                      <div className="flex items-center gap-2 py-2 px-3 text-slate-400 dark:text-slate-500 text-xs">
+                        <span>No projects yet. Click Create Project to begin!</span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 

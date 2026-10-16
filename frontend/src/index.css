@@ -109,25 +109,27 @@ html {
   --color-slate-950: #0f172a; /* Primary Text */
   
   /* Accent variables */
-  --accent-gradient: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%);
-  --accent-color: #3b82f6;
-  --accent-hover-shadow: rgba(64, 142, 216, 0.25);
-  --accent-gradient-dark: linear-gradient(135deg, #3b82f6, #60a5fa);
-  --accent-color-dark: #60a5fa;
-  --accent-hover-shadow-dark: rgba(96, 165, 250, 0.25);
-  --accent-light-bg-subtle: rgba(59, 130, 246, 0.1);
-  --accent-dark-bg-subtle: rgba(96, 165, 250, 0.1);
+  --accent-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #6366f1 100%);
+  --accent-color: #2563eb;
+  --accent-hover-shadow: rgba(37, 99, 235, 0.35);
+  --accent-gradient-dark: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 60%, #60a5fa 100%);
+  --accent-color-dark: #3b82f6;
+  --accent-hover-shadow-dark: rgba(59, 130, 246, 0.35);
+  --accent-light-bg-subtle: rgba(37, 99, 235, 0.1);
+  --accent-dark-bg-subtle: rgba(59, 130, 246, 0.15);
 
   /* Theme-specific variables */
   --color-brand-primary: var(--accent-color); /* Dynamically mapped */
   --color-brand-hover: var(--accent-color);
   --color-brand-gradient: var(--accent-gradient);
-  --color-card-gradient: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  --btn-gradient-bg: var(--accent-gradient);
+  --btn-glow-shadow: var(--accent-hover-shadow);
+  --color-card-gradient: linear-gradient(135deg, #ffffff 0%, #f8fafce3 100%);
   --color-active-tab-text: #ffffff;
   --color-incomplete-start: #8b5cf6;
   --color-incomplete-end: #ec4899;
   --color-completed-start: #10b981;
-  --sidebar-bg: color-mix(in srgb, var(--accent-color) 7%, rgba(246, 244, 244, 0.8));
+  --sidebar-bg: color-mix(in srgb, var(--accent-color) 10%, rgb(255, 255, 255));
 }
 
 body {
@@ -216,6 +218,8 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, select, textarea {
   --color-brand-primary: var(--accent-color-dark);
   --color-brand-hover: var(--accent-color-dark);
   --color-brand-gradient: var(--accent-gradient-dark);
+  --btn-gradient-bg: var(--accent-gradient-dark);
+  --btn-glow-shadow: var(--accent-hover-shadow-dark);
   --color-card-gradient: linear-gradient(135deg, #0f172a 0%, #090d16 100%);
   --color-active-tab-text: #020710;
   --color-incomplete-start: #99cc00;
@@ -343,81 +347,138 @@ h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, select, textarea {
   background: var(--color-card-gradient) !important;
 }
 
-/* Dashboard Action Buttons Override */
+/* ===================================================
+   ATTRACTIVE ACTIVE-ACCENT GRADIENT BUTTONS
+   Applies dynamic Settings active color gradient to all primary & action buttons
+   =================================================== */
+
+.dashboard-btn-primary,
+.btn-primary,
+.theme-btn-accent,
+.theme-accent-btn,
+button.dashboard-btn-primary,
+a.dashboard-btn-primary,
+button[type="submit"]:not(.btn-secondary):not(.btn-ghost):not(.btn-outline):not(.bg-transparent):not(.bg-white):not(.bg-slate-100):not(.bg-gray-100):not(.bg-rose-500):not(.bg-red-600):not(.bg-red-500),
 button.bg-\[\#7c5ff0\],
+button.bg-\[\#6c4be0\],
 button.bg-indigo-600,
+button.bg-indigo-500,
+button.bg-indigo-700,
 button.bg-blue-600,
 button.bg-blue-500,
-button.bg-slate-900,
-.dashboard-btn-primary {
+button.bg-blue-700,
+button.bg-violet-600,
+button.bg-violet-500,
+button.bg-emerald-600,
+button.bg-emerald-500,
+button.dark\:bg-\[\#3b82f6\],
+button.bg-slate-900:not(.btn-ghost):not(.bg-transparent) {
   background: var(--color-brand-gradient) !important;
   color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 14px var(--accent-hover-shadow) !important;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
-  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 4px 14px 0 var(--btn-glow-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22) !important;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, filter 0.2s ease, opacity 0.2s ease !important;
+  cursor: pointer !important;
 }
 
+/* Ensure all text and icons inside action buttons remain ultra crisp white in both light and dark modes */
+.dashboard-btn-primary *,
+.btn-primary *,
+.theme-btn-accent *,
+.theme-accent-btn *,
+button.dashboard-btn-primary *,
+a.dashboard-btn-primary *,
+button[type="submit"]:not(.btn-secondary):not(.btn-ghost):not(.btn-outline):not(.bg-transparent):not(.bg-white):not(.bg-slate-100):not(.bg-gray-100):not(.bg-rose-500):not(.bg-red-600):not(.bg-red-500) *,
 button.bg-\[\#7c5ff0\] *,
+button.bg-\[\#6c4be0\] *,
 button.bg-indigo-600 *,
+button.bg-indigo-500 *,
+button.bg-indigo-700 *,
 button.bg-blue-600 *,
 button.bg-blue-500 *,
-button.bg-slate-900 *,
-.dashboard-btn-primary * {
+button.bg-blue-700 *,
+button.bg-violet-600 *,
+button.bg-violet-500 *,
+button.bg-emerald-600 *,
+button.bg-emerald-500 *,
+button.dark\:bg-\[\#3b82f6\] *,
+button.bg-slate-900:not(.btn-ghost):not(.bg-transparent) * {
   color: #ffffff !important;
+  fill: currentColor;
 }
 
-.dark button.bg-\[\#7c5ff0\],
-.dark button.bg-indigo-600,
-.dark button.bg-blue-650,
-.dark button.bg-blue-600,
-.dark button.bg-blue-505,
-.dark button.bg-blue-500,
-.dark button.bg-slate-900,
-.dark .dashboard-btn-primary,
-.dark button[type="submit"] {
+/* Hover State - Elevated 3D lift, brighter specular highlight & richer glow */
+.dashboard-btn-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled),
+.theme-btn-accent:hover:not(:disabled),
+.theme-accent-btn:hover:not(:disabled),
+button.dashboard-btn-primary:hover:not(:disabled),
+a.dashboard-btn-primary:hover,
+button[type="submit"]:not(.btn-secondary):not(.btn-ghost):not(.btn-outline):not(.bg-transparent):not(.bg-white):not(.bg-slate-100):not(.bg-gray-100):not(.bg-rose-500):not(.bg-red-600):not(.bg-red-500):hover:not(:disabled),
+button.bg-\[\#7c5ff0\]:hover:not(:disabled),
+button.bg-\[\#6c4be0\]:hover:not(:disabled),
+button.bg-indigo-600:hover:not(:disabled),
+button.bg-indigo-500:hover:not(:disabled),
+button.bg-indigo-700:hover:not(:disabled),
+button.bg-blue-600:hover:not(:disabled),
+button.bg-blue-500:hover:not(:disabled),
+button.bg-blue-700:hover:not(:disabled),
+button.bg-violet-600:hover:not(:disabled),
+button.bg-violet-500:hover:not(:disabled),
+button.bg-emerald-600:hover:not(:disabled),
+button.bg-emerald-500:hover:not(:disabled),
+button.dark\:bg-\[\#3b82f6\]:hover:not(:disabled),
+button.bg-slate-900:not(.btn-ghost):not(.bg-transparent):hover:not(:disabled) {
   background: var(--color-brand-gradient) !important;
-  color: #000000 !important;
-  box-shadow: 0 4px 14px var(--accent-hover-shadow-dark) !important;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
+  color: #ffffff !important;
+  filter: brightness(1.1) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 22px 0 var(--btn-glow-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
 }
 
-.dark button.bg-\[\#7c5ff0\] *,
-.dark button.bg-indigo-600 *,
-.dark button.bg-blue-650 *,
-.dark button.bg-blue-600 *,
-.dark button.bg-blue-505 *,
-.dark button.bg-blue-500 *,
-.dark button.bg-slate-900 *,
-.dark .dashboard-btn-primary *,
-.dark button[type="submit"] * {
-  color: #000000 !important;
+/* Active / Click State - Tactile press */
+.dashboard-btn-primary:active:not(:disabled),
+.btn-primary:active:not(:disabled),
+.theme-btn-accent:active:not(:disabled),
+.theme-accent-btn:active:not(:disabled),
+button.dashboard-btn-primary:active:not(:disabled),
+a.dashboard-btn-primary:active,
+button[type="submit"]:not(.btn-secondary):not(.btn-ghost):not(.btn-outline):not(.bg-transparent):not(.bg-white):not(.bg-slate-100):not(.bg-gray-100):not(.bg-rose-500):not(.bg-red-600):not(.bg-red-500):active:not(:disabled),
+button.bg-\[\#7c5ff0\]:active:not(:disabled),
+button.bg-\[\#6c4be0\]:active:not(:disabled),
+button.bg-indigo-600:active:not(:disabled),
+button.bg-indigo-500:active:not(:disabled),
+button.bg-indigo-700:active:not(:disabled),
+button.bg-blue-600:active:not(:disabled),
+button.bg-blue-500:active:not(:disabled),
+button.bg-blue-700:active:not(:disabled),
+button.bg-violet-600:active:not(:disabled),
+button.bg-violet-500:active:not(:disabled),
+button.bg-emerald-600:active:not(:disabled),
+button.bg-emerald-500:active:not(:disabled),
+button.dark\:bg-\[\#3b82f6\]:active:not(:disabled),
+button.bg-slate-900:not(.btn-ghost):not(.bg-transparent):active:not(:disabled) {
+  transform: translateY(1px) scale(0.98) !important;
+  filter: brightness(0.96) !important;
+  box-shadow: 0 2px 6px 0 var(--btn-glow-shadow) !important;
 }
 
-button.bg-\[\#7c5ff0\]:hover,
-button.bg-indigo-600:hover,
-button.bg-blue-600:hover,
-button.bg-blue-500:hover,
-button.bg-slate-900:hover,
-.dashboard-btn-primary:hover {
-  opacity: 1 !important;
+/* Disabled State */
+.dashboard-btn-primary:disabled,
+.btn-primary:disabled,
+.theme-btn-accent:disabled,
+button[type="submit"]:disabled,
+button.bg-\[\#7c5ff0\]:disabled,
+button.bg-indigo-600:disabled,
+button.bg-blue-600:disabled,
+button.bg-violet-600:disabled,
+button.bg-emerald-600:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
   transform: none !important;
-  box-shadow: 0 6px 16px var(--accent-hover-shadow) !important;
-}
-
-.dark button.bg-\[\#7c5ff0\]:hover,
-.dark button.bg-indigo-600:hover,
-.dark button.bg-blue-600:hover,
-.dark button.bg-blue-500:hover,
-.dark button.bg-slate-900:hover,
-.dark .dashboard-btn-primary:hover,
-.dark button[type="submit"]:hover {
-  background: var(--accent-color-dark) !important;
-  background-color: var(--accent-color-dark) !important;
-  opacity: 0.9 !important;
-  transform: none !important;
-  color: #000000 !important;
-  box-shadow: 0 6px 20px var(--accent-hover-shadow-dark) !important;
+  box-shadow: none !important;
+  filter: grayscale(0.2) !important;
 }
 
 /* Dashboard Table Heading Override */
@@ -1601,157 +1662,146 @@ td:first-child {
 
 /* DEFAULT (OCEAN BLUE) */
 :root[data-accent="default"] {
-  --accent-color: #1c93f5;
-  --accent-color-dark: #2c8bff;
-  --accent-gradient: linear-gradient(180deg, #3fc2ff 0%, #69afe2 50%, #408ed8 100%);
-  --accent-gradient-dark: linear-gradient(135deg, #5e98f4, #60a5fa);
-  --accent-hover-shadow: rgba(64, 142, 216, 0.25);
-  --accent-hover-shadow-dark: rgba(96, 165, 250, 0.25);
-  --accent-light-bg-subtle: rgba(59, 130, 246, 0.1);
-  --accent-dark-bg-subtle: rgba(96, 165, 250, 0.1);
+  --accent-color: #2563eb;
+  --accent-color-dark: #3b82f6;
+  --accent-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #6366f1 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 60%, #60a5fa 100%);
+  --accent-hover-shadow: rgba(37, 99, 235, 0.35);
+  --accent-hover-shadow-dark: rgba(59, 130, 246, 0.35);
+  --accent-light-bg-subtle: rgba(37, 99, 235, 0.1);
+  --accent-dark-bg-subtle: rgba(59, 130, 246, 0.15);
 }
 
 /* CYAN */
 :root[data-accent="cyan"] {
-  --accent-color: #11d6f9;
-  --accent-color-dark: #22d3ee;
-  --accent-gradient: linear-gradient(135deg, #06b6d4, #22d3ee);
-  --accent-gradient-dark: linear-gradient(135deg, #06b6d4, #22d3ee);
-  --accent-hover-shadow: rgba(6, 182, 212, 0.3);
-  --accent-hover-shadow-dark: rgba(34, 211, 238, 0.3);
+  --accent-color: #0891b2;
+  --accent-color-dark: #1fd7f8;
+  --accent-gradient: linear-gradient(135deg, #05c9fa 0%, #0dcaeb 50%, #22d3ee 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #09b2e1 0%, #19b0d5 55%, #06b6d4 100%);
+  --accent-hover-shadow: rgba(6, 182, 212, 0.35);
+  --accent-hover-shadow-dark: rgba(34, 211, 238, 0.35);
   --accent-light-bg-subtle: rgba(6, 182, 212, 0.1);
-  --accent-dark-bg-subtle: rgba(34, 211, 238, 0.1);
+  --accent-dark-bg-subtle: rgba(34, 211, 238, 0.15);
 }
 
 /* LIME */
 :root[data-accent="lime"] {
-  --accent-color: #84cc16;
-  --accent-color-dark: #a3e635;
-  --accent-gradient: linear-gradient(135deg, #84cc16, #a3e635);
-  --accent-gradient-dark: linear-gradient(135deg, #84cc16, #a3e635);
-  --accent-hover-shadow: rgba(132, 204, 22, 0.3);
-  --accent-hover-shadow-dark: rgba(163, 230, 53, 0.25);
+  --accent-color: #65a30d;
+  --accent-color-dark: #84cc16;
+  --accent-gradient: linear-gradient(135deg, #4d7c0f 0%, #65a30d 50%, #84cc16 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #3f6212 0%, #4d7c0f 55%, #65a30d 100%);
+  --accent-hover-shadow: rgba(132, 204, 22, 0.35);
+  --accent-hover-shadow-dark: rgba(163, 230, 53, 0.35);
   --accent-light-bg-subtle: rgba(132, 204, 22, 0.1);
   --accent-dark-bg-subtle: rgba(163, 230, 53, 0.15);
 }
 
 /* FUCHSIA */
 :root[data-accent="fuchsia"] {
-  --accent-color: #d946ef;
-  --accent-color-dark: #e879f9;
-  --accent-gradient: linear-gradient(135deg, #d946ef, #e879f9);
-  --accent-gradient-dark: linear-gradient(135deg, #d946ef, #e879f9);
-  --accent-hover-shadow: rgba(217, 70, 239, 0.3);
-  --accent-hover-shadow-dark: rgba(232, 121, 249, 0.3);
+  --accent-color: #c026d3;
+  --accent-color-dark: #d946ef;
+  --accent-gradient: linear-gradient(135deg, #a21caf 0%, #c026d3 50%, #d946ef 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #86198f 0%, #a21caf 55%, #c026d3 100%);
+  --accent-hover-shadow: rgba(217, 70, 239, 0.35);
+  --accent-hover-shadow-dark: rgba(232, 121, 249, 0.35);
   --accent-light-bg-subtle: rgba(217, 70, 239, 0.1);
-  --accent-dark-bg-subtle: rgba(232, 121, 249, 0.1);
+  --accent-dark-bg-subtle: rgba(232, 121, 249, 0.15);
 }
 
 /* TEAL */
 :root[data-accent="teal"] {
-  --accent-color: #0d9488;
-  --accent-color-dark: #2dd4bf;
-  --accent-gradient: linear-gradient(135deg, #0d9488, #2dd4bf);
-  --accent-gradient-dark: linear-gradient(135deg, #0d9488, #2dd4bf);
-  --accent-hover-shadow: rgba(13, 148, 136, 0.3);
-  --accent-hover-shadow-dark: rgba(45, 212, 191, 0.3);
+  --accent-color: #0f766e;
+  --accent-color-dark: #0d9488;
+  --accent-gradient: linear-gradient(135deg, #0f766e 0%, #0d9488 50%, #2dd4bf 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #115e59 0%, #0f766e 55%, #0d9488 100%);
+  --accent-hover-shadow: rgba(13, 148, 136, 0.35);
+  --accent-hover-shadow-dark: rgba(45, 212, 191, 0.35);
   --accent-light-bg-subtle: rgba(13, 148, 136, 0.1);
-  --accent-dark-bg-subtle: rgba(45, 212, 191, 0.1);
+  --accent-dark-bg-subtle: rgba(45, 212, 191, 0.15);
 }
 
 /* RED */
 :root[data-accent="red"] {
   --accent-color: #dc2626;
-  --accent-color-dark: #f87171;
-  --accent-gradient: linear-gradient(135deg, #dc2626, #f87171);
-  --accent-gradient-dark: linear-gradient(135deg, #dc2626, #f87171);
-  --accent-hover-shadow: rgba(220, 38, 38, 0.3);
-  --accent-hover-shadow-dark: rgba(248, 113, 113, 0.3);
+  --accent-color-dark: #ef4444;
+  --accent-gradient: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #f87171 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #991b1b 0%, #b91c1c 55%, #dc2626 100%);
+  --accent-hover-shadow: rgba(220, 38, 38, 0.35);
+  --accent-hover-shadow-dark: rgba(248, 113, 113, 0.35);
   --accent-light-bg-subtle: rgba(220, 38, 38, 0.1);
-  --accent-dark-bg-subtle: rgba(248, 113, 113, 0.1);
+  --accent-dark-bg-subtle: rgba(248, 113, 113, 0.15);
 }
 
-/* MODERN INDIGO — PREMIUM SAAS */ :root[data-accent="indigo"] { --accent-color: #4F46E5; --accent-color-dark: #818CF8; --accent-gradient: linear-gradient(135deg, #4F46E5, #6366F1); --accent-gradient-dark: linear-gradient(135deg, #6366F1, #818CF8); --accent-hover-shadow: rgba(79, 70, 229, 0.25); --accent-hover-shadow-dark: rgba(129, 140, 248, 0.25); --accent-light-bg-subtle: rgba(79, 70, 229, 0.08); --accent-dark-bg-subtle: rgba(129, 140, 248, 0.12); }
+/* MODERN INDIGO — PREMIUM SAAS */
+:root[data-accent="indigo"] {
+  --accent-color: #4338ca;
+  --accent-color-dark: #4f46e5;
+  --accent-gradient: linear-gradient(135deg, #3730a3 0%, #4338ca 50%, #6366f1 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #312e81 0%, #3730a3 55%, #4f46e5 100%);
+  --accent-hover-shadow: rgba(79, 70, 229, 0.35);
+  --accent-hover-shadow-dark: rgba(129, 140, 248, 0.35);
+  --accent-light-bg-subtle: rgba(79, 70, 229, 0.1);
+  --accent-dark-bg-subtle: rgba(129, 140, 248, 0.15);
+}
 
 /* GOLD */
 :root[data-accent="gold"] {
-  --accent-color: #cb5e0a;
-  --accent-color-dark: #f59e0b;
-  --accent-gradient: linear-gradient(135deg, #b45309, #d97706);
-  --accent-gradient-dark: linear-gradient(135deg, #b45309, #f59e0b);
-  --accent-hover-shadow: rgba(180, 83, 9, 0.3);
-  --accent-hover-shadow-dark: rgba(245, 158, 11, 0.3);
+  --accent-color: #b45309;
+  --accent-color-dark: #d97706;
+  --accent-gradient: linear-gradient(135deg, #92400e 0%, #b45309 50%, #f59e0b 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #78350f 0%, #92400e 55%, #d97706 100%);
+  --accent-hover-shadow: rgba(180, 83, 9, 0.35);
+  --accent-hover-shadow-dark: rgba(245, 158, 11, 0.35);
   --accent-light-bg-subtle: rgba(180, 83, 9, 0.1);
-  --accent-dark-bg-subtle: rgba(245, 158, 11, 0.1);
+  --accent-dark-bg-subtle: rgba(245, 158, 11, 0.15);
 }
 
-/* Also patch existing accent variable overrides for emerald/violet/amber/rose that were missing */
+/* EMERALD GREEN */
 :root[data-accent="emerald"] {
-  --accent-color: #10b981;
-  --accent-color-dark: #34d399;
-  --accent-gradient: linear-gradient(135deg, #10b981, #34d399);
-  --accent-gradient-dark: #34d399;
-  --accent-hover-shadow: rgba(16, 185, 129, 0.3);
-  --accent-hover-shadow-dark: rgba(52, 211, 153, 0.3);
+  --accent-color: #059669;
+  --accent-color-dark: #10b981;
+  --accent-gradient: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #047857 0%, #059669 50%, #10b981 100%);
+  --accent-hover-shadow: rgba(16, 185, 129, 0.35);
+  --accent-hover-shadow-dark: rgba(52, 211, 153, 0.35);
   --accent-light-bg-subtle: rgba(16, 185, 129, 0.1);
-  --accent-dark-bg-subtle: rgba(52, 211, 153, 0.1);
+  --accent-dark-bg-subtle: rgba(52, 211, 153, 0.15);
 }
 
+/* ROYAL PURPLE / VIOLET */
 :root[data-accent="violet"] {
-  --accent-color: #7c3aed;
-  --accent-color-dark: #a78bfa;
-  --accent-gradient: linear-gradient(135deg, #7c3aed, #a78bfa);
-  --accent-gradient-dark: #a78bfa;
-  --accent-hover-shadow: rgba(124, 58, 237, 0.3);
-  --accent-hover-shadow-dark: rgba(167, 139, 250, 0.3);
+  --accent-color: #6d28d9;
+  --accent-color-dark: #7c3aed;
+  --accent-gradient: linear-gradient(135deg, #6d28d9 0%, #7c3aed 50%, #a855f7 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #5b21b6 0%, #6d28d9 50%, #7c3aed 100%);
+  --accent-hover-shadow: rgba(124, 58, 237, 0.35);
+  --accent-hover-shadow-dark: rgba(167, 139, 250, 0.35);
   --accent-light-bg-subtle: rgba(124, 58, 237, 0.1);
-  --accent-dark-bg-subtle: rgba(167, 139, 250, 0.1);
+  --accent-dark-bg-subtle: rgba(167, 139, 250, 0.15);
 }
 
+/* SUNSET ORANGE / AMBER */
 :root[data-accent="amber"] {
-  --accent-color: #f59e0b;
-  --accent-color-dark: #fbbf24;
-  --accent-gradient: linear-gradient(135deg, #f59e0b, #fb923c);
-  --accent-gradient-dark: #fbbf24;
-  --accent-hover-shadow: rgba(245, 158, 11, 0.3);
-  --accent-hover-shadow-dark: rgba(251, 191, 36, 0.3);
+  --accent-color: #d97706;
+  --accent-color-dark: #f59e0b;
+  --accent-gradient: linear-gradient(135deg, #d97706 0%, #f59e0b 50%, #fb923c 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #b45309 0%, #d97706 50%, #f59e0b 100%);
+  --accent-hover-shadow: rgba(245, 158, 11, 0.35);
+  --accent-hover-shadow-dark: rgba(251, 191, 36, 0.35);
   --accent-light-bg-subtle: rgba(245, 158, 11, 0.1);
-  --accent-dark-bg-subtle: rgba(251, 191, 36, 0.1);
+  --accent-dark-bg-subtle: rgba(251, 191, 36, 0.15);
 }
 
+/* HOT PINK / ROSE */
 :root[data-accent="rose"] {
-  --accent-color: #f43f5e;
-  --accent-color-dark: #fb7185;
-  --accent-gradient: linear-gradient(135deg, #f43f5e, #fb7185);
-  --accent-gradient-dark: #fb7185;
-  --accent-hover-shadow: rgba(244, 63, 94, 0.3);
-  --accent-hover-shadow-dark: rgba(251, 113, 133, 0.3);
+  --accent-color: #e11d48;
+  --accent-color-dark: #f43f5e;
+  --accent-gradient: linear-gradient(135deg, #e11d48 0%, #f43f5e 50%, #fb7185 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #be123c 0%, #e11d48 50%, #f43f5e 100%);
+  --accent-hover-shadow: rgba(244, 63, 94, 0.35);
+  --accent-hover-shadow-dark: rgba(251, 113, 133, 0.35);
   --accent-light-bg-subtle: rgba(244, 63, 94, 0.1);
-  --accent-dark-bg-subtle: rgba(251, 113, 133, 0.1);
-}
-
-/* DARK MAUVE */
-:root[data-accent="mauve"] {
-  --accent-color: #582c4d;
-  --accent-color-dark: #8b4f7a;
-  --accent-gradient: linear-gradient(135deg, #582c4d, #7d3f6b);
-  --accent-gradient-dark: linear-gradient(135deg, #7d3f6b, #a05c8a);
-  --accent-hover-shadow: rgba(88, 44, 77, 0.35);
-  --accent-hover-shadow-dark: rgba(139, 79, 122, 0.35);
-  --accent-light-bg-subtle: rgba(88, 44, 77, 0.1);
-  --accent-dark-bg-subtle: rgba(139, 79, 122, 0.12);
-}
-
-/* LAVENDER MIST */
-:root[data-accent="lavender"] {
-  --accent-color: #8f7dac;
-  --accent-color-dark: #d5cfe1;
-  --accent-gradient: linear-gradient(135deg, #8f7dac, #b8aecf);
-  --accent-gradient-dark: linear-gradient(135deg, #b8aecf, #d5cfe1);
-  --accent-hover-shadow: rgba(143, 125, 172, 0.35);
-  --accent-hover-shadow-dark: rgba(213, 207, 225, 0.25);
-  --accent-light-bg-subtle: rgba(143, 125, 172, 0.1);
-  --accent-dark-bg-subtle: rgba(213, 207, 225, 0.1);
+  --accent-dark-bg-subtle: rgba(251, 113, 133, 0.15);
 }
 
 * {

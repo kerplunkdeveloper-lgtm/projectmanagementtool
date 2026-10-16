@@ -30,4 +30,7 @@ const goalSchema = new mongoose.Schema({
   },
 });
 
+// Indexes to optimize goal queries by user
+goalSchema.index({ user: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Goal', goalSchema);

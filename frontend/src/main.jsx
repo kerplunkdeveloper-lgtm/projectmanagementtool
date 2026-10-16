@@ -13,7 +13,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <ThemeProvider>
         <App />
-        <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} />
+        <Toaster position="top-center" containerStyle={{ zIndex: 99999 }} />
       </ThemeProvider>
     </BrowserRouter>
   </Provider>

@@ -1048,34 +1048,70 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                                 </div>
 
                                 <div className="flex-1 min-w-0 pr-6">
-                                  {n.sender?.name && (
-                                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                                      <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 truncate">
-                                        {n.sender.name}
-                                      </span>
-                                      {(() => {
-                                        const dept = getSenderDepartment(n);
-                                        return dept ? (
-                                          <span
-                                            className={`text-[8.5px] font-extrabold px-1.5 py-0.5 rounded-md border tracking-wider uppercase shadow-2xs ${getDepartmentBadgeStyle(
-                                              dept,
-                                            )}`}
-                                          >
-                                            {dept}
+                                  {(() => {
+                                    const clientName =
+                                      n.clientName ||
+                                      n.client?.companyName ||
+                                      n.project?.client?.companyName ||
+                                      n.task?.project?.client?.companyName ||
+                                      (n.message?.match(/for client\s+["']?([^"'.\n]+)["']?/i)?.[1]?.trim());
+
+                                    return (
+                                      <>
+                                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                                          {n.sender?.name && (
+                                            <>
+                                              <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 truncate">
+                                                {n.sender.name}
+                                              </span>
+                                              {(() => {
+                                                const dept = getSenderDepartment(n);
+                                                return dept ? (
+                                                  <span
+                                                    className={`text-[8.5px] font-extrabold px-1.5 py-0.5 rounded-md border tracking-wider uppercase shadow-2xs ${getDepartmentBadgeStyle(
+                                                      dept,
+                                                    )}`}
+                                                  >
+                                                    {dept}
+                                                  </span>
+                                                ) : null;
+                                              })()}
+                                              <span className="text-[9px] text-slate-400 font-semibold">•</span>
+                                            </>
+                                          )}
+
+                                          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                            {n.type === "task_assigned"
+                                              ? "Task Assigned"
+                                              : n.type === "task_updated"
+                                              ? "Task Update"
+                                              : n.type === "shoot_assigned"
+                                              ? "Shoot Assigned"
+                                              : n.sender?.name ? "Sender" : "Alert"}
                                           </span>
-                                        ) : null;
-                                      })()}
-                                      <span className="text-[9px] text-slate-400 font-semibold">•</span>
-                                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                                        {n.type === "task_assigned" || n.type === "shoot_assigned" ? "Assigner" : "Sender"}
-                                      </span>
-                                    </div>
-                                  )}
-                                  <p
-                                    className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"}`}
-                                  >
-                                    {n.message}
-                                  </p>
+
+                                          {/* Client Pill Badge */}
+                                          {clientName && (
+                                            <span
+                                              className="inline-flex items-center gap-1 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25 shadow-2xs"
+                                              title={`Client: ${clientName}`}
+                                            >
+                                              <FiBriefcase size={9} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                                              <span className="truncate max-w-[130px]">{clientName}</span>
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <p
+                                          className={`text-[11px] leading-relaxed break-words ${
+                                            !n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"
+                                          }`}
+                                        >
+                                          {n.message}
+                                        </p>
+                                      </>
+                                    );
+                                  })()}
                                   {(() => {
                                     const timeInfo = getNotificationTimeInfo(n.createdAt);
                                     const exactTime = n.createdAt

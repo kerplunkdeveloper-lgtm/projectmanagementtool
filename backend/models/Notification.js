@@ -28,6 +28,14 @@ const NotificationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project',
   },
+  client: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Client',
+  },
+  clientName: {
+    type: String,
+    default: '',
+  },
   shoot: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Shoot',

@@ -180,18 +180,23 @@ const projectSlice =
     reducers: {},
 
     extraReducers: (builder) => {
-
       builder
-
-
+        // RESET ON LOGOUT / LOGIN
+        .addCase("auth/logoutUser/fulfilled", (state) => {
+          state.projects = [];
+          state.loading = false;
+          state.error = null;
+        })
+        .addCase("auth/loginUser/fulfilled", (state) => {
+          state.projects = [];
+          state.loading = false;
+          state.error = null;
+        })
 
         // GET PROJECTS
-
         .addCase(
           getProjects.pending,
-
           (state) => {
-
             state.loading = true;
           }
         )

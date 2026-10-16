@@ -105,7 +105,7 @@ const CalendarPage = () => {
               ),
               {
                 duration: 8000,
-                position: "top-right",
+                position: "top-center",
                 style: {
                   borderRadius: "16px",
                   background: "#ffffff",

@@ -44,6 +44,21 @@ const getISTDateStr = (date = new Date()) => {
   }
 };
 
+const getProjectClientInfo = async (projectId) => {
+  if (!projectId) return { clientId: null, clientName: "" };
+  try {
+    const proj = await Project.findById(projectId).populate("client", "companyName").lean();
+    if (proj?.client) {
+      const companyName = typeof proj.client === "object" ? proj.client.companyName : "";
+      const clientId = proj.client._id || proj.client;
+      return { clientId, clientName: companyName || "" };
+    }
+  } catch (e) {
+    console.error("Error fetching project client info:", e);
+  }
+  return { clientId: null, clientName: "" };
+};
+
 const calculateSessionWorkingTime = (item, sessionEndTime = Date.now(), startHour = 9, endHour = 19, workingDays = [1, 2, 3, 4, 5, 6]) => {
   if (!item.actualStartTime) return 0;
   const start = new Date(item.actualStartTime).getTime();
@@ -745,18 +760,28 @@ exports.createTask = async (req, res) => {
 
     // Real-time Notification
     if (task.assignedTo) {
+      const { clientId, clientName } = await getProjectClientInfo(task.project);
+      const messageText = clientName
+        ? `You have been assigned to the task "${task.title}" for client "${clientName}".`
+        : `You have been assigned to the task "${task.title}".`;
+
       const notification = await Notification.create({
         recipient: task.assignedTo,
         sender: req.user._id,
         type: "task_assigned",
-        message: `You have been assigned a new task: "${task.title}"`,
+        message: messageText,
         task: task._id,
         project: task.project,
+        client: clientId,
+        clientName: clientName,
       });
 
       const io = req.app.get("io");
       if (io) {
-        const populatedNotification = await Notification.findById(notification._id).populate({ path: "sender", select: "name profile", populate: { path: "profile", select: "profileImage" } });
+        const populatedNotification = await Notification.findById(notification._id)
+          .populate({ path: "sender", select: "name profile department role", populate: { path: "profile", select: "profileImage" } })
+          .populate({ path: "client", select: "companyName" })
+          .populate({ path: "project", select: "name client", populate: { path: "client", select: "companyName" } });
         io.to(task.assignedTo.toString()).emit("notification", populatedNotification);
       }
     }
@@ -1160,6 +1185,9 @@ exports.updateTask = async (req, res) => {
         populate: { path: "profile", select: "profileImage" }
       });
 
+    // Fetch client information for task notifications
+    const { clientId, clientName } = await getProjectClientInfo(task.project?._id || task.project);
+
     // Check if task status has been updated (e.g. marked completed)
     if (req.body.status && req.body.status !== previousStatus) {
       const io = req.app.get("io");
@@ -1175,20 +1203,27 @@ exports.updateTask = async (req, res) => {
           recipientIds.add(creatorId.toString());
         }
 
-        // Notify creator is handled above. Only the creator (the particular SMM who created it) will be notified, along with admins and operation managers.
+        const messageText = clientName
+          ? `${req.user.name} (${req.user.department || 'Team'}) marked the task "${task.title}" as ${task.status} for client "${clientName}".`
+          : `${req.user.name} (${req.user.department || 'Team'}) marked the task "${task.title}" as ${task.status}.`;
 
         for (const recipientId of recipientIds) {
           const notification = await Notification.create({
             recipient: recipientId,
             sender: req.user._id,
             type: "task_updated",
-            message: `${req.user.department || 'Member'} - ${req.user.name} updated task "${task.title}" to: ${task.status}`,
+            message: messageText,
             task: task._id,
             project: task.project?._id || task.project,
+            client: clientId,
+            clientName: clientName,
           });
 
           if (io) {
-            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+            const populatedNotification = await Notification.findById(notification._id)
+              .populate({ path: "sender", select: "name profile department role", populate: { path: "profile", select: "profileImage" } })
+              .populate({ path: "client", select: "companyName" })
+              .populate({ path: "project", select: "name client", populate: { path: "client", select: "companyName" } });
             io.to(recipientId).emit("notification", populatedNotification);
           }
         }
@@ -1206,18 +1241,27 @@ exports.updateTask = async (req, res) => {
           recipientIds.add(creatorId.toString());
         }
 
+        const messageText = clientName
+          ? `The status of task "${task.title}" for client "${clientName}" was updated to "${task.status}".`
+          : `The status of task "${task.title}" was updated to "${task.status}".`;
+
         for (const recipientId of recipientIds) {
           const notification = await Notification.create({
             recipient: recipientId,
             sender: req.user._id,
             type: "task_updated",
-            message: `Task "${task.title}" status updated to: ${task.status}`,
+            message: messageText,
             task: task._id,
             project: task.project?._id || task.project,
+            client: clientId,
+            clientName: clientName,
           });
 
           if (io) {
-            const populatedNotification = await Notification.findById(notification._id).populate({ path: "sender", select: "name profile", populate: { path: "profile", select: "profileImage" } });
+            const populatedNotification = await Notification.findById(notification._id)
+              .populate({ path: "sender", select: "name profile department role", populate: { path: "profile", select: "profileImage" } })
+              .populate({ path: "client", select: "companyName" })
+              .populate({ path: "project", select: "name client", populate: { path: "client", select: "companyName" } });
             io.to(recipientId).emit("notification", populatedNotification);
           }
         }
@@ -1226,18 +1270,27 @@ exports.updateTask = async (req, res) => {
 
     // Check if task has been assigned to a different user
     if (req.body.assignedTo && req.body.assignedTo.toString() !== previousAssignee?.toString()) {
+      const messageText = clientName
+        ? `You have been assigned to the task "${task.title}" for client "${clientName}" by ${req.user.name}.`
+        : `You have been assigned to the task "${task.title}" by ${req.user.name}.`;
+
       const notification = await Notification.create({
         recipient: req.body.assignedTo,
         sender: req.user._id,
         type: "task_assigned",
-        message: `You have been assigned the task: "${task.title}" , Assigned by : "${req.user.name}" `,
+        message: messageText,
         task: task._id,
         project: task.project?._id || task.project,
+        client: clientId,
+        clientName: clientName,
       });
 
       const io = req.app.get("io");
       if (io) {
-        const populatedNotification = await Notification.findById(notification._id).populate({ path: "sender", select: "name profile", populate: { path: "profile", select: "profileImage" } });
+        const populatedNotification = await Notification.findById(notification._id)
+          .populate({ path: "sender", select: "name profile department role", populate: { path: "profile", select: "profileImage" } })
+          .populate({ path: "client", select: "companyName" })
+          .populate({ path: "project", select: "name client", populate: { path: "client", select: "companyName" } });
         io.to(req.body.assignedTo.toString()).emit("notification", populatedNotification);
       }
     }
@@ -1253,17 +1306,26 @@ exports.updateTask = async (req, res) => {
           // New subtask added! If assigned, send notification
           const subAssignee = sub.assignedTo?._id || sub.assignedTo;
           if (subAssignee) {
+            const messageText = clientName
+              ? `You have been assigned to a new subtask "${sub.title || 'Untitled'}" under "${task.title}" for client "${clientName}".`
+              : `You have been assigned to a new subtask "${sub.title || 'Untitled'}" under "${task.title}".`;
+
             const notification = await Notification.create({
               recipient: subAssignee,
               sender: req.user._id,
               type: "task_assigned",
-              message: `You have been assigned a new subtask: "${sub.title || 'Untitled'}" in task "${task.title}"`,
+              message: messageText,
               task: task._id,
               project: task.project?._id || task.project,
+              client: clientId,
+              clientName: clientName,
             });
 
             if (io) {
-              const populatedNotification = await Notification.findById(notification._id).populate({ path: "sender", select: "name profile", populate: { path: "profile", select: "profileImage" } });
+              const populatedNotification = await Notification.findById(notification._id)
+                .populate({ path: "sender", select: "name profile department role", populate: { path: "profile", select: "profileImage" } })
+                .populate({ path: "client", select: "companyName" })
+                .populate({ path: "project", select: "name client", populate: { path: "client", select: "companyName" } });
               io.to(subAssignee.toString()).emit("notification", populatedNotification);
             }
           }
@@ -1274,17 +1336,26 @@ exports.updateTask = async (req, res) => {
 
           if (currSubAssignee && currSubAssignee.toString() !== prevSubAssignee?.toString()) {
             // Assigned to someone else
+            const messageText = clientName
+              ? `You have been assigned to the subtask "${sub.title}" under "${task.title}" for client "${clientName}".`
+              : `You have been assigned to the subtask "${sub.title}" under "${task.title}".`;
+
             const notification = await Notification.create({
               recipient: currSubAssignee,
               sender: req.user._id,
               type: "task_assigned",
-              message: `You have been assigned the subtask: "${sub.title}" in task "${task.title}"`,
+              message: messageText,
               task: task._id,
               project: task.project?._id || task.project,
+              client: clientId,
+              clientName: clientName,
             });
 
             if (io) {
-              const populatedNotification = await Notification.findById(notification._id).populate({ path: "sender", select: "name profile", populate: { path: "profile", select: "profileImage" } });
+              const populatedNotification = await Notification.findById(notification._id)
+                .populate({ path: "sender", select: "name profile department role", populate: { path: "profile", select: "profileImage" } })
+                .populate({ path: "client", select: "companyName" })
+                .populate({ path: "project", select: "name client", populate: { path: "client", select: "companyName" } });
               io.to(currSubAssignee.toString()).emit("notification", populatedNotification);
             }
           }
@@ -1302,18 +1373,27 @@ exports.updateTask = async (req, res) => {
                 recipientIds.add(creatorId.toString());
               }
 
+              const messageText = clientName
+                ? `${req.user.name} updated the subtask "${sub.title}" to "${sub.status}" under "${task.title}" for client "${clientName}".`
+                : `${req.user.name} updated the subtask "${sub.title}" to "${sub.status}" under "${task.title}".`;
+
               for (const recipientId of recipientIds) {
                 const notification = await Notification.create({
                   recipient: recipientId,
                   sender: req.user._id,
                   type: "task_updated",
-                  message: `Member ${req.user.name} updated subtask "${sub.title}" to: ${sub.status} (in task "${task.title}")`,
+                  message: messageText,
                   task: task._id,
                   project: task.project?._id || task.project,
+                  client: clientId,
+                  clientName: clientName,
                 });
 
                 if (io) {
-                  const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+                  const populatedNotification = await Notification.findById(notification._id)
+                    .populate({ path: "sender", select: "name profile department role", populate: { path: "profile", select: "profileImage" } })
+                    .populate({ path: "client", select: "companyName" })
+                    .populate({ path: "project", select: "name client", populate: { path: "client", select: "companyName" } });
                   io.to(recipientId).emit("notification", populatedNotification);
                 }
               }
@@ -1328,18 +1408,27 @@ exports.updateTask = async (req, res) => {
                 recipientIds.add(creatorId.toString());
               }
 
+              const messageText = clientName
+                ? `The status of subtask "${sub.title}" under "${task.title}" for client "${clientName}" was updated to "${sub.status}".`
+                : `The status of subtask "${sub.title}" under "${task.title}" was updated to "${sub.status}".`;
+
               for (const recipientId of recipientIds) {
                 const notification = await Notification.create({
                   recipient: recipientId,
                   sender: req.user._id,
                   type: "task_updated",
-                  message: `Subtask "${sub.title}" status updated to: ${sub.status} (in task "${task.title}")`,
+                  message: messageText,
                   task: task._id,
                   project: task.project?._id || task.project,
+                  client: clientId,
+                  clientName: clientName,
                 });
 
                 if (io) {
-                  const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+                  const populatedNotification = await Notification.findById(notification._id)
+                    .populate({ path: "sender", select: "name profile department role", populate: { path: "profile", select: "profileImage" } })
+                    .populate({ path: "client", select: "companyName" })
+                    .populate({ path: "project", select: "name client", populate: { path: "client", select: "companyName" } });
                   io.to(recipientId).emit("notification", populatedNotification);
                 }
               }

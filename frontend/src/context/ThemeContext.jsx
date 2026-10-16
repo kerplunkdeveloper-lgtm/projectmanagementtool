@@ -25,8 +25,9 @@ const applyPrefs = (prefs, setters) => {
     localStorage.setItem("theme", prefs.themePreference);
   }
   if (prefs.accentColor) {
-    setAccentColorState(prefs.accentColor);
-    localStorage.setItem("accentColor", prefs.accentColor);
+    const safeColor = (prefs.accentColor === "mauve" || prefs.accentColor === "lavender") ? "emerald" : prefs.accentColor;
+    setAccentColorState(safeColor);
+    localStorage.setItem("accentColor", safeColor);
   }
   if (prefs.soundEnabled !== undefined) {
     setSoundEnabledState(prefs.soundEnabled);
@@ -51,7 +52,9 @@ export const ThemeProvider = ({ children }) => {
   });
 
   const [accentColor, setAccentColorState] = useState(() => {
-    return localStorage.getItem("accentColor") || "emerald";
+    const saved = localStorage.getItem("accentColor");
+    if (saved === "mauve" || saved === "lavender") return "emerald";
+    return saved || "emerald";
   });
 
   const [soundEnabled, setSoundEnabledState] = useState(() => {

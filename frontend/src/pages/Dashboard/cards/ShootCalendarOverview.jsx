@@ -24,7 +24,7 @@ import {
 import { format, isToday, isTomorrow, isThisWeek, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../../services/axiosInstance";
-import io from "socket.io-client";
+import { useSocketContext } from "../../../context/SocketContext";
 
 // Status styling definitions
 const getStatusStyles = (status) => {
@@ -90,6 +90,7 @@ const getRelativeDateLabel = (date) => {
 const ShootCalendarOverview = () => {
   const navigate = useNavigate();
   const currentUser = useSelector((state) => state.auth?.user);
+  const { socket } = useSocketContext() || {};
 
   const [shoots, setShoots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,41 +133,19 @@ const ShootCalendarOverview = () => {
     }
   }, [hasReadPerm]);
 
-  // Real-time live update listener
+  // Real-time live update listener via shared socket
   useEffect(() => {
-    if (!hasReadPerm) return;
+    if (!hasReadPerm || !socket) return;
 
-    let baseUrl = import.meta.env.VITE_API_BASE_URL;
-    if (
-      typeof window !== "undefined" &&
-      window.location.hostname !== "localhost" &&
-      window.location.hostname !== "127.0.0.1"
-    ) {
-      if (!baseUrl || baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
-        baseUrl = window.location.origin;
-      }
-    }
-    const socketUrl = (baseUrl || (typeof window !== "undefined" ? window.location.origin : "http://localhost:5001"))
-      .replace(/\/api\/?$/, "")
-      .replace(/\/+$/, "");
-
-    const socket = io(socketUrl, {
-      transports: ["polling", "websocket"],
-      withCredentials: true,
-    });
-
-    const currentUserId = currentUser?._id || currentUser?.id;
-    if (currentUserId) {
-      socket.emit("join", currentUserId.toString());
-    }
-
-    socket.on("shoot_created", () => fetchShoots());
-    socket.on("shoot_updated", () => fetchShoots());
+    const onShootUpdate = () => fetchShoots();
+    socket.on("shoot_created", onShootUpdate);
+    socket.on("shoot_updated", onShootUpdate);
 
     return () => {
-      socket.disconnect();
+      socket.off("shoot_created", onShootUpdate);
+      socket.off("shoot_updated", onShootUpdate);
     };
-  }, [currentUser, hasReadPerm]);
+  }, [hasReadPerm, socket]);
 
   // Filter shoots allowed for the user's role
   const allowedShoots = useMemo(() => {

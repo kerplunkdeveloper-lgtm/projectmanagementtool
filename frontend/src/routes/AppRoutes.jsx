@@ -26,11 +26,9 @@ const lazyWithRetry = (importFn) => {
   });
 };
 
-// Lazy Loaded Pages & Layouts
+// Core layout & pages for instant dashboard transition
 const Login = lazyWithRetry(() => import("../pages/auth/Login.jsx"));
-const DashboardLayout = lazyWithRetry(
-  () => import("../components/layout/DashboardLayout.jsx"),
-);
+import DashboardLayout from "../components/layout/DashboardLayout.jsx";
 import Dashboardmain from "../pages/Dashboard/Dashboardmain.jsx";
 const Project = lazyWithRetry(() => import("../pages/projects/Project.jsx"));
 const DesignerTasks = lazyWithRetry(
