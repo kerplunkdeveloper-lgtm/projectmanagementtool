@@ -462,18 +462,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     }
   }, [activePortfolioId, activeProjectId, projects, portfolios]);
 
-  const fetchedMainDataRef = React.useRef(false);
+  const fetchedUserRef = React.useRef(null);
   useEffect(() => {
-    if (!fetchedMainDataRef.current) {
-      if (!projects || projects.length === 0) dispatch(getProjects());
-      if (!portfolios || portfolios.length === 0) dispatch(getPortfolios());
-      if (!clients || clients.length === 0) dispatch(getClients());
-      if (role === "admin" && (!users || users.length === 0)) {
+    const currentUserId = currentUser?._id || currentUser?.id;
+    if (currentUserId && fetchedUserRef.current !== currentUserId) {
+      fetchedUserRef.current = currentUserId;
+      dispatch(getProjects());
+      dispatch(getPortfolios());
+      dispatch(getClients());
+      if (role === "admin") {
         dispatch(getUsers());
       }
-      fetchedMainDataRef.current = true;
     }
-  }, [dispatch, role, projects, portfolios, clients, users]);
+  }, [dispatch, role, currentUser?._id, currentUser?.id]);
 
   const handleSwitchUser = async (userId) => {
     try {

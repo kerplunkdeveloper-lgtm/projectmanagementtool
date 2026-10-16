@@ -1463,17 +1463,23 @@ const Dashboardmain = () => {
     return name.substring(0, 2).toUpperCase();
   };
 
+  const initialFetchDoneRef = React.useRef(null);
   useEffect(() => {
-    if (!projects || projects.length === 0) dispatch(getProjects());
-    if (!users || users.length === 0) dispatch(getUsers());
+    const currentUserId = user?._id || user?.id;
+    if (!currentUserId) return;
+    if (initialFetchDoneRef.current === currentUserId) return;
+    initialFetchDoneRef.current = currentUserId;
+
+    dispatch(getProjects());
+    dispatch(getUsers());
     if (
       user?.role === "admin" ||
       user?.role === "operationmanager" ||
       user?.role === "team"
     ) {
-      if (!clients || clients.length === 0) dispatch(getClients());
+      dispatch(getClients());
     }
-  }, [dispatch, user?._id, user?.role, projects, users, clients]);
+  }, [dispatch, user?._id, user?.id, user?.role]);
 
   useEffect(() => {
     if (clients && clients.length > 0 && !clientId && clients[0]?._id) {

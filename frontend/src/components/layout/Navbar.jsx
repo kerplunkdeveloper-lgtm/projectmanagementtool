@@ -660,11 +660,14 @@ const Navbar = ({ setSidebarOpen, presence }) => {
 
   const allFilteredItems = getSearchItems();
 
+  const clientsFetchedForUserRef = useRef(null);
   useEffect(() => {
-    if (user && !clientsLoading && (!clients || clients.length === 0)) {
+    const currentUserId = user?._id || user?.id;
+    if (currentUserId && clientsFetchedForUserRef.current !== currentUserId) {
+      clientsFetchedForUserRef.current = currentUserId;
       dispatch(getClients());
     }
-  }, [dispatch, user]);
+  }, [dispatch, user?._id, user?.id]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {

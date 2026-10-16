@@ -18,11 +18,18 @@ const DashboardCards = () => {
   const { users } = useSelector((state) => state.users);
   const { projects } = useSelector((state) => state.projects);
 
+  const isAdminOrOpManager = user?.role === "admin" || user?.role === "operationmanager";
+  const fetchedRef = React.useRef(false);
+
   useEffect(() => {
-    if (!clients || clients.length === 0) dispatch(getClients());
-    if (!users || users.length === 0) dispatch(getUsers());
-    if (!projects || projects.length === 0) dispatch(getProjects());
-  }, [dispatch, clients, users, projects]);
+    if (!isAdminOrOpManager) return;
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      dispatch(getClients());
+      dispatch(getUsers());
+      dispatch(getProjects());
+    }
+  }, [dispatch, isAdminOrOpManager]);
 
   const activeClientsCount = (clients || []).filter(
     (c) => !c.status || c.status === "Active",
@@ -68,8 +75,6 @@ const DashboardCards = () => {
     
     return { icon: <FiUsers />, bg: "bg-slate-500", color: "text-slate-500", lightBg: "bg-slate-50" };
   };
-
-  const isAdminOrOpManager = user?.role === "admin" || user?.role === "operationmanager";
 
   if (!isAdminOrOpManager) return null;
 
