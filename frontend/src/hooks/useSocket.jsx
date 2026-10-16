@@ -188,10 +188,7 @@ const useSocket = (externalSocket) => {
           const isMention = notification.type === "mention_received";
           const isReaction = notification.type === "reaction_received";
 
-          // Increment unread count in Redux if it's not a reaction
-          if (notification.chatRoomId && !isReaction) {
-            dispatch(incrementUnreadCount({ chatId: notification.chatRoomId }));
-          }
+          // Unread count is already accurately maintained by receiveMessage on direct_message / group_message events
 
           // If the user is currently viewing this exact chat conversation, suppress the popup
           if (

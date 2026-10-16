@@ -18,6 +18,7 @@ import {
   markChatAsRead,
   markChatAsReadAction,
   fetchLastMessages,
+  fetchUnreadChatCounts,
   setActiveChatId,
   clearChatAction,
   clearChatLocal,
@@ -595,6 +596,7 @@ const ChatPage = () => {
     dispatch(getUsers());
     dispatch(fetchRooms());
     dispatch(fetchLastMessages());
+    dispatch(fetchUnreadChatCounts());
   }, [dispatch]);
 
   // Use a ref for rooms so the chat loading effect doesn't re-run when rooms list updates
@@ -1319,11 +1321,16 @@ const ChatPage = () => {
 
   const formatLastMessageText = (msg) => {
     if (!msg) return "";
-    if (msg.messageType === "sticker") return "🎨 Sent a sticker";
+    const senderId = msg.sender?._id ? msg.sender._id.toString() : (msg.sender?.toString() || "");
+    const myId = currentUserId ? currentUserId.toString() : "";
+    const isMe = senderId && myId && senderId === myId;
+    const prefix = isMe ? "You: " : "";
+
+    if (msg.messageType === "sticker") return `${prefix}🎨 Sticker`;
     if (msg.messageType === "file")
-      return `📁 Sent a file: ${msg.file?.filename || "Attachment"}`;
-    if (msg.messageType === "call") return "📞 Live Call Meet";
-    return msg.text;
+      return `${prefix}📁 ${msg.file?.filename || "Attachment"}`;
+    if (msg.messageType === "call") return `${prefix}📞 Live Call Meet`;
+    return `${prefix}${msg.text || ""}`;
   };
 
   const formatRelativeTime = (dateStr) => {
@@ -1350,19 +1357,24 @@ const ChatPage = () => {
         const unreadA = unreadCounts[a._id] || 0;
         const unreadB = unreadCounts[b._id] || 0;
 
-        // 1. Unread chats at the very top
+        // 1. Unread conversations float to the very top (prioritized by recency if both have unread)
         if (unreadA > 0 && unreadB === 0) return -1;
         if (unreadB > 0 && unreadA === 0) return 1;
 
-        // 2. Latest message timestamp (newest first)
+        // 2. Latest message timestamp (newest message first)
         const msgA = lastMessages[a._id];
         const msgB = lastMessages[b._id];
-        const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
-        const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
+        const timeA = msgA?.createdAt ? new Date(msgA.createdAt).getTime() : 0;
+        const timeB = msgB?.createdAt ? new Date(msgB.createdAt).getTime() : 0;
 
         if (timeA !== timeB) return timeB - timeA;
 
-        return a.name.localeCompare(b.name);
+        // 3. Online presence prioritizes active users if neither has message history
+        const onlineA = onlineUsers.includes(a._id) ? 1 : 0;
+        const onlineB = onlineUsers.includes(b._id) ? 1 : 0;
+        if (onlineA !== onlineB) return onlineB - onlineA;
+
+        return (a.name || "").localeCompare(b.name || "");
       })
     : [];
 
@@ -1440,18 +1452,21 @@ const ChatPage = () => {
                   setActiveChat("group");
                   dispatch(setActiveChatId("group"));
                   dispatch(markChatAsRead("group"));
+                  dispatch(markChatAsReadAction("group"));
                   setShowChatWindowMobile(true);
                 }}
                 className={`chat-sidebar-item transition-all ${
                   activeChat === "group"
                     ? "chat-sidebar-item-active"
                     : unreadCounts["group"] > 0
-                      ? "bg-rose-50/90 dark:bg-rose-950/50 border-l-4 border-l-rose-500 shadow-md"
+                      ? "chat-sidebar-item-unread ring-1 ring-blue-500/20 dark:ring-blue-400/25"
                       : ""
                 }`}
               >
                 <div
-                  className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 text-white shadow-sm relative`}
+                  className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 text-white shadow-sm relative transition-all ${
+                    unreadCounts["group"] > 0 ? "ring-2 ring-blue-500/30" : ""
+                  }`}
                   style={{
                     backgroundColor: "var(--accent-color)",
                     color: "#ffffff",
@@ -1459,7 +1474,10 @@ const ChatPage = () => {
                 >
                   <img src={grouplogo} alt="" />
                   {unreadCounts["group"] > 0 && (
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 animate-bounce" />
+                    <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 pointer-events-none">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-blue-600 dark:bg-blue-500 border-2 border-white dark:border-slate-900"></span>
+                    </span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1467,37 +1485,46 @@ const ChatPage = () => {
                     <span
                       className={`item-title truncate ${
                         unreadCounts["group"] > 0
-                          ? "font-black text-rose-700 dark:text-rose-300"
+                          ? "font-black text-slate-900 dark:text-white"
                           : ""
                       }`}
                     >
                       Kerplunk Group
                     </span>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {unreadCounts["group"] > 0 ? (
-                        <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                          {unreadCounts["group"]} unread
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                          {lastMessages["group"]
-                            ? formatRelativeTime(lastMessages["group"].createdAt)
-                            : "Global"}
+                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                      <span
+                        className={`text-[10px] tracking-tight ${
+                          unreadCounts["group"] > 0
+                            ? "font-bold text-blue-600 dark:text-blue-400"
+                            : "font-medium text-slate-400 dark:text-slate-500"
+                        }`}
+                      >
+                        {lastMessages["group"]
+                          ? formatRelativeTime(lastMessages["group"].createdAt)
+                          : "Global"}
+                      </span>
+                      {unreadCounts["group"] > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-[20px] h-4.5 px-1.5 text-[10px] font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full shadow-sm shadow-blue-500/30 animate-pulse">
+                          {unreadCounts["group"]}
                         </span>
                       )}
                     </div>
                   </div>
                   <p
-                    className={`item-subtitle truncate mt-0.5 ${
+                    className={`item-subtitle truncate mt-0.5 flex items-center gap-1 ${
                       unreadCounts["group"] > 0
-                        ? "font-extrabold text-rose-600 dark:text-rose-400"
+                        ? "font-semibold text-blue-700 dark:text-blue-300"
                         : ""
                     }`}
                   >
-                    {unreadCounts["group"] > 0 && "💬 "}
-                    {lastMessages["group"]
-                      ? formatLastMessageText(lastMessages["group"])
-                      : "All developers and admins"}
+                    {unreadCounts["group"] > 0 && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 inline-block"></span>
+                    )}
+                    <span className="truncate">
+                      {lastMessages["group"]
+                        ? formatLastMessageText(lastMessages["group"])
+                        : "All developers and admins"}
+                    </span>
                   </p>
                 </div>
               </button>
@@ -1539,18 +1566,21 @@ const ChatPage = () => {
                         setActiveChat(r._id);
                         dispatch(setActiveChatId(r._id));
                         dispatch(markChatAsRead(r._id));
+                        dispatch(markChatAsReadAction(r._id));
                         setShowChatWindowMobile(true);
                       }}
                       className={`chat-sidebar-item transition-all ${
                         activeChat === r._id
                           ? "chat-sidebar-item-active"
                           : hasUnread
-                            ? "bg-rose-50/90 dark:bg-rose-950/50 border-l-4 border-l-rose-500 shadow-md"
+                            ? "chat-sidebar-item-unread ring-1 ring-blue-500/20 dark:ring-blue-400/25"
                             : ""
                       }`}
                     >
                       <div
-                        className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 text-white shadow-sm relative`}
+                        className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 text-white shadow-sm relative transition-all ${
+                          hasUnread ? "ring-2 ring-blue-500/30" : ""
+                        }`}
                         style={{
                           backgroundColor: "var(--accent-color)",
                           color: "#ffffff",
@@ -1558,7 +1588,10 @@ const ChatPage = () => {
                       >
                         <FiUsers size={16} />
                         {hasUnread && (
-                          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 animate-bounce" />
+                          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 pointer-events-none">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-blue-600 dark:bg-blue-500 border-2 border-white dark:border-slate-900"></span>
+                          </span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1566,37 +1599,46 @@ const ChatPage = () => {
                           <span
                             className={`item-title truncate ${
                               hasUnread
-                                ? "font-black text-rose-700 dark:text-rose-300"
+                                ? "font-black text-slate-900 dark:text-white"
                                 : ""
                             }`}
                           >
                             {r.name}
                           </span>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {hasUnread ? (
-                              <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                                {unread} unread
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                                {lastMsg
-                                  ? formatRelativeTime(lastMsg.createdAt)
-                                  : `${r.members.length} members`}
+                          <div className="flex flex-col items-end gap-0.5 shrink-0">
+                            <span
+                              className={`text-[10px] tracking-tight ${
+                                hasUnread
+                                  ? "font-bold text-blue-600 dark:text-blue-400"
+                                  : "font-medium text-slate-400 dark:text-slate-500"
+                              }`}
+                            >
+                              {lastMsg
+                                ? formatRelativeTime(lastMsg.createdAt)
+                                : `${r.members.length} members`}
+                            </span>
+                            {hasUnread && (
+                              <span className="inline-flex items-center justify-center min-w-[20px] h-4.5 px-1.5 text-[10px] font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full shadow-sm shadow-blue-500/30 animate-pulse">
+                                {unread}
                               </span>
                             )}
                           </div>
                         </div>
                         <p
-                          className={`item-subtitle truncate mt-0.5 ${
+                          className={`item-subtitle truncate mt-0.5 flex items-center gap-1 ${
                             hasUnread
-                              ? "font-extrabold text-rose-600 dark:text-rose-400"
+                              ? "font-semibold text-blue-700 dark:text-blue-300"
                               : ""
                           }`}
                         >
-                          {hasUnread && "💬 "}
-                          {lastMsg
-                            ? formatLastMessageText(lastMsg)
-                            : r.description || "No description"}
+                          {hasUnread && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 inline-block"></span>
+                          )}
+                          <span className="truncate">
+                            {lastMsg
+                              ? formatLastMessageText(lastMsg)
+                              : r.description || "No description"}
+                          </span>
                         </p>
                       </div>
                     </button>
@@ -1662,13 +1704,14 @@ const ChatPage = () => {
                       setActiveChat(u._id);
                       dispatch(setActiveChatId(u._id));
                       dispatch(markChatAsRead(u._id));
+                      dispatch(markChatAsReadAction(u._id));
                       setShowChatWindowMobile(true);
                     }}
                     className={`chat-sidebar-item group relative flex items-center gap-3 cursor-pointer select-none transition-all ${
                       activeChat === u._id
                         ? "chat-sidebar-item-active"
                         : hasUnread
-                          ? "bg-rose-50/90 dark:bg-rose-950/50 border-l-4 border-l-rose-500 shadow-md"
+                          ? "chat-sidebar-item-unread ring-1 ring-blue-500/20 dark:ring-blue-400/25"
                           : ""
                     }`}
                   >
@@ -1676,22 +1719,26 @@ const ChatPage = () => {
                       {u.profile?.profileImage?.url ? (
                         <img
                           src={u.profile.profileImage.url}
-                          alt="profile"
-                          className={`w-10 h-10 rounded-2xl object-cover border ${
+                          alt={u.name}
+                          className={`w-10 h-10 rounded-2xl object-cover border transition-all ${
                             activeChat === u._id
-                              ? "border-blue-600/30 dark:border-[#3b82f6]/30"
-                              : "theme-border"
+                              ? "border-blue-600/40 dark:border-blue-400/50 ring-2 ring-blue-500/20"
+                              : hasUnread
+                                ? "border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/30"
+                                : "theme-border"
                           }`}
                         />
                       ) : (
                         <div
-                          className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${
+                          className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs transition-all ${
                             activeChat === u._id
-                              ? "bg-blue-600/10 border-blue-600/20 text-blue-600 dark:bg-[#3b82f6]/10 dark:border-[#3b82f6]/20 dark:text-[#3b82f6] font-bold"
-                              : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"
+                              ? "bg-blue-600/10 border-blue-600/30 text-blue-600 dark:bg-blue-500/20 dark:border-blue-400/40 dark:text-blue-300 font-bold"
+                              : hasUnread
+                                ? "bg-blue-500/15 border-blue-500/40 text-blue-700 dark:bg-blue-600/25 dark:border-blue-400/50 dark:text-blue-200 font-black ring-2 ring-blue-500/20"
+                                : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"
                           }`}
                         >
-                          {u.name.charAt(0)}
+                          {u.name.charAt(0).toUpperCase()}
                         </div>
                       )}
                       <span
@@ -1700,8 +1747,8 @@ const ChatPage = () => {
                             ? "bg-emerald-500"
                             : "bg-slate-400 dark:bg-slate-600"
                         } ${
-                          activeChat === u._id
-                            ? "border-blue-500 dark:border-slate-900"
+                          activeChat === u._id || hasUnread
+                            ? "border-white dark:border-slate-900 ring-1 ring-emerald-500/20"
                             : "border-white dark:border-slate-900"
                         }`}
                         title={
@@ -1709,7 +1756,10 @@ const ChatPage = () => {
                         }
                       />
                       {hasUnread && (
-                        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-900 animate-bounce" />
+                        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 pointer-events-none">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-blue-600 dark:bg-blue-500 border-2 border-white dark:border-slate-900"></span>
+                        </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -1717,41 +1767,50 @@ const ChatPage = () => {
                         <span
                           className={`item-title truncate ${
                             hasUnread
-                              ? "font-black text-rose-700 dark:text-rose-300"
+                              ? "font-black text-slate-900 dark:text-white"
                               : ""
                           }`}
                         >
                           {u.name}
                         </span>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {hasUnread ? (
-                            <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-md animate-pulse">
-                              {unread} unread
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
-                              {lastMsg
-                                ? formatRelativeTime(lastMsg.createdAt)
-                                : u.role === "team"
-                                  ? u.department || "Team"
-                                  : displayRole(u.role)}
+                        <div className="flex flex-col items-end gap-0.5 shrink-0">
+                          <span
+                            className={`text-[10px] tracking-tight ${
+                              hasUnread
+                                ? "font-bold text-blue-600 dark:text-blue-400"
+                                : "font-medium text-slate-400 dark:text-slate-500"
+                            }`}
+                          >
+                            {lastMsg
+                              ? formatRelativeTime(lastMsg.createdAt)
+                              : u.role === "team"
+                                ? u.department || "Team"
+                                : displayRole(u.role)}
+                          </span>
+                          {hasUnread && (
+                            <span className="inline-flex items-center justify-center min-w-[20px] h-4.5 px-1.5 text-[10px] font-black text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full shadow-sm shadow-blue-500/30 animate-pulse">
+                              {unread}
                             </span>
                           )}
                         </div>
                       </div>
                       <p
-                        className={`item-subtitle truncate mt-0.5 ${
+                        className={`item-subtitle truncate mt-0.5 flex items-center gap-1 ${
                           hasUnread
-                            ? "font-extrabold text-rose-600 dark:text-rose-400"
+                            ? "font-semibold text-blue-700 dark:text-blue-300"
                             : ""
                         }`}
                       >
-                        {hasUnread && "💬 "}
-                        {lastMsg
-                          ? formatLastMessageText(lastMsg)
-                          : u.role === "team"
-                            ? u.department || "Team"
-                            : displayRole(u.role)}
+                        {hasUnread && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 inline-block"></span>
+                        )}
+                        <span className="truncate">
+                          {lastMsg
+                            ? formatLastMessageText(lastMsg)
+                            : u.role === "team"
+                              ? u.department || "Team"
+                              : displayRole(u.role)}
+                        </span>
                       </p>
                     </div>
                   </div>

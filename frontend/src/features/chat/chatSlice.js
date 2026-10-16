@@ -237,8 +237,9 @@ const chatSlice = createSlice({
     },
     receiveMessage: (state, action) => {
       const { message, currentUserId } = action.payload;
-      if (!message) return;
+      if (!message || !message._id) return;
 
+      const myIdStr = getIdString(currentUserId);
       const senderId = getIdString(message.sender);
       const recipientId = getIdString(message.recipient);
 
@@ -246,32 +247,35 @@ const chatSlice = createSlice({
       let chatId;
       if (message.chatRoom === "direct") {
         // Security guard: if current user is neither sender nor recipient of this direct message, ignore it!
-        if (senderId !== currentUserId && recipientId !== currentUserId) {
+        if (senderId !== myIdStr && recipientId !== myIdStr) {
           return;
         }
         // For direct messages, chatId is the OTHER person's ID
-        chatId = senderId === currentUserId ? recipientId : senderId;
+        chatId = senderId === myIdStr ? recipientId : senderId;
       } else {
         // For group/custom room messages, chatId is the room identifier
         chatId = message.chatRoom;
       }
 
-      // Don't add duplicate messages
+      // Check if this message was already recorded as the lastMessage to prevent duplicate unread increments
+      const alreadyLastMsg = state.lastMessages[chatId]?._id === message._id;
+
+      // Don't add duplicate messages to active messages array
       const exists = state.messages.some((m) => m._id === message._id);
       if (!exists) {
-        // Only add to messages array if this message belongs to the active chat
         if (chatId === state.activeChatId) {
           state.messages.push(message);
         }
       }
 
-      // Always update last message for this chat (for sidebar preview)
+      // Always update last message for this chat (for instant sidebar preview & sorting)
       state.lastMessages[chatId] = message;
 
       // Increment unread count if:
-      // 1. It's not the currently active/open chat
-      // 2. The sender is not the current user (don't count own messages)
-      if (chatId !== state.activeChatId && senderId !== currentUserId) {
+      // 1. Not already processed as the last message
+      // 2. It's not the currently active/open chat
+      // 3. The sender is not the current user (don't count own messages)
+      if (!alreadyLastMsg && chatId !== state.activeChatId && senderId !== myIdStr) {
         state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
         state.totalUnreadCount = (state.totalUnreadCount || 0) + 1;
       }

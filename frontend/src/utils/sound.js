@@ -183,13 +183,11 @@ const playGroupMessageSoundSynth = () => {
 };
 
 /**
- * General Notification sound chime - uses notification.mp3 with synthesis fallback
+ * Task & System Notification sound chime (Exclusive for Tasks, Shoots, Client Calls, etc.)
+ * Does NOT play notification.mp3 (notification.mp3 is reserved exclusively for chat messages)
  */
 export const playNotificationSound = (type = "default") => {
   if (!isSoundEnabled() || !canPlaySoundNow()) return;
-
-  const played = playNotificationAudioFile();
-  if (played) return;
 
   try {
     const ctx = getAudioContext();
@@ -214,10 +212,11 @@ export const playNotificationSound = (type = "default") => {
     };
 
     const now = ctx.currentTime;
-    playTone(1046.5, now, 0.4, 0.25);
-    playTone(1318.51, now + 0.05, 0.5, 0.22);
-    playTone(1567.98, now + 0.1, 0.6, 0.2);
+    // Crisp 3-note ascending task alert chime: C6 (1046.5Hz) -> E6 (1318.51Hz) -> G6 (1567.98Hz)
+    playTone(1046.5, now, 0.35, 0.25);
+    playTone(1318.51, now + 0.07, 0.4, 0.22);
+    playTone(1567.98, now + 0.14, 0.55, 0.2);
   } catch (err) {
-    console.error("General Notification audio playback error:", err);
+    console.error("Task Notification audio playback error:", err);
   }
 };

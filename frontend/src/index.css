@@ -1131,8 +1131,19 @@ select.badge-priority-top-high {
 
 /* Light Mode: Active Item */
 .chat-sidebar-item-active {
-  background-color: rgba(59, 130, 246, 0.07) !important;
-  border-left-color: #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  border-left-color: #2563eb !important;
+}
+
+/* Unread Item State - High Visibility & Premium Modern SaaS UX */
+.chat-sidebar-item-unread {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.12) 0%, rgba(99, 102, 241, 0.05) 100%) !important;
+  border-left-color: #2563eb !important;
+  box-shadow: 0 1px 8px -1px rgba(37, 99, 235, 0.15) !important;
+}
+
+.chat-sidebar-item-unread:hover {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.18) 0%, rgba(99, 102, 241, 0.09) 100%) !important;
 }
 
 /* Dark Mode overrides */
@@ -1141,21 +1152,41 @@ select.badge-priority-top-high {
 }
 
 .dark .chat-sidebar-item-active {
-  background-color: rgba(229, 255, 0, 0.07) !important;
-  border-left-color: #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.18) !important;
+  border-left-color: #60a5fa !important;
+}
+
+.dark .chat-sidebar-item-unread {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.22) 0%, rgba(99, 102, 241, 0.10) 100%) !important;
+  border-left-color: #60a5fa !important;
+  box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .chat-sidebar-item-unread:hover {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.30) 0%, rgba(99, 102, 241, 0.15) 100%) !important;
 }
 
 /* Sidebar item text contrast control */
 .chat-sidebar-item .item-title {
   color: var(--color-slate-900) !important;
   font-weight: 700 !important;
-  font-size: 0.75rem !important;
+  font-size: 0.78125rem !important; /* ~12.5px */
   transition: color 0.2s ease;
 }
 .chat-sidebar-item .item-subtitle {
   color: var(--color-slate-500) !important;
-  font-size: 0.625rem !important;
+  font-size: 0.6875rem !important; /* 11px */
   transition: color 0.2s ease;
+}
+
+/* When unread in light mode */
+.chat-sidebar-item-unread .item-title {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+.chat-sidebar-item-unread .item-subtitle {
+  color: #1d4ed8 !important; /* Rich vibrant blue for unread message preview */
+  font-weight: 600 !important;
 }
 
 /* When active in light mode */
@@ -1174,9 +1205,19 @@ select.badge-priority-top-high {
   color: #94a3b8 !important;
 }
 
+/* When unread in dark mode */
+.dark .chat-sidebar-item-unread .item-title {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+.dark .chat-sidebar-item-unread .item-subtitle {
+  color: #93c5fd !important; /* Crisp sky blue for dark mode readability */
+  font-weight: 600 !important;
+}
+
 /* When active in dark mode */
 .dark .chat-sidebar-item-active .item-title {
-  color: #3b82f6 !important; /* Neon Yellow Accent */
+  color: #60a5fa !important;
 }
 .dark .chat-sidebar-item-active .item-subtitle {
   color: #cbd5e1 !important;
