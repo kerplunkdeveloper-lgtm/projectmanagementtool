@@ -331,7 +331,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
 
                   <div>
                     <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white leading-tight">
-                      Group Members
+                      Our Kerplunk Team
                     </h2>
                     <p className={`text-xs font-bold mt-0.5 ${activeStyle.text}`}>
                       {summary.totalUsers} members · {summary.onlineCount} online
