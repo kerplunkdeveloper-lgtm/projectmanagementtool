@@ -63,6 +63,28 @@ exports.getUser = async (req, res) => {
 
 exports.createUser = async (req, res) => {
   try {
+    // Check permission
+    const userPerm = req.user.permissions?.manage_users;
+    const canCreateUser =
+      req.user.role === 'admin' ||
+      req.user.role === 'operationmanager' ||
+      userPerm === true ||
+      userPerm?.write === true ||
+      userPerm?.create === true;
+
+    if (!canCreateUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to create users',
+      });
+    }
+
+    if (req.user.role !== 'admin' && req.body.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can create admin accounts',
+      });
+    }
 
     const {
       email,
@@ -130,8 +152,17 @@ exports.updateUser = async (req, res) => {
 
     const targetId = (!req.params.id || req.params.id === 'me') ? req.user._id : req.params.id;
 
-    // Security check: non-admins/operationmanagers cannot update other users
-    if (req.user.role !== 'admin' && req.user.role !== 'operationmanager' && targetId.toString() !== req.user._id.toString()) {
+    // Security check: non-admins/operationmanagers cannot update other users unless they have manage_users permission
+    const userPerm = req.user.permissions?.manage_users;
+    const canUpdateUser =
+      req.user.role === 'admin' ||
+      req.user.role === 'operationmanager' ||
+      targetId.toString() === req.user._id.toString() ||
+      userPerm === true ||
+      userPerm?.update === true ||
+      userPerm?.write === true;
+
+    if (!canUpdateUser) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this user',
@@ -146,11 +177,11 @@ exports.updateUser = async (req, res) => {
       });
     }
 
-    // Operation managers cannot update admin users
-    if (req.user.role === 'operationmanager' && userToUpdate.role === 'admin') {
+    // Non-admins cannot update admin users
+    if (req.user.role !== 'admin' && userToUpdate.role === 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'Operation managers cannot update admin accounts',
+        message: 'Non-admin users cannot update admin accounts',
       });
     }
 
@@ -192,6 +223,21 @@ exports.deleteUser = async (req, res) => {
   try {
     console.log("DELETE USER CALLED WITH ID:", req.params.id);
 
+    const userPerm = req.user.permissions?.manage_users;
+    const canDeleteUser =
+      req.user.role === 'admin' ||
+      req.user.role === 'operationmanager' ||
+      userPerm === true ||
+      userPerm?.delete === true ||
+      userPerm?.write === true;
+
+    if (!canDeleteUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete users',
+      });
+    }
+
     const userToFind = await User.findById(req.params.id);
 
     if (!userToFind) {
@@ -201,11 +247,11 @@ exports.deleteUser = async (req, res) => {
       });
     }
 
-    // Operation managers cannot delete admin users
-    if (req.user.role === 'operationmanager' && userToFind.role === 'admin') {
+    // Non-admins cannot delete admin users
+    if (req.user.role !== 'admin' && userToFind.role === 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'Operation managers cannot delete admin accounts',
+        message: 'Cannot delete admin accounts',
       });
     }
 
@@ -228,6 +274,21 @@ exports.deleteUser = async (req, res) => {
 
 exports.relieveUser = async (req, res) => {
   try {
+    const userPerm = req.user.permissions?.manage_users;
+    const canRelieveUser =
+      req.user.role === 'admin' ||
+      req.user.role === 'operationmanager' ||
+      userPerm === true ||
+      userPerm?.update === true ||
+      userPerm?.write === true;
+
+    if (!canRelieveUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to relieve users',
+      });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {
@@ -277,6 +338,21 @@ exports.relieveUser = async (req, res) => {
 
 exports.reactivateUser = async (req, res) => {
   try {
+    const userPerm = req.user.permissions?.manage_users;
+    const canReactivateUser =
+      req.user.role === 'admin' ||
+      req.user.role === 'operationmanager' ||
+      userPerm === true ||
+      userPerm?.update === true ||
+      userPerm?.write === true;
+
+    if (!canReactivateUser) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to reactivate users',
+      });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (!user) {

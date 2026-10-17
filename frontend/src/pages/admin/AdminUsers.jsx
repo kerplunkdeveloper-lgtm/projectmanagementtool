@@ -37,8 +37,25 @@ const AdminUsers = () => {
   const { user } = useSelector((state) => state.auth);
 
   const userPerms = user?.permissions?.["manage_users"];
-  const canWrite =
-    user?.role === "admin" || userPerms === true || userPerms?.write;
+  const canCreate =
+    user?.role === "admin" ||
+    user?.role === "operationmanager" ||
+    userPerms === true ||
+    Boolean(userPerms?.write) ||
+    Boolean(userPerms?.create);
+  const canUpdate =
+    user?.role === "admin" ||
+    user?.role === "operationmanager" ||
+    userPerms === true ||
+    Boolean(userPerms?.update) ||
+    Boolean(userPerms?.write);
+  const canDelete =
+    user?.role === "admin" ||
+    user?.role === "operationmanager" ||
+    userPerms === true ||
+    Boolean(userPerms?.delete) ||
+    Boolean(userPerms?.write);
+  const canWrite = canCreate || canUpdate || canDelete;
   const isReadOnly = !canWrite;
 
   const [openModal, setOpenModal] = useState(false);
@@ -49,10 +66,16 @@ const AdminUsers = () => {
     () => parseInt(localStorage.getItem("adminUsers_currentPage")) || 1,
   );
 
-  const [searchTerm, setSearchTerm] = useState(
-    () => localStorage.getItem("adminUsers_searchTerm") || "",
-  );
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  // Clear any previously persisted search term from localStorage
+  useEffect(() => {
+    localStorage.removeItem("adminUsers_searchTerm");
+    return () => {
+      localStorage.removeItem("adminUsers_searchTerm");
+    };
+  }, []);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -74,11 +97,15 @@ const AdminUsers = () => {
 
   useEffect(() => {
     localStorage.setItem("adminUsers_currentPage", currentPage);
-    localStorage.setItem("adminUsers_searchTerm", searchTerm);
     localStorage.setItem("adminUsers_filterDept", filterDept);
     localStorage.setItem("adminUsers_filterLocation", filterLocation);
     localStorage.setItem("adminUsers_filterRelieved", filterRelieved);
-  }, [currentPage, searchTerm, filterDept, filterLocation, filterRelieved]);
+  }, [currentPage, filterDept, filterLocation, filterRelieved]);
+
+  // Reset page to 1 whenever search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
 
@@ -119,6 +146,7 @@ const AdminUsers = () => {
       toast.success("User Created Successfully");
 
       setOpenModal(false);
+      setEditUser(null);
     } catch (err) {
       // Handled by global state error listener
     }
@@ -424,6 +452,7 @@ const AdminUsers = () => {
         filterRelieved={filterRelieved}
         setFilterRelieved={setFilterRelieved}
         isReadOnly={isReadOnly}
+        canCreate={canCreate}
         onExportExcel={handleExportExcel}
       />
 

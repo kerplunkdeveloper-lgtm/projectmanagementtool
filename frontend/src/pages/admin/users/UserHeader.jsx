@@ -1,9 +1,10 @@
 import React from "react";
-import { FiPlus, FiFilter, FiDownload } from "react-icons/fi";
+import { FiPlus, FiFilter, FiDownload, FiSearch, FiX } from "react-icons/fi";
 
 const UserHeader = ({
   users,
   setOpenModal,
+  setEditUser,
   searchTerm,
   setSearchTerm,
   filterDept,
@@ -13,6 +14,7 @@ const UserHeader = ({
   filterRelieved,
   setFilterRelieved,
   isReadOnly,
+  canCreate,
   onExportExcel,
 }) => {
   const uniqueDepts = Array.from(
@@ -38,14 +40,25 @@ const UserHeader = ({
       {/* FILTER ROW */}
       <div className="flex flex-row items-center">
         {/* SEARCH */}
-        <div className="flex items-center flex-1 transition-all ">
+        <div className="flex items-center flex-1 transition-all relative pr-2">
+          <FiSearch className="text-slate-400 mr-2 shrink-0" size={13} />
           <input
             type="text"
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="outline-none py-2  text-xs rounded-md  text-gray-700 dark:text-slate-200  w-full"
+            className="outline-none py-2 text-xs rounded-md text-gray-700 dark:text-slate-200 w-full bg-transparent"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+              title="Clear search"
+            >
+              <FiX size={13} />
+            </button>
+          )}
         </div>
 
         {/* DEPT FILTER */}
@@ -126,10 +139,13 @@ const UserHeader = ({
             <span>Export Excel</span>
           </button>
 
-          {!isReadOnly && (
+          {(canCreate !== undefined ? canCreate : !isReadOnly) && (
             <button
               type="button"
-              onClick={() => setOpenModal(true)}
+              onClick={() => {
+                if (setEditUser) setEditUser(null);
+                setOpenModal(true);
+              }}
               className="bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black px-5 py-3 rounded-xl flex items-center justify-center gap-2.5 shadow-md shadow-blue-500/20 dark:shadow-[#3b82f6]/20  dark:hover:bg-[#ccff00] hover:-translate-y-0.5 hover:shadow-lg text-xs font-bold active:scale-95 transition-all cursor-pointer shrink-0"
             >
               <FiPlus size={14} /> Add User

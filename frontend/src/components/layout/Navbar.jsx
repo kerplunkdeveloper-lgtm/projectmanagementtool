@@ -116,9 +116,19 @@ const Navbar = ({ setSidebarOpen, presence }) => {
   const [isTeamActiveOpen, setIsTeamActiveOpen] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
-  const canViewTeamActive = user?.role === "admin" || user?.role === "operationmanager";
+  const deptLower = (user?.department || "").toLowerCase();
+  const isHr =
+    deptLower.includes("hr") ||
+    deptLower.includes("human resource") ||
+    user?.department === "HR";
+  const hasUsersPerm = Boolean(user?.permissions?.manage_users);
+  const canViewTeamActive =
+    user?.role === "admin" ||
+    user?.role === "operationmanager" ||
+    isHr ||
+    hasUsersPerm;
 
-  // Real-time team activity summary for live active counter badge (Admin & Operation Manager only)
+  // Real-time team activity summary for live active counter badge (Admin, Operation Manager & HR)
   const { data: teamActivitySummary } = useGetTeamActivityQuery(undefined, {
     skip: !canViewTeamActive,
     pollingInterval: 30000,
@@ -474,6 +484,8 @@ const Navbar = ({ setSidebarOpen, presence }) => {
     ) {
       return "Status Overview";
     }
+    if (path.includes("sm-tasks") || path.includes("sm-task")) return "SM Tasks";
+    if (path.includes("content-calendar") || path.includes("content-calendor")) return "Content Calendar";
     if (path.includes("tasks")) return "Assigned Tasks";
     if (path.includes("partnerhub")) return "PartnerHub";
     if (path.includes("profile")) return "Profile";
@@ -669,19 +681,38 @@ const Navbar = ({ setSidebarOpen, presence }) => {
     }
   }, [dispatch, user?._id, user?.id]);
 
+  const handleCloseSearch = () => {
+    setShowSearchModal(false);
+    setSearchQuery("");
+    setSelectedIndex(0);
+  };
+
+  // Automatically clear search bar text and close modal on page navigation
+  useEffect(() => {
+    handleCloseSearch();
+  }, [location.pathname, location.search]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setShowSearchModal((prev) => !prev);
-        setSearchQuery("");
-        setSelectedIndex(0);
+        setShowSearchModal((prev) => {
+          if (prev) {
+            setSearchQuery("");
+            setSelectedIndex(0);
+            return false;
+          } else {
+            setSearchQuery("");
+            setSelectedIndex(0);
+            return true;
+          }
+        });
       }
 
       if (!showSearchModal) return;
 
       if (e.key === "Escape") {
-        setShowSearchModal(false);
+        handleCloseSearch();
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedIndex((prev) =>
@@ -697,7 +728,7 @@ const Navbar = ({ setSidebarOpen, presence }) => {
         if (allFilteredItems[selectedIndex]) {
           const selectedItem = allFilteredItems[selectedIndex];
           navigate(selectedItem.path);
-          setShowSearchModal(false);
+          handleCloseSearch();
         }
       }
     };
@@ -1351,7 +1382,7 @@ const Navbar = ({ setSidebarOpen, presence }) => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 bg-black/60 backdrop-blur-md z-[9999] flex items-start justify-center pt-10 sm:pt-20 px-3 sm:px-4"
-              onClick={() => setShowSearchModal(false)}
+              onClick={handleCloseSearch}
             >
               <motion.div
                 initial={{ opacity: 0, y: -40, scale: 0.96 }}
@@ -1375,8 +1406,21 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                     className="w-full bg-transparent border-none text-slate-800 dark:text-slate-100 text-sm focus:outline-none focus:ring-0 placeholder-slate-400 font-medium"
                     autoFocus
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedIndex(0);
+                      }}
+                      className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800/60 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all cursor-pointer flex items-center justify-center shrink-0"
+                      title="Clear Search"
+                    >
+                      <FiX size={15} />
+                    </button>
+                  )}
                   <button
-                    onClick={() => setShowSearchModal(false)}
+                    onClick={handleCloseSearch}
                     className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800/60 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-all cursor-pointer flex items-center justify-center shrink-0"
                     title="Close Search"
                   >
@@ -1421,7 +1465,7 @@ const Navbar = ({ setSidebarOpen, presence }) => {
                                       key={item.id}
                                       onClick={() => {
                                         navigate(item.path);
-                                        setShowSearchModal(false);
+                                        handleCloseSearch();
                                       }}
                                       onMouseEnter={() =>
                                         setSelectedIndex(itemIndex)

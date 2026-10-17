@@ -182,19 +182,28 @@ const UserTable = ({
   const userPerms = currentUser?.permissions?.["manage_users"];
   const canUpdate =
     currentUser?.role === "admin" ||
+    currentUser?.role === "operationmanager" ||
     userPerms === true ||
     userPerms?.update ||
     userPerms?.write;
   const canDelete =
-    currentUser?.role === "admin" || userPerms === true || userPerms?.delete;
+    currentUser?.role === "admin" ||
+    currentUser?.role === "operationmanager" ||
+    userPerms === true ||
+    userPerms?.delete ||
+    userPerms?.write;
   const canRelieve =
     currentUser?.role === "admin" ||
+    currentUser?.role === "operationmanager" ||
     userPerms === true ||
     userPerms?.update ||
     userPerms?.write;
   const rolesPerms = currentUser?.permissions?.["manage_roles"];
   const canManageRoles =
-    currentUser?.role === "admin" || rolesPerms === true || rolesPerms?.update;
+    currentUser?.role === "admin" ||
+    currentUser?.role === "operationmanager" ||
+    rolesPerms === true ||
+    rolesPerms?.update;
 
   const colSpan = isReadOnly ? 6 : 7;
 

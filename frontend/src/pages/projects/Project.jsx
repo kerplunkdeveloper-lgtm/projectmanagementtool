@@ -46,9 +46,15 @@ const Project = () => {
   const { user: currentUser } = useSelector((state) => state.auth);
 
   // Local State
-  const [searchTerm, setSearchTerm] = useState(() => {
-    return localStorage.getItem("project_searchTerm") || "";
-  });
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    localStorage.removeItem("project_searchTerm");
+    return () => {
+      localStorage.removeItem("project_searchTerm");
+    };
+  }, []);
+
   const [statusFilter, setStatusFilter] = useState(() => {
     return localStorage.getItem("project_statusFilter") || "All";
   });
@@ -65,10 +71,6 @@ const Project = () => {
   const itemsPerPage = 15;
 
   const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    localStorage.setItem("project_searchTerm", searchTerm);
-  }, [searchTerm]);
 
   useEffect(() => {
     localStorage.setItem("project_statusFilter", statusFilter);

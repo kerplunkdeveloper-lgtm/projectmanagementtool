@@ -145,7 +145,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   );
   const dbUnreadChatCount = notifications
     ? notifications.filter((n) => !n.isRead && (n.type === "message_received" || n.type === "mention_received"))
-        .length
+      .length
     : 0;
 
   // Real-time unread chat count (server persisted + local session sync)
@@ -195,152 +195,276 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   }, [eodReports, designerEodReports, role]);
 
   const menuItems = React.useMemo(() => {
-    return (sidebarConfig[role] || []).filter((item) => {
-      // Hide Projects Overview for Social Media Manager department
-      if (
-        item.name === "Projects Overview" &&
-        (currentUser?.department === "Social Media Manager" ||
-          currentUser?.department === "Social Media Executive")
-      ) {
-        return false;
-      }
+    return (sidebarConfig[role] || [])
+      .map((item) => {
+        if (item.children && Array.isArray(item.children)) {
+          const visibleChildren = item.children.filter((subItem) => {
+            if (
+              subItem.name === "Content Calendar" ||
+              subItem.path?.includes("content-calendar")
+            ) {
+              const deptLower = (currentUser?.department || "").toLowerCase();
+              const roleLower = (currentUser?.role || role || "").toLowerCase();
 
-      // Hide My Reports for Social Media Manager department
-      if (
-        item.name === "My Reports" &&
-        currentUser?.department === "Social Media Manager"
-      ) {
-        return false;
-      }
+              const isSocialMedia =
+                deptLower.includes("social media") ||
+                deptLower.includes("social manager") ||
+                deptLower.includes("smm");
+              const isAdmin =
+                roleLower === "admin" ||
+                deptLower.includes("managing partner") ||
+                roleLower.includes("managing partner");
+              const isOperationManager =
+                roleLower === "operationmanager" ||
+                deptLower.includes("operation manager") ||
+                roleLower.includes("operation manager");
 
-      // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
-      if (
-        item.name === "SM Creditionals" ||
-        item.name === "SM Credentials" ||
-        item.name === "Social Accounts" ||
-        item.name?.toLowerCase().includes("sm cred") ||
-        item.path?.includes("social-accounts")
-      ) {
-        const deptLower = (currentUser?.department || "").toLowerCase();
-        const roleLower = (currentUser?.role || role || "").toLowerCase();
+              if (!isSocialMedia && !isAdmin && !isOperationManager) {
+                return false;
+              }
+            }
 
-        const isSocialMedia = deptLower.includes("social media");
-        const isManagingPartner =
-          roleLower === "admin" ||
-          deptLower.includes("managing partner") ||
-          roleLower.includes("managing partner");
-        const isOperationManager =
-          roleLower === "operationmanager" ||
-          deptLower.includes("operation manager") ||
-          roleLower.includes("operation manager");
+            if (
+              subItem.name === "Calendar" ||
+              subItem.path?.includes("event-calendar") ||
+              subItem.path?.includes("all-calendar")
+            ) {
+              const deptLower = (currentUser?.department || "").toLowerCase();
+              const roleLower = (currentUser?.role || role || "").toLowerCase();
 
-        if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+              const isAdmin =
+                roleLower === "admin" ||
+                deptLower.includes("managing partner") ||
+                roleLower.includes("managing partner");
+              const isOperationManager =
+                roleLower === "operationmanager" ||
+                deptLower.includes("operation manager") ||
+                roleLower.includes("operation manager");
+              const isSocialMediaManager = deptLower.includes("social media manager");
+
+              if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
+                return false;
+              }
+            }
+
+            if (subItem.permissionKey) {
+              if (role === "admin" || role === "operationmanager" || role === "operation manager") return true;
+              if (subItem.permissionKey === "manage_clients") return true;
+              const perm = currentUser?.permissions?.[subItem.permissionKey];
+              if (perm === true) return true;
+              return perm?.read;
+            }
+
+            return true;
+          });
+
+          return { ...item, children: visibleChildren };
+        }
+        return item;
+      })
+      .filter((item) => {
+        if (item.children) {
+          return item.children.length > 0;
+        }
+
+        // Hide Projects Overview for Social Media Manager department
+        if (
+          item.name === "Projects Overview" &&
+          (currentUser?.department === "Social Media Manager" ||
+            currentUser?.department === "Social Media Executive")
+        ) {
           return false;
         }
-      }
 
-      // Show Client Calls ONLY for Social Media Manager department
-      if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
-        const deptLower = (currentUser?.department || "").toLowerCase();
-
-        const isSocialMediaManager = deptLower.includes("social media manager");
-
-        if (!isSocialMediaManager) {
+        // Hide My Reports for Social Media Manager department
+        if (
+          item.name === "My Reports" &&
+          currentUser?.department === "Social Media Manager"
+        ) {
           return false;
         }
-      }
 
-      // Show MOM Points ONLY for Social Media Manager, Admin, Operation Manager
-      if (item.name === "MOM Points" || item.path?.includes("mom-points")) {
-        const deptLower = (currentUser?.department || "").toLowerCase();
-        const roleLower = (currentUser?.role || role || "").toLowerCase();
+        // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
+        if (
+          item.name === "SM Creditionals" ||
+          item.name === "SM Credentials" ||
+          item.name === "Social Accounts" ||
+          item.name?.toLowerCase().includes("sm cred") ||
+          item.path?.includes("social-accounts")
+        ) {
+          const deptLower = (currentUser?.department || "").toLowerCase();
+          const roleLower = (currentUser?.role || role || "").toLowerCase();
 
-        const isAdmin = roleLower === "admin";
-        const isOperationManager = roleLower === "operationmanager" || deptLower.includes("operation manager") || roleLower.includes("operation manager");
-        const isSocialMediaManager = deptLower.includes("social manager") || deptLower.includes("social media manager") || deptLower.includes("social media executive");
-        
-        if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
+          const isSocialMedia = deptLower.includes("social media");
+          const isManagingPartner =
+            roleLower === "admin" ||
+            deptLower.includes("managing partner") ||
+            roleLower.includes("managing partner");
+          const isOperationManager =
+            roleLower === "operationmanager" ||
+            deptLower.includes("operation manager") ||
+            roleLower.includes("operation manager");
+
+          if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+            return false;
+          }
+        }
+
+        // Show SM Tasks and Content Calendar ONLY for Social Media Manager department, Admin, and Operation Manager
+        if (
+          item.name === "SM Tasks" ||
+          item.name === "Content Calendar" ||
+          item.path?.includes("sm-tasks") ||
+          item.path?.includes("content-calendar")
+        ) {
+          const deptLower = (currentUser?.department || "").toLowerCase();
+          const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+          const isSocialMedia =
+            deptLower.includes("social media") ||
+            deptLower.includes("social manager") ||
+            deptLower.includes("smm");
+          const isAdmin =
+            roleLower === "admin" ||
+            deptLower.includes("managing partner") ||
+            roleLower.includes("managing partner");
+          const isOperationManager =
+            roleLower === "operationmanager" ||
+            deptLower.includes("operation manager") ||
+            roleLower.includes("operation manager");
+
+          if (!isSocialMedia && !isAdmin && !isOperationManager) {
+            return false;
+          }
+        }
+
+        // Show Client Calls ONLY for Social Media Manager department
+        if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
+          const deptLower = (currentUser?.department || "").toLowerCase();
+
+          const isSocialMediaManager = deptLower.includes("social media manager");
+
+          if (!isSocialMediaManager) {
+            return false;
+          }
+        }
+
+        // Show MOM Points ONLY for Social Media Manager, Admin, Operation Manager
+        if (item.name === "MOM Points" || item.path?.includes("mom-points")) {
+          const deptLower = (currentUser?.department || "").toLowerCase();
+          const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+          const isAdmin = roleLower === "admin";
+          const isOperationManager = roleLower === "operationmanager" || deptLower.includes("operation manager") || roleLower.includes("operation manager");
+          const isSocialMediaManager = deptLower.includes("social manager") || deptLower.includes("social media manager") || deptLower.includes("social media executive");
+
+          if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
+            return false;
+          }
+        }
+
+        // Show Status Overview ONLY for Social Media Manager/Executive, Admin, Operation Manager, Managing Partner
+        if (
+          item.name === "Task Overview" ||
+          item.name === "Status Overview" ||
+          item.path?.includes("task-overview") ||
+          item.path?.includes("status-overview")
+        ) {
+          const deptLower = (currentUser?.department || "").toLowerCase();
+          const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+          const canSee =
+            deptLower.includes("social media") ||
+            roleLower === "admin" ||
+            roleLower === "operationmanager" ||
+            deptLower.includes("managing partner") ||
+            roleLower.includes("managing partner");
+
+          if (!canSee) {
+            return false;
+          }
+        }
+
+
+
+        // Show Calendar ONLY for Admin, Operation Manager, and Social Media Manager department
+        if (item.name === "Calendar" || item.path?.includes("all-calendar")) {
+          const deptLower = (currentUser?.department || "").toLowerCase();
+          const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+          const isAdmin =
+            roleLower === "admin" ||
+            deptLower.includes("managing partner") ||
+            roleLower.includes("managing partner");
+          const isOperationManager =
+            roleLower === "operationmanager" ||
+            deptLower.includes("operation manager") ||
+            roleLower.includes("operation manager");
+          const isSocialMediaManager = deptLower.includes("social media manager");
+
+          if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
+            return false;
+          }
+        }
+
+        // Show Workload ONLY for Admin, Operation Manager, and Social Media Manager department
+        if (item.name === "Workload" || item.path?.includes("workload")) {
+          const deptLower = (currentUser?.department || "").toLowerCase();
+          const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+          const isAdmin =
+            roleLower === "admin" ||
+            deptLower.includes("managing partner") ||
+            roleLower.includes("managing partner");
+          const isOperationManager =
+            roleLower === "operationmanager" ||
+            deptLower.includes("operation manager") ||
+            roleLower.includes("operation manager");
+          const isSocialMedia = deptLower.includes("social media");
+
+          if (!isAdmin && !isOperationManager && !isSocialMedia) {
+            return false;
+          }
+        }
+
+        // Hide Chat when admin is impersonating another user
+        if (item.name === "Chat" && originalAdminUser) {
           return false;
         }
-      }
 
-      // Show Status Overview ONLY for Social Media Manager/Executive, Admin, Operation Manager, Managing Partner
-      if (
-        item.name === "Task Overview" ||
-        item.name === "Status Overview" ||
-        item.path?.includes("task-overview") ||
-        item.path?.includes("status-overview")
-      ) {
-        const deptLower = (currentUser?.department || "").toLowerCase();
-        const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-        const canSee =
-          deptLower.includes("social media") ||
-          roleLower === "admin" ||
-          roleLower === "operationmanager" ||
-          deptLower.includes("managing partner") ||
-          roleLower.includes("managing partner");
-
-        if (!canSee) {
-          return false;
-        }
-      }
-
-
-
-      // Show Calendar ONLY for Admin, Operation Manager, and Social Media Manager department
-      if (item.name === "Calendar" || item.path?.includes("all-calendar")) {
-        const deptLower = (currentUser?.department || "").toLowerCase();
-        const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-        const isAdmin =
-          roleLower === "admin" ||
-          deptLower.includes("managing partner") ||
-          roleLower.includes("managing partner");
-        const isOperationManager =
-          roleLower === "operationmanager" ||
-          deptLower.includes("operation manager") ||
-          roleLower.includes("operation manager");
-        const isSocialMediaManager = deptLower.includes("social media manager");
-
-        if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
-          return false;
-        }
-      }
-
-      // Show Workload ONLY for Admin, Operation Manager, and Social Media Manager department
-      if (item.name === "Workload" || item.path?.includes("workload")) {
-        const deptLower = (currentUser?.department || "").toLowerCase();
-        const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-        const isAdmin =
-          roleLower === "admin" ||
-          deptLower.includes("managing partner") ||
-          roleLower.includes("managing partner");
-        const isOperationManager =
-          roleLower === "operationmanager" ||
-          deptLower.includes("operation manager") ||
-          roleLower.includes("operation manager");
-        const isSocialMedia = deptLower.includes("social media");
-
-        if (!isAdmin && !isOperationManager && !isSocialMedia) {
-          return false;
-        }
-      }
-
-      // Hide Chat when admin is impersonating another user
-      if (item.name === "Chat" && originalAdminUser) {
-        return false;
-      }
-
-      if (role === "admin" || role === "operationmanager" || role === "operation manager") return true;
-      if (item.permissionKey === "manage_clients") return true;
-      if (!item.permissionKey) return true;
-      const perm = currentUser?.permissions?.[item.permissionKey];
-      if (perm === true) return true; // legacy
-      return perm?.read;
-    });
+        if (role === "admin" || role === "operationmanager" || role === "operation manager") return true;
+        if (item.permissionKey === "manage_clients") return true;
+        if (!item.permissionKey) return true;
+        const perm = currentUser?.permissions?.[item.permissionKey];
+        if (perm === true) return true; // legacy
+        return perm?.read;
+      });
   }, [role, currentUser, originalAdminUser]);
+
+  const isCurrentCalendarRoute = React.useMemo(() => {
+    const p = (location.pathname || "").toLowerCase();
+    return p.includes("shootcalendor") || p.includes("content-calendar") || p.includes("event-calendar");
+  }, [location.pathname]);
+
+  const [isCalendarOpen, setIsCalendarOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebar_calendar_open");
+      if (saved !== null) return JSON.parse(saved);
+    } catch {}
+    return true;
+  });
+
+  useEffect(() => {
+    if (isCurrentCalendarRoute) {
+      setIsCalendarOpen(true);
+    }
+  }, [isCurrentCalendarRoute]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("sidebar_calendar_open", JSON.stringify(isCalendarOpen));
+    } catch {}
+  }, [isCalendarOpen]);
 
   const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(() => {
     try {
@@ -426,6 +550,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   }, [showUserDropdown]);
 
   useEffect(() => {
+    setShowUserDropdown(false);
+    setUserSearchQuery("");
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (activePortfolioId) {
       const parentPortfolio = (portfolios || []).find(
         (p) => p._id === activePortfolioId,
@@ -502,7 +631,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     dispatch(apiSlice.util.resetApiState());
     toast.success("Switched back to Admin");
     if (window.innerWidth < 1024) setSidebarOpen(false);
-    
+
     window.location.href = "/admin";
   };
 
@@ -606,11 +735,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 : true,
                             }));
                           }}
-                          className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] py-1.5 px-2 transition-all duration-150 rounded-lg border ${
-                            isActive
+                          className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] py-1.5 px-2 transition-all duration-150 rounded-lg border ${isActive
                               ? "bg-slate-900/10 dark:bg-white/10 text-slate-900 dark:text-white font-black shadow-sm border-slate-900/5 dark:border-white/5"
                               : "text-slate-700 dark:text-slate-300 font-semibold border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5"
-                          }`}
+                            }`}
                           title={portfolio.name}
                         >
                           <div className="w-4 h-4 shrink-0 flex items-center justify-center">
@@ -640,18 +768,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 [portfolio._id]: !prev[portfolio._id],
                               }));
                             }}
-                            className={`py-1.5 px-1.5 rounded-r-lg transition-all duration-150 flex items-center justify-center cursor-pointer ${
-                              isActive
+                            className={`py-1.5 px-1.5 rounded-r-lg transition-all duration-150 flex items-center justify-center cursor-pointer ${isActive
                                 ? "bg-slate-900/10 dark:bg-white/10 text-slate-900 dark:text-white"
                                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5"
-                            }`}
+                              }`}
                           >
                             <svg
-                              className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${
-                                expandedPortfolios[portfolio._id]
+                              className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${expandedPortfolios[portfolio._id]
                                   ? "rotate-180"
                                   : ""
-                              }`}
+                                }`}
                               fill="none"
                               viewBox="0 0 24 24"
                               stroke="currentColor"
@@ -690,11 +816,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                       `/${role}/projects?id=${project._id}`,
                                     );
                                   }}
-                                  className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1 px-1.5 rounded-md transition-all duration-150 cursor-pointer ${
-                                    isProjectActive
+                                  className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1 px-1.5 rounded-md transition-all duration-150 cursor-pointer ${isProjectActive
                                       ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
                                       : "text-slate-500 dark:text-white/80 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
-                                  }`}
+                                    }`}
                                   title={project.name}
                                 >
                                   <div className="w-6 h-6 shrink-0 flex items-center justify-center">
@@ -780,9 +905,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             {userName}
                           </span>
                           <svg
-                            className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${
-                              expandedPortfolios[folderId] ? "rotate-180" : ""
-                            }`}
+                            className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${expandedPortfolios[folderId] ? "rotate-180" : ""
+                              }`}
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -817,11 +941,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                         `/${role}/projects?id=${project._id}`,
                                       );
                                     }}
-                                    className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${
-                                      isProjectActive
+                                    className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${isProjectActive
                                         ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
                                         : "text-slate-600 dark:text-white hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
-                                    }`}
+                                      }`}
                                     title={project.name}
                                   >
                                     <div className="w-6 h-6 shrink-0 flex items-center justify-center">
@@ -912,11 +1035,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   setSidebarOpen(false);
                                 navigate(`/${role}/projects?id=${project._id}`);
                               }}
-                              className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${
-                                isProjectActive
+                              className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${isProjectActive
                                   ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
                                   : "text-slate-600 dark:text-white hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
-                              }`}
+                                }`}
                               title={project.name}
                             >
                               <div className="w-6 h-6 shrink-0 flex items-center justify-center">
@@ -974,9 +1096,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       {title}
                     </span>
                     <svg
-                      className={`w-3 h-3 shrink-0 transform transition-transform duration-200 transition-colors ${
-                        isOpen ? "rotate-180" : ""
-                      }`}
+                      className={`w-3 h-3 shrink-0 transform transition-transform duration-200 transition-colors ${isOpen ? "rotate-180" : ""
+                        }`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -1007,6 +1128,164 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             const renderMenuItem = (item) => {
               const Icon = item.icon;
               const isPortfoliosItem = item.name === "Portfolio";
+
+              if (item.children && item.children.length > 0) {
+                const isChildActive = (childPath) => {
+                  if (!childPath) return false;
+                  const current = (location.pathname || "").toLowerCase();
+                  const target = childPath.toLowerCase();
+                  return (
+                    current === target ||
+                    (target.includes("shootcalendor") && current.includes("shootcalendor")) ||
+                    (target.includes("content-calendar") && current.includes("content-calendar")) ||
+                    (target.includes("event-calendar") && current.includes("event-calendar"))
+                  );
+                };
+
+                const isAnyChildActive = item.children.some((child) => isChildActive(child.path));
+
+                return (
+                  <div key={item.name} className="my-0.5 text-left">
+                    {/* Dropdown Header Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 lg:py-1.5 rounded-xl border transition-all duration-200 cursor-pointer group text-left ${
+                        isAnyChildActive
+                          ? "bg-slate-900/10 dark:bg-white/20 shadow-sm border-slate-900/5 dark:border-white/10"
+                          : "hover:bg-slate-900/5 dark:hover:bg-white/10 border-transparent text-slate-700 dark:text-white"
+                      }`}
+                    >
+                      <motion.div
+                        className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center relative overflow-hidden transition-colors duration-200 ${
+                          isAnyChildActive
+                            ? "bg-slate-900 dark:bg-white shadow-md shadow-slate-900/20 dark:shadow-black/50"
+                            : "bg-slate-900/5 dark:bg-white/10 group-hover:bg-slate-900/10 dark:group-hover:bg-white/20"
+                        }`}
+                        whileHover={{
+                          scale: 1.22,
+                          rotate: [0, -10, 7, -4, 0],
+                          y: -1,
+                          boxShadow:
+                            "0 0 0 3px rgba(99,102,241,0.25), 0 0 12px rgba(99,102,241,0.15)",
+                        }}
+                        whileTap={{ scale: 0.85 }}
+                        transition={{
+                          scale: {
+                            type: "spring",
+                            stiffness: 500,
+                            damping: 14,
+                          },
+                          rotate: { duration: 0.38, ease: "easeInOut" },
+                          y: {
+                            type: "spring",
+                            stiffness: 500,
+                            damping: 18,
+                          },
+                          boxShadow: { duration: 0.25 },
+                        }}
+                      >
+                        <span className="absolute inset-0 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0)_70%)]" />
+                        <Icon
+                          size={14}
+                          className={`transition-colors duration-200 relative z-10 ${
+                            isAnyChildActive
+                              ? "text-white dark:text-slate-900"
+                              : "text-slate-700 dark:text-white group-hover:text-slate-900 dark:group-hover:text-white"
+                          }`}
+                        />
+                      </motion.div>
+
+                      <span
+                        className={`text-xs lg:text-[0.6875rem] truncate flex-1 text-left transition-colors duration-200 ${
+                          isAnyChildActive
+                            ? "text-slate-900 dark:text-white font-black"
+                            : "text-slate-700 dark:text-white font-bold group-hover:text-slate-900 dark:group-hover:text-white"
+                        }`}
+                      >
+                        {item.name}
+                      </span>
+
+                      <svg
+                        className={`w-3.5 h-3.5 shrink-0 transform transition-transform duration-200 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 ${
+                          isCalendarOpen ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Children List */}
+                    <AnimatePresence initial={false}>
+                      {isCalendarOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                          className="overflow-hidden"
+                        >
+                          <div className="ml-3 pl-2.5 border-l-2 border-slate-200/80 dark:border-white/10 space-y-0.5 my-1 text-left">
+                            {item.children.map((subItem) => {
+                              const SubIcon = subItem.icon;
+                              const isSubActive = isChildActive(subItem.path);
+
+                              return (
+                                <NavLink
+                                  key={subItem.path}
+                                  to={subItem.path}
+                                  onMouseEnter={() => preloadRoute(subItem.path)}
+                                  onClick={() => {
+                                    if (window.innerWidth < 1024) setSidebarOpen(false);
+                                  }}
+                                  className="block rounded-lg transition-all duration-150 relative group"
+                                >
+                                  <div
+                                    className={`flex items-center gap-2 px-2.5 py-1.5 w-full rounded-lg text-left transition-all duration-150 border ${
+                                      isSubActive
+                                        ? "bg-slate-900/10 dark:bg-white/20 shadow-xs border-slate-900/5 dark:border-white/10 font-bold"
+                                        : "hover:bg-slate-900/5 dark:hover:bg-white/10 border-transparent text-slate-600 dark:text-white/80"
+                                    }`}
+                                  >
+                                    {isSubActive && (
+                                      <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                                    )}
+                                    <SubIcon
+                                      size={13}
+                                      className={`shrink-0 transition-colors ${
+                                        isSubActive
+                                          ? "text-slate-900 dark:text-white"
+                                          : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
+                                      }`}
+                                    />
+                                    <span
+                                      className={`text-[11px] lg:text-[0.6875rem] truncate flex-1 text-left ${
+                                        isSubActive
+                                          ? "text-slate-900 dark:text-white font-bold"
+                                          : "text-slate-650 dark:text-white/80 group-hover:text-slate-900 dark:group-hover:text-white"
+                                      }`}
+                                    >
+                                      {subItem.name}
+                                    </span>
+                                  </div>
+                                </NavLink>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              }
 
               return (
                 <React.Fragment key={item.path}>
@@ -1049,11 +1328,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   >
                     {({ isActive }) => (
                       <motion.div
-                        className={`flex items-center gap-2.5 px-3 py-2 lg:py-1.5 w-full rounded-xl relative overflow-hidden transition-all duration-200 text-left border ${
-                          isActive
+                        className={`flex items-center gap-2.5 px-3 py-2 lg:py-1.5 w-full rounded-xl relative overflow-hidden transition-all duration-200 text-left border ${isActive
                             ? "bg-slate-900/10 dark:bg-white/20 shadow-sm border-slate-900/5 dark:border-white/10"
                             : "hover:bg-slate-900/5 dark:hover:bg-white/10 border-transparent"
-                        }`}
+                          }`}
                         whileHover={{ x: 2 }}
                         transition={{
                           type: "spring",
@@ -1078,11 +1356,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                         {/* Icon wrapper — fixed w-6 h-6 ensures all icons align on same column */}
                         <motion.div
-                          className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center relative overflow-hidden transition-colors duration-200 ${
-                            isActive
+                          className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center relative overflow-hidden transition-colors duration-200 ${isActive
                               ? "bg-slate-900 dark:bg-white shadow-md shadow-slate-900/20 dark:shadow-black/50"
                               : "bg-slate-900/5 dark:bg-white/10 group-hover:bg-slate-900/10 dark:group-hover:bg-white/20"
-                          }`}
+                            }`}
                           whileHover={{
                             scale: 1.22,
                             rotate: [0, -10, 7, -4, 0],
@@ -1110,21 +1387,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           <span className="absolute inset-0 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0)_70%)]" />
                           <Icon
                             size={14}
-                            className={`transition-colors duration-200 relative z-10 ${
-                              isActive
+                            className={`transition-colors duration-200 relative z-10 ${isActive
                                 ? "text-white dark:text-slate-900"
                                 : "text-slate-700 dark:text-white group-hover:text-slate-900 dark:group-hover:text-white"
-                            }`}
+                              }`}
                           />
                         </motion.div>
 
                         {/* Label */}
                         <span
-                          className={`text-xs lg:text-[0.6875rem] truncate flex-1 text-left transition-colors duration-200 ${
-                            isActive
+                          className={`text-xs lg:text-[0.6875rem] truncate flex-1 text-left transition-colors duration-200 ${isActive
                               ? "text-slate-900 dark:text-white font-black"
                               : "text-slate-700 dark:text-white font-bold group-hover:text-slate-900 dark:group-hover:text-white"
-                          }`}
+                            }`}
                         >
                           {item.name}
                         </span>
@@ -1143,28 +1418,28 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         {item.name === "Client Calls" &&
                           (notifications
                             ? notifications.filter(
-                                (n) =>
-                                  !n.isRead &&
-                                  n.type === "client_call_created",
-                              ).length
+                              (n) =>
+                                !n.isRead &&
+                                n.type === "client_call_created",
+                            ).length
                             : 0) > 0 && (
                             <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-indigo-600 dark:bg-indigo-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
                               {notifications
                                 ? notifications.filter(
-                                    (n) =>
-                                      !n.isRead &&
-                                      n.type === "client_call_created",
-                                  ).length
+                                  (n) =>
+                                    !n.isRead &&
+                                    n.type === "client_call_created",
+                                ).length
                                 : 0}
                             </span>
                           )}
                         {item.name === "MOM Points" &&
                           (notifications
                             ? notifications.filter(
-                                (n) =>
-                                  !n.isRead &&
-                                  ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
-                              ).length
+                              (n) =>
+                                !n.isRead &&
+                                ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
+                            ).length
                             : 0) > 0 && (
                             <span className="flex h-[1rem] min-w-[1.5rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse uppercase tracking-widest">
                               New
@@ -1187,20 +1462,20 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             item.name === "Client Calls" &&
                             (notifications
                               ? notifications.filter(
-                                  (n) =>
-                                    !n.isRead &&
-                                    n.type === "client_call_created",
-                                ).length
+                                (n) =>
+                                  !n.isRead &&
+                                  n.type === "client_call_created",
+                              ).length
                               : 0) > 0
                           ) &&
                           !(
                             item.name === "MOM Points" &&
                             (notifications
                               ? notifications.filter(
-                                  (n) =>
-                                    !n.isRead &&
-                                    ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
-                                ).length
+                                (n) =>
+                                  !n.isRead &&
+                                  ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
+                              ).length
                               : 0) > 0
                           ) &&
                           !(
@@ -1239,23 +1514,25 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             const topCardNames =
               role === "operationmanager"
                 ? [
-                    "Home",
-                    "Sticky Notes",
-                    "Chat",
-                    "Users",
-                    "Reports",
-                    "SM Credentials",
-                    "Client Calls",
-                  ]
+                  "Home",
+                  "Sticky Notes",
+                  "Chat",
+                  "Users",
+                  "Reports",
+                  "Client Calls",
+                  "MOM Points",
+                  "SM Credentials",
+                ]
                 : [
-                    "Home",
-                    "Sticky Notes",
-                    "Chat",
-                    "Users",
-                    "SM Credentials",
-                    "Client Calls",
-                    "Reports",
-                  ];
+                  "Home",
+                  "Sticky Notes",
+                  "Chat",
+                  "Users",
+                  "SM Credentials",
+                  "Client Calls",
+                  "MOM Points",
+                  "Reports",
+                ];
 
             return (
               <>
@@ -1379,9 +1656,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     </div>
                   </div>
                   <svg
-                    className={`w-3 h-3 text-slate-400 dark:text-slate-500 transform transition-transform duration-200 shrink-0 ${
-                      showUserDropdown ? "rotate-180" : ""
-                    }`}
+                    className={`w-3 h-3 text-slate-400 dark:text-slate-500 transform transition-transform duration-200 shrink-0 ${showUserDropdown ? "rotate-180" : ""
+                      }`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1482,20 +1758,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                           handleSwitchUser(u._id);
                                         }
                                       }}
-                                      className={`w-full flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${
-                                        isCurrent
+                                      className={`w-full flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${isCurrent
                                           ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
                                           : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
-                                      }`}
+                                        }`}
                                     >
                                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                                         {/* Avatar */}
                                         <div
-                                          className={`w-7 h-7 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
-                                            isCurrent
+                                          className={`w-7 h-7 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${isCurrent
                                               ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
                                               : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
-                                          }`}
+                                            }`}
                                         >
                                           {u.profile?.profileImage?.url ? (
                                             <img
@@ -1511,11 +1785,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                         </div>
                                         <div className="min-w-0 flex-1">
                                           <p
-                                            className={`text-[11px] lg:text-[0.625rem] font-bold truncate leading-tight transition-colors ${
-                                              isCurrent
+                                            className={`text-[11px] lg:text-[0.625rem] font-bold truncate leading-tight transition-colors ${isCurrent
                                                 ? "text-indigo-700 dark:text-indigo-300"
                                                 : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
-                                            }`}
+                                              }`}
                                           >
                                             {u.name}
                                           </p>

@@ -14,6 +14,7 @@ import stickyNoteReducer from '../features/stickynotes/stickyNoteSlice';
 import portfolioReducer from "../features/portfolio/portfolioSlice";
 import socialAccountReducer from "../features/socialAccounts/socialAccountSlice";
 import calendarEventReducer from "../features/calendarEvents/calendarEventSlice";
+import socialmediaTaskReducer from "../features/socialmediaTasks/socialmediaTaskSlice";
 import { apiSlice } from "../features/api/apiSlice";
 
 export const store = configureStore({
@@ -33,6 +34,7 @@ export const store = configureStore({
     stickyNotes: stickyNoteReducer,
     socialAccounts: socialAccountReducer,
     calendarEvents: calendarEventReducer,
+    socialmediaTasks: socialmediaTaskReducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>

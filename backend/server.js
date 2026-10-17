@@ -198,6 +198,7 @@ const shootRoutes = require("./routes/shoot.routes");
 const momRoutes = require("./routes/momRoutes");
 
 const calendarEventRoutes = require("./routes/calendarEventRoutes");
+const socialmediaTaskCalendorRoutes = require("./routes/socialmediaTaskCalendorRoutes");
 
 
 
@@ -251,6 +252,9 @@ app.use('/api/shoot-calendar', shootRoutes);
 app.use('/api/moms', momRoutes);
 
 app.use('/api/calendar-events', calendarEventRoutes);
+app.use('/api/socialmedia-task-calendar', socialmediaTaskCalendorRoutes);
+app.use('/api/socialmedia-task-calendor', socialmediaTaskCalendorRoutes);
+app.use('/api/social-media-tasks', socialmediaTaskCalendorRoutes);
 
 
 

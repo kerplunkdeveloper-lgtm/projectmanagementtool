@@ -26,6 +26,10 @@ const DashboardLayoutInner = ({ role }) => {
   const location = useLocation();
   const isChatPage =
     location.pathname.endsWith("/chat") || location.pathname.includes("/chat");
+  const isContentCalendarPage =
+    location.pathname.includes("/content-calendar") ||
+    location.pathname.includes("/content-calendor");
+  const hideNavbar = isChatPage || isContentCalendarPage;
   const [sidebarOpen, setSidebarOpen] = useState(
     () => window.innerWidth >= 1024,
   );
@@ -118,7 +122,7 @@ const DashboardLayoutInner = ({ role }) => {
         )}
 
         {/* NAVBAR */}
-        {!isChatPage && <Navbar setSidebarOpen={setSidebarOpen} />}
+        {!hideNavbar && <Navbar setSidebarOpen={setSidebarOpen} />}
 
         {/* HORIZONTAL SIDEBAR */}
         {sidebarLayout === "horizontal" && (
@@ -140,7 +144,7 @@ const DashboardLayoutInner = ({ role }) => {
                   } mx-auto w-full dark:shadow-none p-2 sm:p-3 md:p-2`
             }
           >
-            <Outlet />
+            <Outlet context={{ setSidebarOpen, sidebarOpen }} />
           </div>
         </main>
       </div>

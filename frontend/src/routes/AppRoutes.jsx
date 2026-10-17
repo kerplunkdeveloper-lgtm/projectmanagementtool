@@ -92,6 +92,14 @@ const EventCalendar = lazyWithRetry(
   () => import("../pages/calendar/EventCalendar.jsx"),
 );
 
+const SmTasks = lazyWithRetry(
+  () => import("../pages/socialmedia/SmTasks.jsx"),
+);
+
+const ContentCalendar = lazyWithRetry(
+  () => import("../pages/socialmedia/ContentCalendar.jsx"),
+);
+
 // Dictionary of route preloading functions for hover-intent preloading
 export const routePreloaders = {
   dashboard: () => import("../pages/Dashboard/Dashboardmain.jsx"),
@@ -116,6 +124,8 @@ export const routePreloaders = {
   calendar: () => import("../pages/calendar/AllCalendar.jsx"),
 
   eventCalendar: () => import("../pages/calendar/EventCalendar.jsx"),
+  smTasks: () => import("../pages/socialmedia/SmTasks.jsx"),
+  contentCalendar: () => import("../pages/socialmedia/ContentCalendar.jsx"),
 };
 
 export const preloadRoute = (path) => {
@@ -124,6 +134,8 @@ export const preloadRoute = (path) => {
   if (p.endsWith("/projects")) routePreloaders.projects?.();
   else if (p.endsWith("/designer-tasks")) routePreloaders.designerTasks?.();
   else if (p.endsWith("/cinematographer-tasks")) routePreloaders.cinematographerTasks?.();
+  else if (p.endsWith("/sm-tasks") || p.endsWith("/sm-task")) routePreloaders.smTasks?.();
+  else if (p.endsWith("/content-calendar") || p.endsWith("/content-calendor")) routePreloaders.contentCalendar?.();
   else if (p.endsWith("/clients")) routePreloaders.clients?.();
   else if (p.endsWith("/users")) routePreloaders.users?.();
   else if (p.endsWith("/tasks")) routePreloaders.tasks?.();
@@ -245,6 +257,11 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route path="sm-tasks" element={<SmTasks />} />
+          <Route path="sm-task" element={<SmTasks />} />
+          <Route path="content-calendar" element={<ContentCalendar />} />
+          <Route path="content-calendor" element={<ContentCalendar />} />
 
           <Route
             path="clients"
@@ -405,6 +422,11 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route path="sm-tasks" element={<SmTasks />} />
+          <Route path="sm-task" element={<SmTasks />} />
+          <Route path="content-calendar" element={<ContentCalendar />} />
+          <Route path="content-calendor" element={<ContentCalendar />} />
 
           <Route
             path="clients"
@@ -575,6 +597,11 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route path="sm-tasks" element={<SmTasks />} />
+          <Route path="sm-task" element={<SmTasks />} />
+          <Route path="content-calendar" element={<ContentCalendar />} />
+          <Route path="content-calendor" element={<ContentCalendar />} />
 
           <Route
             path="clients"

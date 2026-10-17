@@ -27,7 +27,28 @@ router.get(
 router.get(
   '/team-activity',
   protect,
-  authorize('admin', 'operationmanager'),
+  (req, res, next) => {
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isHr =
+      deptLower.includes('hr') ||
+      deptLower.includes('human resource') ||
+      req.user?.department === 'HR';
+    const userPerm = req.user?.permissions?.manage_users;
+    const hasUsersPerm = userPerm === true || userPerm?.read || userPerm?.write;
+
+    if (
+      req.user?.role === 'admin' ||
+      req.user?.role === 'operationmanager' ||
+      isHr ||
+      hasUsersPerm
+    ) {
+      return next();
+    }
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to view team activity',
+    });
+  },
   getTeamActivity
 );
 

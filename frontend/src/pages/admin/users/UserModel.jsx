@@ -109,16 +109,52 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
         </div>
 
         {/* FORM */}
-        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3">
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3" autoComplete="off">
+          {/* Hidden dummy inputs to divert aggressive browser credential autofill */}
+          <input
+            type="text"
+            name="prevent_autofill_email"
+            style={{ display: "none" }}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+          />
+          <input
+            type="password"
+            name="prevent_autofill_password"
+            style={{ display: "none" }}
+            tabIndex={-1}
+            autoComplete="new-password"
+            aria-hidden="true"
+          />
+
           <div>
             <label className={LABEL}>Full Name <span className="normal-case text-red-600">*</span></label>
-            <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="Enter user name" className={INPUT} />
+            <input
+              type="text"
+              name="name"
+              required
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter user name"
+              autoComplete="off"
+              className={INPUT}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={LABEL}>Email <span className="normal-case text-red-600">*</span></label>
-              <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="Enter user email id" className={INPUT} />
+              <input
+                type="email"
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="yourname@kerplunkmedia.in"
+                autoComplete="off"
+                className={INPUT}
+              />
             </div>
 
             <div>
@@ -178,6 +214,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
                 value={formData.password} 
                 onChange={handleChange} 
                 placeholder="Enter user password" 
+                autoComplete="new-password"
                 className={INPUT + " pr-10"} 
               />
               <button 

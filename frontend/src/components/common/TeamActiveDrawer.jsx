@@ -183,7 +183,18 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
 
   const { socket } = useSocketContext() || {};
 
-  const isAuthorized = currentUser?.role === "admin" || currentUser?.role === "operationmanager";
+  const deptLower = (currentUser?.department || "").toLowerCase();
+  const isHr =
+    deptLower.includes("hr") ||
+    deptLower.includes("human resource") ||
+    currentUser?.department === "HR";
+  const hasUsersPerm = Boolean(currentUser?.permissions?.manage_users);
+
+  const isAuthorized =
+    currentUser?.role === "admin" ||
+    currentUser?.role === "operationmanager" ||
+    isHr ||
+    hasUsersPerm;
 
   // Fetch team activity
   const { data, isLoading, isFetching, refetch } = useGetTeamActivityQuery(undefined, {

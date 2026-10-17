@@ -74,25 +74,25 @@ exports.authorize = (...roles) => {
     let hasPermission = false;
     if (url.includes('/projects') || url.includes('/business-projects')) {
       const perm = permissions.manage_projects;
-      hasPermission = perm === true || perm?.read || perm?.write;
+      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete || perm?.create;
     } else if (url.includes('/tasks')) {
       const perm = permissions.manage_tasks;
-      hasPermission = perm === true || perm?.read || perm?.write;
+      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete || perm?.create;
     } else if (url.includes('/portfolios') || url.includes('/templates') || url.includes('/overheads')) {
-      const perm = permissions.manage_settings;
-      hasPermission = perm === true || perm?.read || perm?.write;
+      const perm = permissions.manage_settings || permissions.manage_portfolios;
+      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete || perm?.create;
     } else if (url.includes('/clients')) {
       const perm = permissions.manage_clients;
-      hasPermission = perm === true || perm?.read || perm?.write;
+      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete || perm?.create;
     } else if (url.includes('/users')) {
       const perm = permissions.manage_users;
-      hasPermission = perm === true || perm?.read || perm?.write;
+      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete || perm?.create;
     } else if (url.includes('/eod-reports')) {
       const perm = permissions.view_reports;
-      hasPermission = perm === true || perm?.read || perm?.write;
+      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete || perm?.create;
     } else if (url.includes('/shoot-calendar') || url.includes('/shoots')) {
       const perm = permissions.manage_shoots || permissions.shoot_calendar;
-      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete;
+      hasPermission = perm === true || perm?.read || perm?.write || perm?.update || perm?.delete || perm?.create;
     }
 
     if (hasPermission) {
