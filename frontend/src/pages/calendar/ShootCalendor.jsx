@@ -1874,21 +1874,22 @@ const ShootCalendor = () => {
       </div>
 
       {/* Main Calendar Card */}
-      <div className="flex-1 bg-white dark:bg-[#0c1322] p-5 rounded-2xl  flex flex-col mx-5 mb-5 min-h-[1300px]">
-        <div className="w-full flex flex-col h-full">
+      <div className="flex-1 bg-white dark:bg-[#0c1322] p-5 rounded-2xl flex flex-col mx-5 mb-5 min-h-[1300px]">
+        <div className="w-full flex flex-col flex-1 h-auto">
           <style
             dangerouslySetInnerHTML={{
               __html: `
             /* Calendar Global Reset */
             .rbc-calendar { font-family: inherit; min-height: 1200px !important; height: auto !important; }
-            .rbc-month-view { border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #ffffff; min-height: 1200px !important; height: auto !important; }
+            .rbc-month-view { border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #ffffff; min-height: 1200px !important; height: auto !important; flex: 1 0 auto !important; }
             .rbc-month-header { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
             .rbc-header { padding: 12px 6px !important; font-size: 11px !important; font-weight: 800 !important; color: #64748b !important; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: none !important; border-left: 1px solid #e2e8f0 !important; }
             .rbc-header:first-child { border-left: none !important; }
-            .rbc-day-bg { border-left: 1px solid #e2e8f0 !important; transition: background 0.15s ease; min-height: 240px !important; }
+            .rbc-row-bg { position: absolute !important; top: 0 !important; bottom: 0 !important; left: 0 !important; right: 0 !important; height: 100% !important; }
+            .rbc-day-bg { border-left: 1px solid #e2e8f0 !important; transition: background 0.15s ease; min-height: 240px !important; height: 100% !important; }
             .rbc-day-bg:hover { background-color: #f8fafc; }
-            .rbc-month-row { border-top: 1px solid #e2e8f0 !important; min-height: 240px !important; flex: 1 0 240px !important; overflow: visible !important; }
-            .rbc-row-content { min-height: 240px !important; z-index: 4; }
+            .rbc-month-row { border-top: 1px solid #e2e8f0 !important; min-height: 240px !important; height: auto !important; flex: 1 0 auto !important; overflow: visible !important; }
+            .rbc-row-content { min-height: 240px !important; height: auto !important; position: relative !important; z-index: 4; }
             .rbc-off-range-bg { background: #fafafa !important; opacity: 0.6; }
             .rbc-today { background-color: rgba(16, 185, 129, 0.04) !important; }
             .rbc-event { background: transparent !important; border: none !important; padding: 0 !important; margin: 0 !important; }
@@ -1905,13 +1906,13 @@ const ShootCalendor = () => {
             .rbc-show-more { font-size: 11px !important; font-weight: 800 !important; color: #10b981 !important; padding: 3px 8px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); margin-top: 4px; display: inline-block; cursor: pointer; }
             
             /* ================= DARK MODE STYLING ================= */
-            .dark .rbc-month-view { border: 1px solid #1e293b; background: #0c1322; min-height: 1200px !important; height: auto !important; }
+            .dark .rbc-month-view { border: 1px solid #1e293b; background: #0c1322; min-height: 1200px !important; height: auto !important; flex: 1 0 auto !important; }
             .dark .rbc-month-header { background: #111a2e; border-bottom: 1px solid #1e293b; }
             .dark .rbc-header { color: #94a3b8 !important; background: #111a2e !important; font-size: 11px !important; font-weight: 800 !important; border-left: 1px solid #1e293b !important; }
-            .dark .rbc-day-bg { border-left: 1px solid #1e293b !important; min-height: 240px !important; }
+            .dark .rbc-day-bg { border-left: 1px solid #1e293b !important; min-height: 240px !important; height: 100% !important; }
             .dark .rbc-day-bg:hover { background-color: rgba(30, 41, 59, 0.45); }
-            .dark .rbc-month-row { border-top: 1px solid #1e293b !important; min-height: 240px !important; flex: 1 0 240px !important; }
-            .dark .rbc-row-content { min-height: 240px !important; }
+            .dark .rbc-month-row { border-top: 1px solid #1e293b !important; min-height: 240px !important; height: auto !important; flex: 1 0 auto !important; overflow: visible !important; }
+            .dark .rbc-row-content { min-height: 240px !important; height: auto !important; position: relative !important; }
             .dark .rbc-off-range-bg { background: #080d1a !important; opacity: 0.6; }
             .dark .rbc-today { background-color: rgba(16, 185, 129, 0.08) !important; }
             
