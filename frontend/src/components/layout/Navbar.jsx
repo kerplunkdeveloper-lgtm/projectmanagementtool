@@ -118,6 +118,8 @@ const Navbar = ({ setSidebarOpen, presence }) => {
   const { user } = useSelector((state) => state.auth);
   const deptLower = (user?.department || "").toLowerCase();
   const isHr =
+    user?.role === "humanresource" ||
+    user?.role === "hr" ||
     deptLower.includes("hr") ||
     deptLower.includes("human resource") ||
     user?.department === "HR";
@@ -449,6 +451,8 @@ const Navbar = ({ setSidebarOpen, presence }) => {
       path === "/admin/" ||
       path === "/operationmanager" ||
       path === "/operationmanager/" ||
+      path === "/humanresource" ||
+      path === "/humanresource/" ||
       path === "/team" ||
       path === "/team/"
     ) {

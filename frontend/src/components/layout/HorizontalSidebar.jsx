@@ -115,6 +115,8 @@ const HorizontalSidebar = ({ role }) => {
         window.location.href = "/admin";
       } else if (targetRole === "operationmanager") {
         window.location.href = "/operationmanager";
+      } else if (targetRole === "humanresource" || targetRole === "hr") {
+        window.location.href = "/humanresource";
       } else {
         window.location.href = "/team";
       }
@@ -305,6 +307,30 @@ const HorizontalSidebar = ({ role }) => {
         const isSocialMediaManager = deptLower.includes("social media manager");
 
         if (!isSocialMediaManager) {
+          return false;
+        }
+      }
+
+      // Show MOM Points ONLY for Admin, Operation Manager, and Social Media Manager
+      if (item.name === "MOM Points" || item.path?.includes("mom-points")) {
+        const deptLower = (currentUser?.department || "").toLowerCase();
+        const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+        const isAdmin =
+          roleLower === "admin" ||
+          deptLower.includes("managing partner") ||
+          roleLower.includes("managing partner");
+        const isOperationManager =
+          roleLower === "operationmanager" ||
+          deptLower.includes("operation manager") ||
+          roleLower.includes("operation manager");
+        const isSocialMediaManager =
+          deptLower.includes("social media manager") ||
+          deptLower.includes("social manager") ||
+          deptLower.includes("social media") ||
+          roleLower === "socialmediamanager";
+
+        if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
           return false;
         }
       }

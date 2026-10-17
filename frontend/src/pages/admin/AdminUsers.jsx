@@ -205,6 +205,8 @@ const AdminUsers = () => {
         navigate("/admin");
       } else if (targetRole === "operationmanager") {
         navigate("/operationmanager");
+      } else if (targetRole === "humanresource" || targetRole === "hr") {
+        navigate("/humanresource");
       } else {
         navigate("/team");
       }
@@ -470,41 +472,6 @@ const AdminUsers = () => {
         canCreate={canCreate}
         onExportExcel={handleExportExcel}
       />
-
-      <div className="flex flex-wrap items-center justify-between gap-4 p-1 mt-[-10px]">
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <div className="px-3 py-1">
-            <span className="font-semibold">Department:</span>{" "}
-            <span className="font-light">
-              {filterDept || "All Departments"}
-            </span>
-          </div>
-
-          <div className="px-3 py-1">
-            <span className="font-semibold">Location:</span>{" "}
-            <span className="font-light ">
-              {filterLocation || "All Locations"}
-            </span>
-          </div>
-
-          <div className="px-3 py-1">
-            <span className="font-semibold">Status:</span>{" "}
-            <span className="font-light ">
-              {filterRelieved === "all"
-                ? "All Users"
-                : filterRelieved === "active"
-                  ? "Active Users"
-                  : "Relieved Users"}
-            </span>
-          </div>
-
-          {searchTerm && (
-            <div className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-              🔍 <span className="italic">{searchTerm}</span>
-            </div>
-          )}
-        </div>
-      </div>
 
       <UserTable
         users={currentUsers}

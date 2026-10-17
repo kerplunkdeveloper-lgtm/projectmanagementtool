@@ -120,7 +120,39 @@ export const sidebarConfig = {
     { name: "Profile", path: "/team/profile", icon: FiUser },
     { name: "Settings", path: "/team/settings", icon: FiSettings },
   ],
+
+  humanresource: [
+    { name: "Home", path: "/humanresource", icon: FiHome },
+    { name: "Sticky Notes", path: "/humanresource/stickynotes", icon: TbPencilHeart },
+    {
+      name: "All Calendar",
+      path: "/humanresource/Shootcalendor",
+      icon: LuCalendarDays,
+      children: [
+        { name: "Shoot Calendar", path: "/humanresource/Shootcalendor", icon: LuCalendarDays, permissionKey: "manage_shoots" },
+        { name: "Content Calendar", path: "/humanresource/content-calendar", icon: LuCalendarRange },
+        { name: "Calendar", path: "/humanresource/event-calendar", icon: LuCalendarCheck },
+      ],
+    },
+    { name: "Chat", path: "/humanresource/chat", icon: LuMessagesSquare },
+    { name: "Client Calls", path: "/humanresource/client-calls", icon: LuPhoneCall },
+    { name: "MOM Points", path: "/humanresource/mom-points", icon: LuStickyNote },
+    // { name: "Workload", path: "/humanresource/workload", icon: LuActivity },
+    { name: "Clients", path: "/humanresource/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
+    { name: "SM Credentials", path: "/humanresource/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
+    { name: "SM Tasks", path: "/humanresource/sm-tasks", icon: LuListTodo },
+    { name: "Projects", path: "/humanresource/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    { name: "Designer Tasks", path: "/humanresource/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
+    { name: "Cinematographer Tasks", path: "/humanresource/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
+    { name: "Status Overview", path: "/humanresource/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
+    { name: "Assigned Tasks", path: "/humanresource/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
+    { name: "My Reports", path: "/humanresource/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
+    { name: "Portfolio", path: "/humanresource/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
+    { name: "Users", path: "/humanresource/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "Profile", path: "/humanresource/profile", icon: FiUser },
+    { name: "Settings", path: "/humanresource/settings", icon: FiSettings },
+  ],
 };
 
-sidebarConfig.humanresource = sidebarConfig.team;
+sidebarConfig.hr = sidebarConfig.humanresource;
 

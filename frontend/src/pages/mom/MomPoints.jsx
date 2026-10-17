@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { Navigate } from "react-router-dom";
 import {
   FiPlus,
   FiTrash2,
@@ -217,12 +218,24 @@ const MomPoints = () => {
   };
 
   const deptLower = user?.department?.toLowerCase() || "";
+  const roleLower = user?.role?.toLowerCase() || "";
   const isCurrentUserSocialMedia =
     deptLower.includes("social manager") ||
     deptLower.includes("social media manager") ||
-    deptLower.includes("social media executive");
+    deptLower.includes("social media executive") ||
+    deptLower.includes("social media") ||
+    roleLower === "socialmediamanager";
   const isCurrentUserAdminOrOp =
-    user?.role === "admin" || user?.role === "operationmanager";
+    roleLower === "admin" ||
+    roleLower === "operationmanager" ||
+    deptLower.includes("managing partner") ||
+    deptLower.includes("operation manager");
+
+  const isAuthorized = isCurrentUserAdminOrOp || isCurrentUserSocialMedia;
+
+  if (user && !isAuthorized) {
+    return <Navigate to={`/${user?.role || "team"}`} replace />;
+  }
 
   const assignableUsers = useMemo(() => {
     return users.filter((u) => {

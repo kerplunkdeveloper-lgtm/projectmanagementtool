@@ -545,8 +545,172 @@ const AppRoutes = () => {
         <Route
           path="/team"
           element={
-            <ProtectedRoute allowedRoles={["team", "humanresource"]}>
+            <ProtectedRoute allowedRoles={["team"]}>
               <DashboardLayout role="team" />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboardmain />} />
+
+          <Route path="stickynotes" element={<Stickynotes />} />
+
+          <Route
+            path="all-calendar"
+            element={
+              <ProtectedRoute requiredPermission="manage_shoots">
+                <AllCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="Shootcalendor"
+            element={
+              <ProtectedRoute requiredPermission="manage_shoots">
+                <AllCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="shootcalendor"
+            element={
+              <ProtectedRoute requiredPermission="manage_shoots">
+                <AllCalendar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="shoot-calendar"
+            element={
+              <ProtectedRoute requiredPermission="manage_shoots">
+                <AllCalendar />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="event-calendar" element={<EventCalendar />} />
+
+          <Route
+            path="social-accounts"
+            element={
+              <ProtectedRoute requiredPermission="manage_clients">
+                <SocialAccounts />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="sm-tasks" element={<SmTasks />} />
+          <Route path="sm-task" element={<SmTasks />} />
+          <Route path="content-calendar" element={<ContentCalendar />} />
+          <Route path="content-calendor" element={<ContentCalendar />} />
+
+          <Route
+            path="clients"
+            element={
+              <ProtectedRoute requiredPermission="manage_clients">
+                <Clients />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="portfolio"
+            element={
+              <ProtectedRoute requiredPermission="manage_settings">
+                <Portfolio />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="projects"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <Project />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="designer-tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <DesignerTasks />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="cinematographer-tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_projects">
+                <CinematographerTasks />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="tasks"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <Task />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="task-overview"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <TaskOverview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute requiredPermission="manage_tasks">
+                <TaskOverview />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="eod-reports"
+            element={
+              <ProtectedRoute requiredPermission="view_reports">
+                <EodReports />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="users"
+            element={
+              <ProtectedRoute requiredPermission="manage_users">
+                <AdminUsers />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route path="profile" element={<Profile />} />
+
+          <Route path="settings" element={<Settings />} />
+
+          <Route path="notifications" element={<Notifications />} />
+
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="client-calls" element={<ClientCalls />} />
+          <Route path="mom-points" element={<MomPoints />} />
+
+          <Route path="workload" element={<Workload />} />
+        </Route>
+
+        {/* HUMAN RESOURCE ROUTES */}
+        <Route
+          path="/humanresource"
+          element={
+            <ProtectedRoute allowedRoles={["humanresource"]}>
+              <DashboardLayout role="humanresource" />
             </ProtectedRoute>
           }
         >
