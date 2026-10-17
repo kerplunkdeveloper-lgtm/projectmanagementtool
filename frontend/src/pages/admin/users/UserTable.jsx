@@ -36,6 +36,12 @@ const ROLE_STYLE = {
     dot: "bg-cyan-500 dark:bg-cyan-400",
     text: "Team Member",
   },
+  humanresource: {
+    badge:
+      "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-transparent",
+    dot: "bg-amber-500 dark:bg-amber-400",
+    text: "Human Resource",
+  },
 };
 
 /* ─── Department badge colors ────────────────────────────────── */

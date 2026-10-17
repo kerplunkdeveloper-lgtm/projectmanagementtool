@@ -57,6 +57,7 @@ const getInitials = (name) => {
 const displayRole = (role) => {
   if (role === "operationmanager") return "Operation Manager";
   if (role === "admin") return "Admin";
+  if (role === "humanresource") return "Human Resource";
   return "Team";
 };
 
@@ -126,6 +127,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { notifications } = useSelector((state) => state.notifications);
   const unreadCount = notifications
     ? notifications.filter((n) => !n.isRead).length
+    : 0;
+
+  const unreadMomCount = notifications
+    ? notifications.filter(
+        (n) =>
+          !n.isRead &&
+          ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
+      ).length
     : 0;
 
   const { projects } = useSelector((state) => state.projects);
@@ -349,19 +358,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           }
         }
 
-        // Show MOM Points ONLY for Social Media Manager, Admin, Operation Manager
-        if (item.name === "MOM Points" || item.path?.includes("mom-points")) {
-          const deptLower = (currentUser?.department || "").toLowerCase();
-          const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-          const isAdmin = roleLower === "admin";
-          const isOperationManager = roleLower === "operationmanager" || deptLower.includes("operation manager") || roleLower.includes("operation manager");
-          const isSocialMediaManager = deptLower.includes("social manager") || deptLower.includes("social media manager") || deptLower.includes("social media executive");
-
-          if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
-            return false;
-          }
-        }
+        // MOM Points is visible for admin, operationmanager, and team as configured in sidebarConfig
 
         // Show Status Overview ONLY for Social Media Manager/Executive, Admin, Operation Manager, Managing Partner
         if (
@@ -618,7 +615,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         window.location.href = "/admin";
       } else if (targetRole === "operationmanager") {
         window.location.href = "/operationmanager";
-      } else if (targetRole === "team") {
+      } else {
         window.location.href = "/team";
       }
     } catch (err) {
@@ -1310,7 +1307,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       if (item.name === "MOM Points") {
                         if (notifications) {
                           notifications.forEach((n) => {
-                            if (!n.isRead && ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
+                            if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
                               dispatch(markAsRead(n._id));
                             }
                           });
@@ -1433,18 +1430,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 : 0}
                             </span>
                           )}
-                        {item.name === "MOM Points" &&
-                          (notifications
-                            ? notifications.filter(
-                              (n) =>
-                                !n.isRead &&
-                                ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
-                            ).length
-                            : 0) > 0 && (
-                            <span className="flex h-[1rem] min-w-[1.5rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse uppercase tracking-widest">
-                              New
-                            </span>
-                          )}
+                        {item.name === "MOM Points" && unreadMomCount > 0 && (
+                          <span className="flex h-[1rem] min-w-[1.4rem] items-center gap-0.5 justify-center rounded-full bg-rose-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
+                            <span>{unreadMomCount > 99 ? "99+" : unreadMomCount}</span>
+                            <span className="text-[0.45rem] uppercase tracking-wider">New</span>
+                          </span>
+                        )}
                         {item.name === "Reports" &&
                           (role === "admin" || role === "operationmanager") &&
                           newReportsCount > 0 && (
@@ -1470,13 +1461,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           ) &&
                           !(
                             item.name === "MOM Points" &&
-                            (notifications
-                              ? notifications.filter(
-                                (n) =>
-                                  !n.isRead &&
-                                  ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
-                              ).length
-                              : 0) > 0
+                            unreadMomCount > 0
                           ) &&
                           !(
                             item.name === "Reports" &&

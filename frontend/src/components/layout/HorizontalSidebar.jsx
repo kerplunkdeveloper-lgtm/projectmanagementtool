@@ -115,7 +115,7 @@ const HorizontalSidebar = ({ role }) => {
         window.location.href = "/admin";
       } else if (targetRole === "operationmanager") {
         window.location.href = "/operationmanager";
-      } else if (targetRole === "team") {
+      } else {
         window.location.href = "/team";
       }
     } catch (err) {
@@ -147,6 +147,14 @@ const HorizontalSidebar = ({ role }) => {
     dbUnreadChatCount,
     reduxTotalUnread || 0,
   );
+
+  const unreadMomCount = notifications
+    ? notifications.filter(
+        (n) =>
+          !n.isRead &&
+          ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
+      ).length
+    : 0;
 
   const menuItems = (sidebarConfig[role] || [])
     .map((item) => {
@@ -510,7 +518,7 @@ const HorizontalSidebar = ({ role }) => {
                   }
                   if (item.name === "MOM Points" && notifications) {
                     notifications.forEach((n) => {
-                      if (!n.isRead && ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
+                      if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
                         dispatch(markAsRead(n._id));
                       }
                     });
@@ -549,18 +557,12 @@ const HorizontalSidebar = ({ role }) => {
                         : 0}
                     </span>
                   )}
-                {item.name === "MOM Points" &&
-                  (notifications
-                    ? notifications.filter(
-                      (n) =>
-                        !n.isRead &&
-                        ["mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
-                    ).length
-                    : 0) > 0 && (
-                    <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center justify-center animate-pulse shadow-sm uppercase tracking-widest">
-                      New
-                    </span>
-                  )}
+                {item.name === "MOM Points" && unreadMomCount > 0 && (
+                  <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 justify-center animate-pulse shadow-sm">
+                    <span>{unreadMomCount > 99 ? "99+" : unreadMomCount}</span>
+                    <span className="text-[7.5px] uppercase tracking-wider">New</span>
+                  </span>
+                )}
               </NavLink>
             );
           })}

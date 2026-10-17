@@ -386,6 +386,13 @@ const useSocket = (externalSocket) => {
                     ) {
                       navigate(`/${userRole}/Shootcalendor`);
                     } else if (
+                      notification.type?.startsWith("mom_") ||
+                      notification.mom ||
+                      (notification.message &&
+                        notification.message.toLowerCase().includes("mom point"))
+                    ) {
+                      navigate(`/${userRole}/mom-points`);
+                    } else if (
                       notification.type === "client_assigned" ||
                       (notification.message &&
                         notification.message.toLowerCase().includes("client:"))
@@ -428,7 +435,21 @@ const useSocket = (externalSocket) => {
                             {notification.sender.name}
                           </span>
                           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                            • {notification.type === "shoot_assigned" ? "Shoot Assigned" : notification.type === "task_assigned" ? "Task Assigned" : notification.type?.startsWith("task_") ? "Task Update" : "Alert"}
+                            • {notification.type === "shoot_assigned"
+                              ? "Shoot Assigned"
+                              : notification.type === "mom_assigned"
+                              ? "MOM Assigned"
+                              : notification.type === "mom_created"
+                              ? "New MOM Point"
+                              : notification.type === "mom_updated"
+                              ? "MOM Updated"
+                              : notification.type === "mom_overdue"
+                              ? "MOM Overdue"
+                              : notification.type === "task_assigned"
+                              ? "Task Assigned"
+                              : notification.type?.startsWith("task_")
+                              ? "Task Update"
+                              : "Alert"}
                           </span>
                         </>
                       ) : (

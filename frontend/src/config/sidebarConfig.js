@@ -122,3 +122,5 @@ export const sidebarConfig = {
   ],
 };
 
+sidebarConfig.humanresource = sidebarConfig.team;
+

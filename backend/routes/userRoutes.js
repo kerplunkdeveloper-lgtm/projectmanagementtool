@@ -20,7 +20,7 @@ const router = express.Router();
 router.get(
   '/',
   protect,
-  authorize('admin', 'operationmanager', 'team'),
+  authorize('admin', 'operationmanager', 'team', 'humanresource'),
   getUsers
 );
 
@@ -32,7 +32,8 @@ router.get(
     const isHr =
       deptLower.includes('hr') ||
       deptLower.includes('human resource') ||
-      req.user?.department === 'HR';
+      req.user?.department === 'HR' ||
+      req.user?.role === 'humanresource';
     const userPerm = req.user?.permissions?.manage_users;
     const hasUsersPerm = userPerm === true || userPerm?.read || userPerm?.write;
 
@@ -55,7 +56,7 @@ router.get(
 router.get(
   '/:id',
   protect,
-  authorize('admin', 'operationmanager', 'team'),
+  authorize('admin', 'operationmanager', 'team', 'humanresource'),
   getUser
 );
 

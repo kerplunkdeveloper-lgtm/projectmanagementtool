@@ -3,34 +3,84 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 
 const sendMomNotification = async (req, mom, isNew) => {
-  const managementUsers = await User.find({
-    role: { $in: ['admin', 'operationmanager'] },
-  }).select('_id');
+  try {
+    const io = req.app.get('io');
+    const sender = await User.findById(req.user.id).select('name role department profile');
+    const senderName = sender?.name || 'Someone';
 
-  const recipients = new Set(managementUsers.map((u) => u._id.toString()));
-
-  if (mom.assignedTo) {
-    recipients.add(mom.assignedTo.toString());
-  }
-
-  recipients.delete(req.user.id); // don't notify self
-
-  const io = req.app.get('io');
-  const message = isNew 
-    ? `A new MOM point was assigned: ${mom.title}`
-    : `A MOM point assignment was updated: ${mom.title}`;
-
-  for (const recipientId of recipients) {
-    const notification = await Notification.create({
-      recipient: recipientId,
-      sender: req.user.id,
-      type: 'general',
-      message: message,
-    });
-
-    if (io) {
-      io.to(recipientId).emit('new_notification', notification);
+    let assignedUser = null;
+    if (mom.assignedTo) {
+      assignedUser = await User.findById(mom.assignedTo).select('name email role department');
     }
+
+    const managementUsers = await User.find({
+      role: { $in: ['admin', 'operationmanager'] },
+      accountStatus: { $ne: 'inactive' },
+      employmentStatus: { $ne: 'relieved' },
+    }).select('_id');
+
+    // 1. Notify Assigned User if assigned to someone other than sender
+    if (mom.assignedTo && mom.assignedTo.toString() !== req.user.id) {
+      const recipientId = mom.assignedTo.toString();
+      const assignMessage = `${senderName} assigned a MOM point to you: "${mom.title}"`;
+
+      const notification = await Notification.create({
+        recipient: recipientId,
+        sender: req.user.id,
+        type: 'mom_assigned',
+        message: assignMessage,
+        mom: mom._id,
+      });
+
+      if (io) {
+        const populatedNotification = await Notification.findById(notification._id)
+          .populate('sender', 'name email profile department role');
+        io.to(recipientId).emit('new_notification', populatedNotification || notification);
+      }
+    }
+
+    // 2. Notify Management Users (Admin & Operation Manager)
+    for (const mUser of managementUsers) {
+      const mUserId = mUser._id.toString();
+
+      // Don't send duplicate notification if admin is the sender or the assigned recipient
+      if (mUserId === req.user.id || (mom.assignedTo && mUserId === mom.assignedTo.toString())) {
+        continue;
+      }
+
+      let adminMessage = '';
+      let notifType = isNew ? 'mom_created' : 'mom_updated';
+
+      if (isNew) {
+        if (assignedUser) {
+          adminMessage = `${senderName} posted a new MOM point: "${mom.title}" (Assigned to: ${assignedUser.name})`;
+        } else {
+          adminMessage = `${senderName} posted a new MOM point: "${mom.title}"`;
+        }
+      } else {
+        if (assignedUser) {
+          adminMessage = `${senderName} assigned MOM point: "${mom.title}" to ${assignedUser.name}`;
+        } else {
+          adminMessage = `${senderName} updated MOM point: "${mom.title}"`;
+        }
+      }
+
+      const notification = await Notification.create({
+        recipient: mUserId,
+        sender: req.user.id,
+        type: notifType,
+        message: adminMessage,
+        mom: mom._id,
+      });
+
+      if (io) {
+        const populatedNotification = await Notification.findById(notification._id)
+          .populate('sender', 'name email profile department role');
+        io.to(mUserId).emit('new_notification', populatedNotification || notification);
+      }
+    }
+  } catch (err) {
+    console.error('Error in sendMomNotification:', err);
   }
 };
 
@@ -42,23 +92,14 @@ exports.getMoms = async (req, res, next) => {
     let queryOptions = {};
 
     const isCurrentUserAdminOrOp = req.user.role === 'admin' || req.user.role === 'operationmanager';
-    const deptLower = req.user.department ? req.user.department.toLowerCase() : '';
-    const isCurrentUserSocialMedia = deptLower.includes('social manager') || 
-                                     deptLower.includes('social media manager') || 
-                                     deptLower.includes('social media executive');
 
-    if (isCurrentUserSocialMedia && !isCurrentUserAdminOrOp) {
+    if (!isCurrentUserAdminOrOp) {
       queryOptions = {
         $or: [
           { createdBy: req.user.id },
           { assignedTo: req.user.id }
         ]
       };
-    } else if (isCurrentUserAdminOrOp) {
-      // If the prompt meant admins also only see their own, it would be { createdBy: req.user.id }
-      // But typically admins see all. The phrase "admin and operation manager created panna mom points mattum avanum"
-      // most likely means SM managers should see them. However, just in case they meant admins see only their own:
-      // Let's assume admins see all for now unless specified.
     }
 
     const query = Mom.find(queryOptions)
@@ -114,9 +155,8 @@ exports.createMom = async (req, res, next) => {
 
     const mom = await Mom.create(req.body);
 
-    if (mom.assignedTo) {
-      await sendMomNotification(req, mom, true);
-    }
+    // Always send notification when a MOM point is posted
+    await sendMomNotification(req, mom, true);
 
     res.status(201).json({
       success: true,
@@ -138,22 +178,25 @@ exports.updateMom = async (req, res, next) => {
       return res.status(404).json({ success: false, message: `MOM not found with id of ${req.params.id}` });
     }
 
-    // Allow admin, operationmanager, or the creator to update
-    if (
-      mom.createdBy.toString() !== req.user.id &&
-      req.user.role !== 'admin' &&
-      req.user.role !== 'operationmanager'
-    ) {
+    const isCreator = mom.createdBy.toString() === req.user.id;
+    const isAssigned = mom.assignedTo && mom.assignedTo.toString() === req.user.id;
+    const isAdminOrOp = req.user.role === 'admin' || req.user.role === 'operationmanager';
+    const deptLower = req.user.department ? req.user.department.toLowerCase() : '';
+    const isSocialMedia = deptLower.includes('social manager') || 
+                          deptLower.includes('social media manager') || 
+                          deptLower.includes('social media executive');
+
+    // Allow admin, operationmanager, creator, assigned user, or social media manager to update
+    if (!isCreator && !isAdminOrOp && !isAssigned && !isSocialMedia) {
       return res.status(401).json({ success: false, message: `User not authorized to update this MOM` });
     }
 
     const oldAssignedTo = mom.assignedTo ? mom.assignedTo.toString() : null;
-    const newAssignedTo = req.body.assignedTo;
-    let isAssignmentChanged = false;
+    const newAssignedTo = req.body.assignedTo !== undefined ? (req.body.assignedTo ? req.body.assignedTo.toString() : null) : oldAssignedTo;
+    const isAssignmentChanged = req.body.assignedTo !== undefined && newAssignedTo !== oldAssignedTo;
 
-    if (newAssignedTo && newAssignedTo !== oldAssignedTo) {
+    if (isAssignmentChanged && newAssignedTo && newAssignedTo !== req.user.id) {
       req.body.isRead = false;
-      isAssignmentChanged = true;
     }
 
     mom = await Mom.findByIdAndUpdate(req.params.id, req.body, {
@@ -161,7 +204,7 @@ exports.updateMom = async (req, res, next) => {
       runValidators: true,
     });
 
-    if (isAssignmentChanged && newAssignedTo) {
+    if (isAssignmentChanged) {
       await sendMomNotification(req, mom, false);
     }
 

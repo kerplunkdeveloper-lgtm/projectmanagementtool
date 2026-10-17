@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ['admin', 'operationmanager', 'team'],
+    enum: ['admin', 'operationmanager', 'team', 'humanresource'],
     default: 'team',
   },
 
@@ -47,6 +47,7 @@ const userSchema = new mongoose.Schema({
     default: function() {
       if (this.role === 'admin') return 0;
       if (this.role === 'operationmanager') return 35000;
+      if (this.role === 'humanresource') return 30000;
       return 22000;
     },
   },
@@ -64,6 +65,7 @@ const userSchema = new mongoose.Schema({
     default: function() {
       if (this.role === 'admin') return 20;
       if (this.role === 'operationmanager') return 12;
+      if (this.role === 'humanresource') return 8;
       return 8;
     },
   },
@@ -154,8 +156,11 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// Encrypt password
+// Encrypt password & set defaults
 userSchema.pre('save', async function () {
+  if (this.role === 'humanresource' && (!this.department || this.department.trim() === '')) {
+    this.department = 'HR';
+  }
 
   if (!this.isModified('password')) {
     return;

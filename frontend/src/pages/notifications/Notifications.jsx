@@ -287,6 +287,7 @@ const Notifications = () => {
           icon: FiFileText,
           bgColor: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100",
         };
+      case "mom_created":
       case "mom_assigned":
       case "mom_updated":
         return {

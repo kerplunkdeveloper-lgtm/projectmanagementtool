@@ -8,12 +8,13 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   const [isCustomDept, setIsCustomDept] = useState(false);
   const [isCustomLoc, setIsCustomLoc] = useState(false);
 
-  const defaultDepts = [];
+  const defaultDepts = ["HR"];
   const defaultLocs = [];
 
   const uniqueDepts = Array.from(
     new Set([
       ...defaultDepts,
+      "HR",
       ...(users || [])
         .map((u) => u.department)
         .filter((dept) => typeof dept === "string" && dept.trim() !== ""),
@@ -60,7 +61,12 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value }));
+    if (name === "role" && value === "humanresource") {
+      setFormData((p) => ({ ...p, role: value, department: "HR" }));
+      setIsCustomDept(false);
+    } else {
+      setFormData((p) => ({ ...p, [name]: value }));
+    }
   };
 
   const handleSubmit = (e) => {
@@ -234,6 +240,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
                 <option value="team">Team</option>
                 <option value="admin">Admin</option>
                 <option value="operationmanager">Op. Manager</option>
+                <option value="humanresource">Human Resource</option>
               </select>
             </div>
 

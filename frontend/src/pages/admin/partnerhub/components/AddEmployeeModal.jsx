@@ -26,6 +26,8 @@ const AddEmployeeModal = ({
         if (employeeToEdit.role === "admin") roleText = "Managing Partner";
         else if (employeeToEdit.role === "operationmanager")
           roleText = "Operations Manager";
+        else if (employeeToEdit.role === "humanresource")
+          roleText = "Human Resource";
         else if (employeeToEdit.department)
           roleText =
             employeeToEdit.department.replace(" Team", "") + " Manager";
@@ -71,11 +73,12 @@ const AddEmployeeModal = ({
       if (rt.includes("partner") || rt.includes("admin")) {
         backendRole = "admin";
         backendDepartment = undefined;
-      } else if (rt.includes("operation") || rt.includes("manager")) {
-        if (rt.includes("operation")) {
-          backendRole = "operationmanager";
-          backendDepartment = undefined;
-        }
+      } else if (rt.includes("operation")) {
+        backendRole = "operationmanager";
+        backendDepartment = undefined;
+      } else if (rt.includes("human resource") || rt.includes("hr")) {
+        backendRole = "humanresource";
+        backendDepartment = "HR";
       }
 
       const payload = {

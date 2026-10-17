@@ -112,6 +112,10 @@ exports.createUser = async (req, res) => {
       password: hashedPassword,
     };
 
+    if (userData.role === 'humanresource' && (!userData.department || userData.department.trim() === '')) {
+      userData.department = 'HR';
+    }
+
     const user = await User.create(userData);
 
     res.status(201).json({
@@ -138,6 +142,10 @@ exports.updateUser = async (req, res) => {
     const updateData = {
       ...req.body,
     };
+
+    if (updateData.role === 'humanresource' && (!updateData.department || updateData.department.trim() === '')) {
+      updateData.department = 'HR';
+    }
 
     // If password exists -> hash password
     if (req.body.password) {

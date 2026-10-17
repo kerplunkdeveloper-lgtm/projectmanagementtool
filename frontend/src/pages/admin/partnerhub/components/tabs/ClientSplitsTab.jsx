@@ -42,6 +42,7 @@ const ClientSplitsTab = () => {
   const getDisplayRole = (user) => {
     if (user.role === 'admin') return "Managing Partner";
     if (user.role === 'operationmanager') return "Operations Manager";
+    if (user.role === 'humanresource') return "Human Resource";
     if (user.department) return user.department.replace(' Team', '') + ' Manager';
     return user.role;
   };

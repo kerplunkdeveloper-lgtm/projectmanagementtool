@@ -124,6 +124,8 @@ const displayRole = (role) => {
   if (!role) return "Member";
   if (role === "admin") return "Admin";
   if (role === "client") return "Client";
+  if (role === "operationmanager") return "Operations Manager";
+  if (role === "humanresource") return "Human Resource";
   if (role === "team") return "Team Member";
   return role.charAt(0).toUpperCase() + role.slice(1);
 };

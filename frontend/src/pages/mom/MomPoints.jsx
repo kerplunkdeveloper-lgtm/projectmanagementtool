@@ -20,7 +20,8 @@ import {
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { markAsRead } from "../../features/notifications/notificationSlice";
 import { getClientBranding } from "../../components/common/ClientBadge";
 
 const momTypes = [
@@ -48,6 +49,26 @@ const statuses = [
 const formatId = (id) => {
   if (!id) return "MOM-XXXX";
   return `MOM${id.substring(id.length - 4).toUpperCase()}`;
+};
+
+const formatCreatedTime = (dateStr) => {
+  if (!dateStr) return { dateFormatted: "-", timeFormatted: "" };
+  try {
+    const d = new Date(dateStr);
+    const dateFormatted = d.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const timeFormatted = d.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return { dateFormatted, timeFormatted };
+  } catch {
+    return { dateFormatted: "-", timeFormatted: "" };
+  }
 };
 
 const getProfileImage = (u) => {
@@ -131,11 +152,24 @@ const getStatusColor = (s) => {
 
 const MomPoints = () => {
   const { user } = useSelector((state) => state.auth);
+  const { notifications } = useSelector((state) => state.notifications);
+  const dispatch = useDispatch();
   const [moms, setMoms] = useState([]);
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
 
   const [loading, setLoading] = useState(true);
+
+  // Auto-mark MOM notifications as read when viewing MOM points
+  useEffect(() => {
+    if (notifications && notifications.length > 0) {
+      notifications.forEach((n) => {
+        if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
+          dispatch(markAsRead(n._id));
+        }
+      });
+    }
+  }, [notifications, dispatch]);
 
   // Selection
   const [selectedMoms, setSelectedMoms] = useState({});
@@ -190,22 +224,12 @@ const MomPoints = () => {
   const isCurrentUserAdminOrOp =
     user?.role === "admin" || user?.role === "operationmanager";
 
-  const assignableUsers = useMemo(() => users.filter((u) => {
-    if (isCurrentUserAdminOrOp) {
-      const targetDept = u.department?.toLowerCase() || "";
-      return (
-        targetDept.includes("social manager") ||
-        targetDept.includes("social media manager") ||
-        targetDept.includes("social media executive") ||
-        u.role === "admin" || 
-        u.role === "operationmanager"
-      );
-    } else if (isCurrentUserSocialMedia) {
-      return u._id === user?._id || u.id === user?.id;
-    }
-    // Default fallback
-    return true;
-  }), [users, isCurrentUserAdminOrOp, isCurrentUserSocialMedia, user]);
+  const assignableUsers = useMemo(() => {
+    return users.filter((u) => {
+      if (u.employmentStatus === "relieved" || u.accountStatus === "inactive") return false;
+      return true;
+    });
+  }, [users]);
 
   const handleUpdateField = async (id, field, value) => {
     const previousMoms = [...moms];
@@ -295,7 +319,7 @@ const MomPoints = () => {
       return;
     }
 
-    const headers = ["Title", "Client", "MOM Type", "Created By", "Assigned To", "Start Date", "End Date", "Status", "Priority"];
+    const headers = ["Title", "Client", "MOM Type", "Created By", "Assigned To", "Start Date", "End Date", "Status", "Created Time", "Priority"];
     
     const escapeCSV = (str) => {
       if (str === null || str === undefined) return '""';
@@ -315,6 +339,7 @@ const MomPoints = () => {
         escapeCSV(mom.startDate ? new Date(mom.startDate).toLocaleDateString() : ""),
         escapeCSV(mom.endDate ? new Date(mom.endDate).toLocaleDateString() : ""),
         escapeCSV(mom.status),
+        escapeCSV(mom.createdAt ? new Date(mom.createdAt).toLocaleString() : ""),
         escapeCSV(mom.priority),
       ];
       csvRows.push(row.join(","));
@@ -438,6 +463,9 @@ const MomPoints = () => {
                 <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[120px]">
                   Status
                 </th>
+                <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 whitespace-nowrap min-w-[120px]">
+                  Created Time
+                </th>
                 <th className="px-3 py-1 border-b border-slate-200 dark:border-white/5 text-center whitespace-nowrap min-w-[80px]">
                   Actions
                 </th>
@@ -500,14 +528,14 @@ const MomPoints = () => {
                   </div>
                 </td>
                 <td
-                  colSpan="8"
+                  colSpan="9"
                   className="px-3 py-1 border-b border-slate-200 dark:border-white/5 bg-transparent"
                 ></td>
               </tr>
 
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-8">
+                  <td colSpan="10" className="text-center py-8">
                     <FiLoader
                       size={24}
                       className="animate-spin text-blue-500 mx-auto mb-2"
@@ -519,7 +547,7 @@ const MomPoints = () => {
                 </tr>
               ) : (filteredMoms.length === 0) ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-8">
+                  <td colSpan="10" className="text-center py-8">
                     <span className="text-slate-500 text-sm font-medium">
                       No MOM points found.
                     </span>
@@ -527,7 +555,12 @@ const MomPoints = () => {
                 </tr>
               ) : (
                 currentMoms.map((mom, index, arr) => {
-                  const isUnread = (mom.assignedTo?._id === user?._id || mom.assignedTo === user?._id) && mom.isRead === false;
+                  const isUnread = Boolean(
+                    mom.isRead === false && (
+                      (mom.assignedTo?._id === user?._id || mom.assignedTo === user?._id) ||
+                      ((user?.role === "admin" || user?.role === "operationmanager") && (mom.createdBy?._id !== user?._id && mom.createdBy !== user?._id))
+                    )
+                  );
                   const isNearBottom = index >= arr.length - 3 && arr.length > 3;
                   return (
                   <tr
@@ -552,6 +585,11 @@ const MomPoints = () => {
                       )}
                       <div className="flex items-center gap-2.5 w-full pl-6">
                         <div className="flex-grow min-w-0 flex items-center gap-1.5">
+                          {isUnread && (
+                            <span className="px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-rose-500 text-white shadow-xs shrink-0 animate-pulse">
+                              New
+                            </span>
+                          )}
                           <span
                             contentEditable={true}
                             suppressContentEditableWarning={true}
@@ -690,9 +728,9 @@ const MomPoints = () => {
                       <div className="relative inline-block w-full">
                         <div 
                           onClick={() => {
-                            if (!isCurrentUserSocialMedia) setOpenAssigneeDropdown(openAssigneeDropdown === mom._id ? null : mom._id)
+                            setOpenAssigneeDropdown(openAssigneeDropdown === mom._id ? null : mom._id);
                           }}
-                          className={`${isCurrentUserSocialMedia ? 'cursor-default' : 'cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5'} flex items-center gap-1.5 p-1 rounded-md transition-colors`}
+                          className="cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-1.5 p-1 rounded-md transition-colors"
                         >
                           {mom.assignedTo ? (
                             <>
@@ -717,7 +755,7 @@ const MomPoints = () => {
                                   </span>
                                 )}
                               </div>
-                              {!isCurrentUserSocialMedia && <FiChevronDown size={12} className="text-slate-400 ml-1 shrink-0" />}
+                              <FiChevronDown size={12} className="text-slate-400 ml-1 shrink-0" />
                             </>
                           ) : (
                             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-dashed border-slate-300 text-slate-500 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 transition-colors text-[10px] font-bold">
@@ -881,6 +919,24 @@ const MomPoints = () => {
                           <FiChevronDown size={10} className="opacity-70 shrink-0" />
                         </div>
                       </div>
+                    </td>
+
+                    {/* Created Time */}
+                    <td className="px-3 py-1 whitespace-nowrap">
+                      {(() => {
+                        const { dateFormatted, timeFormatted } = formatCreatedTime(mom.createdAt);
+                        if (dateFormatted === "-") return <span className="text-slate-400 text-[10px]">-</span>;
+                        return (
+                          <div className="flex flex-col justify-center">
+                            <span className="text-[10.5px] font-bold text-slate-700 dark:text-slate-200 leading-tight">
+                              {dateFormatted}
+                            </span>
+                            <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 leading-tight">
+                              {timeFormatted}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Actions */}

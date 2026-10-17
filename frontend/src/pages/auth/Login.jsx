@@ -63,8 +63,11 @@ const Login = () => {
     } else if (roleNorm === "operationmanager") {
       toast.success("Operation Manager Login");
       navigate("/operationmanager");
-    } else if (roleNorm === "team") {
-      toast.success("Team Login");
+    } else if (roleNorm === "humanresource" || roleNorm === "hr") {
+      toast.success("Human Resource Login");
+      navigate("/team");
+    } else {
+      toast.success("Login Successful");
       navigate("/team");
     }
   }, [user, navigate]);

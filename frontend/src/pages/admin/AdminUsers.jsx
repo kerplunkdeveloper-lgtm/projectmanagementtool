@@ -205,7 +205,7 @@ const AdminUsers = () => {
         navigate("/admin");
       } else if (targetRole === "operationmanager") {
         navigate("/operationmanager");
-      } else if (targetRole === "team") {
+      } else {
         navigate("/team");
       }
     } catch (err) {
@@ -271,6 +271,20 @@ const AdminUsers = () => {
         return matchesSearch && matchesDept && matchesLoc && matchesRelieved;
       })
       .sort((a, b) => {
+        const isAHr =
+          a.role === "humanresource" ||
+          a.role === "hr" ||
+          a.department?.toLowerCase()?.trim() === "hr" ||
+          a.department?.toLowerCase()?.includes("human resource");
+        const isBHr =
+          b.role === "humanresource" ||
+          b.role === "hr" ||
+          b.department?.toLowerCase()?.trim() === "hr" ||
+          b.department?.toLowerCase()?.includes("human resource");
+
+        if (isAHr && !isBHr) return -1;
+        if (isBHr && !isAHr) return 1;
+
         if (a.role === "admin" && b.role !== "admin") return -1;
         if (b.role === "admin" && a.role !== "admin") return 1;
 
@@ -367,6 +381,7 @@ const AdminUsers = () => {
       const roleMap = {
         admin: "Admin",
         operationmanager: "Operations Manager",
+        humanresource: "Human Resource",
         team: "Team Member",
       };
       const roleStr = roleMap[u.role] || u.role || "Team Member";

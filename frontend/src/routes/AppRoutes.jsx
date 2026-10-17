@@ -545,7 +545,7 @@ const AppRoutes = () => {
         <Route
           path="/team"
           element={
-            <ProtectedRoute allowedRoles={["team"]}>
+            <ProtectedRoute allowedRoles={["team", "humanresource"]}>
               <DashboardLayout role="team" />
             </ProtectedRoute>
           }

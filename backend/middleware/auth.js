@@ -63,7 +63,7 @@ exports.authorize = (...roles) => {
     }
 
     // Check if user has explicit role access
-    if (roles.includes(req.user.role)) {
+    if (roles.includes(req.user.role) || (roles.includes('team') && req.user.role === 'humanresource')) {
       return next();
     }
 
