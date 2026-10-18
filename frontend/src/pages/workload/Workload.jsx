@@ -312,6 +312,18 @@ const formatMsToHoursMinutes = (ms) => {
   return `${m}m`;
 };
 
+// Formatter helper to display the date when the task was assigned
+const formatTaskAssignedDate = (task) => {
+  const dateVal = task.createdAt || task.startDate || task.assignedDate;
+  if (!dateVal) return null;
+  try {
+    const d = typeof dateVal === "string" ? parseISO(dateVal) : new Date(dateVal);
+    return format(d, "MMM dd, yyyy");
+  } catch (err) {
+    return null;
+  }
+};
+
 // Live Worked Today cell for individual tasks
 const TaskWorkedTodayCell = React.memo(({ task, selectedDate, ticker }) => {
   const workedMs = calculateTaskProductivityForDate(task, selectedDate);
@@ -377,20 +389,23 @@ const Workload = () => {
   // Load users from Redux store
   const { users = [], loading: usersLoading } = useSelector((state) => state.users);
 
-  // Load tasks via RTK Query
+  // Load tasks via RTK Query - Filter strictly for Graphic Designer department for instant speed
   const {
     data: tasksData = [],
     isLoading: tasksLoading,
+    isFetching: tasksFetching,
     refetch: refetchTasks,
-  } = useGetTasksQuery(undefined, {
-    pollingInterval: 120000, // BUG-01 FIX: 15s → 120s (2 min). Socket events handle real-time updates.
-  });
+  } = useGetTasksQuery(
+    { department: "Graphic Designer" },
+    {
+      pollingInterval: 120000, // Socket events handle real-time updates
+    }
+  );
 
   // Real-time Online / Offline state from shared SocketContext (no duplicate socket)
   const { onlineUserIds, isOnline: isOnlineFn, userPresence } = useSocketContext() || { onlineUserIds: [], isOnline: () => false, userPresence: {} };
 
   // State
-  const [selectedRole, setSelectedRole] = useState("Graphic Designer"); // Default Graphic Designer user
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [searchTerm, setSearchTerm] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
@@ -398,10 +413,12 @@ const Workload = () => {
   const [selectedTaskModal, setSelectedTaskModal] = useState(null);
   const [ticker, setTicker] = useState(0);
 
-  // Fetch users on mount if empty
+  // Instant Speed: Only fetch users if not already loaded in Redux store
   useEffect(() => {
-    dispatch(getUsers());
-  }, [dispatch]);
+    if (!users || users.length === 0) {
+      dispatch(getUsers());
+    }
+  }, [dispatch, users?.length]);
 
   // Live timer tick for running tasks
   useEffect(() => {
@@ -414,37 +431,23 @@ const Workload = () => {
     }
   }, [selectedDate]);
 
-  // Extract unique departments from users list + include standard presets
-  const availableRoles = useMemo(() => {
-    const rolesSet = new Set(["Graphic Designer", "All", "Web Developer", "Performance Marketer", "SEO Specialist"]);
-    users.forEach((u) => {
-      if (u.department && u.department.trim()) {
-        rolesSet.add(u.department.trim());
-      }
-    });
-    return Array.from(rolesSet);
-  }, [users]);
-
-  // Filter users based on selected role, search term, and employment status
+  // Filter users strictly for Graphic Designer department only
   const filteredUsers = useMemo(() => {
     let list = (users || []).filter((u) => u.employmentStatus !== "relieved");
 
-    // Filter by Role / Department (First Graphic designer user)
-    if (selectedRole !== "All") {
-      const targetRoleLower = selectedRole.toLowerCase();
-      list = list.filter((u) => {
-        const deptLower = (u.department || "").toLowerCase();
-        const roleLower = (u.role || "").toLowerCase();
-        if (targetRoleLower.includes("graphic")) {
-          return (
-            deptLower.includes("graphic") ||
-            deptLower.includes("design") ||
-            roleLower.includes("designer")
-          );
-        }
-        return deptLower.includes(targetRoleLower) || roleLower.includes(targetRoleLower);
-      });
-    }
+    // Strictly Graphic Designer department
+    list = list.filter((u) => {
+      const deptLower = (u.department || "").toLowerCase().trim();
+      const roleLower = (u.role || "").toLowerCase().trim();
+
+      return (
+        deptLower.includes("graphic") ||
+        deptLower.includes("design") ||
+        deptLower === "designer" ||
+        roleLower.includes("designer") ||
+        roleLower === "graphic designer"
+      );
+    });
 
     // Filter by Search Term
     if (searchTerm.trim()) {
@@ -458,19 +461,37 @@ const Workload = () => {
     }
 
     return list;
-  }, [users, selectedRole, searchTerm]);
+  }, [users, searchTerm]);
 
-  // Helper to check if a task is assigned to a user
-  const isTaskAssignedToUser = (task, userId) => {
-    if (!task) return false;
-    if (typeof task.assignedTo === "string") {
-      return task.assignedTo === userId;
-    }
-    if (task.assignedTo && task.assignedTo._id) {
-      return task.assignedTo._id.toString() === userId.toString();
-    }
-    return false;
-  };
+  // High-performance indexed map of tasks by assigned user ID (O(1) instant lookup)
+  const tasksByUserMap = useMemo(() => {
+    const map = new Map();
+    (tasksData || []).forEach((t) => {
+      if (!t) return;
+      const assignedId =
+        typeof t.assignedTo === "object" ? t.assignedTo?._id : t.assignedTo;
+      if (assignedId) {
+        const sId = assignedId.toString();
+        if (!map.has(sId)) map.set(sId, []);
+        map.get(sId).push(t);
+      }
+      if (Array.isArray(t.subtasks)) {
+        t.subtasks.forEach((sub) => {
+          const subAssignedId =
+            typeof sub.assignedTo === "object" ? sub.assignedTo?._id : sub.assignedTo;
+          if (subAssignedId) {
+            const subIdStr = subAssignedId.toString();
+            if (!map.has(subIdStr)) map.set(subIdStr, []);
+            const arr = map.get(subIdStr);
+            if (!arr.some((existing) => existing._id === t._id)) {
+              arr.push(t);
+            }
+          }
+        });
+      }
+    });
+    return map;
+  }, [tasksData]);
 
   // Compute detailed workload data for each user
   const userWorkloads = useMemo(() => {
@@ -483,46 +504,123 @@ const Workload = () => {
         (onlineUserIds && onlineUserIds.some((id) => id.toString() === userIdStr)) ||
         u.presenceStatus === "online";
 
-      // Find all tasks assigned to this user
-      const assignedTasks = (tasksData || []).filter((t) =>
-        isTaskAssignedToUser(t, userIdStr)
-      );
+      // Instant O(1) task lookup
+      const assignedTasks = tasksByUserMap.get(userIdStr) || [];
 
       // Categorize tasks
       const activeTasks = assignedTasks.filter(
         (t) => t.status === "In Progress" && !t.autoPaused
       );
 
-      const inReviewTasks = assignedTasks.filter(
-        (t) =>
-          t.status === "In Review" ||
-          t.status === "Correction" ||
-          t.status === "Revision"
-      );
-
-      const pendingTasks = assignedTasks.filter(
-        (t) => t.status === "Not Started" || t.status === "To Do"
-      );
-
       const onHoldTasks = assignedTasks.filter(
         (t) => t.status === "On Hold" || (t.status === "In Progress" && t.autoPaused)
       );
 
-      const completedTasks = assignedTasks.filter((t) => t.status === "Completed");
+      const pendingTasks = assignedTasks.filter(
+        (t) => t.status === "Not Started" || t.status === "To Do" || t.status === "Pending"
+      );
+
+      // Filter tasks for "View Tasks" to ONLY: In Progress, On Hold, and Not Started (per user requirement)
+      const displayTasks = assignedTasks.filter((t) => {
+        const s = (t.status || "").toLowerCase().trim();
+        if (
+          s.includes("complete") ||
+          s.includes("done") ||
+          s.includes("review") ||
+          s.includes("reject") ||
+          s.includes("correct")
+        ) {
+          return false;
+        }
+        return (
+          s.includes("progress") ||
+          s.includes("hold") ||
+          s.includes("pause") ||
+          s.includes("not started") ||
+          s.includes("to do") ||
+          s.includes("todo") ||
+          s.includes("pending")
+        );
+      });
+
+      // Designer Capacity: Exactly 8 Tasks per Designer
+      const maxCapacityTasks = 8;
+      const totalActiveTasksCount = displayTasks.length;
+      const taskUtilizationPercent = Math.min(
+        150,
+        Math.round((totalActiveTasksCount / maxCapacityTasks) * 100)
+      );
+
+      // Define Card Theme and Status based on capacity (Slot > 8 gives RED color background)
+      let cardTheme = {
+        cardBg: "bg-white dark:bg-[#0f172a]/95",
+        cardBorder: "border-slate-200/90 dark:border-slate-800",
+        cardRing: "",
+        badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60",
+        meterBg: "bg-slate-50/90 dark:bg-[#1e293b]/60 border-slate-200/80 dark:border-slate-800/80",
+        slotFilledColor: "bg-emerald-500",
+        slotEmptyColor: "bg-slate-200 dark:bg-slate-800",
+        capacityTextColor: "text-emerald-600 dark:text-emerald-400",
+        isOverloaded: false,
+        statusTag: `${maxCapacityTasks - totalActiveTasksCount} Slots Open`,
+      };
+
+      if (totalActiveTasksCount > maxCapacityTasks) {
+        // Red color background when slot exceeds 8 (slot 8 mela pochu na Red color background)
+        cardTheme = {
+          cardBg: "bg-rose-50/95 dark:bg-[#200d11]",
+          cardBorder: "border-rose-300 dark:border-rose-800/80",
+          cardRing: "ring-2 ring-rose-500/40 shadow-lg shadow-rose-500/10",
+          badgeBg: "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-200 dark:border-rose-800",
+          meterBg: "bg-rose-100/70 dark:bg-rose-950/60 border-rose-200 dark:border-rose-900/60",
+          slotFilledColor: "bg-rose-500",
+          slotEmptyColor: "bg-rose-200/60 dark:bg-rose-950/40",
+          capacityTextColor: "text-rose-600 dark:text-rose-400",
+          isOverloaded: true,
+          statusTag: `⚠️ Overloaded (+${totalActiveTasksCount - maxCapacityTasks} tasks)`,
+        };
+      } else if (totalActiveTasksCount === maxCapacityTasks) {
+        // Full Capacity (exactly 8 tasks)
+        cardTheme = {
+          cardBg: "bg-indigo-50/40 dark:bg-[#121630]",
+          cardBorder: "border-indigo-200/90 dark:border-indigo-800/80",
+          cardRing: "ring-1 ring-indigo-500/30",
+          badgeBg: "bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-950/80 dark:text-indigo-200 dark:border-indigo-800",
+          meterBg: "bg-indigo-50/70 dark:bg-indigo-950/40 border-indigo-200/80 dark:border-indigo-900/50",
+          slotFilledColor: "bg-indigo-500",
+          slotEmptyColor: "bg-slate-200 dark:bg-slate-800",
+          capacityTextColor: "text-indigo-600 dark:text-indigo-400",
+          isOverloaded: false,
+          statusTag: "Full Capacity (8/8)",
+        };
+      } else if (totalActiveTasksCount >= 6) {
+        // High Load (6 - 7 tasks)
+        cardTheme = {
+          cardBg: "bg-amber-50/30 dark:bg-[#1e170c]",
+          cardBorder: "border-amber-200/90 dark:border-amber-800/80",
+          cardRing: "ring-1 ring-amber-500/20",
+          badgeBg: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/80 dark:text-amber-200 dark:border-amber-800",
+          meterBg: "bg-amber-50/70 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-900/50",
+          slotFilledColor: "bg-amber-500",
+          slotEmptyColor: "bg-slate-200 dark:bg-slate-800",
+          capacityTextColor: "text-amber-600 dark:text-amber-400",
+          isOverloaded: false,
+          statusTag: `High Load (${maxCapacityTasks - totalActiveTasksCount} left)`,
+        };
+      }
+
+      let capacityStatus = {
+        label: cardTheme.statusTag,
+        color: cardTheme.capacityTextColor,
+        barColor: cardTheme.slotFilledColor,
+        badgeClass: cardTheme.badgeBg,
+      };
 
       // Calculate total productivity time logged for selected date
       let workedMs = 0;
       assignedTasks.forEach((t) => {
         workedMs += calculateTaskProductivityForDate(t, selectedDate);
       });
-
-      // Capacity Target (Default 8 Hours per day = 28,800,000 ms)
-      const capacityHours = u.capacity || 8;
-      const capacityMs = capacityHours * 3600 * 1000;
-      const utilizationPercent = Math.min(
-        150,
-        Math.round((workedMs / capacityMs) * 100)
-      );
 
       // Determine Work Activity Status Badge
       let availability = {
@@ -554,18 +652,20 @@ const Workload = () => {
         user: u,
         isOnline,
         assignedTasks,
+        displayTasks,
         activeTasks,
-        inReviewTasks,
         pendingTasks,
         onHoldTasks,
-        completedTasks,
         workedMs,
-        capacityHours,
-        utilizationPercent,
+        maxCapacityTasks,
+        totalActiveTasksCount,
+        taskUtilizationPercent,
+        capacityStatus,
+        cardTheme,
         availability,
       };
     });
-  }, [filteredUsers, tasksData, selectedDate, onlineUserIds, userPresence, isOnlineFn, ticker]);
+  }, [filteredUsers, tasksByUserMap, selectedDate, onlineUserIds, userPresence, isOnlineFn]);
 
   // Apply availability filter if selected
   const finalWorkloads = useMemo(() => {
@@ -587,21 +687,21 @@ const Workload = () => {
     let onlineCount = 0;
     let totalActive = 0;
     let totalPending = 0;
-    let totalInReview = 0;
+    let totalOnHold = 0;
     let grandWorkedMs = 0;
 
     finalWorkloads.forEach((w) => {
       if (w.isOnline) onlineCount++;
-      totalActive += w.activeTasks.length;
-      totalPending += w.pendingTasks.length;
-      totalInReview += w.inReviewTasks.length;
-      grandWorkedMs += w.workedMs;
+      totalActive += w.activeTasks?.length || 0;
+      totalPending += w.pendingTasks?.length || 0;
+      totalOnHold += w.onHoldTasks?.length || 0;
+      grandWorkedMs += w.workedMs || 0;
     });
 
     const avgUtilization =
       totalMembers > 0
         ? Math.round(
-            finalWorkloads.reduce((acc, curr) => acc + curr.utilizationPercent, 0) /
+            finalWorkloads.reduce((acc, curr) => acc + (curr.taskUtilizationPercent || 0), 0) /
               totalMembers
           )
         : 0;
@@ -611,7 +711,7 @@ const Workload = () => {
       onlineCount,
       totalActive,
       totalPending,
-      totalInReview,
+      totalOnHold,
       grandWorkedMs,
       avgUtilization,
     };
@@ -651,229 +751,98 @@ const Workload = () => {
     if (s.includes("completed"))
       return "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800/60";
     return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60";
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50/60 dark:bg-[#070b14] p-4 sm:p-6 lg:p-8 space-y-8 font-inter text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      {/* Header Banner dynamically matching Theme Settings Accent Color */}
-      <div className={`relative overflow-hidden rounded-2xl p-6 sm:p-8 shadow-xl border text-white transition-all duration-300 ${getHeaderBannerGradient(accentColor)}`}>
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-64 h-64 rounded-full bg-white/5 blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div className="space-y-2.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold bg-white/15 dark:bg-white/10 text-white dark:text-slate-100 border border-white/25 dark:border-white/20 backdrop-blur-md shadow-xs">
-              <FiZap className="text-amber-300 animate-pulse" />
-              <span>Real-time Team Workload & Online Presence</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white dark:text-slate-100">
-              Team Workload & Capacity Management
-            </h1>
-            <p className="text-slate-100/90 dark:text-slate-300 text-sm max-w-2xl font-medium leading-relaxed">
-              Track real-time online/offline status, active tasks, pending workloads, and daily productivity hours for team members.
-            </p>
-          </div>
-
-          {/* Date Selector Navigation */}
-          <div className="flex items-center gap-2 bg-black/30 dark:bg-black/50 p-1.5 rounded-xl border border-white/20 dark:border-slate-700/80 backdrop-blur-md self-start md:self-auto shadow-inner">
-            <button
-              onClick={() => handleDateChange(-1)}
-              className="p-2 rounded-lg hover:bg-white/15 text-white dark:text-slate-200 transition-colors cursor-pointer"
-              title="Previous Day"
-            >
-              <FiChevronLeft size={18} />
-            </button>
-            <div className="flex items-center gap-2 px-3 py-1">
-              <FiCalendar className="text-amber-300 dark:text-amber-400" size={16} />
-              <span className="text-sm font-black text-white dark:text-slate-100 whitespace-nowrap">
-                {isSameDay(selectedDate, new Date())
-                  ? "Today, " + format(selectedDate, "MMM dd")
-                  : format(selectedDate, "EEE, MMM dd, yyyy")}
-              </span>
-            </div>
-            <button
-              onClick={() => handleDateChange(1)}
-              className="p-2 rounded-lg hover:bg-white/15 text-white dark:text-slate-200 transition-colors cursor-pointer"
-              title="Next Day"
-            >
-              <FiChevronRight size={18} />
-            </button>
-            {!isSameDay(selectedDate, new Date()) && (
-              <button
-                onClick={() => setSelectedDate(new Date())}
-                className="px-2.5 py-1 text-xs font-extrabold bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors ml-1 backdrop-blur-md border border-white/30"
-              >
-                Today
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Top Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        {/* Metric 1: Total & Online Members */}
-        <div className="bg-white dark:bg-[#0f172a]/90 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800/90 shadow-xs hover:border-indigo-500/30 transition-all space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Members</span>
-            <FiUsers className="text-indigo-500 dark:text-indigo-400" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-800 dark:text-slate-100">
-              {summaryMetrics.totalMembers}
-            </span>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              ({summaryMetrics.onlineCount} Online)
+  };  return (
+    <div className="min-h-screen bg-slate-50/60 dark:bg-[#070b14] p-4 sm:p-6 lg:p-8 space-y-6 font-inter text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      {/* Top Controls Toolbar - Same Line Modern UI/UX */}
+      <div className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Left: Graphic Designer Department Header */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80 text-indigo-700 dark:text-indigo-300 text-xs font-black shadow-2xs">
+            <span>🎨 Graphic Designer</span>
+            <span className="px-1.5 py-0.5 rounded-md bg-indigo-600 text-white text-[10px] font-extrabold shadow-xs">
+              {finalWorkloads.length}
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-            {selectedRole} Role
-          </div>
+          {tasksFetching && (
+            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+              Syncing...
+            </span>
+          )}
         </div>
 
-        {/* Metric 2: Active Tasks */}
-        <div className="bg-white dark:bg-[#0f172a]/90 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800/90 shadow-xs hover:border-emerald-500/30 transition-all space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Active Tasks</span>
-            <FiPlay className="text-emerald-500 dark:text-emerald-400 animate-pulse" />
-          </div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            {summaryMetrics.totalActive}
-          </div>
-          <div className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80">
-            Currently In Progress
-          </div>
-        </div>
-
-        {/* Metric 3: Pending Tasks */}
-        <div className="bg-white dark:bg-[#0f172a]/90 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800/90 shadow-xs hover:border-amber-500/30 transition-all space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Pending Tasks</span>
-            <FiClock className="text-amber-500 dark:text-amber-400" />
-          </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
-            {summaryMetrics.totalPending}
-          </div>
-          <div className="text-[11px] text-amber-600/80 dark:text-amber-400/80">
-            Queued for completion
-          </div>
-        </div>
-
-        {/* Metric 4: In Review */}
-        <div className="bg-white dark:bg-[#0f172a]/90 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800/90 shadow-xs hover:border-purple-500/30 transition-all space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>In Review</span>
-            <FiLayers className="text-purple-500 dark:text-purple-400" />
-          </div>
-          <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-            {summaryMetrics.totalInReview}
-          </div>
-          <div className="text-[11px] text-purple-600/80 dark:text-purple-400/80">
-            Awaiting manager review
-          </div>
-        </div>
-
-        {/* Metric 5: Total Logged Time */}
-        <div className="bg-white dark:bg-[#0f172a]/90 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800/90 shadow-xs hover:border-sky-500/30 transition-all space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Logged Time</span>
-            <FiActivity className="text-sky-500 dark:text-sky-400" />
-          </div>
-          <div className="text-2xl font-black text-slate-800 dark:text-slate-100">
-            {formatMsToHoursMinutes(summaryMetrics.grandWorkedMs)}
-          </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            Total product hours
-          </div>
-        </div>
-
-        {/* Metric 6: Avg Utilization */}
-        <div className="bg-white dark:bg-[#0f172a]/90 rounded-xl p-4 border border-slate-200/80 dark:border-slate-800/90 shadow-xs hover:border-indigo-500/30 transition-all space-y-1">
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
-            <span>Avg Utilization</span>
-            <FiPieChart className="text-indigo-500 dark:text-indigo-400" />
-          </div>
-          <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400">
-            {summaryMetrics.avgUtilization}%
-          </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            Target 8h daily capacity
-          </div>
-        </div>
-      </div>
-
-      {/* Controls & Filter Bar */}
-      <div className="bg-white dark:bg-[#0f172a]/95 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/90 shadow-xs space-y-4">
-        {/* Role Filter Pills */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full no-scrollbar">
-            {availableRoles.map((role) => (
-              <button
-                key={role}
-                onClick={() => setSelectedRole(role)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap border shrink-0 ${
-                  selectedRole === role
-                    ? "bg-indigo-600 text-white border-indigo-600 dark:bg-indigo-600 dark:border-indigo-500 shadow-md shadow-indigo-500/20"
-                    : "bg-slate-50 dark:bg-[#1e293b]/70 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/70 hover:bg-slate-100 dark:hover:bg-[#334155]"
-                }`}
-              >
-                {role === "Graphic Designer" ? "🎨 Graphic Designer" : role}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 ml-auto">
-            <button
-              onClick={() => refetchTasks()}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-[#334155] transition-colors border border-slate-200/60 dark:border-slate-700/60"
-              title="Refresh Tasks"
-            >
-              <FiRefreshCw size={15} />
-            </button>
-          </div>
-        </div>
-
-        {/* Search & Availability Filter Controls */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-          <div className="relative w-full sm:w-80">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={15} />
+        {/* Right: Search + Availability Filter + Date Navigator + Refresh on the Same Line */}
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap w-full md:w-auto">
+          {/* Search Box */}
+          <div className="relative flex-1 sm:w-60 lg:w-64">
+           
             <input
               type="text"
-              placeholder="Search team member by name or email..."
+              placeholder="Search designer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/80 dark:bg-[#1e293b]/60 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 transition-all"
+              className="w-full pl-9 pr-7 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#1e293b]/60 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 transition-all"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
-                <FiX size={14} />
+                <FiX size={13} />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 ml-auto w-full sm:w-auto">
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-bold whitespace-nowrap">
-              Status Filter:
-            </span>
-            <select
-              value={availabilityFilter}
-              onChange={(e) => setAvailabilityFilter(e.target.value)}
-              className="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#1e293b] text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 cursor-pointer"
+          {/* Availability Status Filter */}
+          <select
+            value={availabilityFilter}
+            onChange={(e) => setAvailabilityFilter(e.target.value)}
+            className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#1e293b]/60 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shrink-0"
+          >
+            <option value="all">All Statuses</option>
+            <option value="online">🟢 Online Only</option>
+            <option value="offline">⚪ Offline Only</option>
+            <option value="busy">⚡ Busy (Working)</option>
+            <option value="paused">⏸️ On Break</option>
+          </select>
+
+          {/* Date Selector */}
+          <div className="flex items-center gap-1 bg-slate-50 dark:bg-[#1e293b]/60 px-2 py-1 rounded-xl border border-slate-200 dark:border-slate-700/80 shrink-0">
+            <button
+              onClick={() => handleDateChange(-1)}
+              className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+              title="Previous Day"
             >
-              <option value="all">All Statuses</option>
-              <option value="online">🟢 Real-Time Online Only</option>
-              <option value="offline">⚪ Real-Time Offline Only</option>
-              <option value="busy">⚡ Busy (In Progress)</option>
-              <option value="paused">⏸️ On Break / Paused</option>
-            </select>
+              <FiChevronLeft size={14} />
+            </button>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-200 px-1 whitespace-nowrap">
+              {isSameDay(selectedDate, new Date())
+                ? "Today, " + format(selectedDate, "MMM dd")
+                : format(selectedDate, "MMM dd")}
+            </span>
+            <button
+              onClick={() => handleDateChange(1)}
+              className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+              title="Next Day"
+            >
+              <FiChevronRight size={14} />
+            </button>
           </div>
+
+          {/* Refresh Tasks */}
+          <button
+            onClick={() => refetchTasks()}
+            className="p-2 rounded-xl bg-slate-50 dark:bg-[#1e293b]/60 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#334155] transition-colors border border-slate-200 dark:border-slate-700/80 cursor-pointer shrink-0"
+            title="Refresh Workload"
+          >
+            <FiRefreshCw size={14} className={tasksFetching ? "animate-spin text-indigo-600 dark:text-indigo-400" : ""} />
+          </button>
         </div>
       </div>
 
-      {/* Main Workload List / Grid */}
-      {usersLoading || tasksLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 space-y-4">
+      {/* Main Workload User Grid */}
+      {(usersLoading && (!users || users.length === 0)) ? (
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
           <div className="w-10 h-10 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase animate-pulse">
             Loading team workload data...
@@ -886,70 +855,76 @@ const Workload = () => {
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-              No Team Members Found
+              No Graphic Designers Found
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-              There are no team members matching the selected role "{selectedRole}" or filter criteria.
+              There are no graphic designers matching your search or filter criteria.
             </p>
           </div>
           <button
             onClick={() => {
-              setSelectedRole("All");
               setSearchTerm("");
               setAvailabilityFilter("all");
             }}
-            className="px-4 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+            className="px-4 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
           >
-            Clear Filters & View All Members
+            Reset Filters
           </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch">
           {finalWorkloads.map((workload) => {
             const {
               user: member,
               isOnline,
-              assignedTasks,
+              displayTasks,
               activeTasks,
-              inReviewTasks,
               pendingTasks,
               onHoldTasks,
-              completedTasks,
               workedMs,
-              capacityHours,
-              utilizationPercent,
+              maxCapacityTasks,
+              totalActiveTasksCount,
+              taskUtilizationPercent,
+              capacityStatus,
+              cardTheme,
               availability,
             } = workload;
 
             const isExpanded = expandedUserIds.includes(member._id);
 
-            // Sort assigned tasks according to requested priority:
-            // 1. In Progress
-            // 2. On Hold
-            // 3. In Review
-            // 4. Completed
-            // 5. Correction / Revision
-            // 6. Pending
-            const sortedAssignedTasks = [...assignedTasks].sort(
-              (a, b) => getTaskSortWeight(a.status) - getTaskSortWeight(b.status)
-            );
-
-            // Progress bar color based on utilization %
-            let barColor = "bg-emerald-500";
-            if (utilizationPercent > 100) barColor = "bg-rose-500";
-            else if (utilizationPercent > 80) barColor = "bg-amber-500";
-            else if (utilizationPercent < 30) barColor = "bg-indigo-500";
+            // Sort only: 1. In Progress, 2. On Hold, 3. Not Started
+            const sortedDisplayTasks = [...displayTasks].sort((a, b) => {
+              const getWeight = (status) => {
+                const s = (status || "").toLowerCase();
+                if (s.includes("progress")) return 1;
+                if (s.includes("hold") || s.includes("pause")) return 2;
+                return 3; // Not started / pending
+              };
+              return getWeight(a.status) - getWeight(b.status);
+            });
 
             return (
               <div
                 key={member._id}
-                className="bg-white dark:bg-[#0f172a]/95 rounded-2xl border border-slate-200/80 dark:border-slate-800/90 shadow-xs hover:shadow-lg dark:hover:border-indigo-500/40 transition-all duration-200 overflow-hidden"
+                className={`${cardTheme.cardBg} ${cardTheme.cardBorder} ${cardTheme.cardRing} rounded-2xl border shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between overflow-hidden group h-full relative`}
               >
-                {/* User Card Main Row */}
-                <div className="p-5 sm:p-6 space-y-4">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                    {/* User Profile Info */}
-                    <div className="flex items-center gap-4">
+                {/* Red Overload Alert Banner if slots > 8 */}
+                {cardTheme.isOverloaded && (
+                  <div className="bg-rose-600 text-white text-[11px] font-black px-4 py-1.5 flex items-center justify-between tracking-wide uppercase shadow-xs">
+                    <span className="flex items-center gap-1.5">
+                      <FiAlertCircle size={14} className="shrink-0 animate-bounce" />
+                      <span>Capacity Limit Exceeded (Slot 8+)</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-black/25 text-white font-black text-[10px]">
+                      {totalActiveTasksCount} / 8 Tasks
+                    </span>
+                  </div>
+                )}
+
+                <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                  {/* Top: Avatar, Info & Online Status */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="relative shrink-0">
                         {member.profile?.profileImage?.url ? (
                           <img
@@ -958,279 +933,262 @@ const Workload = () => {
                             className="w-12 h-12 rounded-xl object-cover border-2 border-white dark:border-slate-800 shadow-xs"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-extrabold text-base flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-xs uppercase">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-black text-sm flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-xs uppercase">
                             {member.name ? member.name.substring(0, 2) : "TM"}
                           </div>
                         )}
-                        {/* Real-time Online / Offline Indicator Dot */}
+                        {/* Real-time Online Indicator */}
                         <span
-                          className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 ${
+                          className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
                             isOnline
-                              ? "bg-emerald-500 shadow-xs animate-pulse"
+                              ? "bg-emerald-500 shadow-xs"
                               : "bg-slate-400 dark:bg-slate-600"
                           }`}
                           title={isOnline ? "Online Now" : "Offline"}
                         />
                       </div>
 
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                            {member.name}
-                          </h3>
-
-                          {/* Real-Time Online / Offline Badge */}
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border ${
-                              isOnline
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60"
-                                : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-[#1e293b]/70 dark:text-slate-400 dark:border-slate-700/60"
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isOnline ? "bg-emerald-500 animate-ping" : "bg-slate-400 dark:bg-slate-500"
-                              }`}
-                            />
-                            {isOnline ? "Online" : "Offline"}
-                          </span>
-
-                          {/* Work Activity Badge */}
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${availability.badgeClass}`}
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full ${availability.dotClass}`} />
-                            {availability.label}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                          <span className="font-medium">{member.email}</span>
-                          <span>•</span>
-                          <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                      <div className="min-w-0">
+                        <h3
+                          className="text-base font-extrabold text-slate-900 dark:text-slate-100 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors"
+                          title={member.name}
+                        >
+                          {member.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {member.email}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/50 truncate">
                             {member.department || "Graphic Designer"}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Productivity & Capacity Gauges */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 lg:w-96">
-                      <div className="flex-1 space-y-1.5 bg-slate-50/80 dark:bg-[#1e293b]/50 p-3 rounded-xl border border-slate-200/70 dark:border-slate-800">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-slate-600 dark:text-slate-400">
-                            Productivity Hours
-                          </span>
-                          <span className="font-black text-slate-900 dark:text-white">
-                            {formatMsToHoursMinutes(workedMs)} / {capacityHours}h target
-                          </span>
-                        </div>
-
-                        {/* Capacity Progress Bar */}
-                        <div className="w-full bg-slate-200 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-                            style={{ width: `${utilizationPercent}%` }}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-500 dark:text-slate-400">
-                            Utilization Rate
-                          </span>
-                          <span
-                            className={`font-black ${
-                              utilizationPercent > 100
-                                ? "text-rose-600 dark:text-rose-400"
-                                : "text-emerald-600 dark:text-emerald-400"
-                            }`}
-                          >
-                            {utilizationPercent}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Task Counters Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
-                    <div className="bg-emerald-50/70 dark:bg-emerald-950/40 p-2.5 rounded-xl border border-emerald-200/70 dark:border-emerald-900/50 flex items-center justify-between">
-                      <div>
-                        <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-                          Active
-                        </div>
-                        <div className="text-lg font-black text-emerald-800 dark:text-emerald-300">
-                          {activeTasks.length}
-                        </div>
-                      </div>
-                      <FiPlay className="text-emerald-500 dark:text-emerald-400 animate-pulse" size={18} />
-                    </div>
-
-                    <div className="bg-purple-50/70 dark:bg-purple-950/40 p-2.5 rounded-xl border border-purple-200/70 dark:border-purple-900/50 flex items-center justify-between">
-                      <div>
-                        <div className="text-[11px] font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
-                          In Review
-                        </div>
-                        <div className="text-lg font-black text-purple-800 dark:text-purple-300">
-                          {inReviewTasks.length}
-                        </div>
-                      </div>
-                      <FiLayers className="text-purple-500 dark:text-purple-400" size={18} />
-                    </div>
-
-                    <div className="bg-amber-50/70 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/70 dark:border-amber-900/50 flex items-center justify-between">
-                      <div>
-                        <div className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-                          Pending
-                        </div>
-                        <div className="text-lg font-black text-amber-800 dark:text-amber-300">
-                          {pendingTasks.length}
-                        </div>
-                      </div>
-                      <FiClock className="text-amber-500 dark:text-amber-400" size={18} />
-                    </div>
-
-                    <div className="bg-slate-100/80 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-700/60 flex items-center justify-between">
-                      <div>
-                        <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                          On Hold
-                        </div>
-                        <div className="text-lg font-black text-slate-800 dark:text-slate-200">
-                          {onHoldTasks.length}
-                        </div>
-                      </div>
-                      <FiPauseCircle className="text-slate-500 dark:text-slate-400" size={18} />
-                    </div>
-
-                    <div className="bg-sky-50/70 dark:bg-sky-950/40 p-2.5 rounded-xl border border-sky-200/70 dark:border-sky-900/50 flex items-center justify-between col-span-2 sm:col-span-1">
-                      <div>
-                        <div className="text-[11px] font-bold text-sky-700 dark:text-sky-400 uppercase tracking-wider">
-                          Completed
-                        </div>
-                        <div className="text-lg font-black text-sky-800 dark:text-sky-300">
-                          {completedTasks.length}
-                        </div>
-                      </div>
-                      <FiCheckCircle className="text-sky-500 dark:text-sky-400" size={18} />
-                    </div>
-                  </div>
-
-                  {/* Expand / Collapse Accordion Toggle */}
-                  <div className="flex items-center justify-between pt-2">
-                    <button
-                      onClick={() => toggleExpandUser(member._id)}
-                      className="inline-flex items-center gap-2 text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
-                    >
-                      <span>
-                        {isExpanded
-                          ? "Hide Assigned Tasks"
-                          : `View Assigned Tasks (${assignedTasks.length})`}
+                    {/* Online / Activity Badges */}
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
+                          isOnline
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60"
+                            : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-[#1e293b]/70 dark:text-slate-400 dark:border-slate-700/60"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400 dark:bg-slate-500"
+                          }`}
+                        />
+                        {isOnline ? "Online" : "Offline"}
                       </span>
-                      {isExpanded ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
-                    </button>
 
-                    <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-                      Total Tasks: {assignedTasks.length}
-                    </span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border ${availability.badgeClass}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${availability.dotClass}`} />
+                        {availability.label}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Active Task Live Strip (Fixed height for clean baseline alignment) */}
+                  <div className="h-12 flex items-center">
+                    {activeTasks.length > 0 ? (
+                      <div className="w-full h-full p-2.5 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center gap-2.5 text-xs">
+                        <FiPlay className="text-emerald-600 dark:text-emerald-400 animate-pulse shrink-0" size={15} />
+                        <div className="min-w-0 flex-1 truncate">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 block leading-tight">
+                            Working On Task:
+                          </span>
+                          <span className="font-bold text-slate-900 dark:text-slate-100 truncate block text-xs">
+                            {activeTasks[0]?.title}
+                          </span>
+                        </div>
+                      </div>
+                    ) : onHoldTasks.length > 0 ? (
+                      <div className="w-full h-full p-2.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+                        <FiPauseCircle className="text-amber-500 shrink-0" size={16} />
+                        <span className="text-xs font-bold truncate">Tasks paused / On break</span>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full p-2.5 rounded-xl bg-slate-50/90 dark:bg-[#1e293b]/40 border border-slate-200/60 dark:border-slate-800/80 flex items-center gap-2.5 text-xs text-slate-400 dark:text-slate-500">
+                        <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
+                        <span className="text-xs font-semibold">Available • Ready for new tasks</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Designer 8-Task Capacity Box */}
+                  <div className={`${cardTheme.meterBg} p-3.5 rounded-2xl border space-y-2.5 transition-colors`}>
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-slate-700 dark:text-slate-200 flex items-center gap-1.5 font-bold">
+                        <FiBriefcase className={cardTheme.isOverloaded ? "text-rose-500" : "text-indigo-500 dark:text-indigo-400"} size={14} />
+                        Task Capacity (Max 8)
+                      </span>
+                      <span className={`font-black text-xs ${cardTheme.capacityTextColor}`}>
+                        {totalActiveTasksCount} / {maxCapacityTasks} Tasks ({taskUtilizationPercent}%)
+                      </span>
+                    </div>
+
+                    {/* 8-Slot Visual Segmented Bar */}
+                    <div className="grid grid-cols-8 gap-1.5 py-0.5">
+                      {Array.from({ length: maxCapacityTasks }).map((_, index) => {
+                        const isFilled = index < totalActiveTasksCount;
+                        return (
+                          <div
+                            key={index}
+                            className={`h-3 rounded-full transition-all duration-300 ${
+                              isFilled
+                                ? cardTheme.slotFilledColor
+                                : cardTheme.slotEmptyColor
+                            }`}
+                            title={`Task Slot ${index + 1}: ${isFilled ? "Occupied" : "Free"}`}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-0.5 gap-2 flex-wrap">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${cardTheme.badgeBg}`}>
+                        {cardTheme.statusTag}
+                      </span>
+                      {/* today Productivity iruntha mattum show pannu */}
+                      {workedMs > 0 && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300">
+                          <FiClock size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>Today Productivity:</span>
+                          <strong className="font-black text-emerald-800 dark:text-emerald-200">
+                            {formatMsToHoursMinutes(workedMs)}
+                          </strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3-Column Task Counters: In Progress, On Hold, Not Started only */}
+                  <div className="grid grid-cols-3 gap-2.5 pt-0.5">
+                    <div className="bg-emerald-50/90 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200/70 dark:border-emerald-900/50 text-center">
+                      <div className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+                        In Progress
+                      </div>
+                      <div className="text-2xl font-black text-emerald-800 dark:text-emerald-300 mt-0.5">
+                        {activeTasks.length}
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-50/90 dark:bg-amber-950/40 p-3 rounded-xl border border-amber-200/70 dark:border-amber-900/50 text-center">
+                      <div className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                        On Hold
+                      </div>
+                      <div className="text-2xl font-black text-amber-800 dark:text-amber-300 mt-0.5">
+                        {onHoldTasks.length}
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-100/95 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/70 text-center">
+                      <div className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                        Not Started
+                      </div>
+                      <div className="text-2xl font-black text-slate-800 dark:text-slate-200 mt-0.5">
+                        {pendingTasks.length}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Detailed Tasks Table / List when Expanded */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="border-t border-slate-200/80 dark:border-slate-800/90 bg-slate-50/80 dark:bg-[#0a0f1d] p-4 sm:p-6"
-                    >
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
-                        Tasks Assigned to {member.name}
-                      </h4>
+                {/* Card Footer: Expand Assigned Tasks Toggle (Only In Progress, On Hold, Not Started) */}
+                <div className="border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/60 dark:bg-[#0a0f1d]/50 p-3">
+                  <button
+                    onClick={() => toggleExpandUser(member._id)}
+                    className="w-full flex items-center justify-between text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors py-1 cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FiBriefcase size={14} />
+                      {isExpanded ? "Hide Tasks" : `View Tasks (${displayTasks.length})`}
+                    </span>
+                    {isExpanded ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+                  </button>
 
-                      {sortedAssignedTasks.length === 0 ? (
-                        <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500 italic">
-                          No tasks currently assigned to this user.
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {sortedAssignedTasks.map((task) => (
-                            <div
-                              key={task._id}
-                              className="bg-white dark:bg-[#111827] rounded-xl p-3.5 border border-slate-200/80 dark:border-slate-800/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all shadow-xs"
-                            >
-                              <div className="space-y-1 flex-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h5 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
+                  {/* Expanded Task List - ONLY In Progress, On Hold, Not Started */}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="pt-2.5 mt-2 border-t border-slate-200/60 dark:border-slate-800/80 max-h-64 overflow-y-auto space-y-2 pr-1"
+                      >
+                        {sortedDisplayTasks.length === 0 ? (
+                          <div className="py-4 text-center text-xs text-slate-400 dark:text-slate-500 italic">
+                            No active tasks (In Progress, On Hold, or Not Started) assigned.
+                          </div>
+                        ) : (
+                          sortedDisplayTasks.map((task) => {
+                            const assignedDateFormatted = formatTaskAssignedDate(task);
+                            const taskWorkedTodayMs = calculateTaskProductivityForDate(task, selectedDate);
+
+                            return (
+                              <div
+                                key={task._id}
+                                className="bg-white dark:bg-[#111827] rounded-xl p-3 border border-slate-200/80 dark:border-slate-800 text-xs space-y-2 hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-colors shadow-2xs"
+                              >
+                                {/* Assigned Date & Status */}
+                                <div className="flex items-center justify-between gap-2">
+                                  {assignedDateFormatted ? (
+                                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                                      <FiCalendar size={12} className="text-indigo-500 shrink-0" />
+                                      <span>Assigned Date: <strong className="text-slate-900 dark:text-slate-100 font-extrabold">{assignedDateFormatted}</strong></span>
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                                      Assigned Task
+                                    </span>
+                                  )}
+
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border shrink-0 ${getStatusBadgeClass(
+                                      task.status
+                                    )}`}
+                                  >
+                                    {task.status}
+                                  </span>
+                                </div>
+
+                                {/* Task Name */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <h5 className="font-extrabold text-slate-900 dark:text-slate-100 text-xs leading-snug">
                                     {task.title}
                                   </h5>
-                                  {task.client && (
-                                    <ClientBadge client={task.client} size="sm" />
-                                  )}
+                                  <button
+                                    onClick={() => setSelectedTaskModal(task)}
+                                    className="p-1 rounded text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 shrink-0 cursor-pointer"
+                                    title="View Task Details"
+                                  >
+                                    <FiEye size={13} />
+                                  </button>
                                 </div>
 
-                                <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap">
-                                  {task.dueDate && (
-                                    <span className="flex items-center gap-1">
-                                      <FiCalendar size={12} />
-                                      Due: {format(parseISO(task.dueDate), "MMM dd")}
+                                {/* today Productivity athunu iruntha mattum show pannu */}
+                                {taskWorkedTodayMs > 0 && (
+                                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                      <FiClock size={11} />
+                                      Today Productivity:
                                     </span>
-                                  )}
-                                  {task.contentType && (
-                                    <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] font-bold">
-                                      {task.contentType}
+                                    <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                                      {formatMsToHoursMinutes(taskWorkedTodayMs)}
                                     </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-3 self-end sm:self-center">
-                                {/* Logged time for task (Live timer when running, no starting 0 clutter) */}
-                                <div className="text-right">
-                                  <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                                    Worked Today
                                   </div>
-                                  <TaskWorkedTodayCell
-                                    task={task}
-                                    selectedDate={selectedDate}
-                                    ticker={ticker}
-                                  />
-                                </div>
-
-                                {/* Priority Badge */}
-                                <span
-                                  className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${getPriorityBadgeClass(
-                                    task.priority
-                                  )}`}
-                                >
-                                  {task.priority || "Medium"}
-                                </span>
-
-                                {/* Status Badge */}
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-xs font-extrabold border ${getStatusBadgeClass(
-                                    task.status
-                                  )}`}
-                                >
-                                  {task.status}
-                                </span>
-
-                                {/* Action button */}
-                                <button
-                                  onClick={() => setSelectedTaskModal(task)}
-                                  className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors"
-                                  title="View Task Details"
-                                >
-                                  <FiEye size={15} />
-                                </button>
+                                )}
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                            );
+                          })
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             );
           })}

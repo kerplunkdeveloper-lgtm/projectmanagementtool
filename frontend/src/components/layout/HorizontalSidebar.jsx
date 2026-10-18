@@ -392,7 +392,12 @@ const HorizontalSidebar = ({ role }) => {
           roleLower === "operationmanager" ||
           deptLower.includes("operation manager") ||
           roleLower.includes("operation manager");
-        const isSocialMedia = deptLower.includes("social media");
+        const isSocialMedia =
+          deptLower.includes("social media") ||
+          deptLower.includes("social manager") ||
+          deptLower.includes("smm") ||
+          roleLower.includes("social media") ||
+          roleLower === "socialmediamanager";
 
         if (!isAdmin && !isOperationManager && !isSocialMedia) {
           return false;
