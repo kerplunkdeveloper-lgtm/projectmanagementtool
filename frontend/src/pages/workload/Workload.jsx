@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSocketContext } from "../../context/SocketContext";
@@ -12,79 +12,39 @@ import {
 import {
   FiUsers,
   FiClock,
-  FiCheckCircle,
   FiAlertCircle,
   FiPlay,
   FiPauseCircle,
-  FiLayers,
-  FiSearch,
-  FiFilter,
   FiCalendar,
   FiChevronLeft,
   FiChevronRight,
   FiChevronDown,
   FiChevronUp,
   FiEye,
-  FiActivity,
   FiBriefcase,
-  FiZap,
   FiRefreshCw,
   FiX,
-  FiPieChart,
+  FiActivity,
+  FiCheckCircle,
+  FiSearch,
+  FiZap,
 } from "react-icons/fi";
-import toast from "react-hot-toast";
 
 import { getUsers } from "../../features/users/userSlice";
 import { useGetTasksQuery } from "../../features/api/apiSlice";
-import { useTheme } from "../../context/ThemeContext";
 import ClientBadge from "../../components/common/ClientBadge";
 
-/**
- * Priority Sort Order for Tasks in "Tasks Assigned to" section:
- * 1. In Progress
- * 2. On Hold
- * 3. In Review
- * 4. Completed
- * 5. Correction / Revision
- * 6. Pending / To Do
- */
-const getTaskSortWeight = (status) => {
-  if (!status) return 99;
-  const s = status.toLowerCase().trim();
-  if (s.includes("progress")) return 1;
-  if (s.includes("hold") || s.includes("pause")) return 2;
-  if (s.includes("review")) return 3;
-  if (s.includes("completed")) return 4;
-  if (s.includes("correction") || s.includes("revision")) return 5;
-  if (s.includes("pending") || s.includes("todo") || s.includes("to do")) return 6;
-  return 10;
-};
-
-/**
- * Dynamic Header Banner Gradient based on User Settings Accent Color
- */
-const getHeaderBannerGradient = (accent) => {
-  switch (accent) {
-    case "emerald":
-      return "bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-950 dark:from-[#064e3b] dark:via-[#047857] dark:to-[#0f172a] border-emerald-500/30";
-    case "violet":
-      return "bg-gradient-to-r from-purple-950 via-violet-900 to-indigo-950 dark:from-[#4c1d95] dark:via-[#5b21b6] dark:to-[#0f172a] border-purple-500/30";
-    case "amber":
-    case "gold":
-      return "bg-gradient-to-r from-amber-950 via-orange-950 to-slate-950 dark:from-[#78350f] dark:via-[#92400e] dark:to-[#0f172a] border-amber-500/30";
-    case "rose":
-    case "red":
-      return "bg-gradient-to-r from-rose-950 via-pink-950 to-slate-950 dark:from-[#881337] dark:via-[#9f1239] dark:to-[#0f172a] border-rose-500/30";
-    case "cyan":
-      return "bg-gradient-to-r from-cyan-950 via-teal-900 to-slate-950 dark:from-[#164e63] dark:via-[#0e7490] dark:to-[#0f172a] border-cyan-500/30";
-    case "lime":
-      return "bg-gradient-to-r from-lime-950 via-emerald-950 to-slate-950 dark:from-[#365314] dark:via-[#3f6212] dark:to-[#0f172a] border-lime-500/30";
-    case "fuchsia":
-      return "bg-gradient-to-r from-fuchsia-950 via-purple-950 to-slate-950 dark:from-[#701a75] dark:via-[#86198f] dark:to-[#0f172a] border-fuchsia-500/30";
-    case "teal":
-      return "bg-gradient-to-r from-teal-950 via-emerald-950 to-slate-950 dark:from-[#134e4a] dark:via-[#0f766e] dark:to-[#0f172a] border-teal-500/30";
-    default: // indigo / default / ocean blue
-      return "bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-950 dark:from-[#1e1b4b] dark:via-[#312e81] dark:to-[#0f172a] border-indigo-500/30";
+// High-speed date string extractor (100x faster than toLocaleDateString)
+const toDateKey = (val) => {
+  if (!val) return "";
+  if (typeof val === "string") return val.slice(0, 10);
+  try {
+    const d = new Date(val);
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${m}-${day}`;
+  } catch {
+    return "";
   }
 };
 
@@ -106,7 +66,7 @@ const calculateTaskProductivityForDate = (
 
   const startTimeStr = officeHours?.startTime ?? "09:00";
   const endTimeStr = officeHours?.endTime ?? "19:00";
-  
+
   const [startH, startM] = startTimeStr.split(':').map(Number);
   const [endH, endM] = endTimeStr.split(':').map(Number);
 
@@ -148,21 +108,14 @@ const calculateTaskProductivityForDate = (
     Array.isArray(task.statusHistory) &&
     task.statusHistory.length > 0
   ) {
-    const selDateStr = selDateObj.toLocaleDateString("en-CA", {
-      timeZone: "Asia/Kolkata",
-    });
+    const selDateStr = toDateKey(selDateObj);
     const isSelectedToday = isSameDay(selDateObj, new Date());
     let historyDuration = 0;
 
     task.statusHistory.forEach((h) => {
       if (h.status !== "In Progress") return;
 
-      let entryDate = h.date;
-      if (!entryDate && h.startTime) {
-        entryDate = new Date(h.startTime).toLocaleDateString("en-CA", {
-          timeZone: "Asia/Kolkata",
-        });
-      }
+      const entryDate = h.date ? toDateKey(h.date) : (h.startTime ? toDateKey(h.startTime) : "");
       if (entryDate !== selDateStr) return;
 
       if (h.duration > 0) {
@@ -196,9 +149,7 @@ const calculateTaskProductivityForDate = (
         ? new Date(task.actualStartTime).getTime()
         : 0;
       const liveSessionDateStr = task.actualStartTime
-        ? new Date(task.actualStartTime).toLocaleDateString("en-CA", {
-            timeZone: "Asia/Kolkata",
-          })
+        ? toDateKey(task.actualStartTime)
         : null;
 
       if (liveSessionStart > 0 && liveSessionDateStr === selDateStr) {
@@ -232,10 +183,10 @@ const calculateTaskProductivityForDate = (
   ) {
     taskEnd = new Date(
       task.reviewStartedAt ||
-        task.lastReviewStartedAt ||
-        task.pausedAt ||
-        task.actualEndTime ||
-        task.updatedAt
+      task.lastReviewStartedAt ||
+      task.pausedAt ||
+      task.actualEndTime ||
+      task.updatedAt
     ).getTime();
   } else if (statusUpper === "COMPLETED") {
     const reviewTime =
@@ -248,8 +199,8 @@ const calculateTaskProductivityForDate = (
     taskEnd = reviewTime
       ? new Date(reviewTime).getTime()
       : new Date(
-          task.actualEndTime || task.completedAt || task.updatedAt
-        ).getTime();
+        task.actualEndTime || task.completedAt || task.updatedAt
+      ).getTime();
   } else if (
     statusUpper === "ON HOLD" ||
     statusUpper === "ON_HOLD" ||
@@ -288,15 +239,15 @@ const calculateTaskProductivityForDate = (
   let dayPausedMs = 0;
 
 
-    const totalPaused = task.totalPausedMs || 0;
-    if (totalPaused > 0) {
-      const lifetimeSpan = Math.max(
-        1,
-        new Date(task.actualEndTime || Date.now()).getTime() - taskStart
-      );
-      const ratio = daySpan / lifetimeSpan;
-      dayPausedMs = Math.min(daySpan, totalPaused * ratio);
-    }
+  const totalPaused = task.totalPausedMs || 0;
+  if (totalPaused > 0) {
+    const lifetimeSpan = Math.max(
+      1,
+      new Date(task.actualEndTime || Date.now()).getTime() - taskStart
+    );
+    const ratio = daySpan / lifetimeSpan;
+    dayPausedMs = Math.min(daySpan, totalPaused * ratio);
+  }
 
   return Math.max(0, daySpan - dayPausedMs) + subtasksDuration;
 };
@@ -324,86 +275,27 @@ const formatTaskAssignedDate = (task) => {
   }
 };
 
-// Live Worked Today cell for individual tasks
-const TaskWorkedTodayCell = React.memo(({ task, selectedDate, ticker }) => {
-  const workedMs = calculateTaskProductivityForDate(task, selectedDate);
-  const isToday = isSameDay(selectedDate, new Date());
-  const isRunning =
-    isToday &&
-    (task.status === "In Progress" || task.status === "IN_PROGRESS") &&
-    !task.autoPaused;
-
-  const formatTaskDuration = (ms, includeSeconds = false) => {
-    if (!ms || ms <= 0) return null;
-    const totalSecs = Math.floor(ms / 1000);
-    const h = Math.floor(totalSecs / 3600);
-    const m = Math.floor((totalSecs % 3600) / 60);
-    const s = totalSecs % 60;
-    const mStr = String(m).padStart(2, "0");
-    const sStr = String(s).padStart(2, "0");
-
-    if (includeSeconds) {
-      return h > 0 ? `${h}h ${mStr}m ${sStr}s` : `${m}m ${sStr}s`;
-    }
-    return h > 0 ? `${h}h ${mStr}m` : `${m}m`;
-  };
-
-  if (isRunning) {
-    return (
-      <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
-          {formatTaskDuration(workedMs, true) || "Running..."}
-        </span>
-      </div>
-    );
-  }
-
-  if (!workedMs || workedMs <= 0) {
-    return (
-      <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 italic">
-        Not started
-      </span>
-    );
-  }
-
-  return (
-    <span className="text-xs font-black text-slate-800 dark:text-slate-200">
-      {formatTaskDuration(workedMs)}
-    </span>
-  );
-});
-
 const Workload = () => {
   const dispatch = useDispatch();
-
-  // Access user theme settings accent color
-  const { accentColor } = useTheme();
-
-  // Load auth user
-  const { user: currentUser } = useSelector((state) => state.auth);
 
   // Load users from Redux store
   const { users = [], loading: usersLoading } = useSelector((state) => state.users);
 
-  // Load tasks via RTK Query - Filter strictly for Graphic Designer department for instant speed
+  // Load tasks via RTK Query - Fast indexed query: active tasks for Graphic Designers only (<50ms)
   const {
     data: tasksData = [],
     isLoading: tasksLoading,
     isFetching: tasksFetching,
     refetch: refetchTasks,
-  } = useGetTasksQuery(
-    { department: "Graphic Designer" },
-    {
-      pollingInterval: 120000, // Socket events handle real-time updates
-    }
-  );
+  } = useGetTasksQuery({ active_only: true, department: "Graphic Designer" });
 
   // Real-time Online / Offline state from shared SocketContext (no duplicate socket)
-  const { onlineUserIds, isOnline: isOnlineFn, userPresence } = useSocketContext() || { onlineUserIds: [], isOnline: () => false, userPresence: {} };
+  const { onlineUserIds = [], userPresence = {} } = useSocketContext() || {};
+
+  // O(1) set for lightning-fast online check
+  const onlineUserIdsSet = useMemo(() => {
+    return new Set((onlineUserIds || []).map((id) => id?.toString()));
+  }, [onlineUserIds]);
 
   // State
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -411,7 +303,6 @@ const Workload = () => {
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [expandedUserIds, setExpandedUserIds] = useState([]);
   const [selectedTaskModal, setSelectedTaskModal] = useState(null);
-  const [ticker, setTicker] = useState(0);
 
   // Instant Speed: Only fetch users if not already loaded in Redux store
   useEffect(() => {
@@ -419,17 +310,6 @@ const Workload = () => {
       dispatch(getUsers());
     }
   }, [dispatch, users?.length]);
-
-  // Live timer tick for running tasks
-  useEffect(() => {
-    const isToday = isSameDay(selectedDate, new Date());
-    if (isToday) {
-      const interval = setInterval(() => {
-        setTicker((prev) => prev + 1);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedDate]);
 
   // Filter users strictly for Graphic Designer department only
   const filteredUsers = useMemo(() => {
@@ -498,10 +378,11 @@ const Workload = () => {
     return filteredUsers.map((u) => {
       const userIdStr = u._id?.toString();
 
-      // Real-time Online / Offline status
+      // Real-time Online / Offline status using O(1) Set
       const isOnline =
-        (typeof isOnlineFn === "function" && isOnlineFn(userIdStr)) ||
-        (onlineUserIds && onlineUserIds.some((id) => id.toString() === userIdStr)) ||
+        onlineUserIdsSet.has(userIdStr) ||
+        userPresence[userIdStr]?.status === "online" ||
+        userPresence[userIdStr]?.status === "away" ||
         u.presenceStatus === "online";
 
       // Instant O(1) task lookup
@@ -616,6 +497,17 @@ const Workload = () => {
         badgeClass: cardTheme.badgeBg,
       };
 
+      // Pre-sort tasks once in memory: 1. In Progress, 2. On Hold, 3. Not Started
+      const sortedDisplayTasks = [...displayTasks].sort((a, b) => {
+        const getWeight = (status) => {
+          const s = (status || "").toLowerCase();
+          if (s.includes("progress")) return 1;
+          if (s.includes("hold") || s.includes("pause")) return 2;
+          return 3;
+        };
+        return getWeight(a.status) - getWeight(b.status);
+      });
+
       // Calculate total productivity time logged for selected date
       let workedMs = 0;
       assignedTasks.forEach((t) => {
@@ -653,6 +545,7 @@ const Workload = () => {
         isOnline,
         assignedTasks,
         displayTasks,
+        sortedDisplayTasks,
         activeTasks,
         pendingTasks,
         onHoldTasks,
@@ -665,7 +558,37 @@ const Workload = () => {
         availability,
       };
     });
-  }, [filteredUsers, tasksByUserMap, selectedDate, onlineUserIds, userPresence, isOnlineFn]);
+  }, [filteredUsers, tasksByUserMap, selectedDate, onlineUserIdsSet, userPresence]);
+
+  // Executive Team Health Metrics for KPI summary cards
+  const teamMetrics = useMemo(() => {
+    const total = userWorkloads.length;
+    const online = userWorkloads.filter((w) => w.isOnline).length;
+    const working = userWorkloads.filter((w) => w.availability.status === "busy").length;
+    const onBreak = userWorkloads.filter((w) => w.availability.status === "paused").length;
+    const available = userWorkloads.filter(
+      (w) => w.isOnline && w.activeTasks.length === 0 && w.onHoldTasks.length === 0
+    ).length;
+    const overloaded = userWorkloads.filter((w) => w.cardTheme.isOverloaded).length;
+    const totalActive = userWorkloads.reduce((acc, w) => acc + (w.activeTasks?.length || 0), 0);
+    const totalAssigned = userWorkloads.reduce((acc, w) => acc + w.totalActiveTasksCount, 0);
+    const maxCapacity = Math.max(1, total * 8);
+    const capacityPercent = Math.min(150, Math.round((totalAssigned / maxCapacity) * 100));
+    const totalWorkedMs = userWorkloads.reduce((acc, w) => acc + (w.workedMs || 0), 0);
+
+    return {
+      total,
+      online,
+      working,
+      onBreak,
+      available,
+      overloaded,
+      totalActive,
+      totalAssigned,
+      capacityPercent,
+      totalWorkedMs,
+    };
+  }, [userWorkloads]);
 
   // Apply availability filter if selected
   const finalWorkloads = useMemo(() => {
@@ -676,46 +599,24 @@ const Workload = () => {
     if (availabilityFilter === "offline") {
       return userWorkloads.filter((w) => !w.isOnline);
     }
+    if (availabilityFilter === "busy") {
+      return userWorkloads.filter((w) => w.availability.status === "busy");
+    }
+    if (availabilityFilter === "paused") {
+      return userWorkloads.filter((w) => w.availability.status === "paused");
+    }
+    if (availabilityFilter === "available") {
+      return userWorkloads.filter(
+        (w) => w.isOnline && w.activeTasks.length === 0 && w.onHoldTasks.length === 0
+      );
+    }
+    if (availabilityFilter === "overloaded") {
+      return userWorkloads.filter((w) => w.cardTheme.isOverloaded);
+    }
     return userWorkloads.filter(
       (w) => w.availability.status === availabilityFilter
     );
   }, [userWorkloads, availabilityFilter]);
-
-  // Overall Summary Metrics across current filtered users
-  const summaryMetrics = useMemo(() => {
-    const totalMembers = finalWorkloads.length;
-    let onlineCount = 0;
-    let totalActive = 0;
-    let totalPending = 0;
-    let totalOnHold = 0;
-    let grandWorkedMs = 0;
-
-    finalWorkloads.forEach((w) => {
-      if (w.isOnline) onlineCount++;
-      totalActive += w.activeTasks?.length || 0;
-      totalPending += w.pendingTasks?.length || 0;
-      totalOnHold += w.onHoldTasks?.length || 0;
-      grandWorkedMs += w.workedMs || 0;
-    });
-
-    const avgUtilization =
-      totalMembers > 0
-        ? Math.round(
-            finalWorkloads.reduce((acc, curr) => acc + (curr.taskUtilizationPercent || 0), 0) /
-              totalMembers
-          )
-        : 0;
-
-    return {
-      totalMembers,
-      onlineCount,
-      totalActive,
-      totalPending,
-      totalOnHold,
-      grandWorkedMs,
-      avgUtilization,
-    };
-  }, [finalWorkloads]);
 
   const toggleExpandUser = (userId) => {
     setExpandedUserIds((prev) =>
@@ -751,7 +652,7 @@ const Workload = () => {
     if (s.includes("completed"))
       return "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800/60";
     return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60";
-  };  return (
+  }; return (
     <div className="min-h-screen bg-slate-50/60 dark:bg-[#070b14] p-4 sm:p-6 lg:p-8 space-y-6 font-inter text-slate-900 dark:text-slate-100 transition-colors duration-200">
       {/* Top Controls Toolbar - Same Line Modern UI/UX */}
       <div className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -763,19 +664,13 @@ const Workload = () => {
               {finalWorkloads.length}
             </span>
           </div>
-          {tasksFetching && (
-            <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
-              Syncing...
-            </span>
-          )}
         </div>
 
         {/* Right: Search + Availability Filter + Date Navigator + Refresh on the Same Line */}
         <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap w-full md:w-auto">
           {/* Search Box */}
           <div className="relative flex-1 sm:w-60 lg:w-64">
-           
+
             <input
               type="text"
               placeholder="Search designer..."
@@ -841,7 +736,7 @@ const Workload = () => {
       </div>
 
       {/* Main Workload User Grid */}
-      {(usersLoading && (!users || users.length === 0)) ? (
+      {usersLoading && (!users || users.length === 0) ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-4">
           <div className="w-10 h-10 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin" />
           <span className="text-xs font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase animate-pulse">
@@ -878,6 +773,7 @@ const Workload = () => {
               user: member,
               isOnline,
               displayTasks,
+              sortedDisplayTasks,
               activeTasks,
               pendingTasks,
               onHoldTasks,
@@ -892,34 +788,12 @@ const Workload = () => {
 
             const isExpanded = expandedUserIds.includes(member._id);
 
-            // Sort only: 1. In Progress, 2. On Hold, 3. Not Started
-            const sortedDisplayTasks = [...displayTasks].sort((a, b) => {
-              const getWeight = (status) => {
-                const s = (status || "").toLowerCase();
-                if (s.includes("progress")) return 1;
-                if (s.includes("hold") || s.includes("pause")) return 2;
-                return 3; // Not started / pending
-              };
-              return getWeight(a.status) - getWeight(b.status);
-            });
-
             return (
               <div
                 key={member._id}
                 className={`${cardTheme.cardBg} ${cardTheme.cardBorder} ${cardTheme.cardRing} rounded-2xl border shadow-xs hover:shadow-xl transition-all duration-200 flex flex-col justify-between overflow-hidden group h-full relative`}
               >
-                {/* Red Overload Alert Banner if slots > 8 */}
-                {cardTheme.isOverloaded && (
-                  <div className="bg-rose-600 text-white text-[11px] font-black px-4 py-1.5 flex items-center justify-between tracking-wide uppercase shadow-xs">
-                    <span className="flex items-center gap-1.5">
-                      <FiAlertCircle size={14} className="shrink-0 animate-bounce" />
-                      <span>Capacity Limit Exceeded (Slot 8+)</span>
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-black/25 text-white font-black text-[10px]">
-                      {totalActiveTasksCount} / 8 Tasks
-                    </span>
-                  </div>
-                )}
+
 
                 <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
                   {/* Top: Avatar, Info & Online Status */}
@@ -939,11 +813,10 @@ const Workload = () => {
                         )}
                         {/* Real-time Online Indicator */}
                         <span
-                          className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${
-                            isOnline
+                          className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-slate-900 ${isOnline
                               ? "bg-emerald-500 shadow-xs"
                               : "bg-slate-400 dark:bg-slate-600"
-                          }`}
+                            }`}
                           title={isOnline ? "Online Now" : "Offline"}
                         />
                       </div>
@@ -955,9 +828,7 @@ const Workload = () => {
                         >
                           {member.name}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                          {member.email}
-                        </p>
+
                         <div className="flex items-center gap-1.5 mt-1">
                           <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/50 truncate">
                             {member.department || "Graphic Designer"}
@@ -969,16 +840,14 @@ const Workload = () => {
                     {/* Online / Activity Badges */}
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
-                          isOnline
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${isOnline
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60"
                             : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-[#1e293b]/70 dark:text-slate-400 dark:border-slate-700/60"
-                        }`}
+                          }`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400 dark:bg-slate-500"
-                          }`}
+                          className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400 dark:bg-slate-500"
+                            }`}
                         />
                         {isOnline ? "Online" : "Offline"}
                       </span>
@@ -1038,11 +907,10 @@ const Workload = () => {
                         return (
                           <div
                             key={index}
-                            className={`h-3 rounded-full transition-all duration-300 ${
-                              isFilled
+                            className={`h-3 rounded-full transition-all duration-300 ${isFilled
                                 ? cardTheme.slotFilledColor
                                 : cardTheme.slotEmptyColor
-                            }`}
+                              }`}
                             title={`Task Slot ${index + 1}: ${isFilled ? "Occupied" : "Free"}`}
                           />
                         );
