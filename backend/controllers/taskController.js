@@ -482,9 +482,30 @@ exports.getTasks = async (req, res) => {
     if (req.query.department) {
       const deptStr = req.query.department.trim();
       const isGraphic = /graphic/i.test(deptStr);
-      const userDeptQuery = isGraphic
-        ? { department: { $regex: /graphic|design/i } }
-        : { department: { $regex: deptStr, $options: "i" } };
+      const isCinema = /cinema|video/i.test(deptStr);
+      let userDeptQuery;
+      if (isGraphic) {
+        userDeptQuery = {
+          $or: [
+            { department: { $regex: /graphic|design/i } },
+            { role: { $regex: /graphic|design/i } }
+          ]
+        };
+      } else if (isCinema) {
+        userDeptQuery = {
+          $or: [
+            { department: { $regex: /cinema|video|edit|camera|shoot/i } },
+            { role: { $regex: /cinema|video|edit|camera|shoot/i } }
+          ]
+        };
+      } else {
+        userDeptQuery = {
+          $or: [
+            { department: { $regex: deptStr, $options: "i" } },
+            { role: { $regex: deptStr, $options: "i" } }
+          ]
+        };
+      }
 
       const usersInDept = await User.find(userDeptQuery).select("_id").lean();
       const userIds = usersInDept.map(u => u._id);

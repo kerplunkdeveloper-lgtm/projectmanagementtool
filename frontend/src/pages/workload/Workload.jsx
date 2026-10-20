@@ -29,6 +29,7 @@ import {
   FiSearch,
   FiZap,
 } from "react-icons/fi";
+import { LuPalette, LuVideo } from "react-icons/lu";
 
 import { getUsers } from "../../features/users/userSlice";
 import { useGetTasksQuery } from "../../features/api/apiSlice";
@@ -281,13 +282,16 @@ const Workload = () => {
   // Load users from Redux store
   const { users = [], loading: usersLoading } = useSelector((state) => state.users);
 
-  // Load tasks via RTK Query - Fast indexed query: active tasks for Graphic Designers only (<50ms)
+  // Department tab state (Graphic Designer / Cinematographer)
+  const [selectedDepartment, setSelectedDepartment] = useState("Graphic Designer");
+
+  // Load tasks via RTK Query - Fast indexed query: active tasks for selected department (<50ms)
   const {
     data: tasksData = [],
     isLoading: tasksLoading,
     isFetching: tasksFetching,
     refetch: refetchTasks,
-  } = useGetTasksQuery({ active_only: true, department: "Graphic Designer" });
+  } = useGetTasksQuery({ active_only: true, department: selectedDepartment });
 
   // Real-time Online / Offline state from shared SocketContext (no duplicate socket)
   const { onlineUserIds = [], userPresence = {} } = useSocketContext() || {};
@@ -311,15 +315,60 @@ const Workload = () => {
     }
   }, [dispatch, users?.length]);
 
-  // Filter users strictly for Graphic Designer department only
+  // Calculate member count for each department tab
+  const departmentCounts = useMemo(() => {
+    let gd = 0;
+    let cinema = 0;
+    (users || []).forEach((u) => {
+      if (u.employmentStatus === "relieved") return;
+      const dept = (u.department || "").toLowerCase().trim();
+      const role = (u.role || "").toLowerCase().trim();
+
+      const isGD =
+        dept.includes("graphic") ||
+        dept.includes("design") ||
+        dept === "designer" ||
+        role.includes("designer") ||
+        role === "graphic designer";
+
+      const isCinema =
+        dept.includes("cinema") ||
+        dept.includes("video") ||
+        dept.includes("edit") ||
+        dept.includes("shoot") ||
+        dept.includes("camera") ||
+        role.includes("cinema") ||
+        role.includes("video") ||
+        role.includes("cinematog");
+
+      if (isGD) gd++;
+      if (isCinema) cinema++;
+    });
+    return { "Graphic Designer": gd, Cinematographer: cinema };
+  }, [users]);
+
+  // Filter users strictly for selected department (Graphic Designer or Cinematographer)
   const filteredUsers = useMemo(() => {
     let list = (users || []).filter((u) => u.employmentStatus !== "relieved");
 
-    // Strictly Graphic Designer department
     list = list.filter((u) => {
       const deptLower = (u.department || "").toLowerCase().trim();
       const roleLower = (u.role || "").toLowerCase().trim();
 
+      if (selectedDepartment === "Cinematographer") {
+        return (
+          deptLower.includes("cinema") ||
+          deptLower.includes("video") ||
+          deptLower.includes("edit") ||
+          deptLower.includes("shoot") ||
+          deptLower.includes("camera") ||
+          roleLower.includes("cinema") ||
+          roleLower.includes("video") ||
+          roleLower.includes("cinematog")
+        );
+      }
+
+      // Default: Graphic Designer
       return (
         deptLower.includes("graphic") ||
         deptLower.includes("design") ||
@@ -341,7 +390,7 @@ const Workload = () => {
     }
 
     return list;
-  }, [users, searchTerm]);
+  }, [users, selectedDepartment, searchTerm]);
 
   // High-performance indexed map of tasks by assigned user ID (O(1) instant lookup)
   const tasksByUserMap = useMemo(() => {
@@ -656,24 +705,50 @@ const Workload = () => {
     <div className="min-h-screen bg-slate-50/60 dark:bg-[#070b14] p-4 sm:p-6 lg:p-8 space-y-6 font-inter text-slate-900 dark:text-slate-100 transition-colors duration-200">
       {/* Top Controls Toolbar - Same Line Modern UI/UX */}
       <div className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Left: Graphic Designer Department Header */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800/80 text-indigo-700 dark:text-indigo-300 text-xs font-black shadow-2xs">
-            <span>🎨 Graphic Designer</span>
-            <span className="px-1.5 py-0.5 rounded-md bg-indigo-600 text-white text-[10px] font-extrabold shadow-xs">
-              {finalWorkloads.length}
-            </span>
-          </div>
+        {/* Left: Department Switcher Tabs (Graphic Designer & Cinematographer) */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs shrink-0">
+          {[
+            { id: "Graphic Designer", label: "Graphic Designer", icon: LuPalette, emoji: "🎨" },
+            { id: "Cinematographer", label: "Cinematographer", icon: LuVideo, emoji: "🎬" },
+          ].map((tab) => {
+            const isActive = selectedDepartment === tab.id;
+            const count = departmentCounts[tab.id] || 0;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSelectedDepartment(tab.id)}
+                className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-200 cursor-pointer select-none ${
+                  isActive
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/5"
+                }`}
+              >
+                <Icon size={14} className={isActive ? "text-white" : "text-slate-500 dark:text-slate-400"} />
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold shadow-xs transition-colors ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Right: Search + Availability Filter + Date Navigator + Refresh on the Same Line */}
         <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap w-full md:w-auto">
           {/* Search Box */}
           <div className="relative flex-1 sm:w-60 lg:w-64">
-
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
             <input
               type="text"
-              placeholder="Search designer..."
+              placeholder={selectedDepartment === "Cinematographer" ? "Search cinematographer..." : "Search designer..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-7 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-[#1e293b]/60 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 transition-all"
@@ -750,10 +825,10 @@ const Workload = () => {
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-              No Graphic Designers Found
+              No {selectedDepartment === "Cinematographer" ? "Cinematographers" : "Graphic Designers"} Found
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-              There are no graphic designers matching your search or filter criteria.
+              There are no {selectedDepartment === "Cinematographer" ? "cinematographers" : "graphic designers"} matching your search or filter criteria.
             </p>
           </div>
           <button
@@ -831,7 +906,7 @@ const Workload = () => {
 
                         <div className="flex items-center gap-1.5 mt-1">
                           <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/50 truncate">
-                            {member.department || "Graphic Designer"}
+                            {member.department || (selectedDepartment === "Cinematographer" ? "Cinematographer" : "Graphic Designer")}
                           </span>
                         </div>
                       </div>
