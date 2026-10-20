@@ -213,6 +213,10 @@ const TaskSchema = new mongoose.Schema(
       ref: "Project",
       required: true,
     },
+    client: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client",
+    },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

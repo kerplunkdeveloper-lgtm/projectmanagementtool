@@ -542,9 +542,27 @@ exports.getTasks = async (req, res) => {
     let mongooseQuery = Task.find(query).sort({ updatedAt: -1 });
 
     if (req.query.minimal === "true") {
-      // Blazing fast minimal mode for Workload & fast overviews (<30ms, no heavy multi-level populates)
+      // Blazing fast minimal mode for Workload & fast overviews (<30ms)
       mongooseQuery = mongooseQuery
-        .populate("client", "companyName color icon")
+        .populate({
+          path: "project",
+          select: "name client",
+          populate: {
+            path: "client",
+            select: "companyName color icon assignedTo",
+          },
+        })
+        .populate("client", "companyName color icon assignedTo")
+        .populate({
+          path: "createdBy",
+          select: "name email department role profile",
+          populate: { path: "profile", select: "profileImage" },
+        })
+        .populate({
+          path: "assignedTo",
+          select: "name email department role profile",
+          populate: { path: "profile", select: "profileImage" },
+        })
         .select(
           "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -reviewCycles -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory -subtasks.reviewCycles"
         );
@@ -566,7 +584,8 @@ exports.getTasks = async (req, res) => {
         })
         .populate({
           path: "createdBy",
-          select: "name email department",
+          select: "name email department role profile",
+          populate: { path: "profile", select: "profileImage" },
         })
         .populate({
           path: "subtasks.assignedTo",
@@ -589,6 +608,14 @@ exports.getTasks = async (req, res) => {
     }
 
     const tasks = await mongooseQuery.lean();
+
+    // Ensure client is directly available on all tasks
+    for (let i = 0; i < tasks.length; i++) {
+      const t = tasks[i];
+      if (!t.client && t.project?.client) {
+        t.client = t.project.client;
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -623,6 +650,21 @@ exports.createTask = async (req, res) => {
     // Auto-set start date to creation date
     const now = new Date();
     req.body.startDate = now;
+
+    // Auto-resolve project if client is provided without project
+    if (!req.body.project && req.body.client) {
+      const Client = require("../models/Client");
+      let proj = await Project.findOne({ client: req.body.client });
+      if (!proj) {
+        const clientDoc = await Client.findById(req.body.client);
+        proj = await Project.create({
+          name: clientDoc ? `${clientDoc.companyName} Tasks` : "General Tasks",
+          client: req.body.client,
+          createdBy: req.user._id,
+        });
+      }
+      req.body.project = proj._id;
+    }
 
     // Check business hours when creating task/subtask set to In Progress
     const isTaskInProgress = req.body.status === "In Progress";
