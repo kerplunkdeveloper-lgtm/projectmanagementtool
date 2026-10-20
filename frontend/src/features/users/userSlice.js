@@ -136,8 +136,19 @@ export const reactivateUser = createAsyncThunk(
 );
 
 
+const getInitialUsers = () => {
+  try {
+    const cached = localStorage.getItem('pmt_cached_users');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return [];
+};
+
 const initialState = {
-  users: [],
+  users: getInitialUsers(),
   user: null,
   loading: false,
   error: null,
@@ -167,6 +178,9 @@ const userSlice = createSlice({
       .addCase(getUsers.fulfilled, (state, action) => {
         state.loading = false;
         state.users = action.payload.data;
+        try {
+          localStorage.setItem('pmt_cached_users', JSON.stringify(action.payload.data));
+        } catch {}
       })
 
       .addCase(getUsers.rejected, (state, action) => {

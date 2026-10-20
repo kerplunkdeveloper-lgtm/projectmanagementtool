@@ -314,7 +314,6 @@ const WorkloadTableView = React.memo(({
               <th className="py-3.5 px-4">Live Status & Current Task</th>
               <th className="py-3.5 px-4 min-w-[190px]">Capacity (Max 8)</th>
               <th className="py-3.5 px-4">Tasks Breakdown</th>
-              <th className="py-3.5 px-4 text-center">Today Productivity</th>
               <th className="py-3.5 px-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -473,19 +472,7 @@ const WorkloadTableView = React.memo(({
                       </div>
                     </td>
 
-                    {/* 5. Today Productivity Column */}
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      {workedMs > 0 ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-black bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 shadow-2xs">
-                          <FiClock size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>{formatMsToHoursMinutes(workedMs)}</span>
-                        </span>
-                      ) : (
-                        <span className="text-slate-300 dark:text-slate-600 font-bold text-sm">—</span>
-                      )}
-                    </td>
-
-                    {/* 6. Actions Column */}
+                    {/* Actions Column */}
                     <td className="py-3 px-4 text-right">
                       <button
                         type="button"
@@ -506,7 +493,7 @@ const WorkloadTableView = React.memo(({
                   {/* Expanded Task Details Accordion Row */}
                   {isExpanded && (
                     <tr className="bg-slate-50/70 dark:bg-[#0a0f1d]/60 border-b border-slate-200/80 dark:border-slate-800/80">
-                      <td colSpan={6} className="p-4 pl-12">
+                      <td colSpan={5} className="p-4 pl-12">
                         <div className="space-y-2.5 max-h-72 overflow-y-auto pr-2">
                           <div className="flex items-center justify-between pb-1 text-xs font-bold text-slate-500 dark:text-slate-400">
                             <span>Assigned Active Tasks for {member.name}:</span>
@@ -743,15 +730,6 @@ const WorkloadCard = React.memo(({
             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${cardTheme.badgeBg}`}>
               {cardTheme.statusTag}
             </span>
-            {workedMs > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300">
-                <FiClock size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Today Productivity:</span>
-                <strong className="font-black text-emerald-800 dark:text-emerald-200">
-                  {formatMsToHoursMinutes(workedMs)}
-                </strong>
-              </span>
-            )}
           </div>
         </div>
 
@@ -990,6 +968,59 @@ const TaskPreviewModal = React.memo(({ task, onClose }) => {
 });
 
 // ==========================================
+// WORKLOAD SKELETON LOADER (ZERO JANK UI)
+// ==========================================
+const WorkloadSkeleton = ({ viewMode = "table" }) => {
+  if (viewMode === "table") {
+    return (
+      <div className="bg-white dark:bg-[#0f172a]/95 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden animate-pulse">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+          <div className="h-5 w-48 bg-slate-200 dark:bg-slate-800/80 rounded-lg" />
+          <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800/80 rounded-lg" />
+        </div>
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 w-1/4">
+                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="h-3 w-1/2 bg-slate-100 dark:bg-slate-800/60 rounded" />
+                </div>
+              </div>
+              <div className="h-6 w-28 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              <div className="h-4 w-36 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-7 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 items-stretch animate-pulse">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div
+          key={i}
+          className="bg-white dark:bg-[#0f172a]/95 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 space-y-4 shadow-xs"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+            <div className="space-y-2 flex-1">
+              <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="h-3 w-1/2 bg-slate-100 dark:bg-slate-800/60 rounded" />
+            </div>
+          </div>
+          <div className="h-9 bg-slate-100 dark:bg-slate-800/60 rounded-xl" />
+          <div className="h-16 bg-slate-50 dark:bg-slate-800/30 rounded-xl" />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ==========================================
 // MAIN WORKLOAD COMPONENT
 // ==========================================
 const Workload = () => {
@@ -1017,13 +1048,14 @@ const Workload = () => {
     } catch {}
   };
 
-  // Load tasks via RTK Query with automatic caching and refetching (minimal mode for fast response)
+  // Load active tasks via RTK Query with automatic caching (shared across departments for 0ms tab switching)
   const {
     data: tasksData = [],
     isLoading: tasksLoading,
     isFetching: tasksFetching,
+    isError: tasksIsError,
     refetch: refetchTasks,
-  } = useGetTasksQuery({ active_only: true, department: selectedDepartment, minimal: true });
+  } = useGetTasksQuery({ active_only: true, minimal: true });
 
   // Real-time Online / Offline state from shared SocketContext
   const { onlineUserIds = [], userPresence = {} } = useSocketContext() || {};
@@ -1476,7 +1508,6 @@ const Workload = () => {
 
           {/* Search Box */}
           <div className="relative flex-1 sm:w-56 lg:w-60">
-           
             <input
               type="text"
               placeholder={selectedDepartment === "Cinematographer" ? "Search cinematographer..." : "Search designer..."}
@@ -1541,13 +1572,36 @@ const Workload = () => {
         </div>
       </div>
 
+      {/* Background sync progress bar */}
+      {tasksFetching && (
+        <div className="h-1 w-full bg-slate-200/50 dark:bg-slate-800/50 rounded-full overflow-hidden">
+          <div className="h-full bg-indigo-500 rounded-full animate-pulse w-full" />
+        </div>
+      )}
+
       {/* Main Workload View: Table / List or Grid */}
-      {(!users || users.length === 0 || (tasksLoading && (!tasksData || tasksData.length === 0))) ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <div className="w-10 h-10 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase animate-pulse">
-            Loading team workload data...
-          </span>
+      {((!users || users.length === 0) && usersLoading) || (tasksLoading && (!tasksData || tasksData.length === 0)) ? (
+        <WorkloadSkeleton viewMode={viewMode} />
+      ) : tasksIsError && (!tasksData || tasksData.length === 0) ? (
+        <div className="bg-white dark:bg-[#0f172a]/90 rounded-2xl p-10 text-center border border-rose-200 dark:border-rose-900/50 space-y-4">
+          <div className="w-14 h-14 bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-2xl flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-900/50">
+            <FiRefreshCw size={28} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+              Failed to load workload data
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+              There was an issue fetching the latest workload tasks. Please try refreshing.
+            </p>
+          </div>
+          <button
+            onClick={() => refetchTasks()}
+            className="px-4 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer inline-flex items-center gap-2"
+          >
+            <FiRefreshCw size={12} />
+            <span>Retry</span>
+          </button>
         </div>
       ) : finalWorkloads.length === 0 ? (
         <div className="bg-white dark:bg-[#0f172a]/90 rounded-2xl p-12 text-center border border-slate-200/80 dark:border-slate-800/90 space-y-4">

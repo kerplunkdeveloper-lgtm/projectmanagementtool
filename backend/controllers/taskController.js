@@ -521,15 +521,16 @@ exports.getTasks = async (req, res) => {
     }
 
     if (req.query.active_only === 'true') {
-      const fourteenDaysAgo = new Date();
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      const daysBack = req.query.minimal === 'true' ? 3 : 14;
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysBack);
       
       andConditions.push({
         $or: [
           { status: { $nin: ['Completed', 'Rejected', 'Approved', 'Cancelled'] } },
-          { updatedAt: { $gte: fourteenDaysAgo } },
-          { completedAt: { $gte: fourteenDaysAgo } },
-          { rejectedAt: { $gte: fourteenDaysAgo } }
+          { updatedAt: { $gte: cutoffDate } },
+          { completedAt: { $gte: cutoffDate } },
+          { rejectedAt: { $gte: cutoffDate } }
         ]
       });
     }
@@ -545,7 +546,7 @@ exports.getTasks = async (req, res) => {
       mongooseQuery = mongooseQuery
         .populate("client", "companyName color icon")
         .select(
-          "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory"
+          "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -reviewCycles -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory -subtasks.reviewCycles"
         );
     } else {
       // Always populate essential relationships needed for lists and boards
