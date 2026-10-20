@@ -540,42 +540,51 @@ exports.getTasks = async (req, res) => {
 
     let mongooseQuery = Task.find(query).sort({ updatedAt: -1 });
 
-    // Always populate essential relationships needed for lists and boards
-    mongooseQuery = mongooseQuery
-      .populate({
-        path: "project",
-        select: "name client",
-        populate: {
-          path: "client",
-          select: "companyName color icon",
-        },
-      })
-      .populate({
-        path: "assignedTo",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" },
-      })
-      .populate({
-        path: "createdBy",
-        select: "name email department",
-      })
-      .populate({
-        path: "subtasks.assignedTo",
-        select: "name email department",
-      });
-
-    if (req.query.full === "true") {
+    if (req.query.minimal === "true") {
+      // Blazing fast minimal mode for Workload & fast overviews (<30ms, no heavy multi-level populates)
       mongooseQuery = mongooseQuery
-        .populate("comments.user", "name email department")
-        .populate("attachments.uploadedBy", "name email department")
-        .populate("feedbacks.addedBy", "name email department")
-        .populate("correctionHistory.requestedBy", "name email department")
-        .populate("rejectionHistory.rejectedBy", "name email department");
+        .populate("client", "companyName color icon")
+        .select(
+          "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory"
+        );
     } else {
-      // Omit massive nested arrays (comments, attachments, feedbacks, histories) for blazing fast speed (<50ms)
-      mongooseQuery = mongooseQuery.select(
-        "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory",
-      );
+      // Always populate essential relationships needed for lists and boards
+      mongooseQuery = mongooseQuery
+        .populate({
+          path: "project",
+          select: "name client",
+          populate: {
+            path: "client",
+            select: "companyName color icon",
+          },
+        })
+        .populate({
+          path: "assignedTo",
+          select: "name email department profile",
+          populate: { path: "profile", select: "profileImage" },
+        })
+        .populate({
+          path: "createdBy",
+          select: "name email department",
+        })
+        .populate({
+          path: "subtasks.assignedTo",
+          select: "name email department",
+        });
+
+      if (req.query.full === "true") {
+        mongooseQuery = mongooseQuery
+          .populate("comments.user", "name email department")
+          .populate("attachments.uploadedBy", "name email department")
+          .populate("feedbacks.addedBy", "name email department")
+          .populate("correctionHistory.requestedBy", "name email department")
+          .populate("rejectionHistory.rejectedBy", "name email department");
+      } else {
+        // Omit massive nested arrays (comments, attachments, feedbacks, histories) for blazing fast speed (<50ms)
+        mongooseQuery = mongooseQuery.select(
+          "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory"
+        );
+      }
     }
 
     const tasks = await mongooseQuery.lean();
