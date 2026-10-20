@@ -328,8 +328,8 @@ const getTaskClientInfo = (task) => {
     task.client && typeof task.client === "object"
       ? task.client
       : task.project?.client && typeof task.project.client === "object"
-      ? task.project.client
-      : null;
+        ? task.project.client
+        : null;
 
   let name =
     clientObj?.companyName ||
@@ -396,11 +396,10 @@ const WorkloadTableView = React.memo(({
               return (
                 <React.Fragment key={member._id}>
                   <tr
-                    className={`transition-colors group ${
-                      cardTheme.isOverloaded
+                    className={`transition-colors group ${cardTheme.isOverloaded
                         ? "bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/70 dark:hover:bg-rose-950/30"
                         : "hover:bg-slate-50/80 dark:hover:bg-[#131b2e]/60"
-                    }`}
+                      }`}
                   >
                     {/* 1. Member Column */}
                     <td className="py-3 px-4">
@@ -418,9 +417,8 @@ const WorkloadTableView = React.memo(({
                             </div>
                           )}
                           <span
-                            className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-[#0f172a] ${
-                              isOnline ? "bg-emerald-500 shadow-xs" : "bg-slate-400 dark:bg-slate-600"
-                            }`}
+                            className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-[#0f172a] ${isOnline ? "bg-emerald-500 shadow-xs" : "bg-slate-400 dark:bg-slate-600"
+                              }`}
                             title={isOnline ? "Online Now" : "Offline"}
                           />
                         </div>
@@ -487,9 +485,8 @@ const WorkloadTableView = React.memo(({
                             return (
                               <div
                                 key={index}
-                                className={`h-2.5 rounded-full transition-all duration-200 ${
-                                  isFilled ? cardTheme.slotFilledColor : cardTheme.slotEmptyColor
-                                }`}
+                                className={`h-2.5 rounded-full transition-all duration-200 ${isFilled ? cardTheme.slotFilledColor : cardTheme.slotEmptyColor
+                                  }`}
                                 title={`Slot ${index + 1}: ${isFilled ? "Occupied" : "Free"}`}
                               />
                             );
@@ -533,11 +530,10 @@ const WorkloadTableView = React.memo(({
                       <button
                         type="button"
                         onClick={() => onToggleExpand(member._id)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                          isExpanded
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${isExpanded
                             ? "bg-indigo-600 text-white shadow-xs"
                             : "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
-                        }`}
+                          }`}
                       >
                         <FiBriefcase size={13} />
                         <span>Tasks ({displayTasks.length})</span>
@@ -662,15 +658,14 @@ const WorkloadCard = React.memo(({
     >
       {/* Top Dynamic Ambient Indicator Bar */}
       <div
-        className={`h-1.5 w-full transition-all duration-300 ${
-          cardTheme.isOverloaded
+        className={`h-1.5 w-full transition-all duration-300 ${cardTheme.isOverloaded
             ? "bg-gradient-to-r from-rose-500 via-red-500 to-rose-600 animate-pulse"
             : totalActiveTasksCount >= maxCapacityTasks
-            ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"
-            : totalActiveTasksCount >= 6
-            ? "bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"
-            : "bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500"
-        }`}
+              ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"
+              : totalActiveTasksCount >= 6
+                ? "bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500"
+                : "bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500"
+          }`}
       />
 
       <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
@@ -726,16 +721,14 @@ const WorkloadCard = React.memo(({
           {/* Online / Activity & Productivity Badges */}
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
-                isOnline
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${isOnline
                   ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60"
                   : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-[#1e293b]/70 dark:text-slate-400 dark:border-slate-700/60"
-              }`}
+                }`}
             >
               <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400 dark:bg-slate-500"
-                }`}
+                className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-400 dark:bg-slate-500"
+                  }`}
               />
               {isOnline ? "Online" : "Offline"}
             </span>
@@ -865,11 +858,10 @@ const WorkloadCard = React.memo(({
               return (
                 <div
                   key={index}
-                  className={`h-3 rounded-full transition-all duration-300 relative group/slot ${
-                    isFilled
+                  className={`h-3 rounded-full transition-all duration-300 relative group/slot ${isFilled
                       ? `${cardTheme.slotFilledColor} shadow-xs ring-1 ring-white/20`
                       : "bg-slate-200/90 dark:bg-slate-800 border border-slate-300/40 dark:border-slate-700/50"
-                  }`}
+                    }`}
                   title={`Slot ${index + 1}: ${isFilled ? "Occupied" : "Free"}`}
                 />
               );
@@ -1832,7 +1824,7 @@ const WorkloadTaskTable = ({
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
           {/* Left: Search Input */}
           <div className="relative flex-1 min-w-[240px] max-w-md">
-            
+
             <input
               type="text"
               value={searchQuery}
@@ -1868,11 +1860,10 @@ const WorkloadTaskTable = ({
                   setFilterDept("current");
                   setCurrentPage(1);
                 }}
-                className={`h-full px-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-                  filterDept === "current"
+                className={`h-full px-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${filterDept === "current"
                     ? "bg-indigo-600 text-white shadow-xs"
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
+                  }`}
               >
                 {selectedDepartment}
               </button>
@@ -1882,11 +1873,10 @@ const WorkloadTaskTable = ({
                   setFilterDept("all");
                   setCurrentPage(1);
                 }}
-                className={`h-full px-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${
-                  filterDept === "all"
+                className={`h-full px-2.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer ${filterDept === "all"
                     ? "bg-indigo-600 text-white shadow-xs"
                     : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
+                  }`}
               >
                 All Depts
               </button>
@@ -1929,11 +1919,10 @@ const WorkloadTaskTable = ({
                 setFilterCreatedDate(filterCreatedDate === todayDateStr ? "" : todayDateStr);
                 setCurrentPage(1);
               }}
-              className={`h-9 px-3 text-xs font-black rounded-xl border transition-all cursor-pointer shadow-xs shrink-0 ${
-                filterCreatedDate === todayDateStr
+              className={`h-9 px-3 text-xs font-black rounded-xl border transition-all cursor-pointer shadow-xs shrink-0 ${filterCreatedDate === todayDateStr
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-500/20"
                   : "bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:border-indigo-300"
-              }`}
+                }`}
               title={filterCreatedDate === todayDateStr ? "Click to clear date filter & show all dates" : "Filter tasks created today"}
             >
               Today
@@ -2166,11 +2155,10 @@ const WorkloadTaskTable = ({
                         <select
                           value={newAssignee}
                           onChange={(e) => setNewAssignee(e.target.value)}
-                          className={`w-full max-w-[145px] py-1.5 px-2 text-xs font-bold rounded-xl border focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-xs truncate transition-all ${
-                            newAssignee
+                          className={`w-full max-w-[145px] py-1.5 px-2 text-xs font-bold rounded-xl border focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-xs truncate transition-all ${newAssignee
                               ? "bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 border-indigo-200 dark:border-indigo-800/80"
                               : "bg-white dark:bg-[#0f172a] text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700"
-                          }`}
+                            }`}
                           title="Select Assignee"
                         >
                           <option value="">Select Assignee</option>
@@ -2190,11 +2178,10 @@ const WorkloadTaskTable = ({
                   <select
                     value={newClient}
                     onChange={(e) => setNewClient(e.target.value)}
-                    className={`w-full max-w-[155px] py-1.5 px-2.5 text-xs font-bold rounded-xl border focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-xs truncate transition-all ${
-                      newClient
+                    className={`w-full max-w-[155px] py-1.5 px-2.5 text-xs font-bold rounded-xl border focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-xs truncate transition-all ${newClient
                         ? "bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 border-indigo-200 dark:border-indigo-800/80"
                         : "bg-white dark:bg-[#0f172a] text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700"
-                    }`}
+                      }`}
                     title="Select Client"
                   >
                     <option value="">Select Client</option>
@@ -2290,15 +2277,14 @@ const WorkloadTaskTable = ({
               const statusColor = (t.status || "").toLowerCase().includes("progress")
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900/60"
                 : (t.status || "").toLowerCase().includes("hold") || (t.status || "").toLowerCase().includes("pause")
-                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900/60"
-                : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
+                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900/60"
+                  : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
 
               return (
                 <tr
                   key={t._id}
-                  className={`hover:bg-slate-50/80 dark:hover:bg-[#151c2e]/70 transition-colors ${
-                    isRowUpdating ? "opacity-60 pointer-events-none" : ""
-                  }`}
+                  className={`hover:bg-slate-50/80 dark:hover:bg-[#151c2e]/70 transition-colors ${isRowUpdating ? "opacity-60 pointer-events-none" : ""
+                    }`}
                 >
                   {/* 1. # Index */}
                   <td className="py-3 px-3.5 text-center font-mono font-bold text-slate-400 dark:text-slate-500">
@@ -2311,12 +2297,12 @@ const WorkloadTaskTable = ({
                       const avatarUrl = getUserAvatarUrl(smmObj);
                       const createdDateFormatted = t.createdAt
                         ? (() => {
-                            try {
-                              return format(new Date(t.createdAt), "dd MMM yyyy");
-                            } catch {
-                              return "";
-                            }
-                          })()
+                          try {
+                            return format(new Date(t.createdAt), "dd MMM yyyy");
+                          } catch {
+                            return "";
+                          }
+                        })()
                         : "";
                       return (
                         <div className="flex items-center gap-2">
@@ -2545,11 +2531,10 @@ const WorkloadTaskTable = ({
                 key={pg}
                 type="button"
                 onClick={() => setCurrentPage(pg)}
-                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  currentPage === pg
+                className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === pg
                     ? "bg-indigo-600 text-white shadow-xs"
                     : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
+                  }`}
               >
                 {pg}
               </button>
@@ -2604,7 +2589,7 @@ const Workload = () => {
     setViewMode(mode);
     try {
       localStorage.setItem("workload_view_mode", mode);
-    } catch {}
+    } catch { }
   };
 
   // Load active tasks via RTK Query with automatic caching (shared across departments for 0ms tab switching)
@@ -3014,20 +2999,18 @@ const Workload = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setSelectedDepartment(tab.id)}
-                className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-200 cursor-pointer select-none ${
-                  isActive
+                className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all duration-200 cursor-pointer select-none ${isActive
                     ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/5"
-                }`}
+                  }`}
               >
                 <Icon size={14} className={isActive ? "text-white" : "text-slate-500 dark:text-slate-400"} />
                 <span>{tab.label}</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold shadow-xs transition-colors ${
-                    isActive
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold shadow-xs transition-colors ${isActive
                       ? "bg-white/20 text-white"
                       : "bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                  }`}
+                    }`}
                 >
                   {count}
                 </span>
@@ -3043,11 +3026,10 @@ const Workload = () => {
             <button
               type="button"
               onClick={() => handleSetViewMode("table")}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === "table"
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === "table"
                   ? "bg-white dark:bg-[#0f172a] text-indigo-600 dark:text-indigo-400 shadow-xs"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-              }`}
+                }`}
               title="Table / List View"
             >
               <FiList size={14} />
@@ -3056,11 +3038,10 @@ const Workload = () => {
             <button
               type="button"
               onClick={() => handleSetViewMode("grid")}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                viewMode === "grid"
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === "grid"
                   ? "bg-white dark:bg-[#0f172a] text-indigo-600 dark:text-indigo-400 shadow-xs"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-              }`}
+                }`}
               title="Grid / Card View"
             >
               <FiGrid size={14} />
