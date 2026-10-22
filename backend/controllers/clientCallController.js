@@ -29,7 +29,11 @@ exports.createCall = async (req, res) => {
 
     const populatedCall = await ClientCall.findById(clientCall._id)
       .populate('client', 'companyName')
-      .populate('createdBy', 'name');
+      .populate({
+        path: 'createdBy',
+        select: 'name email department profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      });
 
     // Notify Operation Managers
     if (req.user) {
@@ -78,8 +82,13 @@ exports.getCalls = async (req, res) => {
   try {
     const calls = await ClientCall.find()
       .populate('client', 'companyName status')
-      .populate('createdBy', 'name')
-      .sort({ date: -1, createdAt: -1 });
+      .populate({
+        path: 'createdBy',
+        select: 'name email department profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      })
+      .sort({ date: -1, createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -144,7 +153,11 @@ exports.updateCall = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate('client', 'companyName')
-      .populate('createdBy', 'name');
+      .populate({
+        path: 'createdBy',
+        select: 'name email department profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      });
 
     res.status(200).json({
       success: true,

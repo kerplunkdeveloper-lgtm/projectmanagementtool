@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   FiPhoneCall,
   FiPlus,
@@ -10,10 +10,224 @@ import {
   FiPlay,
   FiSquare,
   FiUser,
+  FiFilter,
+  FiRefreshCw,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
+
+// --- STATIC PURE HELPERS (Extracted to avoid re-allocation on every render) ---
+
+const formatDateDMY = (dateStr) => {
+  if (!dateStr) return "-";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "-";
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = d.toLocaleDateString("en-US", { month: "short" });
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  } catch {
+    return "-";
+  }
+};
+
+const formatTime12hr = (timeStr) => {
+  if (!timeStr) return "";
+  const [hourStr, minStr] = timeStr.split(":");
+  let hour = parseInt(hourStr, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12;
+  hour = hour ? hour : 12;
+  return `${hour}:${minStr} ${ampm}`;
+};
+
+const formatElapsedTime = (seconds) => {
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  if (hrs > 0)
+    return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+};
+
+const calculateDuration = (start, end) => {
+  if (!start || !end) return "";
+  const startTime = new Date(`1970-01-01T${start}:00`);
+  const endTime = new Date(`1970-01-01T${end}:00`);
+
+  let diffMs = endTime - startTime;
+  if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
+
+  const diffHrs = Math.floor(diffMs / 3600000);
+  const diffMins = Math.round((diffMs % 3600000) / 60000);
+
+  if (diffHrs === 0) return `${diffMins} mins`;
+  if (diffMins === 0) return `${diffHrs} hr${diffHrs > 1 ? "s" : ""}`;
+  return `${diffHrs} hr${diffHrs > 1 ? "s" : ""} ${diffMins} mins`;
+};
+
+const getAvatarUrl = (userObj) => {
+  if (!userObj) return null;
+  return (
+    (typeof userObj.profile?.profileImage === "object"
+      ? userObj.profile?.profileImage?.url
+      : userObj.profile?.profileImage) ||
+    (typeof userObj.profileImage === "object"
+      ? userObj.profileImage?.url
+      : userObj.profileImage) ||
+    userObj.profilePic ||
+    userObj.avatar ||
+    userObj.profile?.profilePic ||
+    userObj.profile?.avatar ||
+    null
+  );
+};
+
+const AVATAR_COLORS = [
+  "from-violet-500 to-indigo-600",
+  "from-blue-500 to-cyan-600",
+  "from-emerald-500 to-teal-600",
+  "from-amber-500 to-orange-600",
+  "from-rose-500 to-pink-600",
+  "from-purple-500 to-fuchsia-600",
+];
+
+// --- MEMOIZED USER AVATAR COMPONENT ---
+const UserAvatar = React.memo(({ userObj, sizeClass = "w-7 h-7 text-[10px]" }) => {
+  const [imgError, setImgError] = useState(false);
+  const avatarUrl = useMemo(() => getAvatarUrl(userObj), [userObj]);
+
+  if (!userObj) {
+    return (
+      <div
+        className={`${sizeClass} rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 shrink-0`}
+      >
+        <FiUser size={12} />
+      </div>
+    );
+  }
+
+  if (avatarUrl && !imgError) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={userObj.name || "User"}
+        onError={() => setImgError(true)}
+        className={`${sizeClass} rounded-full object-cover border border-slate-200/90 dark:border-white/10 shadow-2xs shrink-0`}
+      />
+    );
+  }
+
+  const name = userObj.name || "User";
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
+  const charCode = (name.charCodeAt(0) || 0) + (name.charCodeAt(name.length - 1) || 0);
+  const colorClass = AVATAR_COLORS[charCode % AVATAR_COLORS.length];
+
+  return (
+    <div
+      className={`${sizeClass} rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-bold tracking-tight shadow-2xs shrink-0 border border-white/20`}
+    >
+      {initials}
+    </div>
+  );
+});
+UserAvatar.displayName = "UserAvatar";
+
+// --- MEMOIZED CALL ROW COMPONENT ---
+const CallRow = React.memo(({ call, onEdit, onDelete }) => {
+  return (
+    <tr className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors group">
+      {/* Date in Date Month Year format */}
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+            <FiCalendar size={13} />
+          </span>
+          <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
+            {formatDateDMY(call.date)}
+          </span>
+        </div>
+      </td>
+
+      {/* Client */}
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs">
+          {call.client?.companyName || "Unknown"}
+        </span>
+      </td>
+
+      {/* Posted By with User Profile Image */}
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-2.5">
+          <UserAvatar userObj={call.createdBy} sizeClass="w-7 h-7 text-[10px]" />
+          <div className="flex flex-col">
+            <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-tight">
+              {call.createdBy?.name || "Unknown"}
+            </span>
+            {call.createdBy?.department && (
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                {call.createdBy.department}
+              </span>
+            )}
+          </div>
+        </div>
+      </td>
+
+      {/* Time */}
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
+        <div className="flex items-center gap-1.5 text-xs font-medium">
+          <FiClock className="text-slate-400 shrink-0" size={13} />
+          <span>
+            {formatTime12hr(call.startTime)} - {formatTime12hr(call.endTime)}
+          </span>
+        </div>
+      </td>
+
+      {/* Duration */}
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+          {call.duration}
+        </span>
+      </td>
+
+      {/* Discussion Points */}
+      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 max-w-md">
+        <div className="line-clamp-2 text-xs leading-relaxed" title={call.discussionPoints}>
+          {call.discussionPoints}
+        </div>
+      </td>
+
+      {/* Actions */}
+      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <button
+          onClick={() => onEdit(call)}
+          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-2.5 p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors cursor-pointer"
+          title="Edit Call"
+        >
+          <FiEdit2 size={15} />
+        </button>
+        <button
+          onClick={() => onDelete(call._id)}
+          className="text-rose-600 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-300 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors cursor-pointer"
+          title="Delete Call"
+        >
+          <FiTrash2 size={15} />
+        </button>
+      </td>
+    </tr>
+  );
+});
+CallRow.displayName = "CallRow";
+
+// --- MAIN CLIENT CALLS COMPONENT ---
 const ClientCalls = ({ isEmbedded = false }) => {
   const { user } = useSelector((state) => state.auth);
   const [calls, setCalls] = useState([]);
@@ -22,6 +236,13 @@ const ClientCalls = ({ isEmbedded = false }) => {
   const [submitting, setSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editId, setEditId] = useState(null);
+
+  // Filters & Pagination State
+  const [filterDate, setFilterDate] = useState("");
+  const [filterClient, setFilterClient] = useState("");
+  const [filterPostedBy, setFilterPostedBy] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // Timer State
   const [timeMode, setTimeMode] = useState("manual"); // 'manual' or 'timer'
@@ -39,15 +260,8 @@ const ClientCalls = ({ isEmbedded = false }) => {
     duration: "",
   });
 
-  useEffect(() => {
-    fetchData();
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
     try {
       const [callsRes, clientsRes] = await Promise.all([
         axiosInstance.get("/client-calls"),
@@ -57,95 +271,134 @@ const ClientCalls = ({ isEmbedded = false }) => {
       setClients(clientsRes.data.data || []);
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast.error("Failed to load data");
+      toast.error("Failed to load client calls");
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
-  };
+  }, []);
 
-  const formatTime12hr = (timeStr) => {
-    if (!timeStr) return "";
-    const [hourStr, minStr] = timeStr.split(":");
-    let hour = parseInt(hourStr, 10);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    hour = hour % 12;
-    hour = hour ? hour : 12; // 0 becomes 12
-    return `${hour}:${minStr} ${ampm}`;
-  };
+  useEffect(() => {
+    fetchData(true);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [fetchData]);
 
-  const formatElapsedTime = (seconds) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    if (hrs > 0)
-      return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
+  // Reset pagination when any filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterDate, filterClient, filterPostedBy]);
 
-  const calculateDuration = (start, end) => {
-    if (!start || !end) return "";
-    const startTime = new Date(`1970-01-01T${start}:00`);
-    const endTime = new Date(`1970-01-01T${end}:00`);
+  // Memoized unique postedBy list for filter dropdown
+  const postedByList = useMemo(() => {
+    const map = new Map();
+    calls.forEach((c) => {
+      const u = c.createdBy;
+      if (u && (u._id || u.id)) {
+        const id = (u._id || u.id).toString();
+        const name = u.name || "Unknown";
+        if (!map.has(id)) {
+          map.set(id, { _id: id, name });
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [calls]);
 
-    let diffMs = endTime - startTime;
-    if (diffMs < 0) diffMs += 24 * 60 * 60 * 1000;
+  // Optimized Filtered Calls
+  const filteredCalls = useMemo(() => {
+    const currentUserId = user?._id || user?.id;
+    const isTeamUser = user?.role === "team";
 
-    const diffHrs = Math.floor(diffMs / 3600000);
-    const diffMins = Math.round((diffMs % 3600000) / 60000);
+    return calls.filter((call) => {
+      // Role scope restriction
+      if (isTeamUser) {
+        const creatorId = call.createdBy?._id || call.createdBy?.id || call.createdBy;
+        if (creatorId !== currentUserId) return false;
+      }
 
-    if (diffHrs === 0) return `${diffMins} mins`;
-    if (diffMins === 0) return `${diffHrs} hr${diffHrs > 1 ? "s" : ""}`;
-    return `${diffHrs} hr${diffHrs > 1 ? "s" : ""} ${diffMins} mins`;
-  };
+      // Date Filter
+      if (filterDate) {
+        if (!call.date) return false;
+        const d = new Date(call.date);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const callDate = `${yyyy}-${mm}-${dd}`;
+        if (callDate !== filterDate) return false;
+      }
 
-  const handleTimeChange = (e) => {
+      // Client Filter
+      if (filterClient) {
+        const clientId = (typeof call.client === "object" ? call.client?._id : call.client)?.toString();
+        if (clientId !== filterClient) return false;
+      }
+
+      // Posted By Filter
+      if (filterPostedBy) {
+        const creatorId = (typeof call.createdBy === "object" ? call.createdBy?._id : call.createdBy)?.toString();
+        if (creatorId !== filterPostedBy) return false;
+      }
+
+      return true;
+    });
+  }, [calls, user, filterDate, filterClient, filterPostedBy]);
+
+  const totalPages = Math.ceil(filteredCalls.length / ITEMS_PER_PAGE) || 1;
+
+  const paginatedCalls = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredCalls.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredCalls, currentPage, ITEMS_PER_PAGE]);
+
+  const handleTimeChange = useCallback((e) => {
     const { name, value } = e.target;
-    const newFormData = { ...formData, [name]: value };
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      if (updated.startTime && updated.endTime) {
+        updated.duration = calculateDuration(updated.startTime, updated.endTime);
+      }
+      return updated;
+    });
+  }, []);
 
-    if (newFormData.startTime && newFormData.endTime) {
-      newFormData.duration = calculateDuration(
-        newFormData.startTime,
-        newFormData.endTime,
-      );
-    }
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }, []);
 
-    setFormData(newFormData);
-  };
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleEdit = (call) => {
+  const handleEdit = useCallback((call) => {
     setEditId(call._id);
     setFormData({
       date: new Date(call.date).toISOString().split("T")[0],
       client: call.client?._id || "",
-      discussionPoints: call.discussionPoints,
-      startTime: call.startTime,
-      endTime: call.endTime,
-      duration: call.duration,
+      discussionPoints: call.discussionPoints || "",
+      startTime: call.startTime || "",
+      endTime: call.endTime || "",
+      duration: call.duration || "",
     });
     setTimeMode("manual");
     setShowAddForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this call record?"))
-      return;
+  const handleDelete = useCallback(
+    async (id) => {
+      if (!window.confirm("Are you sure you want to delete this call record?")) return;
 
-    try {
-      await axiosInstance.delete(`/client-calls/${id}`);
-      toast.success("Call record deleted successfully!");
-      fetchData();
-    } catch (error) {
-      console.error("Error deleting call:", error);
-      toast.error("Failed to delete record");
-    }
-  };
+      try {
+        await axiosInstance.delete(`/client-calls/${id}`);
+        toast.success("Call record deleted successfully!");
+        fetchData();
+      } catch (error) {
+        console.error("Error deleting call:", error);
+        toast.error("Failed to delete record");
+      }
+    },
+    [fetchData]
+  );
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setShowAddForm(false);
     setEditId(null);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -159,39 +412,40 @@ const ClientCalls = ({ isEmbedded = false }) => {
       endTime: "",
       duration: "",
     });
-  };
+  }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.duration) {
-      toast.error("Please provide valid Start and End times.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      if (editId) {
-        await axiosInstance.put(`/client-calls/${editId}`, formData);
-        toast.success("Call record updated!");
-      } else {
-        await axiosInstance.post("/client-calls", formData);
-        toast.success("Call record saved!");
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!formData.duration) {
+        toast.error("Please provide valid Start and End times.");
+        return;
       }
 
-      handleCancel();
-      fetchData();
-    } catch (error) {
-      console.error("Error saving call:", error);
-      toast.error(
-        error.response?.data?.message || "Failed to save call record",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      setSubmitting(true);
+      try {
+        if (editId) {
+          await axiosInstance.put(`/client-calls/${editId}`, formData);
+          toast.success("Call record updated!");
+        } else {
+          await axiosInstance.post("/client-calls", formData);
+          toast.success("Call record saved!");
+        }
+
+        handleCancel();
+        fetchData();
+      } catch (error) {
+        console.error("Error saving call:", error);
+        toast.error(error.response?.data?.message || "Failed to save call record");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [editId, formData, handleCancel, fetchData]
+  );
 
   // Stopwatch functions
-  const startTimer = () => {
+  const startTimer = useCallback(() => {
     if (!formData.client) {
       toast.error("Please select a client before starting the call");
       return;
@@ -210,30 +464,28 @@ const ClientCalls = ({ isEmbedded = false }) => {
 
     setElapsedSeconds(0);
     setIsTimerRunning(true);
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
-  };
+  }, [formData.client]);
 
-  const stopTimer = () => {
-    clearInterval(timerRef.current);
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setIsTimerRunning(false);
 
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, "0");
     const mm = String(now.getMinutes()).padStart(2, "0");
 
-    // Calculate precise duration including seconds
     const hrs = Math.floor(elapsedSeconds / 3600);
     const mins = Math.floor((elapsedSeconds % 3600) / 60);
     const secs = elapsedSeconds % 60;
 
     let durationStr = "";
     if (hrs > 0) durationStr += `${hrs} hr${hrs > 1 ? "s" : ""} `;
-    if (mins > 0 || hrs > 0)
-      durationStr += `${mins} min${mins !== 1 ? "s" : ""} `;
-    if (secs > 0 || (hrs === 0 && mins === 0))
-      durationStr += `${secs} sec${secs !== 1 ? "s" : ""}`;
+    if (mins > 0 || hrs > 0) durationStr += `${mins} min${mins !== 1 ? "s" : ""} `;
+    if (secs > 0 || (hrs === 0 && mins === 0)) durationStr += `${secs} sec${secs !== 1 ? "s" : ""}`;
 
     setFormData((prev) => {
       const newData = { ...prev, endTime: `${hh}:${mm}` };
@@ -242,19 +494,24 @@ const ClientCalls = ({ isEmbedded = false }) => {
       }
       return newData;
     });
-  };
+  }, [elapsedSeconds]);
+
+  const handleResetFilters = useCallback(() => {
+    setFilterDate("");
+    setFilterClient("");
+    setFilterPostedBy("");
+  }, []);
 
   return (
     <div className={isEmbedded ? "px-6 pb-6" : "p-6"}>
+      {/* Top Header when standalone */}
       {!isEmbedded && (
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
               <FiPhoneCall size={24} />
             </div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
-              Client Calls
-            </h1>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Client Calls</h1>
           </div>
           {!showAddForm && (
             <button
@@ -263,7 +520,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 setTimeMode("timer");
                 setShowAddForm(true);
               }}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium text-sm cursor-pointer"
             >
               <FiPlus className="mr-2" /> Log New Call
             </button>
@@ -271,6 +528,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
         </div>
       )}
 
+      {/* Button when embedded */}
       {isEmbedded && !showAddForm && (
         <div className="flex justify-end mb-4">
           <button
@@ -279,22 +537,19 @@ const ClientCalls = ({ isEmbedded = false }) => {
               setTimeMode("timer");
               setShowAddForm(true);
             }}
-            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm text-sm"
+            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold cursor-pointer"
           >
             <FiPlus className="mr-2" /> Log New Call
           </button>
         </div>
       )}
 
+      {/* Add / Edit Form Modal/Section */}
       {showAddForm && (
-        <div className="bg-white dark:bg-[#0B1120] rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-6 mb-8 shadow-sm transition-all duration-300">
+        <div className="bg-white dark:bg-[#0B1120] rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-6 mb-6 shadow-sm transition-all duration-300">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-slate-800 dark:text-white flex items-center">
-              {editId ? (
-                <FiEdit2 className="mr-2 text-indigo-500" />
-              ) : (
-                <FiPlus className="mr-2 text-indigo-500" />
-              )}
+              {editId ? <FiEdit2 className="mr-2 text-indigo-500" /> : <FiPlus className="mr-2 text-indigo-500" />}
               {editId ? "Edit Call Record" : "Create New Call Record"}
             </h2>
 
@@ -303,14 +558,22 @@ const ClientCalls = ({ isEmbedded = false }) => {
               <button
                 type="button"
                 onClick={() => setTimeMode("timer")}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeMode === "timer" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                  timeMode === "timer"
+                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
               >
                 Live Timer
               </button>
               <button
                 type="button"
                 onClick={() => setTimeMode("manual")}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeMode === "manual" ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                  timeMode === "manual"
+                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
               >
                 Manual Entry
               </button>
@@ -320,9 +583,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Date
-                </label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
                 <input
                   type="date"
                   name="date"
@@ -333,16 +594,14 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Client
-                </label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Client</label>
                 <select
                   name="client"
                   required
                   value={formData.client}
                   onChange={handleChange}
                   disabled={loading || clients.length === 0}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {loading ? (
                     <option value="">Loading clients...</option>
@@ -399,56 +658,37 @@ const ClientCalls = ({ isEmbedded = false }) => {
                         {formatElapsedTime(elapsedSeconds)}
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {formData.startTime &&
-                        !isTimerRunning &&
-                        formData.endTime ? (
+                        {formData.startTime && !isTimerRunning && formData.endTime ? (
                           <span>
-                            Call finished ({formatTime12hr(formData.startTime)}{" "}
-                            - {formatTime12hr(formData.endTime)})
+                            Call finished ({formatTime12hr(formData.startTime)} - {formatTime12hr(formData.endTime)})
                           </span>
                         ) : isTimerRunning ? (
                           <span className="flex items-center text-emerald-500">
-                            <span className="animate-pulse mr-1 h-2 w-2 bg-emerald-500 rounded-full"></span>{" "}
-                            Call in progress...
+                            <span className="animate-pulse mr-1 h-2 w-2 bg-emerald-500 rounded-full"></span> Call in
+                            progress...
                           </span>
                         ) : (
-                          <span>Ready to start</span>
+                          <span>Click start when call begins</span>
                         )}
                       </div>
                     </div>
-
                     <div>
-                      {!isTimerRunning && elapsedSeconds === 0 ? (
+                      {!isTimerRunning ? (
                         <button
                           type="button"
                           onClick={startTimer}
-                          className="flex items-center px-4 py-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 rounded-md transition-colors text-sm font-medium"
+                          disabled={!formData.client}
+                          className="flex items-center px-4 py-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         >
-                          <FiPlay className="mr-1.5" /> Start Call
-                        </button>
-                      ) : isTimerRunning ? (
-                        <button
-                          type="button"
-                          onClick={stopTimer}
-                          className="flex items-center px-4 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 rounded-md transition-colors text-sm font-medium"
-                        >
-                          <FiSquare className="mr-1.5" /> End Call
+                          <FiPlay className="mr-1.5" /> Start
                         </button>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => {
-                            setElapsedSeconds(0);
-                            setFormData((prev) => ({
-                              ...prev,
-                              startTime: "",
-                              endTime: "",
-                              duration: "",
-                            }));
-                          }}
-                          className="flex items-center px-4 py-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 rounded-md transition-colors text-sm font-medium"
+                          onClick={stopTimer}
+                          className="flex items-center px-4 py-1.5 bg-rose-600 text-white rounded-md hover:bg-rose-700 text-sm font-medium transition-colors cursor-pointer"
                         >
-                          Reset
+                          <FiSquare className="mr-1.5" /> End Call
                         </button>
                       )}
                     </div>
@@ -459,15 +699,16 @@ const ClientCalls = ({ isEmbedded = false }) => {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Discussion Points
+                Discussion Points / MOM
               </label>
               <textarea
                 name="discussionPoints"
-                value={formData.discussionPoints || ""}
+                rows="4"
+                required
+                value={formData.discussionPoints}
                 onChange={handleChange}
-                rows="2"
-                placeholder="Key takeaways (optional)..."
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm resize-y"
+                placeholder="What was discussed in this call? Key decisions, action items, or feedback..."
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm"
               ></textarea>
             </div>
 
@@ -483,7 +724,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -491,14 +732,9 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 <button
                   type="submit"
                   disabled={submitting || isTimerRunning}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-70 flex items-center"
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-70 flex items-center cursor-pointer"
                 >
-                  <FiSave className="mr-2" />{" "}
-                  {submitting
-                    ? "Saving..."
-                    : editId
-                      ? "Update Record"
-                      : "Save Record"}
+                  <FiSave className="mr-2" /> {submitting ? "Saving..." : editId ? "Update Record" : "Save Record"}
                 </button>
               </div>
             </div>
@@ -506,6 +742,77 @@ const ClientCalls = ({ isEmbedded = false }) => {
         </div>
       )}
 
+      {/* Filter Bar Above Table */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 p-3.5 bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800/60 rounded-xl shadow-xs">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pr-1">
+            <FiFilter size={14} className="text-indigo-500" />
+            <span>Filters:</span>
+          </div>
+
+          {/* Date Filter */}
+          <div className="relative flex items-center">
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all cursor-pointer"
+              title="Filter by Call Date"
+            />
+          </div>
+
+          {/* Client Filter */}
+          <div className="relative">
+            <select
+              value={filterClient}
+              onChange={(e) => setFilterClient(e.target.value)}
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all cursor-pointer max-w-[200px]"
+            >
+              <option value="">All Clients ({clients.length})</option>
+              {clients.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.companyName || c.clientName || "Unnamed Client"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Posted By Filter */}
+          {user?.role !== "team" && (
+            <div className="relative">
+              <select
+                value={filterPostedBy}
+                onChange={(e) => setFilterPostedBy(e.target.value)}
+                className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all cursor-pointer max-w-[180px]"
+              >
+                <option value="">All Posted By ({postedByList.length})</option>
+                {postedByList.map((u) => (
+                  <option key={u._id} value={u._id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Clear Filters Button */}
+          {(filterDate || filterClient || filterPostedBy) && (
+            <button
+              onClick={handleResetFilters}
+              className="text-xs text-rose-500 hover:text-rose-600 font-semibold px-2.5 py-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Counter Summary */}
+        <div className="text-xs text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap self-center">
+          Total Calls: <span className="font-bold text-slate-700 dark:text-slate-300">{filteredCalls.length}</span>
+        </div>
+      </div>
+
+      {/* Main Table Container */}
       <div className="bg-white dark:bg-[#0B1120] rounded-xl border border-slate-200 dark:border-slate-800/60 shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -516,9 +823,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
             <div className="w-16 h-16 mx-auto bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 mb-3">
               <FiPhoneCall size={32} />
             </div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-              No Calls Logged
-            </h3>
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">No Calls Logged</h3>
             <p className="text-slate-500 dark:text-slate-400 mt-1 mb-4">
               You haven't recorded any client calls yet.
             </p>
@@ -528,9 +833,25 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 setTimeMode("timer");
                 setShowAddForm(true);
               }}
-              className="inline-flex items-center px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-sm"
+              className="inline-flex items-center px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-sm cursor-pointer"
             >
               <FiPlus className="mr-2" /> Log Your First Call
+            </button>
+          </div>
+        ) : filteredCalls.length === 0 && !showAddForm ? (
+          <div className="p-12 text-center">
+            <div className="w-16 h-16 mx-auto bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 mb-3">
+              <FiFilter size={28} />
+            </div>
+            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">No matching call records</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+              No client calls match your current filter criteria.
+            </p>
+            <button
+              onClick={handleResetFilters}
+              className="inline-flex items-center px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-xs cursor-pointer"
+            >
+              Reset Filters
             </button>
           </div>
         ) : (
@@ -548,70 +869,78 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
-                {calls
-                  .filter((call) => user?.role === 'team' ? call.createdBy?._id === (user._id || user.id) : true)
-                  .map((call) => (
-                  <tr
-                    key={call._id}
-                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors group"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-                      <div className="flex items-center">
-                        <FiCalendar className="mr-2 text-slate-400" />
-                        {new Date(call.date).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                        {call.client?.companyName || "Unknown"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-                      <div className="flex items-center">
-                        <FiUser className="mr-2 text-slate-400" />
-                        {call.createdBy?.name || "Unknown"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
-                      <div className="flex items-center">
-                        <FiClock className="mr-2 text-slate-400" />
-                        {formatTime12hr(call.startTime)} -{" "}
-                        {formatTime12hr(call.endTime)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                        {call.duration}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400 max-w-md">
-                      <div
-                        className="line-clamp-2"
-                        title={call.discussionPoints}
-                      >
-                        {call.discussionPoints}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleEdit(call)}
-                        className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-3 p-1 rounded-full hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-                        title="Edit"
-                      >
-                        <FiEdit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(call._id)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                        title="Delete"
-                      >
-                        <FiTrash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                {paginatedCalls.map((call) => (
+                  <CallRow key={call._id} call={call} onEdit={handleEdit} onDelete={handleDelete} />
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Footer */}
+        {filteredCalls.length > 0 && (
+          <div className="px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/60 dark:bg-[#0E1526]">
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              Showing{" "}
+              <span className="font-bold text-slate-700 dark:text-slate-200">
+                {(currentPage - 1) * ITEMS_PER_PAGE + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-bold text-slate-700 dark:text-slate-200">
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredCalls.length)}
+              </span>{" "}
+              of <span className="font-bold text-slate-700 dark:text-slate-200">{filteredCalls.length}</span> calls
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+              >
+                Previous
+              </button>
+
+              <div className="flex items-center gap-1 px-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((page) => {
+                    if (totalPages <= 7) return true;
+                    if (page === 1 || page === totalPages) return true;
+                    if (Math.abs(page - currentPage) <= 1) return true;
+                    return false;
+                  })
+                  .map((page, idx, arr) => {
+                    const prev = arr[idx - 1];
+                    const showEllipsis = prev && page - prev > 1;
+                    return (
+                      <React.Fragment key={page}>
+                        {showEllipsis && <span className="px-1 text-xs text-slate-400">...</span>}
+                        <button
+                          type="button"
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            currentPage === page
+                              ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-600"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

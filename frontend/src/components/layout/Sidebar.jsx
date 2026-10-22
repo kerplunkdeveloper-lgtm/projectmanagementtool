@@ -414,7 +414,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         }
 
         // Show MOM Points ONLY for Admin, Operation Manager, and Social Media Manager
-        if (item.name === "MOM Points" || item.path?.includes("mom-points")) {
+        if (
+          item.name === "MOM Points" ||
+          item.name === "MOM / Client Calls" ||
+          item.path?.includes("mom-points")
+        ) {
           const deptLower = (currentUser?.department || "").toLowerCase();
           const roleLower = (currentUser?.role || role || "").toLowerCase();
 
@@ -798,7 +802,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     if (itemName === "Client Calls") {
       return (notifications || []).filter((n) => !n.isRead && n.type === "client_call_created").length;
     }
-    if (itemName === "MOM Points") return unreadMomCount;
+    if (itemName === "MOM Points" || itemName === "MOM / Client Calls") return unreadMomCount;
     if (itemName === "Reports" && (role === "admin" || role === "operationmanager")) {
       return newReportsCount;
     }
@@ -839,7 +843,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         });
       }
     }
-    if (item.name === "MOM Points") {
+    if (item.name === "MOM Points" || item.name === "MOM / Client Calls") {
       if (notifications) {
         notifications.forEach((n) => {
           if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
@@ -861,6 +865,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         "Reports",
         "Client Calls",
         "MOM Points",
+        "MOM / Client Calls",
         "SM Credentials",
       ]
       : [
@@ -871,6 +876,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         "SM Credentials",
         "Client Calls",
         "MOM Points",
+        "MOM / Client Calls",
         "Reports",
       ];
 
@@ -1647,7 +1653,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           });
                         }
                       }
-                      if (item.name === "MOM Points") {
+                      if (item.name === "MOM Points" || item.name === "MOM / Client Calls") {
                         if (notifications) {
                           notifications.forEach((n) => {
                             if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
@@ -1774,7 +1780,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 : 0}
                             </span>
                           )}
-                        {item.name === "MOM Points" && unreadMomCount > 0 && (
+                        {(item.name === "MOM Points" || item.name === "MOM / Client Calls") && unreadMomCount > 0 && (
                           <span className="flex h-[1rem] min-w-[1.4rem] items-center gap-0.5 justify-center rounded-full bg-rose-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
                             <span>{unreadMomCount > 99 ? "99+" : unreadMomCount}</span>
                             <span className="text-[0.45rem] uppercase tracking-wider">New</span>
@@ -1804,7 +1810,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               : 0) > 0
                           ) &&
                           !(
-                            item.name === "MOM Points" &&
+                            (item.name === "MOM Points" || item.name === "MOM / Client Calls") &&
                             unreadMomCount > 0
                           ) &&
                           !(
@@ -1850,6 +1856,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   "Reports",
                   "Client Calls",
                   "MOM Points",
+                  "MOM / Client Calls",
                   "SM Credentials",
                 ]
                 : [
@@ -1860,6 +1867,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   "SM Credentials",
                   "Client Calls",
                   "MOM Points",
+                  "MOM / Client Calls",
                   "Reports",
                 ];
 

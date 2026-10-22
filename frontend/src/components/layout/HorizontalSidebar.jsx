@@ -365,8 +365,12 @@ const HorizontalSidebar = ({ role }) => {
         }
       }
 
-      // Show MOM Points ONLY for Admin, Operation Manager, and Social Media Manager
-      if (item.name === "MOM Points" || item.path?.includes("mom-points")) {
+      // Show MOM Points / MOM / Client Calls ONLY for Admin, Operation Manager, and Social Media Manager
+      if (
+        item.name === "MOM Points" ||
+        item.name === "MOM / Client Calls" ||
+        item.path?.includes("mom-points")
+      ) {
         const deptLower = (currentUser?.department || "").toLowerCase();
         const roleLower = (currentUser?.role || role || "").toLowerCase();
 
@@ -605,7 +609,7 @@ const HorizontalSidebar = ({ role }) => {
                       }
                     });
                   }
-                  if (item.name === "MOM Points" && notifications) {
+                  if ((item.name === "MOM Points" || item.name === "MOM / Client Calls") && notifications) {
                     notifications.forEach((n) => {
                       if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
                         dispatch(markAsRead(n._id));
@@ -646,7 +650,7 @@ const HorizontalSidebar = ({ role }) => {
                         : 0}
                     </span>
                   )}
-                {item.name === "MOM Points" && unreadMomCount > 0 && (
+                {(item.name === "MOM Points" || item.name === "MOM / Client Calls") && unreadMomCount > 0 && (
                   <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 justify-center animate-pulse shadow-sm">
                     <span>{unreadMomCount > 99 ? "99+" : unreadMomCount}</span>
                     <span className="text-[7.5px] uppercase tracking-wider">New</span>

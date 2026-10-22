@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
+import { LuStickyNote, LuPhoneCall } from "react-icons/lu";
+import ClientCalls from "../client-calls/ClientCalls";
 import {
   FiPlus,
   FiTrash2,
@@ -155,6 +157,23 @@ const MomPoints = () => {
   const { user } = useSelector((state) => state.auth);
   const { notifications } = useSelector((state) => state.notifications);
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Tab State: "mom" or "client-calls"
+  const tabFromUrl = searchParams.get("tab") === "client-calls" ? "client-calls" : "mom";
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "client-calls" || tabParam === "mom") {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchParams(tab === "mom" ? {} : { tab });
+  };
   const [moms, setMoms] = useState([]);
   const [clients, setClients] = useState([]);
   const [users, setUsers] = useState([]);
@@ -371,35 +390,69 @@ const MomPoints = () => {
 
   return (
     <div className="space-y-6 w-full max-w-8xl mx-auto px-2 md:px-0 relative">
-      <div className="flex flex-col theme-bg-accent text-white rounded-xl shadow-md lg:flex-row lg:items-center lg:justify-between gap-4 mb-4 p-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-white tracking-tight">
-            MOM Points
-          </h1>
-        </div>
-        <div className="flex items-center justify-end gap-2"> 
+      {/* Top Header Banner with Navigation Tabs */}
+      <div className="flex flex-col theme-bg-accent text-white rounded-2xl shadow-md lg:flex-row lg:items-center lg:justify-between gap-4 mb-4 p-3 sm:p-4">
+        {/* Left Side: Tabs */}
+        <div className="flex items-center gap-1.5 bg-black/15 dark:bg-black/30 p-1.5 rounded-xl backdrop-blur-sm self-start sm:self-auto">
           <button
-            onClick={handleDownloadExcel}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 text-[12px] font-bold cursor-pointer transition-all shadow-sm hover:bg-emerald-100 active:scale-95 shrink-0"
+            type="button"
+            onClick={() => handleTabChange("mom")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "mom"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-white/80 hover:text-white hover:bg-white/10"
+            }`}
           >
-            <FiDownload size={14} className="stroke-[3]" />
-            <span>Download to Excel</span>
+            <LuStickyNote size={15} />
+            <span>MOM Points</span>
           </button>
-          
           <button
-            onClick={() => {
-              setInlineAdding(true);
-              setTimeout(() => {
-                if (inlineInputRef.current) inlineInputRef.current.focus();
-              }, 100);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white theme-text-primary text-[12px] font-bold cursor-pointer transition-all shadow-md shrink-0 hover:opacity-90 active:scale-95"
+            type="button"
+            onClick={() => handleTabChange("client-calls")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === "client-calls"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-white/80 hover:text-white hover:bg-white/10"
+            }`}
           >
-            <FiPlus size={14} className="stroke-[3]" />
-            <span>Add MOM Point</span>
+            <LuPhoneCall size={15} />
+            <span>Client Calls</span>
           </button>
         </div>
+
+        {/* Right Side Action Buttons (visible when in MOM Points tab) */}
+        {activeTab === "mom" && (
+          <div className="flex items-center justify-end gap-2"> 
+            <button
+              onClick={handleDownloadExcel}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 text-[12px] font-bold cursor-pointer transition-all shadow-sm hover:bg-emerald-100 active:scale-95 shrink-0"
+            >
+              <FiDownload size={14} className="stroke-[3]" />
+              <span>Download to Excel</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                setInlineAdding(true);
+                setTimeout(() => {
+                  if (inlineInputRef.current) inlineInputRef.current.focus();
+                }, 100);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white theme-text-primary text-[12px] font-bold cursor-pointer transition-all shadow-md shrink-0 hover:opacity-90 active:scale-95"
+            >
+              <FiPlus size={14} className="stroke-[3]" />
+              <span>Add MOM Point</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {activeTab === "client-calls" ? (
+        <div className="bg-white dark:bg-[#111115] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+          <ClientCalls isEmbedded={true} />
+        </div>
+      ) : (
+        <>
 
       {/* FILTERS FOR ADMIN */}
       {user?.role === "admin" && (
@@ -1014,6 +1067,8 @@ const MomPoints = () => {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 };
