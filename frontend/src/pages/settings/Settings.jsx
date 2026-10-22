@@ -31,6 +31,12 @@ const colors = [
     darkGradient: "linear-gradient(135deg, #34d399, #6ee7b7)",
   },
   {
+    id: "neon-green",
+    name: "Cyber Neon Green",
+    lightGradient: "linear-gradient(135deg, #00b018, #00f721)",
+    darkGradient: "linear-gradient(135deg, #00f721, #52ff6b)",
+  },
+  {
     id: "violet",
     name: "Royal Purple",
     lightGradient: "linear-gradient(135deg, #7c3aed, #a78bfa)",

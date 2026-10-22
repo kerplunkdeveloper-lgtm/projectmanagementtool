@@ -26,22 +26,22 @@ const HorizontalSidebar = ({ role }) => {
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
-  const [calendarDropdownOpen, setCalendarDropdownOpen] = useState(false);
-  const calendarRef = useRef(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
-    const handleCalendarOutsideClick = (e) => {
-      if (calendarRef.current && !calendarRef.current.contains(e.target)) {
-        setCalendarDropdownOpen(false);
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setActiveDropdown(null);
       }
     };
-    if (calendarDropdownOpen) {
-      document.addEventListener("mousedown", handleCalendarOutsideClick);
+    if (activeDropdown) {
+      document.addEventListener("mousedown", handleOutsideClick);
     }
     return () => {
-      document.removeEventListener("mousedown", handleCalendarOutsideClick);
+      document.removeEventListener("mousedown", handleOutsideClick);
     };
-  }, [calendarDropdownOpen]);
+  }, [activeDropdown]);
 
   const [showSwitchDropdown, setShowSwitchDropdown] = useState(false);
   const [switchSearch, setSwitchSearch] = useState("");
@@ -162,26 +162,63 @@ const HorizontalSidebar = ({ role }) => {
     .map((item) => {
       if (item.children && Array.isArray(item.children)) {
         const visibleChildren = item.children.filter((subItem) => {
+          const deptLower = (currentUser?.department || "").toLowerCase();
+          const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+          const isAdmin =
+            roleLower === "admin" ||
+            deptLower.includes("managing partner") ||
+            roleLower.includes("managing partner");
+          const isOperationManager =
+            roleLower === "operationmanager" ||
+            deptLower.includes("operation manager") ||
+            roleLower.includes("operation manager");
+
+          const isSocialMedia =
+            deptLower.includes("social media") ||
+            deptLower.includes("social manager") ||
+            deptLower.includes("smm") ||
+            roleLower.includes("social");
+
+          const isGraphicDesigner =
+            !isAdmin &&
+            !isOperationManager &&
+            !isSocialMedia &&
+            (deptLower.includes("graphic") ||
+              deptLower.includes("design") ||
+              roleLower.includes("graphic") ||
+              roleLower.includes("design"));
+
+          const isCinematographer =
+            !isAdmin &&
+            !isOperationManager &&
+            !isSocialMedia &&
+            (deptLower.includes("cinema") ||
+              deptLower.includes("video") ||
+              deptLower.includes("edit") ||
+              deptLower.includes("shoot") ||
+              deptLower.includes("camera") ||
+              roleLower.includes("cinema") ||
+              roleLower.includes("video") ||
+              roleLower.includes("edit"));
+
+          const isGDOrCinema = isGraphicDesigner || isCinematographer;
+
+          // In Tasks dropdown: Graphic Designers and Cinematographers should ONLY see Assigned Tasks
+          if (
+            (item.name === "Tasks" || item.path?.includes("/tasks")) &&
+            isGDOrCinema
+          ) {
+            return (
+              subItem.name === "Assigned Tasks" ||
+              subItem.path?.endsWith("/tasks")
+            );
+          }
+
           if (
             subItem.name === "Content Calendar" ||
             subItem.path?.includes("content-calendar")
           ) {
-            const deptLower = (currentUser?.department || "").toLowerCase();
-            const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-            const isSocialMedia =
-              deptLower.includes("social media") ||
-              deptLower.includes("social manager") ||
-              deptLower.includes("smm");
-            const isAdmin =
-              roleLower === "admin" ||
-              deptLower.includes("managing partner") ||
-              roleLower.includes("managing partner");
-            const isOperationManager =
-              roleLower === "operationmanager" ||
-              deptLower.includes("operation manager") ||
-              roleLower.includes("operation manager");
-
             if (!isSocialMedia && !isAdmin && !isOperationManager) {
               return false;
             }
@@ -192,22 +229,39 @@ const HorizontalSidebar = ({ role }) => {
             subItem.path?.includes("event-calendar") ||
             subItem.path?.includes("all-calendar")
           ) {
-            const deptLower = (currentUser?.department || "").toLowerCase();
-            const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-            const isAdmin =
-              roleLower === "admin" ||
-              deptLower.includes("managing partner") ||
-              roleLower.includes("managing partner");
-            const isOperationManager =
-              roleLower === "operationmanager" ||
-              deptLower.includes("operation manager") ||
-              roleLower.includes("operation manager");
             const isSocialMediaManager = deptLower.includes("social media manager");
-
             if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
               return false;
             }
+          }
+
+          if (
+            subItem.name === "SM Tasks" ||
+            subItem.path?.includes("sm-tasks")
+          ) {
+            if (!isSocialMedia && !isAdmin && !isOperationManager) {
+              return false;
+            }
+          }
+
+          if (
+            subItem.name === "Designer Tasks" ||
+            subItem.path?.includes("designer-tasks")
+          ) {
+            const isDesigner = deptLower.includes("design") || roleLower.includes("design");
+            if (isDesigner) return true;
+          }
+
+          if (
+            subItem.name === "Cinematographer Tasks" ||
+            subItem.path?.includes("cinematographer-tasks")
+          ) {
+            const isCinema =
+              deptLower.includes("cinema") ||
+              deptLower.includes("video") ||
+              deptLower.includes("edit") ||
+              roleLower.includes("cinema");
+            if (isCinema) return true;
           }
 
           if (subItem.permissionKey) {
@@ -469,23 +523,27 @@ const HorizontalSidebar = ({ role }) => {
             if (item.children && item.children.length > 0) {
               const isChildActive = (childPath) => {
                 if (!childPath) return false;
-                const current = (location.pathname || "").toLowerCase();
-                const target = childPath.toLowerCase();
-                return (
-                  current === target ||
-                  (target.includes("shootcalendor") && current.includes("shootcalendor")) ||
-                  (target.includes("content-calendar") && current.includes("content-calendar")) ||
-                  (target.includes("event-calendar") && current.includes("event-calendar"))
-                );
+                const current = (location.pathname || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
+                const target = childPath.toLowerCase().split("?")[0].replace(/\/+$/, "");
+                if (current === target) return true;
+                if (target.includes("sm-tasks") && current.includes("sm-tasks")) return true;
+                if (target.includes("designer-tasks") && current.includes("designer-tasks")) return true;
+                if (target.includes("cinematographer-tasks") && current.includes("cinematographer-tasks")) return true;
+                if (target.endsWith("/tasks") && current.endsWith("/tasks")) return true;
+                if (target.includes("shootcalendor") && current.includes("shootcalendor")) return true;
+                if (target.includes("content-calendar") && current.includes("content-calendar")) return true;
+                if (target.includes("event-calendar") && current.includes("event-calendar")) return true;
+                return false;
               };
 
               const isAnyChildActive = item.children.some((child) => isChildActive(child.path));
+              const isDropdownOpen = activeDropdown === item.name;
 
               return (
-                <div key={item.name} ref={calendarRef} className="relative">
+                <div key={item.name} ref={isDropdownOpen ? dropdownRef : null} className="relative">
                   <button
                     type="button"
-                    onClick={() => setCalendarDropdownOpen((prev) => !prev)}
+                    onClick={() => setActiveDropdown((prev) => (prev === item.name ? null : item.name))}
                     className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all group relative cursor-pointer border ${
                       isAnyChildActive
                         ? "bg-white/80 dark:bg-slate-800/80 theme-text-accent shadow-sm border-slate-200/50 dark:border-white/10"
@@ -496,13 +554,13 @@ const HorizontalSidebar = ({ role }) => {
                     <span>{item.name}</span>
                     <FiChevronDown
                       className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                        calendarDropdownOpen ? "rotate-180" : ""
+                        isDropdownOpen ? "rotate-180" : ""
                       }`}
                     />
                   </button>
 
-                  {calendarDropdownOpen && (
-                    <div className="absolute top-full left-0 mt-2 min-w-[180px] bg-white dark:bg-[#151518] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xl p-1.5 z-50 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  {isDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-2 min-w-[190px] bg-white dark:bg-[#151518] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xl p-1.5 z-50 flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-150">
                       {item.children.map((subItem) => {
                         const SubIcon = subItem.icon;
                         const isSubActive = isChildActive(subItem.path);
@@ -512,7 +570,7 @@ const HorizontalSidebar = ({ role }) => {
                             key={subItem.path}
                             to={subItem.path}
                             onMouseEnter={() => preloadRoute(subItem.path)}
-                            onClick={() => setCalendarDropdownOpen(false)}
+                            onClick={() => setActiveDropdown(null)}
                             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
                               isSubActive
                                 ? "bg-slate-100 dark:bg-white/10 theme-text-accent font-bold"

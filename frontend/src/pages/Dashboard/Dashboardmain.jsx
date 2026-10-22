@@ -82,6 +82,7 @@ const ACCENT_COLOR_MAP = {
   rose: "bg-rose-600 dark:bg-rose-500",
   cyan: "bg-cyan-600 dark:bg-cyan-500",
   lime: "bg-lime-600 dark:bg-lime-500",
+  "neon-green": "bg-[#00b018] dark:bg-[#00f721]",
   fuchsia: "bg-fuchsia-600 dark:bg-fuchsia-500",
   teal: "bg-teal-600 dark:bg-teal-500",
   red: "bg-red-600 dark:bg-red-500",
@@ -730,6 +731,12 @@ const Dashboardmain = () => {
     today.setHours(0, 0, 0, 0);
 
     const sortedGoals = [...goals].sort((a, b) => {
+      // Pending work first
+      const aPending = !a.completed;
+      const bPending = !b.completed;
+      if (aPending !== bPending) {
+        return aPending ? -1 : 1;
+      }
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
 
@@ -761,9 +768,20 @@ const Dashboardmain = () => {
   }, [goals]);
 
   const activeTabGoals = React.useMemo(() => {
-    if (goalTab === "Upcoming") return goalStats.upcoming;
-    if (goalTab === "Overdue") return goalStats.overdue;
-    return goalStats.completed;
+    let list = [];
+    if (goalTab === "Upcoming") list = goalStats.upcoming;
+    else if (goalTab === "Overdue") list = goalStats.overdue;
+    else list = goalStats.completed;
+
+    // Always sort pending work first
+    return [...list].sort((a, b) => {
+      const aPending = !a.completed;
+      const bPending = !b.completed;
+      if (aPending !== bPending) {
+        return aPending ? -1 : 1;
+      }
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
   }, [goalTab, goalStats]);
 
   const GOALS_PER_PAGE = 5;
@@ -2154,9 +2172,20 @@ const Dashboardmain = () => {
 
       {/* .................................................Dashboard Cards / Assigned Clients.............................. */}
       {(() => {
-        const isAdminOrOpManager =
-          user?.role === "admin" || user?.role === "operationmanager";
-        return isAdminOrOpManager ? (
+        const deptLower = (user?.department || "").toLowerCase();
+        const roleLower = (user?.role || "").toLowerCase();
+        const isHr =
+          roleLower === "humanresource" ||
+          roleLower === "hr" ||
+          deptLower.includes("hr") ||
+          deptLower.includes("human resource");
+
+        const canViewFullCards =
+          user?.role === "admin" ||
+          user?.role === "operationmanager" ||
+          isHr;
+
+        return canViewFullCards ? (
           <div className="mb-4 md:p-4">
             <DashboardCards />
           </div>

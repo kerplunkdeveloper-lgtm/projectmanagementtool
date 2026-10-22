@@ -19,6 +19,7 @@ const ThemeSettingsPanel = () => {
   const colors = [
     { id: "default", hex: "#3b82f6", name: "Ocean Blue" },
     { id: "emerald", hex: "#10b981", name: "Emerald Green" },
+    { id: "neon-green", hex: "#00f721", name: "Cyber Neon Green" },
     { id: "violet", hex: "#7c3aed", name: "Royal Purple" },
     { id: "amber", hex: "#f59e0b", name: "Sunset Orange" },
     { id: "rose", hex: "#f43f5e", name: "Hot Pink" },
@@ -130,7 +131,13 @@ const ThemeSettingsPanel = () => {
                       }`}
                       style={{ backgroundColor: c.hex, color: c.hex }}
                     >
-                      {accentColor === c.id && <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />}
+                      {accentColor === c.id && (
+                        <div
+                          className={`w-2.5 h-2.5 rounded-full shadow-sm ${
+                            c.hex === "#00f721" ? "bg-slate-950" : "bg-white"
+                          }`}
+                        />
+                      )}
                     </button>
                   ))}
                 </div>

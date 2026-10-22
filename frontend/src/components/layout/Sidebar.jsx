@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useTheme } from "../../context/ThemeContext";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -208,26 +209,63 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       .map((item) => {
         if (item.children && Array.isArray(item.children)) {
           const visibleChildren = item.children.filter((subItem) => {
+            const deptLower = (currentUser?.department || "").toLowerCase();
+            const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+            const isAdmin =
+              roleLower === "admin" ||
+              deptLower.includes("managing partner") ||
+              roleLower.includes("managing partner");
+            const isOperationManager =
+              roleLower === "operationmanager" ||
+              deptLower.includes("operation manager") ||
+              roleLower.includes("operation manager");
+
+            const isSocialMedia =
+              deptLower.includes("social media") ||
+              deptLower.includes("social manager") ||
+              deptLower.includes("smm") ||
+              roleLower.includes("social");
+
+            const isGraphicDesigner =
+              !isAdmin &&
+              !isOperationManager &&
+              !isSocialMedia &&
+              (deptLower.includes("graphic") ||
+                deptLower.includes("design") ||
+                roleLower.includes("graphic") ||
+                roleLower.includes("design"));
+
+            const isCinematographer =
+              !isAdmin &&
+              !isOperationManager &&
+              !isSocialMedia &&
+              (deptLower.includes("cinema") ||
+                deptLower.includes("video") ||
+                deptLower.includes("edit") ||
+                deptLower.includes("shoot") ||
+                deptLower.includes("camera") ||
+                roleLower.includes("cinema") ||
+                roleLower.includes("video") ||
+                roleLower.includes("edit"));
+
+            const isGDOrCinema = isGraphicDesigner || isCinematographer;
+
+            // In Tasks dropdown: Graphic Designers and Cinematographers should ONLY see Assigned Tasks
+            if (
+              (item.name === "Tasks" || item.path?.includes("/tasks")) &&
+              isGDOrCinema
+            ) {
+              return (
+                subItem.name === "Assigned Tasks" ||
+                subItem.path?.endsWith("/tasks")
+              );
+            }
+
             if (
               subItem.name === "Content Calendar" ||
               subItem.path?.includes("content-calendar")
             ) {
-              const deptLower = (currentUser?.department || "").toLowerCase();
-              const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-              const isSocialMedia =
-                deptLower.includes("social media") ||
-                deptLower.includes("social manager") ||
-                deptLower.includes("smm");
-              const isAdmin =
-                roleLower === "admin" ||
-                deptLower.includes("managing partner") ||
-                roleLower.includes("managing partner");
-              const isOperationManager =
-                roleLower === "operationmanager" ||
-                deptLower.includes("operation manager") ||
-                roleLower.includes("operation manager");
-
               if (!isSocialMedia && !isAdmin && !isOperationManager) {
                 return false;
               }
@@ -238,22 +276,39 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               subItem.path?.includes("event-calendar") ||
               subItem.path?.includes("all-calendar")
             ) {
-              const deptLower = (currentUser?.department || "").toLowerCase();
-              const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-              const isAdmin =
-                roleLower === "admin" ||
-                deptLower.includes("managing partner") ||
-                roleLower.includes("managing partner");
-              const isOperationManager =
-                roleLower === "operationmanager" ||
-                deptLower.includes("operation manager") ||
-                roleLower.includes("operation manager");
               const isSocialMediaManager = deptLower.includes("social media manager");
-
               if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
                 return false;
               }
+            }
+
+            if (
+              subItem.name === "SM Tasks" ||
+              subItem.path?.includes("sm-tasks")
+            ) {
+              if (!isSocialMedia && !isAdmin && !isOperationManager) {
+                return false;
+              }
+            }
+
+            if (
+              subItem.name === "Designer Tasks" ||
+              subItem.path?.includes("designer-tasks")
+            ) {
+              const isDesigner = deptLower.includes("design") || roleLower.includes("design");
+              if (isDesigner) return true;
+            }
+
+            if (
+              subItem.name === "Cinematographer Tasks" ||
+              subItem.path?.includes("cinematographer-tasks")
+            ) {
+              const isCinema =
+                deptLower.includes("cinema") ||
+                deptLower.includes("video") ||
+                deptLower.includes("edit") ||
+                roleLower.includes("cinema");
+              if (isCinema) return true;
             }
 
             if (subItem.permissionKey) {
@@ -470,25 +525,59 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     return p.includes("shootcalendor") || p.includes("content-calendar") || p.includes("event-calendar");
   }, [location.pathname]);
 
-  const [isCalendarOpen, setIsCalendarOpen] = useState(() => {
+  const [openDropdowns, setOpenDropdowns] = useState(() => {
     try {
-      const saved = localStorage.getItem("sidebar_calendar_open");
-      if (saved !== null) return JSON.parse(saved);
-    } catch {}
-    return true;
+      const saved = localStorage.getItem("sidebar_open_dropdowns_v2");
+      if (saved) return JSON.parse(saved);
+      const calSaved = localStorage.getItem("sidebar_calendar_open");
+      return {
+        "All Calendar": calSaved !== null ? JSON.parse(calSaved) : true,
+        Tasks: true,
+      };
+    } catch {
+      return { "All Calendar": true, Tasks: true };
+    }
   });
 
-  useEffect(() => {
-    if (isCurrentCalendarRoute) {
-      setIsCalendarOpen(true);
-    }
-  }, [isCurrentCalendarRoute]);
+  const toggleDropdown = React.useCallback((name) => {
+    setOpenDropdowns((prev) => ({
+      ...prev,
+      [name]: !prev[name],
+    }));
+  }, []);
 
   useEffect(() => {
     try {
-      localStorage.setItem("sidebar_calendar_open", JSON.stringify(isCalendarOpen));
+      localStorage.setItem("sidebar_open_dropdowns_v2", JSON.stringify(openDropdowns));
     } catch {}
-  }, [isCalendarOpen]);
+  }, [openDropdowns]);
+
+  // Auto-expand dropdown when navigating to a child page
+  useEffect(() => {
+    const p = (location.pathname || "").toLowerCase();
+    setOpenDropdowns((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      if (p.includes("shootcalendor") || p.includes("content-calendar") || p.includes("event-calendar")) {
+        if (!next["All Calendar"]) {
+          next["All Calendar"] = true;
+          changed = true;
+        }
+      }
+      if (
+        p.includes("sm-tasks") ||
+        p.includes("designer-tasks") ||
+        p.includes("cinematographer-tasks") ||
+        p.endsWith("/tasks")
+      ) {
+        if (!next["Tasks"]) {
+          next["Tasks"] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [location.pathname]);
 
   const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(() => {
     try {
@@ -667,6 +756,199 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     navigate("/");
   };
 
+  const [hoveredPortalItem, setHoveredPortalItem] = useState(null);
+  const hoverTimeoutRef = useRef(null);
+
+  const isChildActive = (childPath) => {
+    if (!childPath) return false;
+    const current = (location.pathname || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
+    const target = childPath.toLowerCase().split("?")[0].replace(/\/+$/, "");
+    if (current === target) return true;
+    if (target.includes("sm-tasks") && current.includes("sm-tasks")) return true;
+    if (target.includes("designer-tasks") && current.includes("designer-tasks")) return true;
+    if (target.includes("cinematographer-tasks") && current.includes("cinematographer-tasks")) return true;
+    if (target.endsWith("/tasks") && current.endsWith("/tasks")) return true;
+    if (target.includes("shootcalendor") && current.includes("shootcalendor")) return true;
+    if (target.includes("content-calendar") && current.includes("content-calendar")) return true;
+    if (target.includes("event-calendar") && current.includes("event-calendar")) return true;
+    return false;
+  };
+
+  const isItemActive = (item) => {
+    if (!item) return false;
+    if (item.children && item.children.length > 0) {
+      return item.children.some((child) => isChildActive(child.path));
+    }
+    const current = (location.pathname || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
+    const target = (item.path || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
+    if (
+      target === "/admin" ||
+      target === "/operationmanager" ||
+      target === "/humanresource" ||
+      target === "/team"
+    ) {
+      return current === target;
+    }
+    return current === target || current.startsWith(target + "/");
+  };
+
+  const getItemBadgeCount = (itemName) => {
+    if (itemName === "Notifications") return unreadCount;
+    if (itemName === "Chat") return totalUnreadChatCount;
+    if (itemName === "Client Calls") {
+      return (notifications || []).filter((n) => !n.isRead && n.type === "client_call_created").length;
+    }
+    if (itemName === "MOM Points") return unreadMomCount;
+    if (itemName === "Reports" && (role === "admin" || role === "operationmanager")) {
+      return newReportsCount;
+    }
+    return 0;
+  };
+
+  const handleItemMouseEnter = (e, item, isDropdown = false, badgeCount = 0) => {
+    if (sidebarOpen || window.innerWidth < 1024) return;
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHoveredPortalItem({
+      item,
+      rect,
+      isDropdown,
+      badgeCount,
+    });
+  };
+
+  const handleItemMouseLeave = () => {
+    if (sidebarOpen || window.innerWidth < 1024) return;
+    hoverTimeoutRef.current = setTimeout(() => {
+      setHoveredPortalItem(null);
+    }, 150);
+  };
+
+  const handleItemClick = (item) => {
+    if (window.innerWidth < 1024) setSidebarOpen(false);
+    if (item.name === "Chat") {
+      dispatch(clearAllUnreadCounts());
+      dispatch(markAllChatAsRead());
+    }
+    if (item.name === "Client Calls") {
+      if (notifications) {
+        notifications.forEach((n) => {
+          if (!n.isRead && n.type === "client_call_created") {
+            dispatch(markAsRead(n._id));
+          }
+        });
+      }
+    }
+    if (item.name === "MOM Points") {
+      if (notifications) {
+        notifications.forEach((n) => {
+          if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
+            dispatch(markAsRead(n._id));
+          }
+        });
+      }
+    }
+    setHoveredPortalItem(null);
+  };
+
+  const topCardNames =
+    role === "operationmanager"
+      ? [
+        "Home",
+        "Sticky Notes",
+        "Chat",
+        "Users",
+        "Reports",
+        "Client Calls",
+        "MOM Points",
+        "SM Credentials",
+      ]
+      : [
+        "Home",
+        "Sticky Notes",
+        "Chat",
+        "Users",
+        "SM Credentials",
+        "Client Calls",
+        "MOM Points",
+        "Reports",
+      ];
+
+  const renderCollapsedMenuItem = (item) => {
+    const Icon = item.icon;
+    const isActive = isItemActive(item);
+    const badgeCount = getItemBadgeCount(item.name);
+    const hasChildren = item.children && item.children.length > 0;
+
+    if (hasChildren) {
+      return (
+        <div
+          key={item.name}
+          className="relative flex items-center justify-center my-0.5 w-full"
+          onMouseEnter={(e) => handleItemMouseEnter(e, item, true, badgeCount)}
+          onMouseLeave={handleItemMouseLeave}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (item.children?.[0]?.path) {
+                navigate(item.children[0].path);
+                setHoveredPortalItem(null);
+              }
+            }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center relative transition-all duration-200 cursor-pointer ${
+              isActive
+                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-md shadow-slate-900/20 dark:shadow-black/50"
+                : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+            }`}
+            title={item.name}
+          >
+            <Icon size={17} />
+            {/* Active left bar */}
+            {isActive && (
+              <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full theme-bg-accent shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+            )}
+            {/* Tiny dropdown indicator dot */}
+            <span className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 opacity-70" />
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={item.path || item.name}
+        className="relative flex items-center justify-center my-0.5 w-full"
+        onMouseEnter={(e) => handleItemMouseEnter(e, item, false, badgeCount)}
+        onMouseLeave={handleItemMouseLeave}
+      >
+        <NavLink
+          to={item.path}
+          onMouseEnter={() => preloadRoute(item.path)}
+          onClick={() => handleItemClick(item)}
+          className={`w-10 h-10 rounded-xl flex items-center justify-center relative transition-all duration-200 ${
+            isActive
+              ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-md shadow-slate-900/20 dark:shadow-black/50"
+              : "text-slate-600 dark:text-slate-300 hover:bg-slate-200/70 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+          }`}
+          title={item.name}
+        >
+          <Icon size={17} />
+          {/* Active left bar */}
+          {isActive && (
+            <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full theme-bg-accent shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+          )}
+          {/* Badge counter */}
+          {badgeCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-[#0b0c10] shadow-sm animate-pulse">
+              {badgeCount > 99 ? "99+" : badgeCount}
+            </span>
+          )}
+        </NavLink>
+      </div>
+    );
+  };
+
   return (
     <>
       {/* MOBILE OVERLAY */}
@@ -684,36 +966,64 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-[100dvh]
-          w-64 max-w-[80vw] lg:w-52
           sidebar-bg
           backdrop-blur-xl
           shadow-[0_8px_32px_0_rgba(0,0,0,0.02)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.25)]
           flex flex-col
-          transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          transition-all duration-300 ease-in-out
+          ${
+            sidebarOpen
+              ? "translate-x-0 w-64 max-w-[80vw] lg:w-52"
+              : "-translate-x-full lg:translate-x-0 w-64 max-w-[80vw] lg:w-16"
+          }
         `}
       >
         {/* HEADER */}
-        <div className="flex items-center justify-between px-4 py-4 ">
-          {/* LOGO */}
-          <div
-            onClick={() => navigate(`/${role}`)}
-            className="mb-2 cursor-pointer transition-transform active:scale-95 flex items-center  px-1"
-            title="Sorted Logo"
-          >
-            <img
-              src={isDark ? darkSortedLogo : sortedLogo}
-              alt="Sorted Logo"
-              className="h-15 w-auto object-contain drop-shadow-sm"
-            />
-          </div>
+        <div
+          className={`flex items-center shrink-0 border-b border-slate-200/50 dark:border-white/5 transition-all duration-300 ${
+            sidebarOpen ? "justify-between px-4 py-3.5" : "justify-center py-3 px-1.5"
+          }`}
+        >
+          {sidebarOpen ? (
+            <>
+              {/* LOGO */}
+              <div
+                onClick={() => navigate(`/${role}`)}
+                className="cursor-pointer transition-transform active:scale-95 flex items-center px-1"
+                title="Sorted Logo"
+              >
+                <img
+                  src={isDark ? darkSortedLogo : sortedLogo}
+                  alt="Sorted Logo"
+                  className="h-10 w-auto object-contain drop-shadow-sm"
+                />
+              </div>
 
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden w-8 h-8 rounded-lg bg-white dark:bg-[#0b0c10] hover:bg-slate-50  flex items-center justify-center transition-all border border-slate-200 dark:border-white/5"
-          >
-            <FiX size={18} className="text-slate-900 dark:text-white" />
-          </button>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden w-8 h-8 rounded-lg bg-white dark:bg-[#0b0c10] hover:bg-slate-50 flex items-center justify-center transition-all border border-slate-200 dark:border-white/5"
+              >
+                <FiX size={18} className="text-slate-900 dark:text-white" />
+              </button>
+            </>
+          ) : (
+            /* COLLAPSED ICON LOGO - SORTED.PNG IMAGE */
+            <div
+              onClick={() => navigate(`/${role}`)}
+              onMouseEnter={(e) =>
+                handleItemMouseEnter(e, { name: "Sorted Dashboard" }, false, 0)
+              }
+              onMouseLeave={handleItemMouseLeave}
+              className="group/logo w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-slate-100 dark:hover:bg-white/5"
+              title="Sorted - Go to Dashboard"
+            >
+              <img
+                src="/sorted.png"
+                alt="Sorted Logo"
+                className="w-8 h-8 object-contain drop-shadow-md transition-transform duration-200 group-hover/logo:scale-110 active:scale-95"
+              />
+            </div>
+          )}
         </div>
 
         {/* MENU */}
@@ -1158,24 +1468,28 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               if (item.children && item.children.length > 0) {
                 const isChildActive = (childPath) => {
                   if (!childPath) return false;
-                  const current = (location.pathname || "").toLowerCase();
-                  const target = childPath.toLowerCase();
-                  return (
-                    current === target ||
-                    (target.includes("shootcalendor") && current.includes("shootcalendor")) ||
-                    (target.includes("content-calendar") && current.includes("content-calendar")) ||
-                    (target.includes("event-calendar") && current.includes("event-calendar"))
-                  );
+                  const current = (location.pathname || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
+                  const target = childPath.toLowerCase().split("?")[0].replace(/\/+$/, "");
+                  if (current === target) return true;
+                  if (target.includes("sm-tasks") && current.includes("sm-tasks")) return true;
+                  if (target.includes("designer-tasks") && current.includes("designer-tasks")) return true;
+                  if (target.includes("cinematographer-tasks") && current.includes("cinematographer-tasks")) return true;
+                  if (target.endsWith("/tasks") && current.endsWith("/tasks")) return true;
+                  if (target.includes("shootcalendor") && current.includes("shootcalendor")) return true;
+                  if (target.includes("content-calendar") && current.includes("content-calendar")) return true;
+                  if (target.includes("event-calendar") && current.includes("event-calendar")) return true;
+                  return false;
                 };
 
                 const isAnyChildActive = item.children.some((child) => isChildActive(child.path));
+                const isDropdownOpen = !!openDropdowns[item.name];
 
                 return (
                   <div key={item.name} className="my-0.5 text-left">
                     {/* Dropdown Header Toggle */}
                     <button
                       type="button"
-                      onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                      onClick={() => toggleDropdown(item.name)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 lg:py-1.5 rounded-xl border transition-all duration-200 cursor-pointer group text-left ${
                         isAnyChildActive
                           ? "bg-slate-900/10 dark:bg-white/20 shadow-sm border-slate-900/5 dark:border-white/10"
@@ -1234,7 +1548,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                       <svg
                         className={`w-3.5 h-3.5 shrink-0 transform transition-transform duration-200 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 ${
-                          isCalendarOpen ? "rotate-180" : ""
+                          isDropdownOpen ? "rotate-180" : ""
                         }`}
                         fill="none"
                         viewBox="0 0 24 24"
@@ -1251,7 +1565,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                     {/* Children List */}
                     <AnimatePresence initial={false}>
-                      {isCalendarOpen && (
+                      {isDropdownOpen && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -1551,7 +1865,26 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             return (
               <>
-                {isGroupedRole ? (
+                {!sidebarOpen ? (
+                  <div className="flex flex-col items-center space-y-1 py-1">
+                    {/* Core Group */}
+                    <div className="flex flex-col items-center space-y-0.5 w-full">
+                      {menuItems
+                        .filter((item) => topCardNames.includes(item.name))
+                        .map((item) => renderCollapsedMenuItem(item))}
+                    </div>
+
+                    {/* Subtle divider */}
+                    <div className="w-8 h-px bg-slate-200/70 dark:bg-white/10 my-1.5" />
+
+                    {/* Secondary Group */}
+                    <div className="flex flex-col items-center space-y-0.5 w-full">
+                      {menuItems
+                        .filter((item) => !topCardNames.includes(item.name))
+                        .map((item) => renderCollapsedMenuItem(item))}
+                    </div>
+                  </div>
+                ) : isGroupedRole ? (
                   <div className="space-y-4">
                     {/* General / Core Group */}
                     <div className="space-y-1">
@@ -1591,7 +1924,86 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           })()}
         </nav>
         {/* FOOTER */}
-        <div className="p-3 border-t border-slate-200 dark:border-white/5 space-y-1.5 relative z-10">
+        {!sidebarOpen ? (
+          /* COLLAPSED FOOTER */
+          <div className="p-2 border-t border-slate-200/60 dark:border-white/5 flex flex-col items-center gap-2 shrink-0 relative z-10">
+            {/* Switch Back to Admin — shown when impersonating any user */}
+            {originalAdminUser && (
+              <button
+                type="button"
+                onClick={handleSwitchBack}
+                className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-200/70 dark:border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                title={`Switch Back to Admin (${originalAdminUser?.name})`}
+                onMouseEnter={(e) =>
+                  handleItemMouseEnter(
+                    e,
+                    { name: `Switch Back (${originalAdminUser?.name})` },
+                    false,
+                    0,
+                  )
+                }
+                onMouseLeave={handleItemMouseLeave}
+              >
+                <span className="text-[10px] font-black">
+                  {getInitials(originalAdminUser?.name)}
+                </span>
+              </button>
+            )}
+
+            {/* User Avatar / Switch User trigger */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (role === "admin" && !originalAdminUser && users && users.length > 0) {
+                    setShowUserDropdown(!showUserDropdown);
+                  } else {
+                    navigate(`/${role}/profile`);
+                  }
+                }}
+                className="w-10 h-10 rounded-xl overflow-hidden border border-indigo-500/20 dark:border-indigo-400/20 flex items-center justify-center bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400 hover:scale-105 active:scale-95 transition-all cursor-pointer relative"
+                title={`${currentUser?.name} (${displayRole(currentUser?.role)})`}
+                onMouseEnter={(e) =>
+                  handleItemMouseEnter(
+                    e,
+                    { name: `${currentUser?.name} • ${displayRole(currentUser?.role)}` },
+                    false,
+                    0,
+                  )
+                }
+                onMouseLeave={handleItemMouseLeave}
+              >
+                {profile?.profileImage?.url ? (
+                  <img
+                    src={profile.profileImage.url}
+                    alt={currentUser?.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xs font-black">
+                    {getInitials(currentUser?.name)}
+                  </span>
+                )}
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#0b0c10]" />
+              </button>
+            </div>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-10 h-10 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white flex items-center justify-center shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              title="Logout"
+              onMouseEnter={(e) =>
+                handleItemMouseEnter(e, { name: "Logout" }, false, 0)
+              }
+              onMouseLeave={handleItemMouseLeave}
+            >
+              <FiLogOut size={16} />
+            </button>
+          </div>
+        ) : (
+          <div className="p-3 border-t border-slate-200 dark:border-white/5 space-y-1.5 relative z-10">
           {/* Switch Back to Admin — shown when impersonating any user */}
           {originalAdminUser && (
             <button
@@ -1851,7 +2263,223 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             <span>Logout</span>
           </motion.button>
         </div>
+        )}
       </aside>
+
+      {/* FLOATING PORTAL FOR COLLAPSED SIDEBAR TOOLTIPS AND FLYOUTS */}
+      {hoveredPortalItem &&
+        createPortal(
+          hoveredPortalItem.isDropdown ? (() => {
+            const FlyoutIcon = hoveredPortalItem.item.icon;
+            return (
+              <div
+                style={{
+                  position: "fixed",
+                  top: `${Math.max(12, Math.min(hoveredPortalItem.rect.top, window.innerHeight - 340))}px`,
+                  left: `${hoveredPortalItem.rect.right + 8}px`,
+                  zIndex: 999999,
+                }}
+                className="w-56 bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-2xl shadow-indigo-500/10 dark:shadow-black/60 p-2 flex flex-col gap-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150"
+                onMouseEnter={() => {
+                  if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+                }}
+                onMouseLeave={handleItemMouseLeave}
+              >
+                {/* Header */}
+                <div className="px-3 py-1.5 mb-0.5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {FlyoutIcon && <FlyoutIcon size={14} className="theme-text-accent" />}
+                    <span className="text-xs font-black theme-text-primary tracking-wide">
+                      {hoveredPortalItem.item.name}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    {hoveredPortalItem.item.children?.length}
+                  </span>
+                </div>
+
+              {/* Sub items */}
+              <div className="space-y-0.5 max-h-[300px] overflow-y-auto sidebar-scrollbar">
+                {hoveredPortalItem.item.children?.map((sub) => {
+                  const SubIcon = sub.icon;
+                  const isSubActive = isChildActive(sub.path);
+                  return (
+                    <NavLink
+                      key={sub.path}
+                      to={sub.path}
+                      onMouseEnter={() => preloadRoute(sub.path)}
+                      onClick={() => {
+                        if (window.innerWidth < 1024) setSidebarOpen(false);
+                        setHoveredPortalItem(null);
+                      }}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                        isSubActive
+                          ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
+                          : "text-slate-650 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                      }`}
+                    >
+                      <SubIcon
+                        size={14}
+                        className={
+                          isSubActive
+                            ? "text-white dark:text-slate-900"
+                            : "text-slate-400"
+                        }
+                      />
+                      <span className="truncate flex-1 text-left">{sub.name}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })() : (
+            <div
+              style={{
+                position: "fixed",
+                top: `${hoveredPortalItem.rect.top + hoveredPortalItem.rect.height / 2}px`,
+                left: `${hoveredPortalItem.rect.right + 10}px`,
+                transform: "translateY(-50%)",
+                zIndex: 999999,
+              }}
+              className="pointer-events-none px-3 py-1.5 rounded-xl bg-slate-900/95 dark:bg-[#151c2e]/95 backdrop-blur-md text-white text-xs font-bold shadow-2xl border border-white/15 flex items-center gap-2 whitespace-nowrap animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 dark:bg-[#151c2e] border-l border-b border-white/15 rotate-45" />
+              <span className="relative z-10">{hoveredPortalItem.item.name}</span>
+              {hoveredPortalItem.badgeCount > 0 && (
+                <span className="relative z-10 px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white">
+                  {hoveredPortalItem.badgeCount}
+                </span>
+              )}
+            </div>
+          ),
+          document.body,
+        )}
+
+      {/* PORTAL FOR SWITCH USER IN COLLAPSED MODE */}
+      {showUserDropdown &&
+        !sidebarOpen &&
+        createPortal(
+          <div
+            ref={userDropdownRef}
+            style={{
+              position: "fixed",
+              bottom: "16px",
+              left: "72px",
+              zIndex: 999999,
+            }}
+            className="w-72 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/60 overflow-hidden flex flex-col origin-bottom-left animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-2 border-b border-slate-100 dark:border-white/5 shrink-0 bg-slate-50/50 dark:bg-white/5 backdrop-blur-md">
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={userSearchQuery}
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                className="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
+                autoFocus
+              />
+            </div>
+
+            <div className="p-2 max-h-[20rem] overflow-y-auto sidebar-scrollbar flex flex-col gap-1">
+              {(() => {
+                const filteredUsers = users.filter((u) => {
+                  const searchStr = userSearchQuery.toLowerCase().trim();
+                  if (!searchStr) return true;
+                  const searchTerms = searchStr.split(/\s+/);
+                  const searchableText = [
+                    u.name,
+                    u.department || "",
+                    displayRole(u.role),
+                  ]
+                    .join(" ")
+                    .toLowerCase();
+                  return searchTerms.every((term) =>
+                    searchableText.includes(term),
+                  );
+                });
+
+                if (filteredUsers.length === 0) {
+                  return (
+                    <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                      No users found matching "{userSearchQuery}"
+                    </div>
+                  );
+                }
+
+                const groupedUsers = filteredUsers.reduce((acc, u) => {
+                  const dept = u.department || displayRole(u.role);
+                  if (!acc[dept]) acc[dept] = [];
+                  acc[dept].push(u);
+                  return acc;
+                }, {});
+
+                return Object.entries(groupedUsers).map(([dept, deptUsers]) => (
+                  <div key={dept} className="space-y-0.5 mb-1 last:mb-0">
+                    {deptUsers.map((u) => {
+                      const isCurrent =
+                        u._id === (currentUser?._id || currentUser?.id);
+                      return (
+                        <button
+                          key={u._id}
+                          type="button"
+                          onClick={() => {
+                            setShowUserDropdown(false);
+                            if (!isCurrent) {
+                              handleSwitchUser(u._id);
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${
+                            isCurrent
+                              ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
+                              : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div
+                              className={`w-7 h-7 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center ${
+                                isCurrent
+                                  ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
+                              }`}
+                            >
+                              {u.profile?.profileImage?.url ? (
+                                <img
+                                  src={u.profile.profileImage.url}
+                                  alt={u.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-xs font-black">
+                                  {getInitials(u.name)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-bold truncate leading-tight text-slate-700 dark:text-slate-200">
+                                {u.name}
+                              </p>
+                              <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mt-[1px] theme-text-secondary truncate">
+                                {u.role === "team"
+                                  ? u.department || "Team"
+                                  : displayRole(u.role)}
+                              </p>
+                            </div>
+                          </div>
+                          {isCurrent && (
+                            <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 };

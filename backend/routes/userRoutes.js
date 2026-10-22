@@ -37,9 +37,12 @@ router.get(
     const userPerm = req.user?.permissions?.manage_users;
     const hasUsersPerm = userPerm === true || userPerm?.read || userPerm?.write;
 
+    const roleLower = (req.user?.role || '').toLowerCase().trim();
     if (
-      req.user?.role === 'admin' ||
-      req.user?.role === 'operationmanager' ||
+      roleLower === 'admin' ||
+      roleLower === 'operationmanager' ||
+      roleLower === 'operation manager' ||
+      roleLower.includes('managing partner') ||
       isHr ||
       hasUsersPerm
     ) {

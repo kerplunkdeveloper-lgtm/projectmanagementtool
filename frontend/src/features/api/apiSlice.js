@@ -43,8 +43,8 @@ export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
   tagTypes: ["Task", "Project", "Notification", "Goal", "User"],
-  keepUnusedDataFor: 60,           // 60 sec cache
-  refetchOnMountOrArgChange: 60,   // 60 sec-க்கு மேல் ஆனா மட்டும் refetch (was: true = always)
+  keepUnusedDataFor: 300,          // 5 min cache — prevents skeleton on page re-visits
+  refetchOnMountOrArgChange: 300,  // Only refetch after 5 min stale (prevents redundant calls)
   refetchOnFocus: false,           // BUG-05 FIX: Tab switch-ல் refetch வேண்டாம் → 429 error குறையும்
   refetchOnReconnect: true,        // Internet reconnect-ல் refetch (இது OK)
   endpoints: (builder) => ({
@@ -95,7 +95,7 @@ export const apiSlice = createApi({
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],
-      keepUnusedDataFor: 120, // 2 minutes cache for snappy navigation
+      keepUnusedDataFor: 300, // 5 min cache — instant navigation back to workload page
       transformResponse: (response) => response.data,
     }),
     createTask: builder.mutation({

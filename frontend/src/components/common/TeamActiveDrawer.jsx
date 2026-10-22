@@ -31,6 +31,18 @@ const ACCENT_STYLES = {
     badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
     bar: "bg-emerald-500",
   },
+  "neon-green": {
+    name: "Cyber Neon Green",
+    hex: "#00f721",
+    primary: "bg-[#00b018] hover:bg-[#009214] text-white shadow-[#00f721]/30",
+    text: "text-[#00b018] dark:text-[#00f721]",
+    bgSoft: "bg-[#00f721]/10 dark:bg-[#00f721]/15",
+    border: "border-[#00f721]/30",
+    dot: "bg-[#00f721]",
+    ring: "focus:ring-[#00f721]/40 focus:border-[#00f721]/70",
+    badge: "bg-[#00f721]/15 text-[#009214] dark:text-[#00f721] border-[#00f721]/30",
+    bar: "bg-[#00f721]",
+  },
   default: {
     name: "Ocean Blue",
     hex: "#3b82f6",
@@ -143,6 +155,7 @@ const ACCENT_STYLES = {
 
 const THEME_COLOR_LIST = [
   { id: "emerald", hex: "#10b981", name: "Emerald" },
+  { id: "neon-green", hex: "#00f721", name: "Neon Green" },
   { id: "default", hex: "#3b82f6", name: "Blue" },
   { id: "violet", hex: "#7c3aed", name: "Purple" },
   { id: "amber", hex: "#f59e0b", name: "Orange" },
@@ -188,13 +201,15 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
     deptLower.includes("hr") ||
     deptLower.includes("human resource") ||
     currentUser?.department === "HR";
-  const hasUsersPerm = Boolean(currentUser?.permissions?.manage_users);
+  const userPerm = currentUser?.permissions?.manage_users;
+  const hasUsersPerm = userPerm === true || Boolean(userPerm?.read || userPerm?.write);
 
-  const isAuthorized =
+  const isAuthorized = Boolean(
     currentUser?.role === "admin" ||
     currentUser?.role === "operationmanager" ||
     isHr ||
-    hasUsersPerm;
+    hasUsersPerm
+  );
 
   // Fetch team activity
   const { data, isLoading, isFetching, refetch } = useGetTeamActivityQuery(undefined, {

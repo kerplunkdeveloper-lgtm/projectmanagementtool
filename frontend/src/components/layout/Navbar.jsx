@@ -53,6 +53,13 @@ const ACCENT_NAVBAR_MAP = {
     badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
     hoverText: "group-hover:text-emerald-500",
   },
+  "neon-green": {
+    hoverBorder: "hover:border-[#00f721]/60",
+    dot: "bg-[#00f721]",
+    ping: "bg-[#00f721]",
+    badge: "bg-[#00f721]/15 text-[#009e15] dark:text-[#00f721] border-[#00f721]/30",
+    hoverText: "group-hover:text-[#00b018] dark:group-hover:text-[#00f721]",
+  },
   default: {
     hoverBorder: "hover:border-blue-500/50",
     dot: "bg-blue-500",
@@ -104,7 +111,7 @@ const ACCENT_NAVBAR_MAP = {
   },
 };
 
-const Navbar = ({ setSidebarOpen, presence }) => {
+const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -123,12 +130,14 @@ const Navbar = ({ setSidebarOpen, presence }) => {
     deptLower.includes("hr") ||
     deptLower.includes("human resource") ||
     user?.department === "HR";
-  const hasUsersPerm = Boolean(user?.permissions?.manage_users);
-  const canViewTeamActive =
+  const userPerm = user?.permissions?.manage_users;
+  const hasUsersPerm = userPerm === true || Boolean(userPerm?.read || userPerm?.write);
+  const canViewTeamActive = Boolean(
     user?.role === "admin" ||
     user?.role === "operationmanager" ||
     isHr ||
-    hasUsersPerm;
+    hasUsersPerm
+  );
 
   // Real-time team activity summary for live active counter badge (Admin, Operation Manager & HR)
   const { data: teamActivitySummary } = useGetTeamActivityQuery(undefined, {
@@ -800,9 +809,13 @@ const Navbar = ({ setSidebarOpen, presence }) => {
               hover:bg-slate-50 dark:hover:bg-white/5
               transition-all duration-200 cursor-pointer
             "
-            title="Toggle Sidebar"
+            title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
           >
-            <HiOutlineMenuAlt3 className="text-[1.0625rem] transform hover:scale-110 transition-transform duration-200" />
+            <HiOutlineMenuAlt3
+              className={`text-[1.0625rem] transform hover:scale-110 transition-transform duration-200 ${
+                !sidebarOpen ? "rotate-180" : ""
+              }`}
+            />
           </button>
         )} 
 

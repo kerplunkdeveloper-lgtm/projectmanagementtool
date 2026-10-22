@@ -21,10 +21,14 @@ const SubtaskSchema = new mongoose.Schema({
   dueDate: {
     type: Date,
   },
- priority: {
+  priority: {
     type: String,
     enum: ["Low", "Medium", "High", "Top High"],
     default: "Medium",
+  },
+  workType: {
+    type: String,
+    default: "",
   },
   contentType: {
     type: String,
@@ -240,6 +244,10 @@ const TaskSchema = new mongoose.Schema(
       type: String,
       enum: ["Low", "Medium", "High", "Top High"],
       default: "Medium",
+    },
+    workType: {
+      type: String,
+      default: "",
     },
     section: {
       type: String,
@@ -487,6 +495,27 @@ TaskSchema.index({ status: 1, updatedAt: -1 });
 TaskSchema.index({ createdBy: 1, updatedAt: -1 });
 TaskSchema.index({ project: 1, updatedAt: -1 });
 TaskSchema.index({ "subtasks.assignedTo": 1, updatedAt: -1 });
+
+// ── Workload page query optimization ─────────────────────────────────────────
+// The workload getTasks uses active_only=true which builds an $or condition:
+//   { status: { $nin: completed/rejected/approved } } OR { updatedAt >= cutoff }
+// A partial index covering only "active" tasks (non-complete) dramatically
+// speeds up this pattern because most workload tasks are In Progress / On Hold.
+TaskSchema.index(
+  { status: 1, assignedTo: 1, updatedAt: -1 },
+  {
+    name: "workload_active_tasks",
+    partialFilterExpression: {
+      status: { $nin: ["Completed", "Rejected", "Approved", "Cancelled"] },
+    },
+  }
+);
+// Also index subtasks.assignedTo compound with status for subtask workload queries
+TaskSchema.index(
+  { "subtasks.assignedTo": 1, status: 1, updatedAt: -1 },
+  { name: "workload_subtask_active" }
+);
+
 
 const isSameDay = (d1, d2) => {
   if (!d1 || !d2) return false;

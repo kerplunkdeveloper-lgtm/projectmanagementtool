@@ -18,14 +18,22 @@ const DashboardCards = () => {
   const { users } = useSelector((state) => state.users);
   const { projects } = useSelector((state) => state.projects);
 
-  const isAdminOrOpManager = user?.role === "admin" || user?.role === "operationmanager";
+  const deptLower = (user?.department || "").toLowerCase();
+  const roleLower = (user?.role || "").toLowerCase();
+  const isHr =
+    roleLower === "humanresource" ||
+    roleLower === "hr" ||
+    deptLower.includes("hr") ||
+    deptLower.includes("human resource");
+
+  const canView = user?.role === "admin" || user?.role === "operationmanager" || isHr;
 
   useEffect(() => {
-    if (!isAdminOrOpManager) return;
+    if (!canView) return;
     if (!clients || clients.length === 0) dispatch(getClients());
     if (!users || users.length === 0) dispatch(getUsers());
     if (!projects || projects.length === 0) dispatch(getProjects());
-  }, [dispatch, isAdminOrOpManager, clients?.length, users?.length, projects?.length]);
+  }, [dispatch, canView, clients?.length, users?.length, projects?.length]);
 
   const activeClientsCount = (clients || []).filter(
     (c) => !c.status || c.status === "Active",
@@ -72,12 +80,12 @@ const DashboardCards = () => {
     return { icon: <FiUsers />, bg: "bg-slate-500", color: "text-slate-500", lightBg: "bg-slate-50" };
   };
 
-  if (!isAdminOrOpManager) return null;
+  if (!canView) return null;
 
   return (
     <div className="w-full flex flex-col xl:flex-row gap-6 items-stretch">
       {/* LEFT SIDE: Clients Overview */}
-      <div className="flex flex-col gap-4 w-full xl:w-[280px] shrink-0">
+      <div className="flex flex-col gap-4 w-full xl:w-[340px] shrink-0">
         <div className="mb-2 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm border border-blue-100 dark:border-slate-700">
             <FiUsers size={18} />
@@ -89,27 +97,82 @@ const DashboardCards = () => {
         </div>
 
         {/* Active Clients Card */}
-        <div className="bg-[#0eba0e8d] rounded-[24px] p-6 shadow-sm relative overflow-hidden group flex-1 min-h-[220px] flex flex-col">
-          <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl mb-4 shadow-lg shadow-blue-500/30">
-            <FiUsers />
+        <motion.div 
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="bg-[#e5faeb] border border-[#d1fae5] dark:border-emerald-800/40 rounded-[28px] p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group flex-1 min-h-[200px] flex flex-col justify-between"
+        >
+          {/* Top Status Badge */}
+          <div className="flex items-center gap-2.5 z-10">
+            <span className="relative flex h-3.5 w-3.5 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#16a34a] shadow-[0_0_10px_rgba(22,163,74,0.8)] ring-2 ring-[#16a34a]/20"></span>
+            </span>
+            <span className="text-[16px] sm:text-[17px] font-bold text-[#0f172a] tracking-tight">
+              Active clients
+            </span>
           </div>
-          <p className="text-[16px] font-bold text-slate-800 dark:text-slate-200 mb-1">No. of Active Clients</p>
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-4 tracking-tight">{activeClientsCount}</h1>
-          
-        </div>
+
+          {/* Bottom Content: Number + Subtitle on Left, 3D Mascot on Right */}
+          <div className="flex items-end justify-between mt-3 gap-2 z-10">
+            <div className="flex flex-col pr-1">
+              <h1 className="text-5xl sm:text-6xl font-black text-[#0f172a] tracking-tight leading-none mb-2">
+                {activeClientsCount}
+              </h1>
+              <p className="text-[13px] font-medium text-black italic  leading-snug whitespace-nowrap">
+                Currently working with you
+              </p>
+            </div>
+
+            <div className="shrink-0 w-28 h-28 sm:w-32 sm:h-32 -mr-1 -mb-2 flex items-end justify-end">
+              <img
+                src="/Robots/active-robot.jpg"
+                alt="Active clients mascot"
+                className="w-full h-full object-contain rounded-2xl select-none pointer-events-none transform group-hover:scale-105 group-hover:-translate-y-1 transition-all duration-300 mix-blend-multiply dark:mix-blend-normal"
+              />
+            </div>
+          </div>
+        </motion.div>
 
         {/* Inactive Clients Card */}
-        {isAdminOrOpManager && (
-          <div className="bg-[#f81942b3] rounded-[24px] p-6 shadow-sm relative overflow-hidden group flex-1 min-h-[220px] flex flex-col">
-            <div className="absolute right-6 bottom-6 opacity-5 w-24 h-24 bg-rose-500 rounded-full blur-2xl pointer-events-none"></div>
-            <div className="w-12 h-12 rounded-full bg-rose-500 text-white flex items-center justify-center text-xl mb-4 shadow-lg shadow-rose-500/30">
-              <FiUsers />
+        {canView && (
+          <motion.div 
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.1 }}
+            className="bg-[#fbe8e1] border border-[#ffe4e6] dark:border-rose-900/40 rounded-[28px] p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group flex-1 min-h-[200px] flex flex-col justify-between"
+          >
+            {/* Top Status Badge */}
+            <div className="flex items-center gap-2.5 z-10">
+              <span className="relative flex h-3.5 w-3.5 items-center justify-center">
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-[#f43f5e] shadow-[0_0_10px_rgba(244,63,94,0.8)] ring-2 ring-[#f43f5e]/20"></span>
+              </span>
+              <span className="text-[16px] sm:text-[17px] font-bold text-[#0f172a] tracking-tight">
+                Inactive clients
+              </span>
             </div>
-            <p className="text-[16px] font-bold text-slate-800 dark:text-slate-200 mb-1">No. of Inactive Clients</p>
-            <h1 className="text-5xl md:text-7xl font-black text-white mb-4 tracking-tight">{inactiveClientsCount}</h1>
-            <div className="flex items-center justify-between mt-auto pt-2 z-10">
+
+            {/* Bottom Content: Number + Subtitle on Left, 3D Mascot on Right */}
+            <div className="flex items-end justify-between mt-3 gap-2 z-10">
+              <div className="flex flex-col pr-1">
+                <h1 className="text-5xl sm:text-6xl font-black text-[#0f172a] tracking-tight leading-none mb-2">
+                  {inactiveClientsCount}
+                </h1>
+                <p className="text-[13px] font-medium text-black italic leading-snug whitespace-nowrap">
+                  No recent activity
+                </p>
+              </div>
+
+              <div className="shrink-0 w-28 h-28 sm:w-32 sm:h-32 -mr-1 -mb-2 flex items-end justify-end">
+                <img
+                  src="/Robots/inactive-robot.jpg"
+                  alt="Inactive clients mascot"
+                  className="w-full h-full object-contain rounded-2xl select-none pointer-events-none transform group-hover:scale-105 group-hover:-translate-y-1 transition-all duration-300 mix-blend-multiply dark:mix-blend-normal"
+                />
+              </div>
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
 

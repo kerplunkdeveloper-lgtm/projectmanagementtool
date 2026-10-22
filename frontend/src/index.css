@@ -1165,8 +1165,9 @@ select.badge-priority-top-high {
   box-shadow: 0 2px 10px var(--accent-hover-shadow-dark) !important;
 }
 
-/* Specific lime active tab text color in dark mode */
-:root[data-accent="lime"] .dark .dept-filter-tab-active {
+/* Specific lime & neon-green active tab text color in dark mode */
+:root[data-accent="lime"] .dark .dept-filter-tab-active,
+:root[data-accent="neon-green"] .dark .dept-filter-tab-active {
   color: #000000 !important;
 }
 
@@ -1332,6 +1333,16 @@ select.badge-priority-top-high {
   --accent-hover-shadow-dark: rgba(16, 185, 129, 0.25);
   --accent-light-bg-subtle: rgba(5, 150, 105, 0.1);
   --accent-dark-bg-subtle: rgba(16, 185, 129, 0.1);
+}
+:root[data-accent="neon-green"] {
+  --accent-gradient: linear-gradient(180deg, #bbf7d0 0%, #00f721 50%, #00b018 100%);
+  --accent-color: #00b018;
+  --accent-hover-shadow: rgba(0, 247, 33, 0.3);
+  --accent-gradient-dark: linear-gradient(135deg, #00f721, #52ff6b);
+  --accent-color-dark: #00f721;
+  --accent-hover-shadow-dark: rgba(0, 247, 33, 0.4);
+  --accent-light-bg-subtle: rgba(0, 247, 33, 0.12);
+  --accent-dark-bg-subtle: rgba(0, 247, 33, 0.2);
 }
 :root[data-accent="violet"] {
   --accent-gradient: linear-gradient(180deg, #ddd6fe 0%, #a78bfa 50%, #7c3aed 100%);
@@ -1696,9 +1707,21 @@ td:first-child {
   --accent-dark-bg-subtle: rgba(163, 230, 53, 0.15);
 }
 
+/* CYBER NEON GREEN (#00f721) */
+:root[data-accent="neon-green"] {
+  --accent-color: #00b018;
+  --accent-color-dark: #00f721;
+  --accent-gradient: linear-gradient(135deg, #009914 0%, #00c81a 50%, #00f721 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #00b018 0%, #00f721 55%, #4dff6b 100%);
+  --accent-hover-shadow: rgba(0, 247, 33, 0.35);
+  --accent-hover-shadow-dark: rgba(0, 247, 33, 0.45);
+  --accent-light-bg-subtle: rgba(0, 247, 33, 0.12);
+  --accent-dark-bg-subtle: rgba(0, 247, 33, 0.2);
+}
+
 /* FUCHSIA */
 :root[data-accent="fuchsia"] {
-  --accent-color: #c026d3;
+  --accent-color: #d326a8;
   --accent-color-dark: #d946ef;
   --accent-gradient: linear-gradient(135deg, #a21caf 0%, #c026d3 50%, #d946ef 100%);
   --accent-gradient-dark: linear-gradient(135deg, #86198f 0%, #a21caf 55%, #c026d3 100%);
@@ -1840,7 +1863,7 @@ td:first-child {
   background-color: rgba(255, 255, 255, 0.18) !important;
 }
 
-@keyframes bounceHorizontal {
+@keyframes bounceHorizontal { 
   0%, 100% {
     transform: translateX(0);
   }

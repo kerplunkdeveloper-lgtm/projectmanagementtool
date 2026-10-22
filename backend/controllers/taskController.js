@@ -521,23 +521,40 @@ exports.getTasks = async (req, res) => {
     }
 
     if (req.query.active_only === 'true') {
-      const daysBack = req.query.minimal === 'true' ? 3 : 14;
+      const isMinimal = req.query.minimal === 'true';
+      const daysBack = isMinimal ? 3 : 14;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-      
-      andConditions.push({
-        $or: [
-          { status: { $nin: ['Completed', 'Rejected', 'Approved', 'Cancelled'] } },
-          { updatedAt: { $gte: cutoffDate } },
-          { completedAt: { $gte: cutoffDate } },
-          { rejectedAt: { $gte: cutoffDate } }
-        ]
-      });
+
+      if (isMinimal) {
+        // Workload page: optimized minimal query — just status + recent updatedAt.
+        // Avoids scanning completedAt/rejectedAt separate indexes (slow on large collections).
+        andConditions.push({
+          $or: [
+            { status: { $nin: ['Completed', 'Rejected', 'Approved', 'Cancelled'] } },
+            { updatedAt: { $gte: cutoffDate } },
+          ]
+        });
+      } else {
+        andConditions.push({
+          $or: [
+            { status: { $nin: ['Completed', 'Rejected', 'Approved', 'Cancelled'] } },
+            { updatedAt: { $gte: cutoffDate } },
+            { completedAt: { $gte: cutoffDate } },
+            { rejectedAt: { $gte: cutoffDate } }
+          ]
+        });
+      }
     }
 
     const query = andConditions.length > 1
       ? { $and: andConditions }
       : (andConditions[0] || {});
+
+    // Add Cache-Control header for minimal (workload) requests — browsers/CDN cache 30s
+    if (req.query.minimal === 'true') {
+      res.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+    }
 
     let mongooseQuery = Task.find(query).sort({ updatedAt: -1 });
 
