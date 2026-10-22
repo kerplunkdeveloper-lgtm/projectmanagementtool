@@ -81,94 +81,22 @@ const Login = () => {
 
   return (
     <div className="min-h-screen theme-bg-main flex flex-col md:flex-row overflow-hidden">
-      {/* TOP / LEFT SIDE IMAGE SECTION WITH ATTRACTIVE GLASS EFFECT & ACTIVE ACCENT COLOR */}
+      {/* TOP / LEFT SIDE IMAGE SECTION */}
       <div
         id="login-image-section"
-        className="relative hidden md:flex w-full md:h-screen md:w-[60%] lg:w-[65%] xl:w-[68%] overflow-hidden items-center justify-center shrink-0 z-0 p-6 lg:p-10"
-        style={{
-          background: "radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent-color) 12%, transparent), transparent 70%)",
-        }}
+        className="relative hidden md:flex w-full md:h-screen md:w-[60%] lg:w-[65%] xl:w-[68%] overflow-hidden items-center justify-center shrink-0 z-0"
       >
-        {/* Dynamic Glowing Ambient Blobs with Settings Active Accent Color */}
-        <div
-          className="absolute -top-20 -left-20 w-96 h-96 rounded-full blur-[100px] pointer-events-none opacity-40 dark:opacity-30 animate-pulse"
-          style={{ background: "var(--accent-color)" }}
+        <img
+          src={lightlogin}
+          alt="Project Management Background"
+          className="absolute inset-0 w-full h-full z-0 dark:hidden"
         />
-        <div
-          className="absolute -bottom-20 -right-20 w-96 h-96 rounded-full blur-[110px] pointer-events-none opacity-30 dark:opacity-25"
-          style={{ background: "var(--color-incomplete-start, var(--accent-color))" }}
-        />
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30rem] h-[30rem] rounded-full blur-[130px] pointer-events-none opacity-20 dark:opacity-25"
-          style={{ background: "var(--accent-color)" }}
+        <img
+          src={darklogo}
+          alt="Project Management Background Dark"
+          className="absolute inset-0 w-full h-full z-0 hidden dark:block"
         />
 
-        {/* Decorative Grid Pattern Overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
-          style={{
-            backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
-        />
-
-        {/* Stunning Glass Showcase Container */}
-        <div
-          className="relative z-10 w-full h-full max-h-[92vh] rounded-[2.5rem] p-4 lg:p-6 flex items-center justify-center overflow-hidden border backdrop-blur-2xl transition-all duration-300 group bg-white/45 dark:bg-slate-900/40 border-white/60 dark:border-white/10"
-          style={{
-            boxShadow: "0 25px 60px -15px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.4) inset, 0 10px 40px -10px var(--btn-glow-shadow)",
-          }}
-        >
-          {/* Top-edge Specular Sheen */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 dark:via-white/20 to-transparent pointer-events-none" />
-
-          {/* Floating Glass Pill: Settings Active Theme Accent Indicator */}
-          <div className="absolute top-6 left-6 z-20 hidden lg:flex items-center gap-2.5 px-3.5 py-1.5 rounded-full backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/60 dark:border-white/10 shadow-lg shadow-black/5">
-            <span
-              className="w-2.5 h-2.5 rounded-full animate-ping"
-              style={{ background: "var(--accent-color)" }}
-            />
-            <span
-              className="absolute w-2.5 h-2.5 rounded-full"
-              style={{ background: "var(--accent-color)" }}
-            />
-            <span className="text-[11px] font-black tracking-wider uppercase text-slate-800 dark:text-slate-200 ml-1">
-              Smart Workspace
-            </span>
-          </div>
-
-          {/* Floating Glass Metric Badge */}
-          <div className="absolute bottom-6 right-6 z-20 hidden lg:flex items-center gap-2.5 px-4 py-2.5 rounded-2xl backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/60 dark:border-white/10 shadow-xl shadow-black/10">
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-xs font-black shadow-md"
-              style={{ background: "var(--color-brand-gradient)" }}
-            >
-              ✓
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[11px] font-black text-slate-900 dark:text-white leading-tight">
-                All Systems Operational
-              </span>
-              <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">
-                Sorted Productivity Suite
-              </span>
-            </div>
-          </div>
-
-          {/* The Showcase Images (Light & Dark) */}
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-2xl">
-            <img
-              src={lightlogin}
-              alt="Project Management Showcase"
-              className="w-full h-full object-contain dark:hidden transition-transform duration-700 ease-out group-hover:scale-[1.02] drop-shadow-xl"
-            />
-            <img
-              src={darklogo}
-              alt="Project Management Showcase Dark"
-              className="w-full h-full object-contain hidden dark:block transition-transform duration-700 ease-out group-hover:scale-[1.02] drop-shadow-[0_20px_35px_rgba(0,0,0,0.6)]"
-            />
-          </div>
-        </div>
       </div>
 
       {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
