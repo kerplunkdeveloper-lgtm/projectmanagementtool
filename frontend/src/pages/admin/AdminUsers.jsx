@@ -362,6 +362,7 @@ const AdminUsers = () => {
     const headers = [
       "User Name",
       "Email Address",
+      "Password",
       "Phone Number",
       "Role",
       "Department",
@@ -422,6 +423,7 @@ const AdminUsers = () => {
       return [
         escapeCsv(u.name || "-"),
         escapeCsv(u.email || "-"),
+        escapeCsv(u.plainPassword || "-"),
         escapeCsv(phoneStr),
         escapeCsv(roleStr),
         escapeCsv(u.department || "-"),

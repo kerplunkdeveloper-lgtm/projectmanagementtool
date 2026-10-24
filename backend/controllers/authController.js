@@ -14,6 +14,7 @@ exports.register = async (req, res, next) => {
       name,
       email,
       password,
+      plainPassword: password,
       role,
       department,
       location,

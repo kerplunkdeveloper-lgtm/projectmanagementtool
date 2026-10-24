@@ -12,6 +12,9 @@ import {
   FiCheck,
   FiUserMinus,
   FiUserCheck,
+  FiEye,
+  FiEyeOff,
+  FiKey,
 } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
@@ -155,6 +158,19 @@ const UserTable = ({
 }) => {
   const { user: currentUser } = useSelector((state) => state.auth);
   const [copiedId, setCopiedId] = useState(null);
+  const [visiblePasswordIds, setVisiblePasswordIds] = useState({});
+  const [copiedPassId, setCopiedPassId] = useState(null);
+
+  const togglePasswordVisibility = (id) => {
+    setVisiblePasswordIds((p) => ({ ...p, [id]: !p[id] }));
+  };
+
+  const handleCopyPassword = (pwd, id) => {
+    if (!pwd) return;
+    navigator.clipboard.writeText(pwd);
+    setCopiedPassId(id);
+    setTimeout(() => setCopiedPassId(null), 2000);
+  };
   // Online presence from shared SocketContext (no duplicate socket)
   const { onlineUserIds, isOnline } = useSocketContext() || {
     onlineUserIds: [],
@@ -345,6 +361,43 @@ const UserTable = ({
                           )}
                         </button>
                       </div>
+
+                      {user.plainPassword && (
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px]">
+                          <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                            PWD:
+                          </span>
+                          <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px] font-semibold tracking-wide">
+                            {visiblePasswordIds[user._id] ? user.plainPassword : "••••••••"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePasswordVisibility(user._id);
+                            }}
+                            title={visiblePasswordIds[user._id] ? "Hide password" : "Show password"}
+                            className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                          >
+                            {visiblePasswordIds[user._id] ? <FiEyeOff size={11} /> : <FiEye size={11} />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopyPassword(user.plainPassword, user._id);
+                            }}
+                            title="Copy password"
+                            className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                          >
+                            {copiedPassId === user._id ? (
+                              <FiCheck size={11} className="text-emerald-500" />
+                            ) : (
+                              <FiCopy size={11} />
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </td>
 
                     {/* ── LOCATION ─────────────────────────────── */}

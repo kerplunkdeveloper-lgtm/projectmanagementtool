@@ -79,7 +79,8 @@ exports.getEodReports = async (req, res) => {
         select: "name email role profile department",
         populate: { path: "profile", select: "profileImage" }
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { FiX, FiUsers, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiX, FiUsers, FiEye, FiEyeOff, FiCopy, FiCheck, FiKey } from "react-icons/fi";
 
 
 const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser, editUser, setEditUser, users }) => {
   const [formData, setFormData] = useState({ name: "", email: "", location: "", password: "", role: "team", department: "" });
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const [isCustomDept, setIsCustomDept] = useState(false);
   const [isCustomLoc, setIsCustomLoc] = useState(false);
 
@@ -37,7 +38,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
           name: editUser.name || "",
           email: editUser.email || "",
           location: editUser.location || "",
-          password: "",
+          password: editUser.plainPassword || "",
           role: editUser.role || "team",
           department: editUser.department || "",
         });
@@ -55,9 +56,27 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
         setIsCustomDept(false);
         setIsCustomLoc(false);
       }
-      setShowPassword(false);
+      setShowPassword(true);
+      setCopiedPassword(false);
     }
   }, [openModal, editUser]);
+
+  const handleCopyPassword = () => {
+    if (!formData.password) return;
+    navigator.clipboard.writeText(formData.password);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 2000);
+  };
+
+  const handleGeneratePassword = () => {
+    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
+    let gen = "";
+    for (let i = 0; i < 10; i++) {
+      gen += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormData((p) => ({ ...p, password: gen }));
+    setShowPassword(true);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -72,8 +91,12 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   const handleSubmit = (e) => {
     e.preventDefault();
     if (editUser) {
-      const { password, ...rest } = formData;
-      const dataToSubmit = password ? formData : rest;
+      const dataToSubmit = { ...formData };
+      if (editUser.plainPassword && formData.password === editUser.plainPassword) {
+        delete dataToSubmit.password;
+      } else if (!formData.password) {
+        delete dataToSubmit.password;
+      }
       handleUpdateUser(dataToSubmit);
     } else {
       handleCreateUser(formData);
@@ -83,7 +106,8 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   const handleClose = () => {
     setOpenModal(false); setEditUser(null);
     setFormData({ name: "", email: "", location: "", password: "", role: "team", department: "" });
-    setShowPassword(false);
+    setShowPassword(true);
+    setCopiedPassword(false);
   };
 
   if (!openModal) return null;
@@ -211,26 +235,72 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
           </div>
 
           <div>
-            <label className={LABEL}>Password {!editUser && <span className="normal-case text-red-600">*</span>} {editUser && <span className="normal-case text-gray-400">(leave blank to keep)</span>}</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className={LABEL + " mb-0"}>
+                Password {!editUser && <span className="normal-case text-red-600">*</span>}{" "}
+                {editUser && (
+                  <span className="normal-case text-slate-400 font-normal">
+                    {editUser.plainPassword ? "(view or edit to change)" : "(leave blank to keep)"}
+                  </span>
+                )}
+              </label>
+              <div className="flex items-center gap-2">
+                {!editUser && (
+                  <button
+                    type="button"
+                    onClick={handleGeneratePassword}
+                    className="text-[10px] text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <FiKey size={11} /> Generate
+                  </button>
+                )}
+                {formData.password && (
+                  <button
+                    type="button"
+                    onClick={handleCopyPassword}
+                    className="text-[10px] text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Copy Password"
+                  >
+                    {copiedPassword ? (
+                      <>
+                        <FiCheck size={11} className="text-emerald-500" />
+                        <span className="text-emerald-600 dark:text-emerald-400">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiCopy size={11} />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
                 name="password" 
-                required={!editUser}
+                required={!editUser && !editUser?.plainPassword}
                 value={formData.password} 
                 onChange={handleChange} 
-                placeholder="Enter user password" 
+                placeholder={editUser && !editUser.plainPassword ? "No saved password (enter to set new)" : "Enter user password"} 
                 autoComplete="new-password"
-                className={INPUT + " pr-10"} 
+                className={INPUT + " pr-10 font-mono tracking-wide"} 
               />
               <button 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
               </button>
             </div>
+            {editUser && !editUser.plainPassword && (
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">
+                ⚠️ Password was created before visibility was added. Enter a new password to save and view it in the future.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

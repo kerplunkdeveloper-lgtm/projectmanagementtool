@@ -14,10 +14,34 @@ exports.getUsers = async (req, res) => {
     let query = {};
     const users = await User.find(query).populate('profile').lean();
 
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isHr =
+      deptLower.includes('hr') ||
+      deptLower.includes('human resource') ||
+      req.user?.department === 'HR' ||
+      req.user?.role === 'humanresource';
+    const userPerm = req.user?.permissions?.manage_users;
+    const canViewPasswords =
+      req.user?.role === 'admin' ||
+      req.user?.role === 'operationmanager' ||
+      isHr ||
+      userPerm === true ||
+      userPerm?.write === true ||
+      userPerm?.read === true ||
+      userPerm?.update === true;
+
+    const sanitizedUsers = users.map((u) => {
+      if (!canViewPasswords) {
+        const { plainPassword, ...rest } = u;
+        return rest;
+      }
+      return u;
+    });
+
     res.status(200).json({
       success: true,
-      count: users.length,
-      data: users,
+      count: sanitizedUsers.length,
+      data: sanitizedUsers,
     });
   } catch (err) {
     res.status(500).json({
@@ -42,6 +66,26 @@ exports.getUser = async (req, res) => {
         success: false,
         message: 'User not found',
       });
+    }
+
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isHr =
+      deptLower.includes('hr') ||
+      deptLower.includes('human resource') ||
+      req.user?.department === 'HR' ||
+      req.user?.role === 'humanresource';
+    const userPerm = req.user?.permissions?.manage_users;
+    const canViewPasswords =
+      req.user?.role === 'admin' ||
+      req.user?.role === 'operationmanager' ||
+      isHr ||
+      userPerm === true ||
+      userPerm?.write === true ||
+      userPerm?.read === true ||
+      userPerm?.update === true;
+
+    if (!canViewPasswords && req.user?._id?.toString() !== user._id?.toString()) {
+      delete user.plainPassword;
     }
 
     res.status(200).json({
@@ -110,6 +154,7 @@ exports.createUser = async (req, res) => {
     const userData = {
       ...req.body,
       password: hashedPassword,
+      plainPassword: password,
     };
 
     if (userData.role === 'humanresource' && (!userData.department || userData.department.trim() === '')) {
@@ -156,6 +201,7 @@ exports.updateUser = async (req, res) => {
         req.body.password,
         salt
       );
+      updateData.plainPassword = req.body.password;
     }
 
     const targetId = (!req.params.id || req.params.id === 'me') ? req.user._id : req.params.id;

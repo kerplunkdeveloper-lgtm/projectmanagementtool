@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getEodReports, createEodReport, deleteEodReport } from "../../features/eodReports/eodReportSlice";
@@ -29,6 +29,12 @@ import {
   FiDownload,
   FiUploadCloud,
 } from "react-icons/fi";
+import { LuPalette, LuVideo } from "react-icons/lu";
+
+const tabs = [
+  { id: "Graphic Designer", label: "Graphic Designer", icon: LuPalette },
+  { id: "Cinematographer", label: "Cinematographer", icon: LuVideo },
+];
 
 const getContentTypeStyle = (contentType) => {
   if (!contentType)
@@ -55,50 +61,42 @@ const getContentTypeStyle = (contentType) => {
   return "bg-slate-50 text-slate-655 border border-slate-200/50 dark:bg-slate-500/10 dark:text-slate-450 dark:border-slate-500/20";
 };
 
+const loggedTimeCache = new Map();
 const calculateTotalLoggedTime = (report) => {
-  if (!report.tasks || !Array.isArray(report.tasks)) {
-    return report.timeSpentToday || "-";
+  if (!report || !report.tasks || !Array.isArray(report.tasks)) {
+    return report?.timeSpentToday || "-";
+  }
+  const cacheKey = report._id || report.id;
+  if (cacheKey && loggedTimeCache.has(cacheKey)) {
+    return loggedTimeCache.get(cacheKey);
   }
 
   let totalMinutes = 0;
   report.tasks.forEach((t) => {
     if (!t.loggedTime) return;
     const timeStr = t.loggedTime.toLowerCase().trim();
-    let hours = 0;
-    let minutes = 0;
 
     if (/^\d+(\.\d+)?$/.test(timeStr)) {
-      hours = parseFloat(timeStr);
+      totalMinutes += parseFloat(timeStr) * 60;
     } else {
       const hMatch = timeStr.match(/(\d+(\.\d+)?)\s*h/);
-      if (hMatch) {
-        hours = parseFloat(hMatch[1]);
-      } else {
-        const hourWordMatch = timeStr.match(/(\d+(\.\d+)?)\s*hour/);
-        if (hourWordMatch) hours = parseFloat(hourWordMatch[1]);
-      }
-
       const mMatch = timeStr.match(/(\d+)\s*m/);
-      if (mMatch) {
-        minutes = parseInt(mMatch[1], 10);
-      } else {
-        const minWordMatch = timeStr.match(/(\d+)\s*min/);
-        if (minWordMatch) minutes = parseInt(minWordMatch[1], 10);
-      }
+      if (hMatch) totalMinutes += parseFloat(hMatch[1]) * 60;
+      if (mMatch) totalMinutes += parseInt(mMatch[1], 10);
     }
-
-    totalMinutes += hours * 60 + minutes;
   });
 
   if (totalMinutes === 0) {
-    return report.timeSpentToday || "-";
+    const res = report.timeSpentToday || "-";
+    if (cacheKey) loggedTimeCache.set(cacheKey, res);
+    return res;
   }
 
   const h = Math.floor(totalMinutes / 60);
   const m = Math.round(totalMinutes % 60);
-  if (h > 0 && m > 0) return `${h}h ${m}m`;
-  if (h > 0) return `${h}h`;
-  return `${m}m`;
+  const res = h > 0 && m > 0 ? `${h}h ${m}m` : h > 0 ? `${h}h` : `${m}m`;
+  if (cacheKey) loggedTimeCache.set(cacheKey, res);
+  return res;
 };
 
 const isTaskCompleted = (t) => {
@@ -111,14 +109,7 @@ const isCarryForwardTask = (task, reportDate) => {
   if (!task || !reportDate) return false;
   const assignmentDateStr = task.assignedDate || task.assignedAt || task.startDate || task.createdAt;
   if (!assignmentDateStr) return false;
-  
-  const assignment = new Date(assignmentDateStr);
-  const report = new Date(reportDate);
-  
-  assignment.setHours(0, 0, 0, 0);
-  report.setHours(0, 0, 0, 0);
-  
-  return assignment < report;
+  return String(assignmentDateStr).slice(0, 10) < String(reportDate).slice(0, 10);
 };
 
 const AdminEodReports = () => {
@@ -135,21 +126,31 @@ const AdminEodReports = () => {
   const { clients = [] } = useSelector((state) => state.clients || state.client || {});
 
   const [activeTab, setActiveTab] = useState(() => {
-    return (
-      searchParams.get("tab") ||
-      sessionStorage.getItem("admin_eod_tab") ||
-      "All Departments"
-    );
+    const fromUrl = searchParams.get("tab");
+    const fromStorage = sessionStorage.getItem("admin_eod_tab");
+    const initial = fromUrl || fromStorage;
+    if (initial === "Cinematographer" || initial === "Videographer") {
+      return "Cinematographer";
+    }
+    return "Graphic Designer";
   });
 
-  // Filters State
-  const [searchQuery, setSearchQuery] = useState(() => {
+  // Filters State with Debounced Search
+  const [searchInput, setSearchInput] = useState(() => {
     return (
       searchParams.get("search") ||
       sessionStorage.getItem("admin_eod_search") ||
       ""
     );
   });
+  const [searchQuery, setSearchQuery] = useState(searchInput);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
   const [statusFilter, setStatusFilter] = useState(() => {
     return (
       searchParams.get("status") ||
@@ -191,7 +192,6 @@ const AdminEodReports = () => {
     if (fromStorage !== null) return fromStorage;
     return getLocalDateStr();
   });
-  const [showDeptDropdown, setShowDeptDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => {
     const pageFromUrl = searchParams.get("page");
     const pageFromStorage = sessionStorage.getItem("admin_eod_page");
@@ -213,7 +213,7 @@ const AdminEodReports = () => {
   // Sync state changes to searchParams & sessionStorage
   useEffect(() => {
     const params = {};
-    if (activeTab && activeTab !== "All Departments") params.tab = activeTab;
+    if (activeTab) params.tab = activeTab;
     if (searchQuery) params.search = searchQuery;
     if (statusFilter && statusFilter !== "All") params.status = statusFilter;
     if (clientFilter && clientFilter !== "All") params.client = clientFilter;
@@ -245,16 +245,6 @@ const AdminEodReports = () => {
     setSelectedIds([]);
     setUserFilter("All");
   }, [activeTab]);
-
-  useEffect(() => {
-    const handleOutsideClick = (event) => {
-      if (!event.target.closest("#dept-filter-dropdown-container")) {
-        setShowDeptDropdown(false);
-      }
-    };
-    document.addEventListener("click", handleOutsideClick);
-    return () => document.removeEventListener("click", handleOutsideClick);
-  }, []);
 
   const handlePrevDay = () => {
     const base = selectedDate && selectedDate !== "all" ? new Date(selectedDate) : new Date();
@@ -570,199 +560,212 @@ const AdminEodReports = () => {
     }
   };
 
-  const getClientObject = (clientNameOrObj) => {
-    if (!clientNameOrObj) return null;
-    if (typeof clientNameOrObj === "object" && clientNameOrObj.companyName) {
-      return clientNameOrObj;
-    }
-    const nameStr = typeof clientNameOrObj === "string" ? clientNameOrObj.trim() : "";
-    if (!nameStr || nameStr === "-" || nameStr === "—" || nameStr.toLowerCase() === "none") return null;
+  const clientsMap = useMemo(() => {
+    const map = new Map();
+    (clients || []).forEach((c) => {
+      if (!c) return;
+      if (c._id) map.set(c._id.toString(), c);
+      if (c.id) map.set(c.id.toString(), c);
+      if (c.companyName) {
+        map.set(c.companyName.trim().toLowerCase(), c);
+        map.set(c.companyName.trim(), c);
+      }
+    });
+    return map;
+  }, [clients]);
 
-    const matched = (clients || []).find(
-      (c) =>
-        c.companyName?.toLowerCase() === nameStr.toLowerCase() ||
-        c._id === nameStr ||
-        c.id === nameStr,
-    );
-    if (matched) return matched;
-    return { companyName: nameStr };
-  };
+  const getClientObject = useCallback(
+    (clientNameOrObj) => {
+      if (!clientNameOrObj) return null;
+      if (typeof clientNameOrObj === "object" && clientNameOrObj.companyName) {
+        return clientNameOrObj;
+      }
+      const nameStr =
+        typeof clientNameOrObj === "string" ? clientNameOrObj.trim() : "";
+      if (
+        !nameStr ||
+        nameStr === "-" ||
+        nameStr === "—" ||
+        nameStr.toLowerCase() === "none"
+      )
+        return null;
+
+      const matched =
+        clientsMap.get(nameStr) || clientsMap.get(nameStr.toLowerCase());
+      if (matched) return matched;
+      return { companyName: nameStr };
+    },
+    [clientsMap],
+  );
 
   useEffect(() => {
     dispatch(getEodReports());
     dispatch(getDesignerEodReports());
-    dispatch(getUsers());
-    dispatch(getClients());
+    if (!allUsers || allUsers.length === 0) dispatch(getUsers());
+    if (!clients || clients.length === 0) dispatch(getClients());
   }, [dispatch]);
 
-  // Group reports by User Department
+  // Group reports by User Department (Graphic Designer and Cinematographer) with pre-normalization
   const groupedDepartments = useMemo(() => {
-    const groups = {};
+    const groups = {
+      "Graphic Designer": [],
+      "Cinematographer": [],
+    };
 
     const allDesigner = designerEodReports || [];
     const allGeneral = eodReports || [];
 
-    // All Departments contains all designer reports + general reports sorted by date
-    groups["All Departments"] = [...allDesigner, ...allGeneral].sort(
+    const isCinematographer = (user) => {
+      if (!user) return false;
+      const dept = (user.department || "").toLowerCase().trim();
+      const role = (user.role || "").toLowerCase().trim();
+      return (
+        dept.includes("cinema") ||
+        dept.includes("video") ||
+        dept.includes("edit") ||
+        dept.includes("shoot") ||
+        dept.includes("camera") ||
+        role.includes("cinema") ||
+        role.includes("video") ||
+        role.includes("edit") ||
+        role.includes("shoot") ||
+        role.includes("camera")
+      );
+    };
+
+    const normalizeReport = (report) => {
+      const dateStr = report.date ? String(report.date).slice(0, 10) : "";
+
+      const clientSet = new Set();
+      const clientNames = [];
+      if (report.tasks && Array.isArray(report.tasks)) {
+        report.tasks.forEach((t) => {
+          if (t.client) {
+            const ct = t.client.trim();
+            clientSet.add(ct);
+            clientNames.push(ct);
+          }
+        });
+      } else if (report.clientName) {
+        report.clientName.split(/[,;\n]+/).forEach((c) => {
+          const ct = c.trim();
+          if (ct) {
+            clientSet.add(ct);
+            clientNames.push(ct);
+          }
+        });
+      }
+
+      let taskText = "";
+      if (report.tasks && Array.isArray(report.tasks)) {
+        taskText = report.tasks.map((t) => `${t.title || ""} ${t.project || ""}`).join(" ");
+      } else {
+        taskText = report.projectsWorkedOn || "";
+      }
+
+      const userName = report.user?.name || "";
+      const searchTarget = `${clientNames.join(" ")} ${taskText} ${userName}`.toLowerCase();
+      const userId = (report.user?._id || report.user?.id || report.user?.name || "").toString();
+
+      return {
+        ...report,
+        _dateStr: dateStr,
+        _clientSet: clientSet,
+        _clientList: clientNames,
+        _searchTarget: searchTarget,
+        _userId: userId,
+        _userNameLower: userName.toLowerCase(),
+      };
+    };
+
+    // 1. Process reports with task lists (designerEodReports)
+    allDesigner.forEach((report) => {
+      const norm = normalizeReport(report);
+      if (isCinematographer(report.user)) {
+        groups["Cinematographer"].push(norm);
+      } else {
+        groups["Graphic Designer"].push(norm);
+      }
+    });
+
+    // 2. Process general reports
+    allGeneral.forEach((report) => {
+      const norm = normalizeReport(report);
+      if (isCinematographer(report.user)) {
+        groups["Cinematographer"].push(norm);
+      } else {
+        groups["Graphic Designer"].push(norm);
+      }
+    });
+
+    groups["Graphic Designer"].sort(
+      (a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)
+    );
+    groups["Cinematographer"].sort(
       (a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)
     );
 
-    // Initialize Graphic Designer & Videographer tabs
-    groups["Graphic Designer"] = allDesigner;
-    groups["Videographer"] = [];
-
-    // Collect and initialize all department keys from registered users (allUsers)
-    if (Array.isArray(allUsers)) {
-      allUsers.forEach((u) => {
-        if (!u.department || !u.department.trim()) return;
-        let dept = u.department.trim();
-        const deptLower = dept.toLowerCase();
-        if (deptLower === "videographer" || deptLower === "video editor") {
-          dept = "Videographer";
-        } else if (deptLower === "graphic designer" || deptLower === "designer") {
-          dept = "Graphic Designer";
-        }
-        if (!groups[dept]) {
-          groups[dept] = [];
-        }
-      });
-    }
-
-    // Group general reports under user's department
-    allGeneral.forEach((report) => {
-      let dept = report.user?.department || "General";
-      const deptLower = dept.trim().toLowerCase();
-      if (deptLower === "videographer" || deptLower === "video editor") {
-        dept = "Videographer";
-      } else if (deptLower === "graphic designer" || deptLower === "designer") {
-        dept = "Graphic Designer";
-      }
-      if (!groups[dept]) {
-        groups[dept] = [];
-      }
-      groups[dept].push(report);
-    });
-
     return groups;
-  }, [eodReports, designerEodReports, allUsers]);
-
-  // Generate department list:
-  // 1st: "All Departments", 2nd: "Graphic Designer", 3rd: "Videographer", 4th: "Social Media Manager"
-  // "Managing Partner" and "Operation Manager" are removed.
-  // "Mobile Developer" is placed last.
-  const departmentsList = useMemo(() => {
-    const excludedKeywords = [
-      "managing partner",
-      "managingpartner",
-      "operation manager",
-      "operationmanager",
-      "operations manager",
-      "operationsmanager",
-    ];
-
-    const isMobileDev = (d) => {
-      const lower = (d || "").trim().toLowerCase();
-      return lower.includes("mobile");
-    };
-
-    const isSocialMedia = (d) => {
-      const lower = (d || "").trim().toLowerCase();
-      return lower.includes("social media");
-    };
-
-    const isExcluded = (d) => {
-      const lower = (d || "").trim().toLowerCase();
-      return excludedKeywords.some((ex) => lower.includes(ex));
-    };
-
-    // Find Social Media key if present in groupedDepartments or allUsers
-    const socialMediaKey =
-      Object.keys(groupedDepartments).find((d) => isSocialMedia(d)) ||
-      ((allUsers || []).some((u) => isSocialMedia(u.department || u.role))
-        ? "Social Media Manager"
-        : null);
-
-    const defaultDepts = ["All Departments", "Graphic Designer", "Videographer"];
-    if (socialMediaKey) {
-      defaultDepts.push(socialMediaKey);
-    }
-
-    // Filter remaining department keys
-    const remainingDepts = Object.keys(groupedDepartments)
-      .filter((d) => {
-        if (defaultDepts.includes(d)) return false;
-        if (isExcluded(d)) return false;
-        if (isMobileDev(d)) return false;
-        if (isSocialMedia(d)) return false;
-        return true;
-      })
-      .sort();
-
-    // Find Mobile Developer key if present
-    const mobileDevKey = Object.keys(groupedDepartments).find((d) => isMobileDev(d));
-
-    const result = [...defaultDepts, ...remainingDepts];
-
-    if (mobileDevKey) {
-      result.push(mobileDevKey);
-    } else {
-      const hasMobileUser = (allUsers || []).some((u) => isMobileDev(u.department || u.role));
-      if (hasMobileUser) {
-        result.push("Mobile Developer");
-      }
-    }
-
-    return result;
-  }, [groupedDepartments, allUsers]);
+  }, [eodReports, designerEodReports]);
 
   // Extract unique clients based on the active tab's reports
   const uniqueClients = useMemo(() => {
     const reports = groupedDepartments[activeTab] || [];
     const clientsSet = new Set();
     reports.forEach((report) => {
-      if (report.tasks && Array.isArray(report.tasks)) {
-        report.tasks.forEach((t) => {
-          if (t.client) clientsSet.add(t.client.trim());
-        });
-      } else if (report.clientName) {
-        clientsSet.add(report.clientName.trim());
+      if (report._clientList) {
+        report._clientList.forEach((c) => clientsSet.add(c));
       }
     });
     return Array.from(clientsSet).sort();
   }, [groupedDepartments, activeTab]);
 
-  // Extract unique users/designers in active department
+  // Extract unique users in active tab
   const uniqueDepartmentUsers = useMemo(() => {
     const userMap = new Map();
-    const activeTabLower = (activeTab || "").trim().toLowerCase();
+
+    const isCinematographer = (u) => {
+      if (!u) return false;
+      const dept = (u.department || "").toLowerCase().trim();
+      const role = (u.role || "").toLowerCase().trim();
+      return (
+        dept.includes("cinema") ||
+        dept.includes("video") ||
+        dept.includes("edit") ||
+        dept.includes("shoot") ||
+        dept.includes("camera") ||
+        role.includes("cinema") ||
+        role.includes("video") ||
+        role.includes("edit") ||
+        role.includes("shoot") ||
+        role.includes("camera")
+      );
+    };
+
+    const isGraphicDesigner = (u) => {
+      if (!u) return false;
+      const dept = (u.department || "").toLowerCase().trim();
+      const role = (u.role || "").toLowerCase().trim();
+      return (
+        dept.includes("graphic") ||
+        dept.includes("design") ||
+        dept.includes("ui") ||
+        dept.includes("ux") ||
+        role.includes("graphic") ||
+        role.includes("design")
+      );
+    };
 
     // 1. From all registered users matching department
     if (Array.isArray(allUsers)) {
       allUsers.forEach((u) => {
-        const uDept = (u.department || "").trim().toLowerCase();
-        const uRole = (u.role || "").trim().toLowerCase();
         const uId = (u._id || u.id || u.name || "").toString();
-
         if (!uId || !u.name) return;
 
-        let isMatch = false;
-        if (activeTab === "All Departments") {
-          isMatch = true;
-        } else if (activeTab === "Graphic Designer") {
-          isMatch =
-            uDept === "graphic designer" ||
-            uDept === "designer" ||
-            uRole === "graphic designer" ||
-            uRole === "designer";
-        } else if (activeTab === "Videographer") {
-          isMatch =
-            uDept === "videographer" ||
-            uDept === "video editor" ||
-            uRole === "videographer" ||
-            uRole === "video editor";
-        } else {
-          isMatch = uDept === activeTabLower || uRole === activeTabLower;
-        }
+        const isMatch =
+          activeTab === "Cinematographer"
+            ? isCinematographer(u)
+            : isGraphicDesigner(u);
 
         if (isMatch) {
           userMap.set(uId, { id: uId, name: u.name });
@@ -785,147 +788,105 @@ const AdminEodReports = () => {
   }, [allUsers, groupedDepartments, activeTab]);
 
   const userFilterLabel = useMemo(() => {
-    if (!activeTab || activeTab === "All Departments") return "All Teammates";
-    if (activeTab === "Graphic Designer") return "All Designers";
-    if (activeTab === "Videographer") return "All Videographers";
-    if (activeTab === "Digital Marketing") return "All Digital Marketers";
-    if (activeTab.toLowerCase().includes("user") || activeTab.toLowerCase().includes("team")) {
-      return `All ${activeTab}`;
-    }
-    return `All ${activeTab}s`;
+    if (activeTab === "Cinematographer") return "All Cinematographers";
+    return "All Designers";
   }, [activeTab]);
 
-  // Helper to apply current search, status, client, user, and date filters
-  const applyFilters = (reportsList) => {
-    if (!reportsList || !Array.isArray(reportsList)) return [];
-    return reportsList.filter((report) => {
-      const searchLower = searchQuery.toLowerCase();
-      let client = report.clientName || "";
-      let task = report.projectsWorkedOn || "";
+  // Ultra-fast filter using pre-normalized properties
+  const applyFilters = useCallback(
+    (reportsList) => {
+      if (!reportsList || !Array.isArray(reportsList)) return [];
+      const searchLower = searchQuery.trim().toLowerCase();
+      const hasSearch = searchLower.length > 0;
+      const hasStatus = statusFilter !== "All";
+      const hasUser = userFilter !== "All";
+      const userFilterLower = userFilter.toLowerCase();
+      const hasClient = clientFilter !== "All";
+      const hasDate = selectedDate && selectedDate !== "all";
 
-      if (report.tasks && Array.isArray(report.tasks)) {
-        client = report.tasks
-          .map((t) => t.client)
-          .filter(Boolean)
-          .join(" ");
-        task = report.tasks
-          .map((t) => `${t.title} ${t.project}`)
-          .filter(Boolean)
-          .join(" ");
-      }
-
-      const matchesSearch =
-        client.toLowerCase().includes(searchLower) ||
-        task.toLowerCase().includes(searchLower) ||
-        (report.user?.name || "").toLowerCase().includes(searchLower);
-
-      const matchesStatus =
-        statusFilter === "All" || report.overallStatus === statusFilter;
-
-      // User / Designer filter matches
-      let matchesUser = true;
-      if (userFilter !== "All") {
-        const reportUserId = (report.user?._id || report.user?.id || report.user?.name || "").toString();
-        matchesUser =
-          reportUserId === userFilter ||
-          (report.user?.name && report.user.name.toLowerCase() === userFilter.toLowerCase());
-      }
-
-      // Client filter matches
-      let matchesClient = true;
-      if (clientFilter !== "All") {
-        if (report.tasks && Array.isArray(report.tasks)) {
-          matchesClient = report.tasks.some(
-            (t) => t.client && t.client.trim() === clientFilter
-          );
-        } else {
-          matchesClient = report.clientName && report.clientName.trim() === clientFilter;
-        }
-      }
-
-      let matchesDate = true;
-      if (selectedDate && selectedDate !== "all") {
-        const reportDate = new Date(report.date);
-        const reportYear = reportDate.getFullYear();
-        const reportMonth = String(reportDate.getMonth() + 1).padStart(2, "0");
-        const reportDay = String(reportDate.getDate()).padStart(2, "0");
-        const reportDateStr = `${reportYear}-${reportMonth}-${reportDay}`;
-
-        matchesDate = reportDateStr === selectedDate;
-      }
-
-      return matchesSearch && matchesStatus && matchesUser && matchesClient && matchesDate;
-    });
-  };
+      return reportsList.filter((report) => {
+        if (hasDate && report._dateStr !== selectedDate) return false;
+        if (hasStatus && report.overallStatus !== statusFilter) return false;
+        if (
+          hasUser &&
+          report._userId !== userFilter &&
+          report._userNameLower !== userFilterLower
+        )
+          return false;
+        if (hasClient && !report._clientSet?.has(clientFilter)) return false;
+        if (hasSearch && !report._searchTarget?.includes(searchLower))
+          return false;
+        return true;
+      });
+    },
+    [searchQuery, statusFilter, clientFilter, userFilter, selectedDate],
+  );
 
   // Filter reports of active department
   const filteredReports = useMemo(() => {
     const reports = groupedDepartments[activeTab] || [];
     return applyFilters(reports);
-  }, [
-    groupedDepartments,
-    activeTab,
-    searchQuery,
-    statusFilter,
-    clientFilter,
-    userFilter,
-    selectedDate,
-  ]);
+  }, [groupedDepartments, activeTab, applyFilters]);
 
   // Dynamic department counts based on active date/status/search filters
   const departmentCounts = useMemo(() => {
-    const counts = {};
-    Object.keys(groupedDepartments).forEach((dept) => {
-      const deptReports = groupedDepartments[dept] || [];
-      counts[dept] = applyFilters(deptReports).length;
-    });
-    return counts;
-  }, [
-    groupedDepartments,
-    searchQuery,
-    statusFilter,
-    clientFilter,
-    userFilter,
-    selectedDate,
-  ]);
+    return {
+      "Graphic Designer": applyFilters(
+        groupedDepartments["Graphic Designer"] || [],
+      ).length,
+      Cinematographer: applyFilters(groupedDepartments["Cinematographer"] || [])
+        .length,
+    };
+  }, [groupedDepartments, applyFilters]);
 
   // Total registered users count in active department from users database
   const totalUsersCount = useMemo(() => {
     const userSet = new Set();
-    const activeTabLower = (activeTab || "").trim().toLowerCase();
+
+    const isCinematographer = (u) => {
+      if (!u) return false;
+      const dept = (u.department || "").toLowerCase().trim();
+      const role = (u.role || "").toLowerCase().trim();
+      return (
+        dept.includes("cinema") ||
+        dept.includes("video") ||
+        dept.includes("edit") ||
+        dept.includes("shoot") ||
+        dept.includes("camera") ||
+        role.includes("cinema") ||
+        role.includes("video") ||
+        role.includes("edit") ||
+        role.includes("shoot") ||
+        role.includes("camera")
+      );
+    };
+
+    const isGraphicDesigner = (u) => {
+      if (!u) return false;
+      const dept = (u.department || "").toLowerCase().trim();
+      const role = (u.role || "").toLowerCase().trim();
+      return (
+        dept.includes("graphic") ||
+        dept.includes("design") ||
+        dept.includes("ui") ||
+        dept.includes("ux") ||
+        role.includes("graphic") ||
+        role.includes("design")
+      );
+    };
 
     if (Array.isArray(allUsers) && allUsers.length > 0) {
       allUsers.forEach((u) => {
-        const uDept = (u.department || "").trim().toLowerCase();
-        const uRole = (u.role || "").trim().toLowerCase();
         const uKey = (u._id || u.id || u.email || u.name || "").toString();
-
         if (!uKey) return;
 
-        if (activeTab === "All Departments") {
+        const isMatch =
+          activeTab === "Cinematographer"
+            ? isCinematographer(u)
+            : isGraphicDesigner(u);
+
+        if (isMatch) {
           userSet.add(uKey);
-        } else if (activeTab === "Graphic Designer") {
-          if (
-            uDept === "graphic designer" ||
-            uDept === "designer" ||
-            uRole === "graphic designer" ||
-            uRole === "designer"
-          ) {
-            userSet.add(uKey);
-          }
-        } else if (activeTab === "Videographer") {
-          if (
-            uDept === "videographer" ||
-            uDept === "video editor" ||
-            uRole === "videographer" ||
-            uRole === "video editor"
-          ) {
-            userSet.add(uKey);
-          }
-        } else {
-          if (uDept === activeTabLower || uRole === activeTabLower) {
-            userSet.add(uKey);
-          }
         }
       });
       return userSet.size;
@@ -941,16 +902,10 @@ const AdminEodReports = () => {
     return userSet.size;
   }, [allUsers, groupedDepartments, activeTab]);
 
-  // Dynamic department user label (e.g. Total Designers, Total Videographers, Total Teammates)
+  // Dynamic department user label (e.g. Total Designers, Total Cinematographers)
   const totalUsersLabel = useMemo(() => {
-    if (!activeTab || activeTab === "All Departments") return "Total Teammates";
-    if (activeTab === "Graphic Designer") return "Total Designers";
-    if (activeTab === "Videographer") return "Total Videographers";
-    if (activeTab === "Digital Marketing") return "Total Digital Marketers";
-    if (activeTab.toLowerCase().includes("user") || activeTab.toLowerCase().includes("team")) {
-      return `Total ${activeTab}`;
-    }
-    return `Total ${activeTab}s`;
+    if (activeTab === "Cinematographer") return "Total Cinematographers";
+    return "Total Designers";
   }, [activeTab]);
 
   // Pagination Logic
@@ -1048,85 +1003,61 @@ const AdminEodReports = () => {
       setDeleting(false);
     }
   };
-
-  const loading =
-    activeTab === "Graphic Designer"
-      ? designerLoading
-      : activeTab === "All Departments"
-        ? designerLoading || generalLoading
-        : generalLoading;
-  const totalColumnsCount =
-    activeTab === "Graphic Designer" || activeTab === "All Departments" ? 15 : 14;
+  const loading = designerLoading || generalLoading;
+  const totalColumnsCount = 15;
 
   return (
     <div className="min-h-screen py-6 transition-colors duration-300">
       <div className="max-w-8xl mx-auto">
         
-        {/* HEADER SECTION (Title, Dropdown & Date Navigation) */}
+        {/* HEADER SECTION (Tabs & Date Navigation) */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
-          {/* Left: Title & Department Selector */}
-          <div className="flex flex-wrap items-center gap-4">
-           
-
-            {/* Department Dropdown Selector */}
-            <div id="dept-filter-dropdown-container" className="relative">
-              <button
-                type="button"
-                onClick={() => setShowDeptDropdown(!showDeptDropdown)}
-                className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-xs transition-all cursor-pointer min-w-[190px] justify-between h-[38px]"
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                  {activeTab}
-                </span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                    {departmentCounts[activeTab] || 0}
-                  </span>
-                  <FiChevronDown className="text-slate-400 dark:text-slate-500" size={14} />
-                </div>
-              </button>
-
-              {showDeptDropdown && (
-                <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/60 dark:border-slate-700/50 py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-155">
-                  <div className="px-3 py-1.5 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-750 mb-1">
-                    Select Department
-                  </div>
-                  {departmentsList.map((dept) => {
-                    const count = departmentCounts[dept] || 0;
-                    return (
-                      <button
-                        key={dept}
-                        type="button"
-                        onClick={() => {
-                          setActiveTab(dept);
-                          setClientFilter("All");
-                          setShowDeptDropdown(false);
-                        }}
-                        className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
-                          activeTab === dept
-                            ? "bg-blue-50/50 dark:bg-blue-500/10 text-blue-650 dark:text-blue-400 font-extrabold"
-                            : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750"
-                        }`}
-                      >
-                        <span className="flex items-center gap-2 truncate">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeTab === dept ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"}`} />
-                          {dept}
-                        </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                          activeTab === dept
-                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                            : "bg-slate-100 text-slate-500 dark:bg-slate-800/80 dark:text-slate-400"
-                        }`}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+          {/* Left: Department Tabs (Graphic Designer & Cinematographer) */}
+          <div className="flex items-center">
+            <div className="flex items-center bg-slate-100/80 dark:bg-slate-900/80 p-1 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 shadow-xs">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                const count = departmentCounts[tab.id] || 0;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setClientFilter("All");
+                      setUserFilter("All");
+                    }}
+                    className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer select-none h-[38px] ${
+                      isActive
+                        ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm font-extrabold"
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <Icon
+                      size={14}
+                      className={
+                        isActive
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-slate-400 dark:text-slate-500"
+                      }
+                    />
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                        isActive
+                          ? "bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                          : "bg-slate-200/70 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
+
 
           {/* Right: Date Navigation Filter (Reference Image Style) */}
           <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 w-full sm:w-auto">
@@ -1315,8 +1246,8 @@ const AdminEodReports = () => {
             <input
               type="text"
               placeholder="Search by teammate, client, project, or task..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
             />
           </div>
@@ -1438,13 +1369,9 @@ const AdminEodReports = () => {
                     Task Assigned by
                   </th>
 
-                  {(activeTab === "Graphic Designer" || activeTab === "All Departments") && (
-                    <>
-                      <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                        Completed Designs
-                      </th>
-                    </>
-                  )}
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    {activeTab === "Cinematographer" ? "Completed Tasks" : "Completed Designs"}
+                  </th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[200px]">
                     Pending Tasks
                   </th>
@@ -1684,18 +1611,14 @@ const AdminEodReports = () => {
                         )}
                       </td>
 
-                      {/* DYNAMIC DESIGNER SPECIFIC FIELDS */}
-                      {(activeTab === "Graphic Designer" || activeTab === "All Departments") && (
-                        <>
-                          <td className="px-5 py-3 text-left">
-                            <span className="text-slate-655 dark:text-slate-400 text-xs">
-                              {report.tasks
-                                ? `${report.tasks.filter(isTaskCompleted).length} / ${report.tasks.length}`
-                                : report.designCount || "-"}
-                            </span>
-                          </td>
-                        </>
-                      )}
+                      {/* COMPLETED DESIGNS / TASKS */}
+                      <td className="px-5 py-3 text-left">
+                        <span className="text-slate-655 dark:text-slate-400 text-xs font-semibold">
+                          {report.tasks
+                            ? `${report.tasks.filter(isTaskCompleted).length} / ${report.tasks.length}`
+                            : report.designCount || "-"}
+                        </span>
+                      </td>
 
                       {/* PENDING TASKS */}
                       <td
@@ -1910,7 +1833,7 @@ const AdminEodReports = () => {
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
                 <div className="text-left">
                   <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
-                    {selectedReport.tasks ? "Graphic Designer " : ""}EOD Report
+                    {selectedReport.tasks ? (activeTab === "Cinematographer" ? "Cinematographer " : "Graphic Designer ") : ""}EOD Report
                     Details
                   </h2>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1">

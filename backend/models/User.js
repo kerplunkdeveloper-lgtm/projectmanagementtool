@@ -21,6 +21,12 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
 
+  plainPassword: {
+    type: String,
+    default: "",
+    trim: true,
+  },
+
   role: {
     type: String,
     enum: ['admin', 'operationmanager', 'team', 'humanresource'],
@@ -163,6 +169,11 @@ userSchema.pre('save', async function () {
   }
 
   if (!this.isModified('password')) {
+    return;
+  }
+
+  // Prevent double hashing if already a bcrypt hash
+  if (typeof this.password === 'string' && (this.password.startsWith('$2a$') || this.password.startsWith('$2b$'))) {
     return;
   }
 

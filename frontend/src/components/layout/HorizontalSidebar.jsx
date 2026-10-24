@@ -293,10 +293,14 @@ const HorizontalSidebar = ({ role }) => {
         return false;
       }
 
-      // Hide My Reports for Social Media Manager department
+      // Hide My Reports for Social Media Manager department and HR department/role
       if (
         item.name === "My Reports" &&
-        currentUser?.department === "Social Media Manager"
+        (currentUser?.department === "Social Media Manager" ||
+          currentUser?.department?.toLowerCase() === "hr" ||
+          currentUser?.department?.toLowerCase()?.includes("human resource") ||
+          currentUser?.role === "humanresource" ||
+          role === "humanresource")
       ) {
         return false;
       }

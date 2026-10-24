@@ -170,7 +170,6 @@ export const sidebarConfig = {
       ],
     },
     { name: "Status Overview", path: "/humanresource/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
-    { name: "My Reports", path: "/humanresource/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/humanresource/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Users", path: "/humanresource/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Profile", path: "/humanresource/profile", icon: FiUser },

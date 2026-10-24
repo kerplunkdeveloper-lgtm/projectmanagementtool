@@ -176,7 +176,8 @@ exports.getDesignerEodReports = async (req, res) => {
         populate: { path: "profile", select: "profileImage" }
       })
       .populate("tasks.reviewedBy", "name email role profile department")
-      .sort({ date: -1, createdAt: -1 });
+      .sort({ date: -1, createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,
