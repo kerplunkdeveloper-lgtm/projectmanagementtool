@@ -36,6 +36,14 @@ const AdminUsers = () => {
 
   const { user } = useSelector((state) => state.auth);
 
+  const deptLower = (user?.department || "").toLowerCase();
+  const roleLower = (user?.role || "").toLowerCase();
+  const isHr =
+    roleLower === "humanresource" ||
+    roleLower === "hr" ||
+    deptLower.includes("hr") ||
+    deptLower.includes("human resource");
+
   const userPerms = user?.permissions?.["manage_users"];
   const canCreate =
     user?.role === "admin" ||
@@ -176,8 +184,15 @@ const AdminUsers = () => {
   };
 
   // REQUEST DELETE (OPEN MODAL)
-  const requestDeleteUser = (user) => {
-    setUserToDelete(user);
+  const requestDeleteUser = (userToDeleteItem) => {
+    if (
+      userToDeleteItem?.role === "admin" ||
+      userToDeleteItem?.role?.toLowerCase() === "admin"
+    ) {
+      toast.error("Admin user cannot be deleted.");
+      return;
+    }
+    setUserToDelete(userToDeleteItem);
     setOpenDeleteModal(true);
   };
 
@@ -423,7 +438,11 @@ const AdminUsers = () => {
       return [
         escapeCsv(u.name || "-"),
         escapeCsv(u.email || "-"),
-        escapeCsv(u.plainPassword || "-"),
+        escapeCsv(
+          isHr && (u.role === "admin" || u.role?.toLowerCase() === "admin")
+            ? "-"
+            : u.plainPassword || "-",
+        ),
         escapeCsv(phoneStr),
         escapeCsv(roleStr),
         escapeCsv(u.department || "-"),

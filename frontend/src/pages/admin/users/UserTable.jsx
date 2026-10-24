@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useSocketContext } from "../../../context/SocketContext";
 import {
   FiEdit2,
@@ -201,6 +202,16 @@ const UserTable = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const location = useLocation();
+  const deptLower = (currentUser?.department || "").toLowerCase();
+  const roleLower = (currentUser?.role || "").toLowerCase();
+  const isHr =
+    location.pathname.includes("/humanresource") ||
+    roleLower === "humanresource" ||
+    roleLower === "hr" ||
+    deptLower.includes("hr") ||
+    deptLower.includes("human resource");
+
   const userPerms = currentUser?.permissions?.["manage_users"];
   const canUpdate =
     currentUser?.role === "admin" ||
@@ -281,6 +292,16 @@ const UserTable = ({
                 const isRelieved =
                   user.employmentStatus === "relieved" ||
                   user.accountStatus === "inactive";
+                const isRowAdmin =
+                  user.role === "admin" ||
+                  user.role?.toLowerCase() === "admin" ||
+                  user.role?.toLowerCase()?.includes("admin") ||
+                  user.role?.toLowerCase() === "managingpartner" ||
+                  user.role?.toLowerCase() === "managing partner" ||
+                  user.department?.toLowerCase() === "admin" ||
+                  user.department?.toLowerCase()?.includes("managing partner");
+                const hideActionsForUser =
+                  isRowAdmin && (isHr || currentUser?.role !== "admin");
 
                 return (
                   <motion.tr
@@ -362,7 +383,7 @@ const UserTable = ({
                         </button>
                       </div>
 
-                      {user.plainPassword && (
+                      {user.plainPassword && !hideActionsForUser && (
                         <div className="flex items-center gap-1.5 mt-1 text-[11px]">
                           <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                             PWD:
@@ -471,74 +492,80 @@ const UserTable = ({
                     {/* ── ACTIONS ──────────────────────────────── */}
                     {!isReadOnly && (
                       <td className="px-5 py-3.5 align-middle">
-                        <div className="flex items-center gap-2">
-                          {!isRelieved ? (
-                            <>
-                              {canUpdate && (
-                                <ActionBtn
-                                  onClick={() => handleEdit(user)}
-                                  label="Edit User"
-                                  colorClass="bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/35"
-                                >
-                                  <FiEdit2 size={13} />
-                                </ActionBtn>
-                              )}
-
-                              {canManageRoles && (
-                                <ActionBtn
-                                  onClick={() => handlePermissions(user)}
-                                  label="Permissions"
-                                  colorClass="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/35"
-                                >
-                                  <FiSliders size={13} />
-                                </ActionBtn>
-                              )}
-
-                              {canRelieve &&
-                                user.role !== "admin" &&
-                                (
-                                  currentUser?._id || currentUser?.id
-                                )?.toString() !==
-                                  (user._id || user.id)?.toString() && (
+                        {hideActionsForUser ? (
+                          <span className="text-slate-300 dark:text-slate-600 text-sm font-semibold select-none">
+                            —
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {!isRelieved ? (
+                              <>
+                                {canUpdate && (
                                   <ActionBtn
-                                    onClick={() =>
-                                      handleRequestRelieve &&
-                                      handleRequestRelieve(user)
-                                    }
-                                    label="Relieve User"
-                                    colorClass="bg-slate-200 text-slate-800  dark:bg-black dark:text-white "
+                                    onClick={() => handleEdit(user)}
+                                    label="Edit User"
+                                    colorClass="bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/35"
                                   >
-                                    <FiUserMinus size={13} />
+                                    <FiEdit2 size={13} />
                                   </ActionBtn>
                                 )}
-                            </>
-                          ) : (
-                            <>
-                              {canRelieve && (
-                                <ActionBtn
-                                  onClick={() =>
-                                    handleRequestReactivate &&
-                                    handleRequestReactivate(user)
-                                  }
-                                  label="Reactivate User"
-                                  colorClass="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/35"
-                                >
-                                  <FiUserCheck size={13} />
-                                </ActionBtn>
-                              )}
-                            </>
-                          )}
 
-                          {canDelete && (
-                            <ActionBtn
-                              onClick={() => handleDeleteUser(user)}
-                              label="Delete User"
-                              colorClass="bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:hover:bg-rose-500/35"
-                            >
-                              <FiTrash2 size={13} />
-                            </ActionBtn>
-                          )}
-                        </div>
+                                {canManageRoles && (
+                                  <ActionBtn
+                                    onClick={() => handlePermissions(user)}
+                                    label="Permissions"
+                                    colorClass="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/35"
+                                  >
+                                    <FiSliders size={13} />
+                                  </ActionBtn>
+                                )}
+
+                                {canRelieve &&
+                                  user.role !== "admin" &&
+                                  (
+                                    currentUser?._id || currentUser?.id
+                                  )?.toString() !==
+                                    (user._id || user.id)?.toString() && (
+                                    <ActionBtn
+                                      onClick={() =>
+                                        handleRequestRelieve &&
+                                        handleRequestRelieve(user)
+                                      }
+                                      label="Relieve User"
+                                      colorClass="bg-slate-200 text-slate-800  dark:bg-black dark:text-white "
+                                    >
+                                      <FiUserMinus size={13} />
+                                    </ActionBtn>
+                                  )}
+                              </>
+                            ) : (
+                              <>
+                                {canRelieve && (
+                                  <ActionBtn
+                                    onClick={() =>
+                                      handleRequestReactivate &&
+                                      handleRequestReactivate(user)
+                                    }
+                                    label="Reactivate User"
+                                    colorClass="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/35"
+                                  >
+                                    <FiUserCheck size={13} />
+                                  </ActionBtn>
+                                )}
+                              </>
+                            )}
+
+                            {canDelete && (
+                              <ActionBtn
+                                onClick={() => handleDeleteUser(user)}
+                                label="Delete User"
+                                colorClass="bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:hover:bg-rose-500/35"
+                              >
+                                <FiTrash2 size={13} />
+                              </ActionBtn>
+                            )}
+                          </div>
+                        )}
                       </td>
                     )}
                   </motion.tr>

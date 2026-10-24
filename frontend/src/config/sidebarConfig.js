@@ -155,7 +155,6 @@ export const sidebarConfig = {
     { name: "Chat", path: "/humanresource/chat", icon: LuMessagesSquare },
     { name: "MOM / Client Calls", path: "/humanresource/mom-points", icon: LuStickyNote },
     // { name: "Workload", path: "/humanresource/workload", icon: LuActivity },
-    { name: "Clients", path: "/humanresource/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "SM Credentials", path: "/humanresource/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Projects", path: "/humanresource/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     {

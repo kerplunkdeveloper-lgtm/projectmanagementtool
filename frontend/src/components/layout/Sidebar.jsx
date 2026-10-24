@@ -352,6 +352,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           return false;
         }
 
+        // Hide Clients for HR department/role
+        if (
+          item.name === "Clients" &&
+          (currentUser?.department?.toLowerCase() === "hr" ||
+            currentUser?.department?.toLowerCase()?.includes("human resource") ||
+            currentUser?.role === "humanresource" ||
+            currentUser?.role === "hr" ||
+            role === "humanresource" ||
+            role === "hr")
+        ) {
+          return false;
+        }
+
         // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
         if (
           item.name === "SM Creditionals" ||

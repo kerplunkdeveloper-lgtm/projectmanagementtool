@@ -828,35 +828,6 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
 
       {/* RIGHT */}
       <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
-        {/* SEARCH BAR BUTTON (Desktop/Tablet only) */}
-        <button
-          type="button"
-          onClick={() => {
-            setShowSearchModal(true);
-            setSearchQuery("");
-            setSelectedIndex(0);
-          }}
-          className="
-            hidden sm:flex items-center gap-2.5
-            h-8.5 px-3 rounded-xl
-           sidebar-bg
-          
-            text-slate-400 dark:text-slate-500
-          
-            hover:text-slate-600 dark:hover:text-slate-300
-            transition-all duration-200 cursor-pointer
-            w-36 md:w-48 lg:w-56 text-left shadow-2xs
-          "
-        >
-          <FiSearch className="text-xs shrink-0 text-slate-400 dark:text-slate-500" />
-          <span className="text-xs font-medium truncate flex-1">
-            Search...
-          </span>
-          <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-2xs">
-            Ctrl+K
-          </kbd>
-        </button>
-
         {/* USER LOCATION (Desktop/Tablet only) */}
         <div
           className="
