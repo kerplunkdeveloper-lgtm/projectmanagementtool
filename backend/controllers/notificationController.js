@@ -39,6 +39,10 @@ exports.getNotifications = async (req, res) => {
           },
         },
       })
+      .populate({
+        path: 'hrTask',
+        select: 'title category status priority dueDate',
+      })
       .limit(30)
       .lean();
 

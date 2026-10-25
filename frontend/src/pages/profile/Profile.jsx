@@ -83,7 +83,7 @@ const Profile = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
 
           {/* ── LEFT CARD ── */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center">
+          <div className="bg-white rounded-2xl p-5 shadow-sm flex flex-col items-center text-center">
 
             {/* AVATAR */}
             <div className="relative mb-4">
@@ -142,7 +142,7 @@ const Profile = () => {
           </div>
 
           {/* ── RIGHT CARD ── */}
-          <div className=" border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <div className="  rounded-2xl p-5 shadow-sm">
             <h2 className="text-sm font-bold text-slate-800 mb-4 dark:text-yellow-50">Edit Information</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -163,7 +163,7 @@ const Profile = () => {
               {/* PHONE */}
               <div>
                 <label className="block text-xs font-semibold text-slate-800 dark:text-yellow-50 mb-1.5">Phone Number</label>
-                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                <div className="flex items-center gap-2 bg-gray-50  rounded-xl px-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                   <FiPhone size={13} className="text-blue-400 shrink-0" />
                   <input
                     type="text"
@@ -179,7 +179,7 @@ const Profile = () => {
               {/* EMAIL (disabled) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Email Address</label>
-                <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 rounded-xl px-3">
+                <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3">
                   <FiMail size={13} className="text-gray-400 shrink-0" />
                   <input
                     type="email"

@@ -13,7 +13,12 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['task_assigned', 'task_updated', 'project_assigned', 'client_assigned', 'general', 'message_received', 'mention_received', 'reaction_received', 'report_submitted', 'client_call_created', 'shoot_assigned', 'mom_created', 'mom_assigned', 'mom_overdue', 'mom_updated'],
+    enum: [
+      'task_assigned', 'task_updated', 'project_assigned', 'client_assigned', 'general',
+      'message_received', 'mention_received', 'reaction_received', 'report_submitted',
+      'client_call_created', 'shoot_assigned', 'mom_created', 'mom_assigned', 'mom_overdue', 'mom_updated',
+      'hr_task_assigned', 'hr_task_updated', 'hr_task_submitted', 'hr_task_reviewed', 'hr_task_blocker', 'hr_task_due_soon', 'hr_task_cancelled', 'hr_task_comment'
+    ],
     default: 'general',
   },
   message: {
@@ -23,6 +28,10 @@ const NotificationSchema = new mongoose.Schema({
   task: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Task',
+  },
+  hrTask: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'HrTask',
   },
   project: {
     type: mongoose.Schema.Types.ObjectId,

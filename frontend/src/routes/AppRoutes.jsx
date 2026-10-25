@@ -99,6 +99,9 @@ const SmTasks = lazyWithRetry(
 const ContentCalendar = lazyWithRetry(
   () => import("../pages/socialmedia/ContentCalendar.jsx"),
 );
+const HrTasks = lazyWithRetry(
+  () => import("../pages/hrTasks/HrTasks.jsx"),
+);
 
 // Dictionary of route preloading functions for hover-intent preloading
 export const routePreloaders = {
@@ -126,6 +129,7 @@ export const routePreloaders = {
   eventCalendar: () => import("../pages/calendar/EventCalendar.jsx"),
   smTasks: () => import("../pages/socialmedia/SmTasks.jsx"),
   contentCalendar: () => import("../pages/socialmedia/ContentCalendar.jsx"),
+  hrTasks: () => import("../pages/hrTasks/HrTasks.jsx"),
 };
 
 export const preloadRoute = (path) => {
@@ -136,6 +140,7 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/cinematographer-tasks")) routePreloaders.cinematographerTasks?.();
   else if (p.endsWith("/sm-tasks") || p.endsWith("/sm-task")) routePreloaders.smTasks?.();
   else if (p.endsWith("/content-calendar") || p.endsWith("/content-calendor")) routePreloaders.contentCalendar?.();
+  else if (p.endsWith("/hr-tasks") || p.endsWith("/hr-task")) routePreloaders.hrTasks?.();
   else if (p.endsWith("/clients")) routePreloaders.clients?.();
   else if (p.endsWith("/users")) routePreloaders.users?.();
   else if (p.endsWith("/tasks")) routePreloaders.tasks?.();
@@ -317,6 +322,9 @@ const AppRoutes = () => {
             }
           />
 
+          <Route path="hr-tasks" element={<HrTasks />} />
+          <Route path="hr-task" element={<HrTasks />} />
+
           <Route
             path="task-overview"
             element={
@@ -481,6 +489,9 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route path="hr-tasks" element={<HrTasks />} />
+          <Route path="hr-task" element={<HrTasks />} />
 
           <Route
             path="task-overview"
@@ -657,6 +668,9 @@ const AppRoutes = () => {
             }
           />
 
+          <Route path="hr-tasks" element={<HrTasks />} />
+          <Route path="hr-task" element={<HrTasks />} />
+
           <Route
             path="task-overview"
             element={
@@ -820,6 +834,9 @@ const AppRoutes = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route path="hr-tasks" element={<HrTasks />} />
+          <Route path="hr-task" element={<HrTasks />} />
 
           <Route
             path="task-overview"

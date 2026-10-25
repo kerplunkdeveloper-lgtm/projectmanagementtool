@@ -47,6 +47,7 @@ export const sidebarConfig = {
       path: "/admin/tasks",
       icon: LuListTodo,
       children: [
+        { name: "HR Tasks", path: "/admin/hr-tasks", icon: LuBriefcase, permissionKey: "manage_tasks" },
         { name: "SM Tasks", path: "/admin/sm-tasks", icon: LuListTodo },
         { name: "Designer Tasks", path: "/admin/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
         { name: "Cinematographer Tasks", path: "/admin/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
@@ -88,6 +89,7 @@ export const sidebarConfig = {
       path: "/operationmanager/tasks",
       icon: LuListTodo,
       children: [
+        { name: "HR Tasks", path: "/operationmanager/hr-tasks", icon: LuBriefcase, permissionKey: "manage_tasks" },
         { name: "SM Tasks", path: "/operationmanager/sm-tasks", icon: LuListTodo },
         { name: "Designer Tasks", path: "/operationmanager/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
         { name: "Cinematographer Tasks", path: "/operationmanager/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
@@ -157,18 +159,7 @@ export const sidebarConfig = {
     // { name: "Workload", path: "/humanresource/workload", icon: LuActivity },
     { name: "SM Credentials", path: "/humanresource/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Projects", path: "/humanresource/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
-    {
-      name: "Tasks",
-      path: "/humanresource/tasks",
-      icon: LuListTodo,
-      children: [
-        { name: "SM Tasks", path: "/humanresource/sm-tasks", icon: LuListTodo },
-        { name: "Designer Tasks", path: "/humanresource/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
-        { name: "Cinematographer Tasks", path: "/humanresource/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
-        { name: "Assigned Tasks", path: "/humanresource/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
-      ],
-    },
-    { name: "Status Overview", path: "/humanresource/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
+    { name: "HR Tasks", path: "/humanresource/hr-tasks", icon: LuListTodo },
     { name: "Portfolio", path: "/humanresource/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Users", path: "/humanresource/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Profile", path: "/humanresource/profile", icon: FiUser },

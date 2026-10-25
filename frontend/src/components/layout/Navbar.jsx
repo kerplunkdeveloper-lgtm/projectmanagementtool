@@ -431,6 +431,23 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
           bgColor:
             "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-900/30 ring-2 ring-rose-500/20 animate-pulse",
         };
+      case "hr_task_assigned":
+      case "hr_task_updated":
+      case "hr_task_submitted":
+      case "hr_task_reviewed":
+      case "hr_task_blocker":
+      case "hr_task_due_soon":
+      case "hr_task_cancelled":
+      case "hr_task_comment":
+        return {
+          icon: FiBriefcase,
+          bgColor:
+            type === "hr_task_blocker" || type === "hr_task_due_soon"
+              ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100/50 dark:border-rose-900/30 ring-2 ring-rose-500/20 animate-pulse"
+              : type === "hr_task_reviewed"
+              ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30"
+              : "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30",
+        };
       default:
         return {
           icon: FiBell,
@@ -473,6 +490,10 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
 
     if (path.includes("designer-tasks") || path.includes("designer-task")) {
       return "Designer Tasks";
+    }
+
+    if (path.includes("hr-tasks") || path.includes("hr-task")) {
+      return "HR Tasks";
     }
 
     if (
@@ -1004,6 +1025,22 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
                                     n.message.toLowerCase().includes("mom point")
                                   ) {
                                     navigate(`/${user?.role}/mom-points`);
+                                  } else if (
+                                    n.type?.startsWith("hr_task_") ||
+                                    n.hrTask ||
+                                    (n.message &&
+                                      (n.message.toLowerCase().includes("hr task") ||
+                                        n.message.toLowerCase().includes("hr department"))) ||
+                                    (n.sender?.department &&
+                                      (n.sender.department.toLowerCase() === "hr" ||
+                                        n.sender.department.toLowerCase().includes("human resource")) &&
+                                      n.message &&
+                                      n.message.toLowerCase().includes("task"))
+                                  ) {
+                                    const taskId = typeof n.hrTask === "object" ? n.hrTask?._id : n.hrTask;
+                                    navigate(
+                                      `/${user?.role}/hr-tasks${taskId ? `?id=${taskId}` : ""}`
+                                    );
                                   } else if (n.type === "task_assigned" || n.type?.startsWith("task_")) {
                                     const isProjectRedirect = n.message && /in-review|in progress|on-hold|on hold/i.test(n.message);
                                     if (n.project && (user?.role !== "team" || isProjectRedirect)) {

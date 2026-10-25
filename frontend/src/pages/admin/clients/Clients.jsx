@@ -1324,10 +1324,10 @@ const Clients = () => {
       {!loading && (
         <motion.div layout className="overflow-hidden theme-bg-card">
           <div className="overflow-x-auto">
-            <table className="w-full text-left  whitespace-nowrap min-w-[1100px] text-xs">
+            <table className="w-full text-left  whitespace-nowrap min-w-275 text-xs">
               <thead>
                 <tr className=" text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[10px]">
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[190px] border-r border-slate-200 dark:border-slate-700/60">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[190px]">
                     <div className="flex items-center justify-start gap-1.5">
                       <FaRegBuilding size={12} className="opacity-70" />
                       Client

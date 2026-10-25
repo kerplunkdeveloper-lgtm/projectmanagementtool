@@ -532,7 +532,7 @@ const AdminUsers = () => {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((prev) => prev - 1)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-50  text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 <FiChevronLeft size={14} />
               </button>
@@ -551,7 +551,7 @@ const AdminUsers = () => {
                     ${
                       currentPage === index + 1
                         ? "dashboard-btn-primary shadow-sm"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                        : "bg-slate-100 dark:bg-black text-slate-600 dark:text-slate-400 hover:text-black hover:bg-slate-200 dark:hover:bg-slate-900"
                     }
                   `}
                 >
@@ -562,7 +562,7 @@ const AdminUsers = () => {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((prev) => prev + 1)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-400 dark:bg-slate-50  text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 <FiChevronRight size={14} />
               </button>

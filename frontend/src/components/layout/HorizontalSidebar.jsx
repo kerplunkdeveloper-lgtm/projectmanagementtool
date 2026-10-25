@@ -158,6 +158,21 @@ const HorizontalSidebar = ({ role }) => {
       ).length
     : 0;
 
+  const unreadHrTasksCount = notifications
+    ? notifications.filter(
+        (n) =>
+          !n.isRead &&
+          (n.type?.startsWith("hr_task_") ||
+            n.hrTask ||
+            n.message?.toLowerCase().includes("hr task") ||
+            n.message?.toLowerCase().includes("hr department") ||
+            (n.sender?.department &&
+              (n.sender.department.toLowerCase() === "hr" ||
+                n.sender.department.toLowerCase().includes("human resource")) &&
+              n.message?.toLowerCase().includes("task"))),
+      ).length
+    : 0;
+
   const menuItems = (sidebarConfig[role] || [])
     .map((item) => {
       if (item.children && Array.isArray(item.children)) {
@@ -573,6 +588,11 @@ const HorizontalSidebar = ({ role }) => {
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.name}</span>
+                    {item.name === "Tasks" && unreadHrTasksCount > 0 && (
+                      <span className="ml-1 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center justify-center animate-pulse shadow-sm shadow-rose-500/30">
+                        {unreadHrTasksCount > 99 ? "99+" : unreadHrTasksCount}
+                      </span>
+                    )}
                     <FiChevronDown
                       className={`w-3.5 h-3.5 transition-transform duration-200 ${
                         isDropdownOpen ? "rotate-180" : ""
@@ -591,7 +611,28 @@ const HorizontalSidebar = ({ role }) => {
                             key={subItem.path}
                             to={subItem.path}
                             onMouseEnter={() => preloadRoute(subItem.path)}
-                            onClick={() => setActiveDropdown(null)}
+                            onClick={() => {
+                              setActiveDropdown(null);
+                              if (subItem.name === "HR Tasks" || subItem.path?.includes("hr-tasks")) {
+                                if (notifications) {
+                                  notifications.forEach((n) => {
+                                    if (
+                                      !n.isRead &&
+                                      (n.type?.startsWith("hr_task_") ||
+                                        n.hrTask ||
+                                        n.message?.toLowerCase().includes("hr task") ||
+                                        n.message?.toLowerCase().includes("hr department") ||
+                                        (n.sender?.department &&
+                                          (n.sender.department.toLowerCase() === "hr" ||
+                                            n.sender.department.toLowerCase().includes("human resource")) &&
+                                          n.message?.toLowerCase().includes("task")))
+                                    ) {
+                                      dispatch(markAsRead(n._id));
+                                    }
+                                  });
+                                }
+                              }
+                            }}
                             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
                               isSubActive
                                 ? "bg-slate-100 dark:bg-white/10 theme-text-accent font-bold"
@@ -600,6 +641,12 @@ const HorizontalSidebar = ({ role }) => {
                           >
                             <SubIcon className="w-3.5 h-3.5 shrink-0" />
                             <span>{subItem.name}</span>
+                            {subItem.name === "HR Tasks" && unreadHrTasksCount > 0 && (
+                              <span className="ml-auto bg-gradient-to-r from-rose-500 to-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 justify-center animate-pulse shadow-sm shadow-rose-500/30">
+                                <span>{unreadHrTasksCount > 99 ? "99+" : unreadHrTasksCount}</span>
+                                <span className="text-[6.5px] uppercase tracking-wider">New</span>
+                              </span>
+                            )}
                           </NavLink>
                         );
                       })}
@@ -629,6 +676,23 @@ const HorizontalSidebar = ({ role }) => {
                   if ((item.name === "MOM Points" || item.name === "MOM / Client Calls") && notifications) {
                     notifications.forEach((n) => {
                       if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
+                        dispatch(markAsRead(n._id));
+                      }
+                    });
+                  }
+                  if ((item.name === "HR Tasks" || item.path?.includes("hr-tasks")) && notifications) {
+                    notifications.forEach((n) => {
+                      if (
+                        !n.isRead &&
+                        (n.type?.startsWith("hr_task_") ||
+                          n.hrTask ||
+                          n.message?.toLowerCase().includes("hr task") ||
+                          n.message?.toLowerCase().includes("hr department") ||
+                          (n.sender?.department &&
+                            (n.sender.department.toLowerCase() === "hr" ||
+                              n.sender.department.toLowerCase().includes("human resource")) &&
+                            n.message?.toLowerCase().includes("task")))
+                      ) {
                         dispatch(markAsRead(n._id));
                       }
                     });
@@ -671,6 +735,12 @@ const HorizontalSidebar = ({ role }) => {
                   <span className="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 justify-center animate-pulse shadow-sm">
                     <span>{unreadMomCount > 99 ? "99+" : unreadMomCount}</span>
                     <span className="text-[7.5px] uppercase tracking-wider">New</span>
+                  </span>
+                )}
+                {(item.name === "HR Tasks" || item.path?.includes("hr-tasks")) && unreadHrTasksCount > 0 && (
+                  <span className="ml-1 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 justify-center animate-pulse shadow-sm shadow-rose-500/30">
+                    <span>{unreadHrTasksCount > 99 ? "99+" : unreadHrTasksCount}</span>
+                    <span className="text-[7px] uppercase tracking-wider">New</span>
                   </span>
                 )}
               </NavLink>

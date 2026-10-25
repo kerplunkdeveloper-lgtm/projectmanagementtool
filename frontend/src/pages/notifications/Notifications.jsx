@@ -277,6 +277,23 @@ const Notifications = () => {
           icon: FiInfo,
           bgColor: "bg-purple-50 text-purple-600 border-purple-100",
         };
+      case "hr_task_assigned":
+      case "hr_task_updated":
+      case "hr_task_submitted":
+      case "hr_task_reviewed":
+      case "hr_task_blocker":
+      case "hr_task_due_soon":
+      case "hr_task_cancelled":
+      case "hr_task_comment":
+        return {
+          icon: FiBriefcase,
+          bgColor:
+            type === "hr_task_blocker" || type === "hr_task_due_soon"
+              ? "bg-rose-50 text-rose-600 border-rose-200 ring-2 ring-rose-500/20 animate-pulse"
+              : type === "hr_task_reviewed"
+              ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+              : "bg-indigo-50 text-indigo-600 border-indigo-200",
+        };
       case "message_received":
         return {
           icon: FiMail,
@@ -460,6 +477,25 @@ const Notifications = () => {
                           (n.message && n.message.toLowerCase().includes("mom point"))
                         ) {
                           navigate(`/${user?.role}/mom-points`);
+                        } else if (
+                          n.type?.startsWith("hr_task_") ||
+                          n.hrTask ||
+                          (n.message &&
+                            (n.message.toLowerCase().includes("hr task") ||
+                              n.message.toLowerCase().includes("hr department"))) ||
+                          (n.sender?.department &&
+                            (n.sender.department.toLowerCase() === "hr" ||
+                              n.sender.department.toLowerCase().includes("human resource")) &&
+                            n.message &&
+                            n.message.toLowerCase().includes("task"))
+                        ) {
+                          const taskId =
+                            typeof n.hrTask === "object"
+                              ? n.hrTask?._id
+                              : n.hrTask;
+                          navigate(
+                            `/${user?.role}/hr-tasks${taskId ? `?id=${taskId}` : ""}`
+                          );
                         } else if (n.type === "task_assigned") {
                           navigate(`/${user?.role}/tasks`);
                         } else if (n.type?.startsWith("task_")) {

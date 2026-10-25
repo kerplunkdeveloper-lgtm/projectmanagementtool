@@ -138,6 +138,21 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       ).length
     : 0;
 
+  const unreadHrTasksCount = notifications
+    ? notifications.filter(
+        (n) =>
+          !n.isRead &&
+          (n.type?.startsWith("hr_task_") ||
+            n.hrTask ||
+            n.message?.toLowerCase().includes("hr task") ||
+            n.message?.toLowerCase().includes("hr department") ||
+            (n.sender?.department &&
+              (n.sender.department.toLowerCase() === "hr" ||
+                n.sender.department.toLowerCase().includes("human resource")) &&
+              n.message?.toLowerCase().includes("task"))),
+      ).length
+    : 0;
+
   const { projects } = useSelector((state) => state.projects);
   const portfoliosState = useSelector((state) => state.portfolios);
   const portfolios = portfoliosState?.portfolios || [];
@@ -589,6 +604,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         p.includes("sm-tasks") ||
         p.includes("designer-tasks") ||
         p.includes("cinematographer-tasks") ||
+        p.includes("hr-tasks") ||
         p.endsWith("/tasks")
       ) {
         if (!next["Tasks"]) {
@@ -788,6 +804,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     if (target.includes("sm-tasks") && current.includes("sm-tasks")) return true;
     if (target.includes("designer-tasks") && current.includes("designer-tasks")) return true;
     if (target.includes("cinematographer-tasks") && current.includes("cinematographer-tasks")) return true;
+    if (target.includes("hr-tasks") && current.includes("hr-tasks")) return true;
     if (target.endsWith("/tasks") && current.endsWith("/tasks")) return true;
     if (target.includes("shootcalendor") && current.includes("shootcalendor")) return true;
     if (target.includes("content-calendar") && current.includes("content-calendar")) return true;
@@ -820,6 +837,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       return (notifications || []).filter((n) => !n.isRead && n.type === "client_call_created").length;
     }
     if (itemName === "MOM Points" || itemName === "MOM / Client Calls") return unreadMomCount;
+    if (itemName === "HR Tasks" || itemName === "Tasks") return unreadHrTasksCount;
     if (itemName === "Reports" && (role === "admin" || role === "operationmanager")) {
       return newReportsCount;
     }
@@ -864,6 +882,25 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       if (notifications) {
         notifications.forEach((n) => {
           if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
+            dispatch(markAsRead(n._id));
+          }
+        });
+      }
+    }
+    if (item.name === "HR Tasks" || item.path?.includes("hr-tasks")) {
+      if (notifications) {
+        notifications.forEach((n) => {
+          if (
+            !n.isRead &&
+            (n.type?.startsWith("hr_task_") ||
+              n.hrTask ||
+              n.message?.toLowerCase().includes("hr task") ||
+              n.message?.toLowerCase().includes("hr department") ||
+              (n.sender?.department &&
+                (n.sender.department.toLowerCase() === "hr" ||
+                  n.sender.department.toLowerCase().includes("human resource")) &&
+                n.message?.toLowerCase().includes("task")))
+          ) {
             dispatch(markAsRead(n._id));
           }
         });
@@ -930,6 +967,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             {/* Active left bar */}
             {isActive && (
               <span className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full theme-bg-accent shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+            )}
+            {/* Badge counter on collapsed dropdown */}
+            {badgeCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-[#0b0c10] shadow-sm animate-pulse">
+                {badgeCount > 99 ? "99+" : badgeCount}
+              </span>
             )}
             {/* Tiny dropdown indicator dot */}
             <span className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 opacity-70" />
@@ -1497,6 +1540,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   if (target.includes("sm-tasks") && current.includes("sm-tasks")) return true;
                   if (target.includes("designer-tasks") && current.includes("designer-tasks")) return true;
                   if (target.includes("cinematographer-tasks") && current.includes("cinematographer-tasks")) return true;
+                  if (target.includes("hr-tasks") && current.includes("hr-tasks")) return true;
                   if (target.endsWith("/tasks") && current.endsWith("/tasks")) return true;
                   if (target.includes("shootcalendor") && current.includes("shootcalendor")) return true;
                   if (target.includes("content-calendar") && current.includes("content-calendar")) return true;
@@ -1569,6 +1613,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         {item.name}
                       </span>
 
+                      {item.name === "Tasks" && unreadHrTasksCount > 0 && (
+                        <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white shadow-xs shadow-rose-500/30 animate-pulse mr-1 shrink-0">
+                          {unreadHrTasksCount > 99 ? "99+" : unreadHrTasksCount}
+                        </span>
+                      )}
+
                       <svg
                         className={`w-3.5 h-3.5 shrink-0 transform transition-transform duration-200 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 ${
                           isDropdownOpen ? "rotate-180" : ""
@@ -1608,6 +1658,25 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   onMouseEnter={() => preloadRoute(subItem.path)}
                                   onClick={() => {
                                     if (window.innerWidth < 1024) setSidebarOpen(false);
+                                    if (subItem.name === "HR Tasks" || subItem.path?.includes("hr-tasks")) {
+                                      if (notifications) {
+                                        notifications.forEach((n) => {
+                                          if (
+                                            !n.isRead &&
+                                            (n.type?.startsWith("hr_task_") ||
+                                              n.hrTask ||
+                                              n.message?.toLowerCase().includes("hr task") ||
+                                              n.message?.toLowerCase().includes("hr department") ||
+                                              (n.sender?.department &&
+                                                (n.sender.department.toLowerCase() === "hr" ||
+                                                  n.sender.department.toLowerCase().includes("human resource")) &&
+                                                n.message?.toLowerCase().includes("task")))
+                                          ) {
+                                            dispatch(markAsRead(n._id));
+                                          }
+                                        });
+                                      }
+                                    }
                                   }}
                                   className="block rounded-lg transition-all duration-150 relative group"
                                 >
@@ -1638,6 +1707,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                     >
                                       {subItem.name}
                                     </span>
+                                    {subItem.name === "HR Tasks" && unreadHrTasksCount > 0 && (
+                                      <span className="flex h-3.5 min-w-5 items-center gap-0.5 justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1.5 text-[8px] font-black text-white shadow-xs shadow-rose-500/40 animate-pulse shrink-0">
+                                        <span>{unreadHrTasksCount > 99 ? "99+" : unreadHrTasksCount}</span>
+                                        <span className="text-[6.5px] uppercase tracking-wider">New</span>
+                                      </span>
+                                    )}
                                   </div>
                                 </NavLink>
                               );
@@ -1678,6 +1753,23 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             }
                           });
                         }
+                      }
+                      if ((item.name === "HR Tasks" || item.path?.includes("hr-tasks")) && notifications) {
+                        notifications.forEach((n) => {
+                          if (
+                            !n.isRead &&
+                            (n.type?.startsWith("hr_task_") ||
+                              n.hrTask ||
+                              n.message?.toLowerCase().includes("hr task") ||
+                              n.message?.toLowerCase().includes("hr department") ||
+                              (n.sender?.department &&
+                                (n.sender.department.toLowerCase() === "hr" ||
+                                  n.sender.department.toLowerCase().includes("human resource")) &&
+                                n.message?.toLowerCase().includes("task")))
+                          ) {
+                            dispatch(markAsRead(n._id));
+                          }
+                        });
                       }
                     }}
                     end={
@@ -1800,6 +1892,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         {(item.name === "MOM Points" || item.name === "MOM / Client Calls") && unreadMomCount > 0 && (
                           <span className="flex h-[1rem] min-w-[1.4rem] items-center gap-0.5 justify-center rounded-full bg-rose-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
                             <span>{unreadMomCount > 99 ? "99+" : unreadMomCount}</span>
+                            <span className="text-[0.45rem] uppercase tracking-wider">New</span>
+                          </span>
+                        )}
+                        {item.name === "HR Tasks" && unreadHrTasksCount > 0 && (
+                          <span className="flex h-[1.1rem] min-w-[1.6rem] items-center gap-0.5 justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1.5 text-[0.6rem] font-black text-white shadow-sm shadow-rose-500/40 shrink-0 animate-pulse ring-2 ring-rose-500/20">
+                            <span>{unreadHrTasksCount > 99 ? "99+" : unreadHrTasksCount}</span>
                             <span className="text-[0.45rem] uppercase tracking-wider">New</span>
                           </span>
                         )}

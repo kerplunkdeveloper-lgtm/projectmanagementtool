@@ -199,6 +199,7 @@ const momRoutes = require("./routes/momRoutes");
 
 const calendarEventRoutes = require("./routes/calendarEventRoutes");
 const socialmediaTaskCalendorRoutes = require("./routes/socialmediaTaskCalendorRoutes");
+const hrTaskRoutes = require("./routes/hrTaskRoutes");
 
 
 
@@ -241,6 +242,7 @@ app.use('/api/business-projects', businessProjectRoutes);
 app.use('/api/overheads', overheadRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/hr-tasks', hrTaskRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/goals', goalRoutes);
@@ -518,6 +520,10 @@ startOfficeHoursScheduler(app);
 // Start MOM overdue scheduler
 const { startMomScheduler } = require("./utils/momScheduler");
 startMomScheduler(app);
+
+// Start HR Task due soon scheduler
+const { startHrTaskScheduler } = require("./utils/hrTaskScheduler");
+startHrTaskScheduler(app);
 
 // Global error handler
 app.use((err, req, res, next) => {
