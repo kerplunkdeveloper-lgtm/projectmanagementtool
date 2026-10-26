@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import { logWaterBreak } from '../features/users/userSlice';
+import { stopWaterReminderSound } from '../utils/sound';
 
 export const WATER_REMINDER_TOAST_ID = 'water-break-reminder';
-const IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes of inactivity considered idle
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes of inactivity considered idle
 
 /**
  * Checks if current local time is within the user's configured working hours.
@@ -13,6 +14,8 @@ const IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes of inactivity considered idl
  */
 export const isWithinWorkingHours = (workingHours) => {
   if (!workingHours || !workingHours.start || !workingHours.end) return true;
+  if (workingHours.start === workingHours.end) return true;
+  if (workingHours.start === "00:00" && (workingHours.end === "00:00" || workingHours.end === "23:59")) return true;
   try {
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -24,7 +27,11 @@ export const isWithinWorkingHours = (workingHours) => {
     const startMins = startH * 60 + startM;
     const endMins = endH * 60 + endM;
 
-    return currentMins >= startMins && currentMins < endMins;
+    if (startMins < endMins) {
+      return currentMins >= startMins && currentMins < endMins;
+    }
+    // Overnight shifts (e.g. 20:00 to 06:00, or 09:00 to 00:00)
+    return currentMins >= startMins || currentMins < endMins;
   } catch (err) {
     console.error('Error checking working hours:', err);
     return true;
@@ -43,8 +50,13 @@ export const useWaterReminder = () => {
 
   const waterReminder = user?.waterReminder || {};
   const isEnabled = waterReminder.enabled !== false;
-  const intervalMinutes = Number(waterReminder.interval) || 60;
-  const targetSeconds = intervalMinutes * 60;
+  
+  // Read instant local interval override if set in Settings
+  const localInterval = userId && typeof window !== 'undefined'
+    ? localStorage.getItem(`water_reminder_interval_${userId}`)
+    : null;
+  const intervalMinutes = localInterval ? Number(localInterval) : (Number(waterReminder.interval) || 60);
+  const targetSeconds = Math.max(10, intervalMinutes * 60);
   const workingHours = waterReminder.workingHours || { start: '09:00', end: '19:00' };
 
   const [activeSeconds, setActiveSeconds] = useState(() => {
@@ -99,6 +111,16 @@ export const useWaterReminder = () => {
     }
   }, [userId]);
 
+  // Listen for reset timer event when settings are updated
+  useEffect(() => {
+    const handleReset = () => {
+      setActiveSeconds(0);
+      activeSecondsRef.current = 0;
+    };
+    window.addEventListener('water-reminder-reset-timer', handleReset);
+    return () => window.removeEventListener('water-reminder-reset-timer', handleReset);
+  }, []);
+
   // Listen for user interactions on the site to track active presence
   useEffect(() => {
     let lastRecorded = 0;
@@ -126,11 +148,38 @@ export const useWaterReminder = () => {
     };
   }, []);
 
+  // Cross-tab synchronization via localStorage events
+  useEffect(() => {
+    if (!userId) return;
+
+    const handleStorage = (e) => {
+      if (e.key === `water_reminder_active_sec_${userId}`) {
+        const val = e.newValue ? parseInt(e.newValue, 10) || 0 : 0;
+        activeSecondsRef.current = val;
+        setActiveSeconds(val);
+        // If another tab reset active seconds to 0 (user logged glass or closed popup), close here too
+        if (val === 0 && isReminderOpen) {
+          setIsReminderOpen(false);
+          stopWaterReminderSound();
+        }
+      }
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      if (e.key === `water_reminder_today_${userId}_${todayStr}`) {
+        const count = e.newValue ? parseInt(e.newValue, 10) || 0 : 0;
+        setTodayLogsCount(count);
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [userId, isReminderOpen]);
+
   // Main active timer interval
   useEffect(() => {
     if (!userId || !isEnabled) {
       if (isReminderOpen) {
         toast.dismiss(WATER_REMINDER_TOAST_ID);
+        stopWaterReminderSound();
         setIsReminderOpen(false);
       }
       return;
@@ -140,38 +189,44 @@ export const useWaterReminder = () => {
       // 1. Check document visibility (only count when browser tab is active/visible)
       if (document.visibilityState !== 'visible') return;
 
-      // 2. Check user activity (within idle threshold)
+      // 2. Check user activity (within 5 minutes idle threshold)
       const isUserActive = Date.now() - lastActivityRef.current < IDLE_TIMEOUT_MS;
       if (!isUserActive) return;
 
-      // 3. Check working hours
-      const inWorkingHours = isWithinWorkingHours(workingHours);
-      if (!inWorkingHours) return;
+      // 3. For test intervals (<= 5 minutes), bypass working hours check so user can easily test!
+      if (intervalMinutes > 5) {
+        const inWorkingHours = isWithinWorkingHours(workingHours);
+        if (!inWorkingHours) return;
+      }
 
-      // Increment active seconds
+      // Increment active seconds directly
       const nextSeconds = activeSecondsRef.current + 1;
       activeSecondsRef.current = nextSeconds;
       setActiveSeconds(nextSeconds);
 
-      // Periodically persist to localStorage every 5 seconds
-      if (nextSeconds % 5 === 0 && userId) {
-        try {
-          localStorage.setItem(`water_reminder_active_sec_${userId}`, nextSeconds.toString());
-        } catch {}
+      try {
+        localStorage.setItem(`water_reminder_active_sec_${userId}`, nextSeconds.toString());
+      } catch {}
+
+      // Log progress to console for live monitoring
+      if (nextSeconds % 5 === 0 || nextSeconds >= targetSeconds) {
+        console.log(`[💧 WaterReminder] Active: ${nextSeconds}/${targetSeconds}s (Interval: ${intervalMinutes}m)`);
       }
 
       // Check if threshold reached
       if (nextSeconds >= targetSeconds && !isReminderOpen) {
+        console.log('[💧 WaterReminder] ⏰ Threshold reached! Triggering Water Break Popup & Sound!');
         setIsReminderOpen(true);
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [userId, isEnabled, targetSeconds, workingHours, isReminderOpen]);
+  }, [userId, isEnabled, targetSeconds, intervalMinutes, workingHours, isReminderOpen]);
 
   // Dismiss cycle (when close button '×' is clicked)
   const handleClose = useCallback(() => {
     toast.dismiss(WATER_REMINDER_TOAST_ID);
+    stopWaterReminderSound();
     setIsReminderOpen(false);
     setActiveSeconds(0);
     activeSecondsRef.current = 0;
@@ -182,12 +237,14 @@ export const useWaterReminder = () => {
     }
   }, [userId]);
 
-  // Snooze for 30 minutes
-  const handleSnooze = useCallback(() => {
+  // Snooze reminder (e.g. 15 or 30 minutes)
+  const handleSnooze = useCallback((snoozeMinutes = 30) => {
     toast.dismiss(WATER_REMINDER_TOAST_ID);
+    stopWaterReminderSound();
     setIsReminderOpen(false);
-    // Rewind activeSeconds so that 30 minutes of active use will trigger next reminder
-    const snoozeSeconds = 30 * 60;
+    // Rewind activeSeconds so that snoozeMinutes of active use will trigger next reminder
+    const mins = typeof snoozeMinutes === 'number' ? snoozeMinutes : 30;
+    const snoozeSeconds = mins * 60;
     const remainingBeforeNext = Math.max(0, targetSeconds - snoozeSeconds);
     setActiveSeconds(remainingBeforeNext);
     activeSecondsRef.current = remainingBeforeNext;
@@ -196,7 +253,7 @@ export const useWaterReminder = () => {
         localStorage.setItem(`water_reminder_active_sec_${userId}`, remainingBeforeNext.toString());
       } catch {}
     }
-    toast.success('Reminder snoozed for 30 minutes', {
+    toast.success(`Reminder snoozed for ${mins} minutes`, {
       duration: 3000,
       icon: '⏰',
       style: {
@@ -213,6 +270,7 @@ export const useWaterReminder = () => {
   // Log a glass of water
   const handleLogGlass = useCallback(async () => {
     toast.dismiss(WATER_REMINDER_TOAST_ID);
+    stopWaterReminderSound();
     setIsReminderOpen(false);
     setActiveSeconds(0);
     activeSecondsRef.current = 0;

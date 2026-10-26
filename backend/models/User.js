@@ -118,7 +118,8 @@ const userSchema = new mongoose.Schema({
     },
     interval: {
       type: Number,
-      enum: [30, 60, 90],
+      min: 1,
+      max: 240,
       default: 60,
     },
     workingHours: {

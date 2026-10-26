@@ -1,5 +1,6 @@
 // Utility for playing high-quality notification sounds
 import notificationSoundFile from "../assets/notification.mp3";
+import drinkWaterSoundFile from "../assets/drinkwater.mp3";
 
 let sharedAudioCtx = null;
 let lastPlayTimestamp = 0;
@@ -22,6 +23,8 @@ const getAudioContext = () => {
   return sharedAudioCtx;
 };
 
+let isWaterAudioPending = false;
+
 // Global interaction unlocker
 const unlockAudio = () => {
   userHasInteracted = true;
@@ -38,6 +41,13 @@ const unlockAudio = () => {
   } else if (sharedAudioCtx && sharedAudioCtx.state === "running") {
     cleanupListeners();
   }
+
+  // If water audio was blocked by autoplay policy, start it immediately on first interaction
+  if (isWaterAudioPending && waterAudio) {
+    waterAudio.play().then(() => {
+      isWaterAudioPending = false;
+    }).catch(() => {});
+  }
 };
 
 const cleanupListeners = () => {
@@ -50,10 +60,10 @@ const cleanupListeners = () => {
 };
 
 if (typeof window !== "undefined") {
-  window.addEventListener("click", unlockAudio, { once: true, passive: true });
-  window.addEventListener("keydown", unlockAudio, { once: true, passive: true });
-  window.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
-  window.addEventListener("pointerdown", unlockAudio, { once: true, passive: true });
+  window.addEventListener("click", unlockAudio, { passive: true });
+  window.addEventListener("keydown", unlockAudio, { passive: true });
+  window.addEventListener("touchstart", unlockAudio, { passive: true });
+  window.addEventListener("pointerdown", unlockAudio, { passive: true });
 }
 
 const isSoundEnabled = () => {
@@ -220,3 +230,64 @@ export const playNotificationSound = (type = "default") => {
     console.error("Task Notification audio playback error:", err);
   }
 };
+
+let waterAudio = null;
+
+/**
+ * Play drinkwater.mp3 for Water Break Reminder Popup
+ */
+export const playWaterReminderSound = () => {
+  if (typeof window === "undefined") return null;
+  if (!isSoundEnabled()) return null;
+
+  try {
+    if (!waterAudio) {
+      waterAudio = new Audio(drinkWaterSoundFile);
+      waterAudio.preload = "auto";
+      waterAudio.loop = true;
+    }
+    waterAudio.currentTime = 0;
+    waterAudio.volume = 0.85;
+    const playPromise = waterAudio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          isWaterAudioPending = false;
+        })
+        .catch((err) => {
+          // If browser policy blocked unmuted autoplay without prior interaction, queue it
+          isWaterAudioPending = true;
+          console.warn("Water audio autoplay waiting for user gesture:", err);
+        });
+    }
+    return waterAudio;
+  } catch (err) {
+    console.error("Water reminder audio error:", err);
+    return null;
+  }
+};
+
+/**
+ * Stop drinkwater.mp3
+ */
+export const stopWaterReminderSound = () => {
+  isWaterAudioPending = false;
+  try {
+    if (waterAudio) {
+      waterAudio.pause();
+      waterAudio.currentTime = 0;
+    }
+  } catch (err) {}
+};
+
+/**
+ * Toggle mute / unmute for water audio
+ */
+export const toggleWaterReminderMute = (isMuted) => {
+  try {
+    if (waterAudio) {
+      waterAudio.muted = isMuted;
+    }
+  } catch (err) {}
+};
+

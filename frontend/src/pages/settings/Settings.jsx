@@ -229,6 +229,11 @@ const Settings = () => {
           },
         })
       ).unwrap();
+      if (user?._id || user?.id) {
+        localStorage.setItem(`water_reminder_interval_${user?._id || user?.id}`, Number(waterInterval).toString());
+        localStorage.setItem(`water_reminder_active_sec_${user?._id || user?.id}`, "0");
+      }
+      window.dispatchEvent(new CustomEvent("water-reminder-reset-timer"));
       toast.success("Water reminder settings saved!");
     } catch (err) {
       toast.error("Failed to save water reminder settings");
@@ -452,10 +457,10 @@ const Settings = () => {
                     type="button"
                     onClick={triggerWaterReminderPreview}
                     className="px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-700/60 bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-extrabold text-[11px] tracking-wide shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                    title="Trigger live toast notification preview"
+                    title="Trigger live water break popup reminder with sound"
                   >
                     <FiEye size={13} />
-                    <span>Preview Toast</span>
+                    <span>Preview Popup</span>
                   </button>
 
                   <button
@@ -538,8 +543,9 @@ const Settings = () => {
                       <label className="block text-xs font-black theme-text-secondary uppercase tracking-wider mb-2.5">
                         Reminder Interval
                       </label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {[
+                          { value: 1, label: "1 Minute", badge: "Test ⚡" },
                           { value: 30, label: "30 Minutes", badge: "Frequent" },
                           { value: 60, label: "60 Minutes", badge: "Recommended" },
                           { value: 90, label: "90 Minutes", badge: "Extended" },
@@ -550,7 +556,7 @@ const Settings = () => {
                               key={opt.value}
                               type="button"
                               onClick={() => setWaterInterval(opt.value)}
-                              className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer relative ${
+                              className={`flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-xl border text-center transition-all cursor-pointer relative ${
                                 isSelected
                                   ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold shadow-sm"
                                   : "theme-border theme-bg-card theme-text-secondary hover:theme-bg-main font-semibold"

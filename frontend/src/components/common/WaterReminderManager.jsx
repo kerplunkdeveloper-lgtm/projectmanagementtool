@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react';
-import toast from 'react-hot-toast';
-import useWaterReminder, { WATER_REMINDER_TOAST_ID } from '../../hooks/useWaterReminder.jsx';
-import WaterReminderToast from './WaterReminderToast';
+import React, { useEffect, useState } from 'react';
+import useWaterReminder from '../../hooks/useWaterReminder.jsx';
+import WaterReminderPopup from './WaterReminderPopup';
 
 /**
  * WaterReminderManager
- * Global component that connects water reminder timer logic with toast presentation.
- * Ensures only one reminder is active at any time.
+ * Global component that connects water reminder timer logic with Popup modal presentation.
+ * Displays interactive modal dialog and plays drinkwater.mp3 song.
  */
 const WaterReminderManager = () => {
   const {
@@ -14,66 +13,58 @@ const WaterReminderManager = () => {
     handleClose,
     handleSnooze,
     handleLogGlass,
-    activeSeconds,
-    targetSeconds,
+    todayLogsCount,
   } = useWaterReminder();
 
-  useEffect(() => {
-    if (isReminderOpen) {
-      toast.custom(
-        () => (
-          <WaterReminderToast
-            onLog={handleLogGlass}
-            onSnooze={handleSnooze}
-            onClose={handleClose}
-            progress={Math.min(100, Math.round((activeSeconds / targetSeconds) * 100)) || 100}
-          />
-        ),
-        {
-          id: WATER_REMINDER_TOAST_ID,
-          duration: Infinity, // Remains open until user takes action
-          position: 'top-center',
-        }
-      );
-    } else {
-      toast.dismiss(WATER_REMINDER_TOAST_ID);
-    }
-  }, [isReminderOpen, handleLogGlass, handleSnooze, handleClose, activeSeconds, targetSeconds]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Support manual preview trigger from Settings or anywhere in the app
   useEffect(() => {
     const handlePreview = () => {
-      toast.custom(
-        () => (
-          <WaterReminderToast
-            onLog={handleLogGlass}
-            onSnooze={handleSnooze}
-            onClose={handleClose}
-            progress={100}
-          />
-        ),
-        {
-          id: WATER_REMINDER_TOAST_ID,
-          duration: Infinity,
-          position: 'top-center',
-        }
-      );
+      setIsPreviewOpen(true);
     };
 
     window.addEventListener('trigger-water-reminder-preview', handlePreview);
     return () => {
       window.removeEventListener('trigger-water-reminder-preview', handlePreview);
     };
-  }, [handleLogGlass, handleSnooze, handleClose]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      toast.dismiss(WATER_REMINDER_TOAST_ID);
-    };
   }, []);
 
-  return null; // Logic & toast controller only, renders toast via react-hot-toast
+  const isModalOpen = isReminderOpen || isPreviewOpen;
+
+  const handleModalClose = () => {
+    if (isPreviewOpen) {
+      setIsPreviewOpen(false);
+    }
+    if (isReminderOpen) {
+      handleClose();
+    }
+  };
+
+  const handleModalSnooze = (mins = 30) => {
+    if (isPreviewOpen) {
+      setIsPreviewOpen(false);
+    }
+    handleSnooze(mins);
+  };
+
+  const handleModalLog = async () => {
+    if (isPreviewOpen) {
+      setIsPreviewOpen(false);
+    }
+    await handleLogGlass();
+  };
+
+  return (
+    <WaterReminderPopup
+      isOpen={isModalOpen}
+      onLog={handleModalLog}
+      onSnooze={handleModalSnooze}
+      onClose={handleModalClose}
+      todayLogsCount={todayLogsCount}
+      dailyGoal={8}
+    />
+  );
 };
 
 export const triggerWaterReminderPreview = () => {
@@ -83,3 +74,4 @@ export const triggerWaterReminderPreview = () => {
 };
 
 export default WaterReminderManager;
+
