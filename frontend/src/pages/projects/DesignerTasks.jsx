@@ -419,11 +419,10 @@ const DesignerTasks = () => {
               setIsClientDropdownOpen(!isClientDropdownOpen);
               setClientSearchTerm("");
             }}
-            className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer shadow-2xs h-8 ${
-              isClientDropdownOpen
+            className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer shadow-2xs h-8 ${isClientDropdownOpen
                 ? "bg-indigo-50/90 dark:bg-indigo-500/20 border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/20"
                 : "bg-white dark:bg-[#131316] border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-slate-100 hover:border-indigo-300 dark:hover:border-indigo-500/30 hover:bg-slate-50 dark:hover:bg-white/5"
-            }`}
+              }`}
             title="Switch Client"
           >
             {selectedClient ? (
@@ -450,9 +449,8 @@ const DesignerTasks = () => {
             )}
             <FiChevronDown
               size={12}
-              className={`text-slate-400 transition-transform duration-200 shrink-0 ${
-                isClientDropdownOpen ? "rotate-180 text-indigo-500" : ""
-              }`}
+              className={`text-slate-400 transition-transform duration-200 shrink-0 ${isClientDropdownOpen ? "rotate-180 text-indigo-500" : ""
+                }`}
             />
           </button>
 
@@ -473,7 +471,7 @@ const DesignerTasks = () => {
                 {/* Search Bar */}
                 <div className="p-2.5 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
                   <div className="relative flex items-center">
-                   
+
                     <input
                       type="text"
                       placeholder="Search clients..."
@@ -497,11 +495,10 @@ const DesignerTasks = () => {
                           key={client._id}
                           type="button"
                           onClick={() => handleSelectClient(client)}
-                          className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
-                            isSelected
+                          className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${isSelected
                               ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-bold"
                               : "hover:bg-slate-100/70 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div
@@ -563,9 +560,8 @@ const DesignerTasks = () => {
               {currentClientProjects.length > 1 && (
                 <FiChevronDown
                   size={12}
-                  className={`text-slate-400 transition-transform duration-200 shrink-0 ${
-                    isProjectDropdownOpen ? "rotate-180 text-indigo-500" : ""
-                  }`}
+                  className={`text-slate-400 transition-transform duration-200 shrink-0 ${isProjectDropdownOpen ? "rotate-180 text-indigo-500" : ""
+                    }`}
                 />
               )}
             </button>
@@ -592,11 +588,10 @@ const DesignerTasks = () => {
                         );
                         setIsProjectDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${
-                        isProjSelected
+                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs font-semibold transition-all cursor-pointer ${isProjSelected
                           ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-bold"
                           : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200"
-                      }`}
+                        }`}
                     >
                       <span className="truncate">{p.name}</span>
                       {isProjSelected && (

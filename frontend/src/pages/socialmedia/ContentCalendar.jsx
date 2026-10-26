@@ -27,6 +27,7 @@ import {
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
+import { formatLocalDateKey } from "../../utils/dateUtils";
 
 const MONTH_NAMES = [
   "January",
@@ -89,66 +90,86 @@ const ContentCalendar = () => {
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
+  // Helper to extract clean avatar image URL from various User/Profile structures
+  const extractAvatarUrl = useCallback((target) => {
+    if (!target) return null;
+    if (typeof target === "string" && target.trim().startsWith("http")) return target.trim();
+    if (typeof target === "string" && target.trim().startsWith("/")) return target.trim();
+    if (typeof target === "object") {
+      if (typeof target.url === "string" && target.url.trim()) return target.url.trim();
+      if (target.profile?.profileImage) return extractAvatarUrl(target.profile.profileImage);
+      if (target.profileImage) return extractAvatarUrl(target.profileImage);
+      if (target.avatar) return extractAvatarUrl(target.avatar);
+      if (target.profilePic) return extractAvatarUrl(target.profilePic);
+    }
+    return null;
+  }, []);
+
   // Fast user lookup map for creator profile images and names
   const usersMap = useMemo(() => {
     const map = new Map();
+    if (user) {
+      if (user._id) map.set(user._id.toString(), user);
+      if (user.id) map.set(user.id.toString(), user);
+      if (user.name) map.set(user.name.trim().toLowerCase(), user);
+    }
     (users || []).forEach((u) => {
       if (u._id) map.set(u._id.toString(), u);
       if (u.id) map.set(u.id.toString(), u);
       if (u.name) map.set(u.name.trim().toLowerCase(), u);
     });
     return map;
-  }, [users]);
+  }, [users, user]);
 
   // Resolve creator information (avatar and name)
   const getCreatorInfo = useCallback(
     (task) => {
       const createdBy = task?.createdBy;
+      const assignee = task?.assignee;
       const rawName =
         (typeof createdBy === "object" ? createdBy?.name : null) ||
+        (typeof assignee === "object" ? assignee?.name : null) ||
         task?.createdByName ||
         task?.assigneeName ||
         (typeof createdBy === "string" ? createdBy : null) ||
-        "SMM";
-
-      let avatarUrl = null;
-      let name = rawName;
-
-      if (typeof createdBy === "object" && createdBy) {
-        name = createdBy.name || rawName;
-        avatarUrl = createdBy.profile?.profileImage || createdBy.profileImage || null;
-      }
+        "Admin";
 
       const cId = (typeof createdBy === "object" ? createdBy?._id : createdBy)?.toString();
+      const aId = (typeof assignee === "object" ? assignee?._id : assignee)?.toString();
+      const cName = (typeof createdBy === "object" ? createdBy?.name : null) || task?.createdByName;
+      const aName = (typeof assignee === "object" ? assignee?.name : null) || task?.assigneeName;
+
       const matchedUser =
         (cId && usersMap.get(cId)) ||
-        (name && usersMap.get(name.trim().toLowerCase()));
+        (aId && usersMap.get(aId)) ||
+        (cName && usersMap.get(cName.trim().toLowerCase())) ||
+        (aName && usersMap.get(aName.trim().toLowerCase())) ||
+        (rawName && usersMap.get(rawName.trim().toLowerCase())) ||
+        (typeof createdBy === "object" ? createdBy : null) ||
+        (typeof assignee === "object" ? assignee : null);
 
-      if (matchedUser) {
-        name = matchedUser.name || name;
-        if (!avatarUrl) {
-          avatarUrl =
-            matchedUser.profile?.profileImage ||
-            matchedUser.profileImage ||
-            matchedUser.avatar ||
-            null;
-        }
-      }
+      const name = matchedUser?.name || cName || aName || rawName;
 
-      const initials = (name || "S")
+      const avatarUrl =
+        extractAvatarUrl(matchedUser) ||
+        extractAvatarUrl(createdBy) ||
+        extractAvatarUrl(assignee) ||
+        null;
+
+      const initials = (name || "U")
         .split(" ")
         .filter(Boolean)
         .slice(0, 2)
         .map((n) => n[0].toUpperCase())
-        .join("");
+        .join("") || "U";
 
       return {
         name,
-        avatarUrl: avatarUrl && typeof avatarUrl === "string" && avatarUrl.trim() ? avatarUrl.trim() : null,
+        avatarUrl,
         initials,
       };
     },
-    [usersMap]
+    [usersMap, extractAvatarUrl]
   );
 
   // Month & Year state (Dynamic current date)
@@ -178,13 +199,14 @@ const ContentCalendar = () => {
 
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth(); // 0-indexed
+  const realTodayStr = formatLocalDateKey(new Date());
 
   // Fetch dynamic tasks and stats
   useEffect(() => {
     dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
     dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
-    if (!clients || clients.length === 0) dispatch(getClients());
-    if (!users || users.length === 0) dispatch(getUsers());
+    dispatch(getClients());
+    dispatch(getUsers());
   }, [dispatch, currentYear, currentMonth]);
 
   // Deduplicate tasks by taskTitle + clientName
@@ -311,7 +333,7 @@ const ContentCalendar = () => {
         date: dateObj,
         dayNumber: d,
         isCurrentMonth: false,
-        dateKey: dateObj.toISOString().split("T")[0],
+        dateKey: formatLocalDateKey(dateObj),
       });
     }
 
@@ -322,7 +344,7 @@ const ContentCalendar = () => {
         date: dateObj,
         dayNumber: i,
         isCurrentMonth: true,
-        dateKey: dateObj.toISOString().split("T")[0],
+        dateKey: formatLocalDateKey(dateObj),
       });
     }
 
@@ -335,7 +357,7 @@ const ContentCalendar = () => {
           date: dateObj,
           dayNumber: i,
           isCurrentMonth: false,
-          dateKey: dateObj.toISOString().split("T")[0],
+          dateKey: formatLocalDateKey(dateObj),
         });
       }
     }
@@ -343,12 +365,38 @@ const ContentCalendar = () => {
     return days;
   }, [currentYear, currentMonth]);
 
+  // Calendar week view days calculation (Monday to Sunday for currentDate's week)
+  const currentWeekDays = useMemo(() => {
+    const d = new Date(currentDate);
+    const dayOfWeek = d.getDay(); // 0 (Sun) to 6 (Sat)
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const dayDate = new Date(monday);
+      dayDate.setDate(monday.getDate() + i);
+      weekDays.push({
+        date: dayDate,
+        dayNumber: dayDate.getDate(),
+        monthShort: MONTH_NAMES[dayDate.getMonth()].slice(0, 3),
+        year: dayDate.getFullYear(),
+        dateKey: formatLocalDateKey(dayDate),
+        isToday: formatLocalDateKey(dayDate) === realTodayStr,
+      });
+    }
+    return weekDays;
+  }, [currentDate, realTodayStr]);
+
   // Group tasks by date string (YYYY-MM-DD)
   const tasksByDate = useMemo(() => {
     const map = {};
     calendarTasks.forEach((task) => {
       if (!task.publishDate) return;
-      const key = new Date(task.publishDate).toISOString().split("T")[0];
+      const key = formatLocalDateKey(task.publishDate);
       if (!map[key]) map[key] = [];
       map[key].push(task);
     });
@@ -360,13 +408,29 @@ const ContentCalendar = () => {
     return map;
   }, [calendarTasks]);
 
-  // Navigate months
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+  // Navigate months or weeks depending on active viewMode
+  const handlePrev = () => {
+    if (viewMode === "Week") {
+      setCurrentDate((prev) => {
+        const next = new Date(prev);
+        next.setDate(next.getDate() - 7);
+        return next;
+      });
+    } else {
+      setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+    }
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+  const handleNext = () => {
+    if (viewMode === "Week") {
+      setCurrentDate((prev) => {
+        const next = new Date(prev);
+        next.setDate(next.getDate() + 7);
+        return next;
+      });
+    } else {
+      setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+    }
   };
 
   const handleToday = () => {
@@ -419,7 +483,6 @@ const ContentCalendar = () => {
         id: draggedTaskId,
         data: {
           publishDate: newPublishDate,
-          dueDate: newPublishDate,
         },
       })
     );
@@ -526,9 +589,6 @@ const ContentCalendar = () => {
   const outletContext = useOutletContext() || {};
   const setSidebarOpen = outletContext?.setSidebarOpen;
 
-  // Real today date check
-  const realTodayStr = new Date().toISOString().split("T")[0];
-
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
       {/* Top Header */}
@@ -549,19 +609,21 @@ const ContentCalendar = () => {
               Social Media Calendar
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              {MONTH_NAMES[currentMonth]} {currentYear}
+              {viewMode === "Week" && currentWeekDays.length === 7
+                ? `${currentWeekDays[0].dayNumber} ${currentWeekDays[0].monthShort} – ${currentWeekDays[6].dayNumber} ${currentWeekDays[6].monthShort} ${currentWeekDays[6].year}`
+                : `${MONTH_NAMES[currentMonth]} ${currentYear}`}
             </h1>
           </div>
         </div>
 
         {/* Navigation & View switcher */}
         <div className="flex items-center gap-3 self-start sm:self-auto">
-          {/* Month selector navigation */}
+          {/* Month/Week selector navigation */}
           <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5 shadow-xs">
             <button
-              onClick={handlePrevMonth}
+              onClick={handlePrev}
               className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Previous Month"
+              title={viewMode === "Week" ? "Previous Week" : "Previous Month"}
             >
               <FiChevronLeft size={16} />
             </button>
@@ -572,9 +634,9 @@ const ContentCalendar = () => {
               Today
             </button>
             <button
-              onClick={handleNextMonth}
+              onClick={handleNext}
               className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Next Month"
+              title={viewMode === "Week" ? "Next Week" : "Next Month"}
             >
               <FiChevronRight size={16} />
             </button>
@@ -999,20 +1061,26 @@ const ContentCalendar = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3">
-            {calendarDays.slice(0, 7).map((dayItem, idx) => {
+            {currentWeekDays.map((dayItem, idx) => {
               const postsForDay = tasksByDate[dayItem.dateKey] || [];
               return (
                 <div
                   key={idx}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, dayItem.date)}
                   onClick={() => handleAddPostOnDate(dayItem.date)}
-                  className="bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200 dark:border-slate-700/60 min-h-[220px] flex flex-col justify-between cursor-pointer hover:border-blue-400 transition-colors"
+                  className={`bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border ${
+                    dayItem.isToday
+                      ? "border-blue-500/80 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20"
+                      : "border-slate-200 dark:border-slate-700/60"
+                  } min-h-[220px] flex flex-col justify-between cursor-pointer hover:border-blue-400 transition-colors`}
                 >
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700/50 mb-2">
-                    <span className="text-xs font-black text-slate-500 uppercase">
+                    <span className={`text-xs font-black uppercase ${dayItem.isToday ? "text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>
                       {WEEK_DAYS[idx]}
                     </span>
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      {dayItem.dayNumber} {MONTH_NAMES[currentMonth].slice(0, 3)}
+                    <span className={`text-xs font-bold ${dayItem.isToday ? "text-blue-600 dark:text-blue-400" : "text-slate-800 dark:text-slate-200"}`}>
+                      {dayItem.dayNumber} {dayItem.monthShort}
                     </span>
                   </div>
 
@@ -1028,6 +1096,8 @@ const ContentCalendar = () => {
                       return (
                         <div
                           key={p._id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, p._id)}
                           onClick={(e) => handleCardClick(p, e)}
                           className="p-2 rounded-xl bg-white dark:bg-slate-850 border border-slate-200/90 dark:border-slate-700/80 text-xs shadow-2xs hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer space-y-1.5"
                           style={{ borderLeftWidth: "3.5px", borderLeftColor: p.clientColor || "#6366f1" }}

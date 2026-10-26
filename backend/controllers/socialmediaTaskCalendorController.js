@@ -208,7 +208,11 @@ exports.getSocialmediaTasks = async (req, res) => {
 
     let tasks = await SocialmediaTaskCalendor.find(query)
       .populate('client', 'companyName color icon')
-      .populate('assignee', 'name email role')
+      .populate({
+        path: 'assignee',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      })
       .populate({
         path: 'createdBy',
         select: 'name email role profile',
@@ -354,7 +358,11 @@ exports.getSocialmediaTaskById = async (req, res) => {
   try {
     const task = await SocialmediaTaskCalendor.findById(req.params.id)
       .populate('client', 'companyName color icon')
-      .populate('assignee', 'name email role')
+      .populate({
+        path: 'assignee',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      })
       .populate({
         path: 'createdBy',
         select: 'name email role profile',
@@ -431,7 +439,11 @@ exports.createSocialmediaTask = async (req, res) => {
 
     let task = await SocialmediaTaskCalendor.create(body);
     task = await task.populate('client', 'companyName color icon');
-    task = await task.populate('assignee', 'name email role');
+    task = await task.populate({
+      path: 'assignee',
+      select: 'name email role profile',
+      populate: { path: 'profile', select: 'profileImage' },
+    });
     task = await task.populate({
       path: 'createdBy',
       select: 'name email role profile',
@@ -505,7 +517,11 @@ exports.updateSocialmediaTask = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate('client', 'companyName color icon')
-      .populate('assignee', 'name email role')
+      .populate({
+        path: 'assignee',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      })
       .populate({
         path: 'createdBy',
         select: 'name email role profile',
@@ -546,10 +562,8 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
       updateData.commitment = true;
       updateData.onCalendar = true;
     }
-    if (dueDate) {
-      updateData.dueDate = new Date(dueDate);
-    } else if (publishDate) {
-      updateData.dueDate = new Date(publishDate);
+    if (dueDate !== undefined) {
+      updateData.dueDate = dueDate ? new Date(dueDate) : null;
     }
 
     const task = await SocialmediaTaskCalendor.findByIdAndUpdate(
@@ -558,7 +572,11 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
       { new: true }
     )
       .populate('client', 'companyName color icon')
-      .populate('assignee', 'name email role')
+      .populate({
+        path: 'assignee',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      })
       .populate({
         path: 'createdBy',
         select: 'name email role profile',

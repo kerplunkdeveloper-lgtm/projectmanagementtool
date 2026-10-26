@@ -9,6 +9,12 @@ import {
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
+import {
+  formatLocalDateKey,
+  formatLocalTimeKey,
+  parseLocalDateTime,
+  parseLocalDateOnly,
+} from "../../utils/dateUtils";
 
 const CATEGORIES = [
   "Content",
@@ -46,13 +52,12 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
-  // Fetch real clients & team members if not already loaded
   useEffect(() => {
     if (isOpen) {
-      if (!clients || clients.length === 0) dispatch(getClients());
-      if (!users || users.length === 0) dispatch(getUsers());
+      dispatch(getClients());
+      dispatch(getUsers());
     }
-  }, [dispatch, isOpen, clients.length, users.length]);
+  }, [dispatch, isOpen]);
 
   const [formData, setFormData] = useState({
     taskTitle: "",
@@ -82,14 +87,13 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
       let pDate = "";
       let pTime = "18:00";
       if (task.publishDate) {
-        const d = new Date(task.publishDate);
-        pDate = d.toISOString().split("T")[0];
-        pTime = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+        pDate = formatLocalDateKey(task.publishDate);
+        pTime = formatLocalTimeKey(task.publishDate, "18:00");
       }
 
       let dDate = "";
       if (task.dueDate) {
-        dDate = new Date(task.dueDate).toISOString().split("T")[0];
+        dDate = formatLocalDateKey(task.dueDate);
       }
 
       const foundClient = clients.find(
@@ -123,8 +127,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
       });
     } else {
       const defaultDateStr = initialDate
-        ? new Date(initialDate).toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0];
+        ? formatLocalDateKey(initialDate)
+        : formatLocalDateKey(new Date());
 
       const defaultClient = clients[0] || null;
 
@@ -232,10 +236,14 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
     try {
       let finalPublishDate = null;
       if (formData.hasPublishDate && formData.publishDate) {
-        const [hh, mm] = (formData.publishTime || "12:00").split(":");
-        const d = new Date(formData.publishDate);
-        d.setHours(parseInt(hh, 10) || 0, parseInt(mm, 10) || 0, 0, 0);
-        finalPublishDate = d;
+        finalPublishDate = parseLocalDateTime(formData.publishDate, formData.publishTime || "18:00");
+      }
+
+      let finalDueDate = null;
+      if (formData.dueDate) {
+        finalDueDate = parseLocalDateOnly(formData.dueDate);
+      } else {
+        finalDueDate = new Date();
       }
 
       const payload = {
@@ -249,7 +257,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
         createdByName: formData.createdByName || currentUser?.name || "Admin",
         assignee: formData.createdById || currentUser?._id || currentUser?.id || null,
         assigneeName: formData.createdByName || currentUser?.name || "Admin",
-        dueDate: formData.dueDate ? new Date(formData.dueDate) : new Date(),
+        dueDate: finalDueDate,
         publishDate: finalPublishDate,
         status: formData.status,
         priority: formData.priority,
@@ -283,11 +291,18 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
   };
 
   const isCommitment = formData.hasPublishDate && Boolean(formData.publishDate);
+  const targetDateForRisk =
+    formData.hasPublishDate && formData.publishDate
+      ? parseLocalDateTime(formData.publishDate, formData.publishTime || "18:00")
+      : formData.dueDate
+        ? parseLocalDateOnly(formData.dueDate, true)
+        : null;
+
   const isAtRisk =
     isCommitment &&
     !["Completed", "Live"].includes(formData.status) &&
-    formData.publishDate &&
-    (new Date(formData.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+    targetDateForRisk &&
+    (targetDateForRisk.getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-3 sm:p-4 md:p-6 overflow-y-auto">
