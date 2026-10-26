@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
 import DashboardCards from "./cards/DashboardCards";
 import ShootCalendarOverview from "./cards/ShootCalendarOverview";
+import ContentCalendarOverview from "./cards/ContentCalendarOverview";
 const GraphicDesignerDashboard = React.lazy(
   () => import("./cards/GraphicDesignerDashboard"),
 );
@@ -2163,12 +2164,18 @@ const Dashboardmain = () => {
         )}
       </div>
 
-      {/* ─── SHOOT CALENDAR OVERVIEW (Visible when user has Read access or is Admin / Operation Manager) ─── */}
-      {canReadShootCalendar && (
-        <div className="w-full mt-4 mb-4">
-          <ShootCalendarOverview />
+      {/* ─── CALENDAR OVERVIEW SECTION (Left: Shoot Calendar Overview, Right: Content Calendar Overview) ─── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4 mb-4 items-stretch">
+        {canReadShootCalendar && (
+          <div className="w-full flex">
+            <ShootCalendarOverview />
+          </div>
+        )}
+
+        <div className={`w-full flex ${!canReadShootCalendar ? "xl:col-span-2" : ""}`}>
+          <ContentCalendarOverview />
         </div>
-      )}
+      </div>
 
       {/* .................................................Dashboard Cards / Assigned Clients.............................. */}
       {(() => {

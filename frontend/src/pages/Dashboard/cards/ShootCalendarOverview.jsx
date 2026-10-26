@@ -20,6 +20,9 @@ import {
   FiExternalLink,
   FiCheckSquare,
   FiAlertTriangle,
+  FiRefreshCw,
+  FiList,
+  FiGrid,
 } from "react-icons/fi";
 import { format, isToday, isTomorrow, isThisWeek, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -90,13 +93,16 @@ const getRelativeDateLabel = (date) => {
 const ShootCalendarOverview = () => {
   const navigate = useNavigate();
   const currentUser = useSelector((state) => state.auth?.user);
+  const clientsFromStore = useSelector((state) => state.clients?.clients || []);
   const { socket } = useSocketContext() || {};
 
   const [shoots, setShoots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all"); // "all", "today", "upcoming", "thisWeek", "confirmed"
+  const [selectedClient, setSelectedClient] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedShootForModal, setSelectedShootForModal] = useState(null);
+  const [viewMode, setViewMode] = useState("table"); // "table" | "grid"
 
   const userRole = (currentUser?.role?.name || currentUser?.role || "")
     .toString()
@@ -180,6 +186,22 @@ const ShootCalendarOverview = () => {
     return { total, today, upcoming, confirmed, inProgress };
   }, [allowedShoots]);
 
+  // Dynamic client options
+  const clientOptions = useMemo(() => {
+    const map = new Map();
+    clientsFromStore.forEach((c) => {
+      if (c.companyName) {
+        map.set(c.companyName.trim().toLowerCase(), c.companyName.trim());
+      }
+    });
+    allowedShoots.forEach((s) => {
+      if (s.client?.companyName) {
+        map.set(s.client.companyName.trim().toLowerCase(), s.client.companyName.trim());
+      }
+    });
+    return Array.from(map.values()).sort();
+  }, [clientsFromStore, allowedShoots]);
+
   // Filtered shoots based on tab and search query
   const filteredShoots = useMemo(() => {
     let list = [...allowedShoots];
@@ -217,6 +239,12 @@ const ShootCalendarOverview = () => {
       list = list.filter((s) => s.status === "Confirmed");
     }
 
+    // Client filter
+    if (selectedClient !== "all") {
+      const cl = selectedClient.toLowerCase();
+      list = list.filter((s) => (s.client?.companyName || "").toLowerCase() === cl);
+    }
+
     // Search query filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -243,7 +271,18 @@ const ShootCalendarOverview = () => {
     });
 
     return list;
-  }, [allowedShoots, activeTab, searchQuery]);
+  }, [allowedShoots, activeTab, selectedClient, searchQuery]);
+
+  const hasActiveFilters =
+    activeTab !== "all" ||
+    selectedClient !== "all" ||
+    searchQuery.trim() !== "";
+
+  const clearFilters = () => {
+    setActiveTab("all");
+    setSelectedClient("all");
+    setSearchQuery("");
+  };
 
   const canCreate =
     isSuperOrAdmin ||
@@ -255,354 +294,368 @@ const ShootCalendarOverview = () => {
   }
 
   return (
-    <div className="w-full sidebar-bg rounded-2xl border border-slate-200 dark:border-[#223149] shadow-xs p-4 sm:p-6 transition-all">
+    <div className="w-full sidebar-bg rounded-2xl border border-slate-200 dark:border-[#223149] shadow-xs p-4 sm:p-5 transition-all flex flex-col justify-between">
       {/* ─── Top Section: Header, Metrics, Actions ─────────────────── */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
-        {/* Title & Description */}
-        <div className="flex items-start sm:items-center gap-3">
-          <div className="p-2.5 rounded-2xl theme-bg-accent text-white shadow-md shadow-accent/20 shrink-0">
-            <FiCalendar size={22} className="stroke-[2.5]" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                Shoot Calendar Overview
-              </h2>
-              {metrics.today > 0 && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-white shadow-xs animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                  {metrics.today} {metrics.today === 1 ? "Shoot Today" : "Shoots Today"}
-                </span>
-              )}
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800">
+          {/* Title & Description */}
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl theme-bg-accent text-white shadow-xs shrink-0">
+              <FiCalendar size={18} className="stroke-[2.5]" />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-              Real-time video & photography production schedules, lead assignees and crew allocations
-            </p>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight">
+                  Shoot Calendar Overview
+                </h2>
+                {metrics.today > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500 text-white shadow-xs animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                    {metrics.today} Today
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                Production schedules & crew allocations
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-          {canCreate && (
-            <button
-              type="button"
-              onClick={() => navigate(`/${currentUser?.role}/Shootcalendor`)}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl theme-bg-accent text-white shadow-sm hover:opacity-95 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <FiPlus size={15} /> Schedule Shoot
-            </button>
-          )}
-          <Link
-            to={`/${currentUser?.role}/Shootcalendor`}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-200/90 dark:border-slate-700 bg-slate-50 dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs group"
-          >
-            <span>Full Calendar</span>
-            <FiChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform text-emerald-500" />
-          </Link>
-        </div>
-      </div>
-
-      {/* ─── Metric Pills Row ────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 my-4">
-        <div
-          onClick={() => setActiveTab("all")}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            activeTab === "all"
-              ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-400 dark:border-emerald-500/50 ring-1 ring-emerald-400/30"
-              : "bg-slate-50/50 dark:bg-[#111927] border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100/60 dark:hover:bg-slate-800/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Total Shoots
-            </span>
-            <FiCalendar size={13} className="text-emerald-500" />
-          </div>
-          <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
-            {metrics.total}
-          </p>
-        </div>
-
-        <div
-          onClick={() => setActiveTab("today")}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            activeTab === "today"
-              ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-400 dark:border-emerald-500/50 ring-1 ring-emerald-400/30"
-              : "bg-slate-50/50 dark:bg-[#111927] border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100/60 dark:hover:bg-slate-800/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Today
-            </span>
-            <div className={`w-2 h-2 rounded-full ${metrics.today > 0 ? "bg-emerald-500 animate-ping" : "bg-slate-300 dark:bg-slate-600"}`} />
-          </div>
-          <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
-            {metrics.today}
-          </p>
-        </div>
-
-        <div
-          onClick={() => setActiveTab("upcoming")}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            activeTab === "upcoming"
-              ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-400 dark:border-emerald-500/50 ring-1 ring-emerald-400/30"
-              : "bg-slate-50/50 dark:bg-[#111927] border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100/60 dark:hover:bg-slate-800/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Upcoming
-            </span>
-            <FiClock size={13} className="text-blue-500" />
-          </div>
-          <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
-            {metrics.upcoming}
-          </p>
-        </div>
-
-        <div
-          onClick={() => setActiveTab("confirmed")}
-          className={`p-3 rounded-xl border transition-all cursor-pointer ${
-            activeTab === "confirmed"
-              ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-400 dark:border-emerald-500/50 ring-1 ring-emerald-400/30"
-              : "bg-slate-50/50 dark:bg-[#111927] border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100/60 dark:hover:bg-slate-800/50"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Confirmed
-            </span>
-            <FiCheckCircle size={13} className="text-emerald-500" />
-          </div>
-          <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
-            {metrics.confirmed}
-          </p>
-        </div>
-
-        <div
-          onClick={() => setActiveTab("all")}
-          className="col-span-2 sm:col-span-1 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-[#111927] hover:bg-slate-100/60 dark:hover:bg-slate-800/50 transition-all cursor-pointer"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              In Progress
-            </span>
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-          </div>
-          <p className="text-xl font-black text-slate-900 dark:text-white mt-1">
-            {metrics.inProgress}
-          </p>
-        </div>
-      </div>
-
-      {/* ─── Search & Tab Filter Bar ───────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4">
-        {/* Tab Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          {[
-            { id: "all", label: "All Shoots" },
-            { id: "today", label: "Today" },
-            { id: "upcoming", label: "Upcoming" },
-            { id: "thisWeek", label: "This Week" },
-            { id: "confirmed", label: "Confirmed" },
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
+          {/* Action & View Mode Controls */}
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+            {/* Table / Grid Switcher */}
+            <div className="flex items-center bg-slate-100 dark:bg-[#131d2e] p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
               <button
-                key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? "bg-emerald-500 text-white shadow-xs shadow-emerald-500/20 font-black"
-                    : "bg-slate-100/80 dark:bg-[#131d2e] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70"
+                onClick={() => setViewMode("table")}
+                title="Table View"
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-white dark:bg-[#1a2538] theme-text-accent shadow-2xs font-bold"
+                    : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                 }`}
               >
-                {tab.label}
+                <FiList size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                title="Cards View"
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-white dark:bg-[#1a2538] theme-text-accent shadow-2xs font-bold"
+                    : "text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                }`}
+              >
+                <FiGrid size={13} />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={fetchShoots}
+              title="Refresh Shoots"
+              className="p-1.5 rounded-lg border border-slate-200/90 dark:border-slate-700 bg-slate-50 dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-all cursor-pointer shadow-2xs"
+            >
+              <FiRefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            </button>
+
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => navigate(`/${currentUser?.role}/Shootcalendor`)}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg theme-bg-accent text-white shadow-2xs hover:opacity-95 transition-all cursor-pointer"
+              >
+                <FiPlus size={12} /> Schedule
+              </button>
+            )}
+
+            <Link
+              to={`/${currentUser?.role}/Shootcalendor`}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-all cursor-pointer group"
+            >
+              <span>Full Calendar</span>
+              <FiChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform theme-text-accent" />
+            </Link>
+          </div>
+        </div>
+
+        {/* ─── Minimalist Metric Chips Ribbon ─────────────────────────── */}
+        <div className="flex items-center gap-1.5 flex-wrap my-3">
+          {[
+            { id: "all", label: "All Shoots", count: metrics.total },
+            { id: "today", label: "Today", count: metrics.today },
+            { id: "upcoming", label: "Upcoming", count: metrics.upcoming },
+            { id: "confirmed", label: "Confirmed", count: metrics.confirmed },
+            { id: "inProgress", label: "In Progress", count: metrics.inProgress },
+          ].map((pill) => {
+            const isActive = activeTab === pill.id;
+            return (
+              <button
+                key={pill.id}
+                type="button"
+                onClick={() => setActiveTab(pill.id)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
+                  isActive
+                    ? "theme-bg-accent text-white border-transparent shadow-2xs font-black"
+                    : "bg-slate-50/70 dark:bg-[#111927] border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
+                }`}
+              >
+                <span>{pill.label}</span>
+                <span
+                  className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-full ${
+                    isActive
+                      ? "bg-white/25 text-white"
+                      : "bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {pill.count}
+                </span>
               </button>
             );
           })}
         </div>
 
-        {/* Live Search */}
-        <div className="relative min-w-[220px] max-w-xs">
-         
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search shoot, client, crew..."
-            className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 dark:bg-[#131d2e] border border-slate-200 dark:border-slate-700/80 rounded-xl font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+        {/* ─── Minimalist Filter Bar: Client & Search ─────────────────── */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-3.5">
+          {/* Client Selector Filter */}
+          <div className="relative shrink-0 sm:max-w-[160px] w-full">
+            <select
+              value={selectedClient}
+              onChange={(e) => setSelectedClient(e.target.value)}
+              className="w-full text-[11px] font-semibold py-1.5 pl-2.5 pr-6 bg-slate-50 dark:bg-[#131d2e] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer truncate"
             >
-              <FiX size={12} />
+              <option value="all">🏢 All Clients</option>
+              {clientOptions.map((cName) => (
+                <option key={cName} value={cName}>
+                  {cName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Live Search */}
+          <div className="relative flex-1">
+           
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search shoot title, client, crew..."
+              className="w-full pl-7 pr-6 py-1.5 text-[11px] bg-slate-50 dark:bg-[#131d2e] border border-slate-200 dark:border-slate-700/80 rounded-lg font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <FiX size={11} />
+              </button>
+            )}
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="px-2 py-1.5 rounded-lg text-[10px] font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-slate-200 dark:border-slate-700 shrink-0 transition-colors cursor-pointer"
+            >
+              Reset
             </button>
           )}
         </div>
-      </div>
 
-      {/* ─── Shoots Cards Grid ─────────────────────────────────────── */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3" />
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Loading shoot schedules...</p>
-        </div>
-      ) : filteredShoots.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 px-4 text-center bg-slate-50/50 dark:bg-[#111927]/60 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5 border border-emerald-500/20">
-            <FiCalendar size={22} />
+        {/* ─── Content Body: Table or Cards ──────────────────────────── */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-10">
+            <div className="w-7 h-7 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mb-2" />
+            <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Loading shoots...</p>
           </div>
-          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-            No Shoots Found
-          </h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 mb-4 font-medium">
-            {searchQuery
-              ? `No shoots match "${searchQuery}". Try clearing search.`
-              : activeTab !== "all"
-              ? "No shoots found under this category."
-              : "No shoots are currently scheduled on your calendar."}
-          </p>
-          <div className="flex items-center gap-2">
-            {(searchQuery || activeTab !== "all") && (
+        ) : filteredShoots.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-slate-50/50 dark:bg-[#111927]/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 border border-emerald-500/20">
+              <FiCalendar size={18} />
+            </div>
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              No Shoots Found
+            </h4>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mt-0.5 mb-3 font-medium">
+              {hasActiveFilters
+                ? "No shoots match your current search or filters."
+                : "No shoots scheduled right now."}
+            </p>
+            {hasActiveFilters && (
               <button
                 type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setActiveTab("all");
-                }}
-                className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                onClick={clearFilters}
+                className="px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
               >
                 Clear Filters
               </button>
             )}
-            <Link
-              to={`/${currentUser?.role}/Shootcalendor`}
-              className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs shadow-emerald-500/20 transition-all cursor-pointer"
-            >
-              Open Shoot Calendar
-            </Link>
           </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
-          {filteredShoots.slice(0, 6).map((shoot) => {
-            const statusStyle = getStatusStyles(shoot.status);
-            const isVideo = (shoot.shootType || "").toLowerCase().includes("video");
-            const relativeDate = getRelativeDateLabel(shoot.schedule?.shootDate);
+        ) : viewMode === "table" ? (
+          /* ─── MINIMALIST TABLE VIEW ─── */
+          <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800/80 scrollbar-thin">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/90 dark:bg-[#111927] border-b border-slate-200/80 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 select-none">
+                  <th className="py-2 px-3">Date & Time</th>
+                  <th className="py-2 px-3">Shoot & Client</th>
+                  <th className="py-2 px-3 hidden sm:table-cell">Type</th>
+                  <th className="py-2 px-3 hidden md:table-cell">Lead</th>
+                  <th className="py-2 px-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                {filteredShoots.slice(0, 5).map((shoot) => {
+                  const statusStyle = getStatusStyles(shoot.status);
+                  const isVideo = (shoot.shootType || "").toLowerCase().includes("video");
+                  const relativeDate = getRelativeDateLabel(shoot.schedule?.shootDate);
+                  const formattedDate = shoot.schedule?.shootDate
+                    ? format(new Date(shoot.schedule.shootDate), "EEE, MMM d")
+                    : "Date TBD";
 
-            const formattedDate = shoot.schedule?.shootDate
-              ? format(new Date(shoot.schedule.shootDate), "EEE, MMM d, yyyy")
-              : "Date TBD";
+                  return (
+                    <tr
+                      key={shoot._id}
+                      onClick={() => setSelectedShootForModal(shoot)}
+                      className="hover:bg-slate-50/80 dark:hover:bg-[#162235] transition-colors cursor-pointer group"
+                    >
+                      {/* Date & Time */}
+                      <td className="py-2 px-3 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-slate-800 dark:text-slate-200 text-[11.5px]">
+                              {formattedDate}
+                            </span>
+                            {relativeDate && (
+                              <span
+                                className={`px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase ${relativeDate.color}`}
+                              >
+                                {relativeDate.text}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {shoot.schedule?.startTime || "Time TBD"}
+                            {shoot.schedule?.endTime && ` - ${shoot.schedule.endTime}`}
+                          </span>
+                        </div>
+                      </td>
 
-            return (
-              <div
-                key={shoot._id}
-                onClick={() => setSelectedShootForModal(shoot)}
-                className={`bg-white dark:bg-[#131d2e] rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800/90 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group ${statusStyle.cardBorder}`}
-              >
-                <div>
-                  {/* Top Row: Date Pill & Status Pill */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-[#1a2538] text-slate-800 dark:text-slate-200 border border-slate-200/70 dark:border-slate-700/80">
-                        <FiCalendar size={12} className="text-emerald-500 shrink-0" />
+                      {/* Shoot & Client */}
+                      <td className="py-2 px-3">
+                        <div className="flex flex-col min-w-0 max-w-[180px] sm:max-w-[220px]">
+                          <span className="font-bold text-slate-900 dark:text-white text-[11.5px] truncate group-hover:text-emerald-500 transition-colors">
+                            {shoot.shootTitle}
+                          </span>
+                          <span className="text-[10.5px] text-slate-500 dark:text-slate-400 truncate">
+                            {shoot.client?.companyName || "Internal / General"}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Shoot Type */}
+                      <td className="py-2 px-3 hidden sm:table-cell whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-[#1a2538] text-slate-700 dark:text-slate-300">
+                          {isVideo ? (
+                            <FiVideo size={10} className="text-blue-500 shrink-0" />
+                          ) : (
+                            <FiCamera size={10} className="text-purple-500 shrink-0" />
+                          )}
+                          <span>{shoot.shootType || "Shoot"}</span>
+                        </span>
+                      </td>
+
+                      {/* Lead */}
+                      <td className="py-2 px-3 hidden md:table-cell whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-[9px] shrink-0">
+                            {shoot.assignedTo?.name ? shoot.assignedTo.name.charAt(0).toUpperCase() : "U"}
+                          </div>
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate max-w-[90px]">
+                            {shoot.assignedTo?.name || "Unassigned"}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-2 px-3 text-right whitespace-nowrap">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-bold border ${statusStyle.badge}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
+                          <span>{shoot.status}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* ─── GRID / CARDS VIEW ─── */
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {filteredShoots.slice(0, 4).map((shoot) => {
+              const statusStyle = getStatusStyles(shoot.status);
+              const isVideo = (shoot.shootType || "").toLowerCase().includes("video");
+              const relativeDate = getRelativeDateLabel(shoot.schedule?.shootDate);
+              const formattedDate = shoot.schedule?.shootDate
+                ? format(new Date(shoot.schedule.shootDate), "EEE, MMM d")
+                : "Date TBD";
+
+              return (
+                <div
+                  key={shoot._id}
+                  onClick={() => setSelectedShootForModal(shoot)}
+                  className={`bg-white dark:bg-[#131d2e] rounded-xl p-3 border border-slate-200/90 dark:border-slate-800/90 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group ${statusStyle.cardBorder}`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-2">
+                      <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                        <FiCalendar size={11} className="text-emerald-500" />
                         {formattedDate}
                       </span>
-                      {relativeDate && (
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${relativeDate.color}`}>
-                          {relativeDate.text}
-                        </span>
-                      )}
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${statusStyle.badge}`}>
+                        {shoot.status}
+                      </span>
                     </div>
 
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusStyle.badge}`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
-                      {shoot.status}
-                    </span>
-                  </div>
-
-                  {/* Shoot Title & Client */}
-                  <div className="mb-3">
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-emerald-500 transition-colors">
                       {shoot.shootTitle}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
-                      <FiBriefcase size={12} className="shrink-0 text-slate-400" />
-                      <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
-                        {shoot.client?.companyName || "Internal / No Client"}
-                      </span>
-                    </div>
+                    </h4>
+                    <p className="text-[10.5px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                      {shoot.client?.companyName || "Internal / General"}
+                    </p>
                   </div>
 
-                  {/* Time & Location Row */}
-                  <div className="space-y-1.5 mb-3.5 text-xs text-slate-600 dark:text-slate-300">
-                    <div className="flex items-center gap-1.5">
-                      <FiClock size={12} className="text-slate-400 shrink-0" />
-                      <span className="font-medium text-[11.5px]">
-                        {shoot.schedule?.startTime || "Time TBD"}
-                        {shoot.schedule?.endTime && ` – ${shoot.schedule.endTime}`}
-                      </span>
-                    </div>
-
-                    {shoot.location && (
-                      <div className="flex items-center gap-1.5 truncate">
-                        <FiMapPin size={12} className="text-slate-400 shrink-0" />
-                        <span className="truncate text-[11.5px]">{shoot.location}</span>
-                      </div>
-                    )}
+                  <div className="flex items-center justify-between gap-1 pt-2 border-t border-slate-100 dark:border-slate-800 mt-2 text-[10px] text-slate-500">
+                    <span className="truncate">{shoot.assignedTo?.name || "Unassigned"}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">{shoot.shootType}</span>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-                {/* Bottom Crew & Type Row */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 mt-auto">
-                  {/* Crew Info */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold flex items-center justify-center text-[10px] shrink-0">
-                      {shoot.assignedTo?.name ? shoot.assignedTo.name.charAt(0).toUpperCase() : "U"}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
-                        {shoot.assignedTo?.name || "Unassigned"}
-                      </p>
-                      {shoot.shootTeam && shoot.shootTeam.length > 0 && (
-                        <p className="text-[10px] text-slate-400 dark:text-slate-400 truncate">
-                          +{shoot.shootTeam.length} crew {shoot.shootTeam.length === 1 ? "member" : "members"}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Shoot Type Pill */}
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-[#1a2538] text-slate-600 dark:text-slate-300 shrink-0">
-                    {isVideo ? <FiVideo size={10} className="text-blue-500" /> : <FiCamera size={10} className="text-purple-500" />}
-                    {shoot.shootType}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Footer link to full calendar when there are more than 6 shoots */}
-      {filteredShoots.length > 6 && (
-        <div className="flex justify-center mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <Link
-            to={`/${currentUser?.role}/Shootcalendor`}
-            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-          >
-            <span>View all {filteredShoots.length} scheduled shoots in calendar</span>
-            <FiChevronRight size={13} />
-          </Link>
-        </div>
-      )}
+      {/* ─── Minimalist Footer ─────────────────────────────────────── */}
+      <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
+        <span>
+          Showing {Math.min(filteredShoots.length, viewMode === "table" ? 5 : 4)} of {filteredShoots.length} shoots
+        </span>
+        <Link
+          to={`/${currentUser?.role}/Shootcalendor`}
+          className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-0.5"
+        >
+          <span>Open Full Calendar</span>
+          <FiChevronRight size={12} />
+        </Link>
+      </div>
 
       {/* ─── Shoot Quick View Modal ─────────────────────────────────── */}
       <AnimatePresence>
