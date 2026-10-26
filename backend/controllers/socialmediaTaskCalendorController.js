@@ -80,19 +80,52 @@ exports.getSocialmediaTasks = async (req, res) => {
       endDate,
       month,
       year,
+      createdBy,
     } = req.query;
+
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
 
     const query = {};
 
+    // Restrict regular users strictly to tasks they created
+    let userCreatorCondition = null;
+    if (!isPrivileged && req.user) {
+      userCreatorCondition = {
+        $or: [
+          { createdBy: req.user._id },
+          { createdByName: req.user.name },
+        ],
+      };
+    } else if (isPrivileged && createdBy && createdBy !== 'All') {
+      const creatorVal = createdBy.trim();
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(creatorVal)) {
+        userCreatorCondition = {
+          $or: [
+            { createdBy: creatorVal },
+            { createdByName: creatorVal },
+          ],
+        };
+      } else {
+        userCreatorCondition = {
+          createdByName: new RegExp(`^${creatorVal}$`, 'i'),
+        };
+      }
+    }
+
     // Search term
+    let searchCondition = null;
     if (search && search.trim()) {
       const regex = new RegExp(search.trim(), 'i');
-      query.$or = [
-        { taskTitle: regex },
-        { taskCode: regex },
-        { clientName: regex },
-        { assigneeName: regex },
-      ];
+      searchCondition = {
+        $or: [
+          { taskTitle: regex },
+          { taskCode: regex },
+          { clientName: regex },
+          { assigneeName: regex },
+        ],
+      };
     }
 
     // Client filter
@@ -141,13 +174,16 @@ exports.getSocialmediaTasks = async (req, res) => {
     }
 
     // Date range filter
+    let dateCondition = null;
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      query.$or = [
-        { publishDate: { $gte: start, $lte: end } },
-        { dueDate: { $gte: start, $lte: end } },
-      ];
+      dateCondition = {
+        $or: [
+          { publishDate: { $gte: start, $lte: end } },
+          { dueDate: { $gte: start, $lte: end } },
+        ],
+      };
     } else if (year && month) {
       const y = parseInt(year, 10);
       const m = parseInt(month, 10);
@@ -158,10 +194,26 @@ exports.getSocialmediaTasks = async (req, res) => {
       query.publishDate = { $gte: start, $lte: end };
     }
 
+    // Combine any OR conditions safely using $and if multiple exist
+    const andClauses = [];
+    if (userCreatorCondition) andClauses.push(userCreatorCondition);
+    if (searchCondition) andClauses.push(searchCondition);
+    if (dateCondition) andClauses.push(dateCondition);
+
+    if (andClauses.length === 1) {
+      Object.assign(query, andClauses[0]);
+    } else if (andClauses.length > 1) {
+      query.$and = andClauses;
+    }
+
     let tasks = await SocialmediaTaskCalendor.find(query)
       .populate('client', 'companyName color icon')
       .populate('assignee', 'name email role')
-      .populate('createdBy', 'name')
+      .populate({
+        path: 'createdBy',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      })
       .sort({ publishDate: 1, dueDate: 1, createdAt: -1 });
 
     // Filter "atRisk" if requested
@@ -177,8 +229,12 @@ exports.getSocialmediaTasks = async (req, res) => {
       });
     }
 
-    const totalCount = await SocialmediaTaskCalendor.countDocuments();
-    const commitmentsCount = await SocialmediaTaskCalendor.countDocuments({ commitment: true });
+    const baseCountFilter = userCreatorCondition || {};
+    const totalCount = await SocialmediaTaskCalendor.countDocuments(baseCountFilter);
+    const commitmentsCount = await SocialmediaTaskCalendor.countDocuments({
+      ...baseCountFilter,
+      commitment: true,
+    });
 
     res.status(200).json({
       success: true,
@@ -208,11 +264,23 @@ exports.getSocialmediaStats = async (req, res) => {
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
-    // Dynamic Commitments planned this month from DB
-    const monthlyCommitments = await SocialmediaTaskCalendor.find({
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
+
+    const commitmentsQuery = {
       commitment: true,
       publishDate: { $gte: startOfMonth, $lte: endOfMonth },
-    });
+    };
+
+    if (!isPrivileged && req.user) {
+      commitmentsQuery.$or = [
+        { createdBy: req.user._id },
+        { createdByName: req.user.name },
+      ];
+    }
+
+    // Dynamic Commitments planned this month from DB
+    const monthlyCommitments = await SocialmediaTaskCalendor.find(commitmentsQuery);
 
     const totalCommitments = monthlyCommitments.length;
 
@@ -287,7 +355,11 @@ exports.getSocialmediaTaskById = async (req, res) => {
     const task = await SocialmediaTaskCalendor.findById(req.params.id)
       .populate('client', 'companyName color icon')
       .populate('assignee', 'name email role')
-      .populate('createdBy', 'name');
+      .populate({
+        path: 'createdBy',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      });
 
     if (!task) {
       return res.status(404).json({
@@ -360,7 +432,11 @@ exports.createSocialmediaTask = async (req, res) => {
     let task = await SocialmediaTaskCalendor.create(body);
     task = await task.populate('client', 'companyName color icon');
     task = await task.populate('assignee', 'name email role');
-    task = await task.populate('createdBy', 'name email role');
+    task = await task.populate({
+      path: 'createdBy',
+      select: 'name email role profile',
+      populate: { path: 'profile', select: 'profileImage' },
+    });
 
     res.status(201).json({
       success: true,
@@ -430,7 +506,11 @@ exports.updateSocialmediaTask = async (req, res) => {
     )
       .populate('client', 'companyName color icon')
       .populate('assignee', 'name email role')
-      .populate('createdBy', 'name email role');
+      .populate({
+        path: 'createdBy',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      });
 
     if (!task) {
       return res.status(404).json({
@@ -479,7 +559,11 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
     )
       .populate('client', 'companyName color icon')
       .populate('assignee', 'name email role')
-      .populate('createdBy', 'name email role');
+      .populate({
+        path: 'createdBy',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      });
 
     if (!task) {
       return res.status(404).json({

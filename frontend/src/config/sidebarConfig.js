@@ -25,21 +25,6 @@ export const sidebarConfig = {
   admin: [
     { name: "Home", path: "/admin", icon: FiHome },
     { name: "Sticky Notes", path: "/admin/stickynotes", icon: TbPencilHeart },
-    {
-      name: "All Calendar",
-      path: "/admin/Shootcalendor",
-      icon: LuCalendarDays,
-      children: [
-        { name: "Shoot Calendar", path: "/admin/Shootcalendor", icon: LuCalendarDays },
-        { name: "Content Calendar", path: "/admin/content-calendar", icon: LuCalendarRange },
-        { name: "Calendar", path: "/admin/event-calendar", icon: LuCalendarCheck },
-      ],
-    },
-    { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
-    { name: "MOM / Client Calls", path: "/admin/mom-points", icon: LuStickyNote },
-    { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
-    { name: "Workload", path: "/admin/workload", icon: LuActivity },
-    { name: "SM Credentials", path: "/admin/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Clients", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Projects", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     {
@@ -54,7 +39,21 @@ export const sidebarConfig = {
         { name: "Assigned Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
       ],
     },
-    { name: "Status Overview", path: "/admin/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
+    {
+      name: "All Calendar",
+      path: "/admin/Shootcalendor",
+      icon: LuCalendarDays,
+      children: [
+        { name: "Shoot Calendar", path: "/admin/Shootcalendor", icon: LuCalendarDays },
+        { name: "Content Calendar", path: "/admin/content-calendar", icon: LuCalendarRange },
+        { name: "Calendar", path: "/admin/event-calendar", icon: LuCalendarCheck },
+      ],
+    },
+    { name: "Workload", path: "/admin/workload", icon: LuActivity },
+    { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
+    { name: "MOM / Client Calls", path: "/admin/mom-points", icon: LuStickyNote },
+    { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "SM Credentials", path: "/admin/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Reports", path: "/admin/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     // { name: "Template", path: "/admin/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
@@ -66,22 +65,6 @@ export const sidebarConfig = {
   operationmanager: [
     { name: "Home", path: "/operationmanager", icon: FiHome },
     { name: "Sticky Notes", path: "/operationmanager/stickynotes", icon: TbPencilHeart },
-    {
-      name: "All Calendar",
-      path: "/operationmanager/Shootcalendor",
-      icon: LuCalendarDays,
-      children: [
-        { name: "Shoot Calendar", path: "/operationmanager/Shootcalendor", icon: LuCalendarDays },
-        { name: "Content Calendar", path: "/operationmanager/content-calendar", icon: LuCalendarRange },
-        { name: "Calendar", path: "/operationmanager/event-calendar", icon: LuCalendarCheck },
-      ],
-    },
-    { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
-    { name: "MOM / Client Calls", path: "/operationmanager/mom-points", icon: LuStickyNote },
-    { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
-    { name: "Workload", path: "/operationmanager/workload", icon: LuActivity },
-    { name: "SM Credentials", path: "/operationmanager/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
-    { name: "Reports", path: "/operationmanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Clients", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Projects", path: "/operationmanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     {
@@ -96,7 +79,22 @@ export const sidebarConfig = {
         { name: "Assigned Tasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
       ],
     },
-    { name: "Status Overview", path: "/operationmanager/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
+    {
+      name: "All Calendar",
+      path: "/operationmanager/Shootcalendor",
+      icon: LuCalendarDays,
+      children: [
+        { name: "Shoot Calendar", path: "/operationmanager/Shootcalendor", icon: LuCalendarDays },
+        { name: "Content Calendar", path: "/operationmanager/content-calendar", icon: LuCalendarRange },
+        { name: "Calendar", path: "/operationmanager/event-calendar", icon: LuCalendarCheck },
+      ],
+    },
+    { name: "Workload", path: "/operationmanager/workload", icon: LuActivity },
+    { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
+    { name: "MOM / Client Calls", path: "/operationmanager/mom-points", icon: LuStickyNote },
+    { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "SM Credentials", path: "/operationmanager/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
+    { name: "Reports", path: "/operationmanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/operationmanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     // { name: "Template Library", path: "/operationmanager/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
     { name: "Profile", path: "/operationmanager/profile", icon: FiUser },
@@ -106,21 +104,7 @@ export const sidebarConfig = {
   team: [
     { name: "Home", path: "/team", icon: FiHome },
     { name: "Sticky Notes", path: "/team/stickynotes", icon: TbPencilHeart },
-    {
-      name: "All Calendar",
-      path: "/team/Shootcalendor",
-      icon: LuCalendarDays,
-      children: [
-        { name: "Shoot Calendar", path: "/team/Shootcalendor", icon: LuCalendarDays, permissionKey: "manage_shoots" },
-        { name: "Content Calendar", path: "/team/content-calendar", icon: LuCalendarRange },
-        { name: "Calendar", path: "/team/event-calendar", icon: LuCalendarCheck },
-      ],
-    },
-    { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
-    { name: "MOM / Client Calls", path: "/team/mom-points", icon: LuStickyNote },
-    { name: "Workload", path: "/team/workload", icon: LuActivity },
     { name: "Clients", path: "/team/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
-    { name: "SM Credentials", path: "/team/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Projects", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     {
       name: "Tasks",
@@ -133,7 +117,20 @@ export const sidebarConfig = {
         { name: "Assigned Tasks", path: "/team/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
       ],
     },
-    { name: "Status Overview", path: "/team/task-overview", icon: LuBriefcase, permissionKey: "manage_tasks" },
+    {
+      name: "All Calendar",
+      path: "/team/Shootcalendor",
+      icon: LuCalendarDays,
+      children: [
+        { name: "Shoot Calendar", path: "/team/Shootcalendor", icon: LuCalendarDays, permissionKey: "manage_shoots" },
+        { name: "Content Calendar", path: "/team/content-calendar", icon: LuCalendarRange },
+        { name: "Calendar", path: "/team/event-calendar", icon: LuCalendarCheck },
+      ],
+    },
+    { name: "Workload", path: "/team/workload", icon: LuActivity },
+    { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
+    { name: "MOM / Client Calls", path: "/team/mom-points", icon: LuStickyNote },
+    { name: "SM Credentials", path: "/team/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "My Reports", path: "/team/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/team/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Users", path: "/team/users", icon: LuUsers, permissionKey: "manage_users" },
@@ -144,6 +141,8 @@ export const sidebarConfig = {
   humanresource: [
     { name: "Home", path: "/humanresource", icon: FiHome },
     { name: "Sticky Notes", path: "/humanresource/stickynotes", icon: TbPencilHeart },
+    { name: "Projects", path: "/humanresource/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    { name: "HR Tasks", path: "/humanresource/hr-tasks", icon: LuListTodo },
     {
       name: "All Calendar",
       path: "/humanresource/Shootcalendor",
@@ -158,8 +157,6 @@ export const sidebarConfig = {
     { name: "MOM / Client Calls", path: "/humanresource/mom-points", icon: LuStickyNote },
     // { name: "Workload", path: "/humanresource/workload", icon: LuActivity },
     { name: "SM Credentials", path: "/humanresource/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
-    { name: "Projects", path: "/humanresource/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
-    { name: "HR Tasks", path: "/humanresource/hr-tasks", icon: LuListTodo },
     { name: "Portfolio", path: "/humanresource/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Users", path: "/humanresource/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Profile", path: "/humanresource/profile", icon: FiUser },
@@ -168,4 +165,3 @@ export const sidebarConfig = {
 };
 
 sidebarConfig.hr = sidebarConfig.humanresource;
-

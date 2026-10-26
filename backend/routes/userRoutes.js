@@ -9,6 +9,7 @@ const {
   deleteUser,
   relieveUser,
   reactivateUser,
+  logWaterBreak,
 } = require('../controllers/userController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -78,6 +79,13 @@ router.put(
   '/me',
   protect,
   updateUser
+);
+
+// LOG WATER BREAK
+router.post(
+  '/water-log',
+  protect,
+  logWaterBreak
 );
 
 // RELIEVE USER - Admin only

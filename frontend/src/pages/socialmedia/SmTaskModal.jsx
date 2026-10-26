@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FiX, FiCalendar, FiClock, FiLock, FiAlertCircle, FiCheck, FiTrash2 } from "react-icons/fi";
 import toast from "react-hot-toast";
@@ -148,6 +148,41 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
       });
     }
   }, [isOpen, task, initialDate, clients, users]);
+
+  // Resolve creator info (name, profile avatar, initials)
+  const creatorInfo = useMemo(() => {
+    const cId = formData.createdById || task?.createdBy?._id || task?.createdBy || currentUser?._id;
+    const cName = formData.createdByName || task?.createdBy?.name || task?.createdByName || currentUser?.name || "Admin";
+
+    const matchedUser =
+      (cId && users.find((u) => u._id === cId)) ||
+      (cName && users.find((u) => u.name?.trim().toLowerCase() === cName.trim().toLowerCase())) ||
+      (currentUser?._id === cId || currentUser?.name === cName ? currentUser : null);
+
+    const avatarUrl =
+      matchedUser?.profile?.profileImage?.url ||
+      (typeof matchedUser?.profile?.profileImage === "string" ? matchedUser.profile.profileImage : null) ||
+      matchedUser?.profileImage?.url ||
+      (typeof matchedUser?.profileImage === "string" ? matchedUser.profileImage : null) ||
+      matchedUser?.profilePic ||
+      matchedUser?.avatar?.url ||
+      task?.createdBy?.profile?.profileImage?.url ||
+      null;
+
+    const initials = (cName || "U")
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase() || "U";
+
+    return {
+      name: cName,
+      avatarUrl: avatarUrl && typeof avatarUrl === "string" && avatarUrl.trim() ? avatarUrl.trim() : null,
+      initials,
+    };
+  }, [formData.createdById, formData.createdByName, task, currentUser, users]);
 
   if (!isOpen) return null;
 
@@ -335,11 +370,28 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                     Created By
                   </label>
                   <div className="w-full px-3.5 py-2 bg-slate-100/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center text-[10px] font-bold uppercase shrink-0">
-                      {(formData.createdByName || currentUser?.name || "U")[0]}
+                    <div className="relative shrink-0 w-5 h-5">
+                      {creatorInfo.avatarUrl ? (
+                        <img
+                          src={creatorInfo.avatarUrl}
+                          alt={creatorInfo.name}
+                          className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            const fallback = e.currentTarget.parentElement?.querySelector(".modal-avatar-fallback");
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="modal-avatar-fallback w-5 h-5 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[9px] items-center justify-center uppercase"
+                        style={{ display: creatorInfo.avatarUrl ? "none" : "flex" }}
+                      >
+                        {creatorInfo.initials}
+                      </div>
                     </div>
                     <span className="truncate">
-                      {formData.createdByName || currentUser?.name || "Admin"}
+                      {creatorInfo.name}
                     </span>
                   </div>
                 </div>

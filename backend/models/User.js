@@ -111,6 +111,39 @@ const userSchema = new mongoose.Schema({
     default: 'vertical',
   },
 
+  waterReminder: {
+    enabled: {
+      type: Boolean,
+      default: true,
+    },
+    interval: {
+      type: Number,
+      enum: [30, 60, 90],
+      default: 60,
+    },
+    workingHours: {
+      start: {
+        type: String,
+        default: '09:00',
+      },
+      end: {
+        type: String,
+        default: '18:00',
+      },
+    },
+    logs: [
+      {
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        date: {
+          type: String,
+        },
+      },
+    ],
+  },
+
   lastSeen: {
     type: Date,
     default: Date.now,

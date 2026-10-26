@@ -22,27 +22,27 @@ const TaskOverview = () => {
     dispatch(getClients());
   }, [dispatch]);
 
-  // Common department tab filter state passed to TaskOverviewTab
-  const [departmentFilter, setDepartmentFilter] = useState("Graphic Designer");
-
-  // Common quick date filter state passed to TaskOverviewTab
-  const [dateFilter, setDateFilter] = useState(() => {
+  // Common department tab filter state passed to TaskOverviewTab (Only Graphic Designer & Cinematographer)
+  const [departmentFilter, setDepartmentFilter] = useState(() => {
     try {
-      const saved = localStorage.getItem("task_date_filter");
-      if (saved && saved !== "All") return saved;
-      return "Today";
+      const saved = localStorage.getItem("task_department_filter");
+      if (saved && saved.toLowerCase().includes("cinema")) return "Cinematographer";
+      return "Graphic Designer";
     } catch {
-      return "Today";
+      return "Graphic Designer";
     }
   });
 
   useEffect(() => {
     try {
-      localStorage.setItem("task_date_filter", dateFilter);
+      localStorage.setItem("task_department_filter", departmentFilter);
     } catch (e) {
-      console.error("Failed to save date filter:", e);
+      console.error("Failed to save department filter:", e);
     }
-  }, [dateFilter]);
+  }, [departmentFilter]);
+
+  // Default date filter to "All" so all tasks are visible across all statuses
+  const [dateFilter, setDateFilter] = useState("All");
 
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const dateDropdownRef = useRef(null);
@@ -50,7 +50,7 @@ const TaskOverview = () => {
 
   const { data: tasks = EMPTY_ARRAY, isLoading: loading } = useGetTasksQuery(
     undefined,
-    { skip: !user }
+    { skip: !user, refetchOnMountOrArgChange: true }
   );
 
   const { data: projects = EMPTY_ARRAY } = useGetProjectsQuery(undefined, {
@@ -62,7 +62,7 @@ const TaskOverview = () => {
       <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 px-2 pb-3 pt-1">
         {/* Left Section: Department Tabs + Header Filters */}
         <div className="flex items-center gap-2.5 flex-wrap flex-1 min-w-0">
-          {/* Department Tabs */}
+          {/* Department Tabs: ONLY Graphic Designer & Cinematographer */}
           <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs shrink-0">
             {[
               { id: "Graphic Designer", label: "Graphic Designer", icon: LuPalette },
@@ -71,18 +71,19 @@ const TaskOverview = () => {
               const isActive =
                 departmentFilter === tab.id ||
                 (tab.id === "Cinematographer" &&
-                  departmentFilter?.toLowerCase().includes("cinematographer"));
+                  departmentFilter?.toLowerCase().includes("cinematographer")) ||
+                (tab.id === "Graphic Designer" &&
+                  !departmentFilter?.toLowerCase().includes("cinematographer"));
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setDepartmentFilter(tab.id)}
-                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer select-none ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
-                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/5"
-                  }`}
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer select-none ${isActive
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/5"
+                    }`}
                 >
                   <Icon
                     size={14}
@@ -109,20 +110,20 @@ const TaskOverview = () => {
         </div>
       </div>
 
-        <TaskOverviewTab
-          tasks={tasks}
-          projects={projects}
-          currentUserId={currentUserId}
-          user={user}
-          loading={loading}
-          departmentFilter={departmentFilter}
-          setDepartmentFilter={setDepartmentFilter}
-          dateFilter={dateFilter}
-          setDateFilter={setDateFilter}
-          showDateDropdown={showDateDropdown}
-          setShowDateDropdown={setShowDateDropdown}
-          dateDropdownRef={dateDropdownRef}
-        />
+      <TaskOverviewTab
+        tasks={tasks}
+        projects={projects}
+        currentUserId={currentUserId}
+        user={user}
+        loading={loading}
+        departmentFilter={departmentFilter}
+        setDepartmentFilter={setDepartmentFilter}
+        dateFilter={dateFilter}
+        setDateFilter={setDateFilter}
+        showDateDropdown={showDateDropdown}
+        setShowDateDropdown={setShowDateDropdown}
+        dateDropdownRef={dateDropdownRef}
+      />
     </div>
   );
 };

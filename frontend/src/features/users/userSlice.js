@@ -8,6 +8,7 @@ import {
   deleteUserAPI,
   relieveUserAPI,
   reactivateUserAPI,
+  logWaterBreakAPI,
 } from './userApi';
 
 
@@ -130,6 +131,20 @@ export const reactivateUser = createAsyncThunk(
     } catch (err) {
       return thunkAPI.rejectWithValue(
         err.response?.data?.message || 'Failed to reactivate user'
+      );
+    }
+  }
+);
+
+// LOG WATER BREAK
+export const logWaterBreak = createAsyncThunk(
+  'users/logWaterBreak',
+  async (_, thunkAPI) => {
+    try {
+      return await logWaterBreakAPI();
+    } catch (err) {
+      return thunkAPI.rejectWithValue(
+        err.response?.data?.message || 'Failed to log water break'
       );
     }
   }
@@ -299,6 +314,12 @@ const userSlice = createSlice({
       .addCase(reactivateUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // LOG WATER BREAK
+      .addCase(logWaterBreak.fulfilled, (state, action) => {
+        if (state.user && action.payload?.waterReminder) {
+          state.user.waterReminder = action.payload.waterReminder;
+        }
       });
   },
 });

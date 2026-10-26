@@ -597,6 +597,204 @@ input:focus, select:focus, textarea:focus {
   background-color: var(--sidebar-bg) !important;
 }
 
+/* ===================================================
+   SaaS TOOLBAR FILTER & SEARCH CONTROLS
+   Provides flawless vertical alignment, no text clipping,
+   custom SVG dropdown arrows, and crisp border/background
+   =================================================== */
+
+select.toolbar-filter-select {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.75rem !important;
+  padding: 0 2rem 0 0.75rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  line-height: normal !important;
+  height: 2.125rem !important; /* 34px */
+  min-height: 2.125rem !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.65rem center !important;
+  background-size: 0.75rem 0.75rem !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+select.toolbar-filter-select:hover {
+  border-color: #94a3b8 !important;
+  background-color: #f8fafc !important;
+}
+
+select.toolbar-filter-select:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  outline: none !important;
+}
+
+/* Active filter state - highlights active filter criteria */
+select.toolbar-filter-select.is-active {
+  background-color: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+}
+
+/* Dark mode toolbar filter select */
+.dark select.toolbar-filter-select {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+}
+
+.dark select.toolbar-filter-select:hover {
+  border-color: #475569 !important;
+  background-color: #27354a !important;
+}
+
+.dark select.toolbar-filter-select:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+}
+
+.dark select.toolbar-filter-select.is-active {
+  background-color: rgba(30, 58, 138, 0.4) !important;
+  border-color: #3b82f6 !important;
+  color: #93c5fd !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2360a5fa' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+}
+
+/* Search input toolbar styling */
+input.toolbar-search-input {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.75rem !important;
+  padding: 0 2rem 0 2.25rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  height: 2.25rem !important; /* 36px */
+  line-height: normal !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+input.toolbar-search-input:hover {
+  border-color: #94a3b8 !important;
+}
+
+input.toolbar-search-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  outline: none !important;
+}
+
+.dark input.toolbar-search-input {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+.dark input.toolbar-search-input:hover {
+  border-color: #475569 !important;
+}
+
+.dark input.toolbar-search-input:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;
+}
+
+/* Client dropdown search input */
+input.client-dropdown-search-input {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.35rem 1.75rem 0.35rem 2rem !important;
+  font-size: 0.75rem !important;
+  height: 2rem !important;
+  line-height: normal !important;
+  box-sizing: border-box !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+input.client-dropdown-search-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+  outline: none !important;
+}
+
+.dark input.client-dropdown-search-input {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+.dark input.client-dropdown-search-input:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
+}
+
+/* Date filter picker inputs */
+input.date-filter-picker-input {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.5rem !important;
+  padding: 0.35rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  height: 2rem !important;
+  line-height: normal !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+input.date-filter-picker-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+  outline: none !important;
+}
+
+.dark input.date-filter-picker-input {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+.dark input.date-filter-picker-input:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
+}
+
+/* Quick status select in table rows */
+select.table-status-select {
+  padding: 0.2rem 1.35rem 0.2rem 0.55rem !important;
+  font-size: 0.6875rem !important; /* 11px */
+  font-weight: 700 !important;
+  line-height: normal !important;
+  height: 1.625rem !important; /* 26px */
+  min-height: 1.625rem !important;
+  box-sizing: border-box !important;
+  border-radius: 0.375rem !important;
+  border: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.35rem center !important;
+  background-size: 0.65rem 0.65rem !important;
+  cursor: pointer !important;
+}
+
 /* Card gradients for dashboard widgets */
 .dashboard-gradient-card {
   background: var(--color-card-gradient) !important;

@@ -668,4 +668,59 @@ exports.getTeamActivity = async (req, res) => {
       message: err.message,
     });
   }
-};
+};
+
+// .....................................................log water break.................................
+exports.logWaterBreak = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const newLog = {
+      timestamp: new Date(),
+      date: todayStr,
+    };
+
+    if (!user.waterReminder) {
+      user.waterReminder = {
+        enabled: true,
+        interval: 60,
+        workingHours: { start: '09:00', end: '19:00' },
+        logs: [],
+      };
+    }
+
+    if (!Array.isArray(user.waterReminder.logs)) {
+      user.waterReminder.logs = [];
+    }
+
+    user.waterReminder.logs.push(newLog);
+
+    // Keep logs bounded to last 200 entries to prevent infinite growth
+    if (user.waterReminder.logs.length > 200) {
+      user.waterReminder.logs = user.waterReminder.logs.slice(-200);
+    }
+
+    await user.save();
+
+    const todayLogs = user.waterReminder.logs.filter((l) => l.date === todayStr);
+
+    res.status(200).json({
+      success: true,
+      message: 'Glass of water logged!',
+      countToday: todayLogs.length,
+      lastLog: newLog,
+      waterReminder: user.waterReminder,
+    });
+  } catch (err) {
+    console.error('[logWaterBreak Error]:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+

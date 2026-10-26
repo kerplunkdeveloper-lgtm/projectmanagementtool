@@ -217,6 +217,16 @@ const authSlice = createSlice({
           };
           localStorage.setItem("user", JSON.stringify(state.user));
         }
+      })
+      // Sync auth user when water is logged
+      .addCase('users/logWaterBreak/fulfilled', (state, action) => {
+        if (state.user && action.payload?.waterReminder) {
+          state.user = {
+            ...state.user,
+            waterReminder: action.payload.waterReminder
+          };
+          localStorage.setItem("user", JSON.stringify(state.user));
+        }
       });
   },
 });

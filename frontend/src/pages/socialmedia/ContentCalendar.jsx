@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
@@ -80,12 +80,76 @@ const ContentCalendar = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const role = user?.role || "admin";
+  const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
+  const isPrivileged = userRoleClean === "admin" || userRoleClean === "operationmanager";
 
   const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || [];
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
+
+  // Fast user lookup map for creator profile images and names
+  const usersMap = useMemo(() => {
+    const map = new Map();
+    (users || []).forEach((u) => {
+      if (u._id) map.set(u._id.toString(), u);
+      if (u.id) map.set(u.id.toString(), u);
+      if (u.name) map.set(u.name.trim().toLowerCase(), u);
+    });
+    return map;
+  }, [users]);
+
+  // Resolve creator information (avatar and name)
+  const getCreatorInfo = useCallback(
+    (task) => {
+      const createdBy = task?.createdBy;
+      const rawName =
+        (typeof createdBy === "object" ? createdBy?.name : null) ||
+        task?.createdByName ||
+        task?.assigneeName ||
+        (typeof createdBy === "string" ? createdBy : null) ||
+        "SMM";
+
+      let avatarUrl = null;
+      let name = rawName;
+
+      if (typeof createdBy === "object" && createdBy) {
+        name = createdBy.name || rawName;
+        avatarUrl = createdBy.profile?.profileImage || createdBy.profileImage || null;
+      }
+
+      const cId = (typeof createdBy === "object" ? createdBy?._id : createdBy)?.toString();
+      const matchedUser =
+        (cId && usersMap.get(cId)) ||
+        (name && usersMap.get(name.trim().toLowerCase()));
+
+      if (matchedUser) {
+        name = matchedUser.name || name;
+        if (!avatarUrl) {
+          avatarUrl =
+            matchedUser.profile?.profileImage ||
+            matchedUser.profileImage ||
+            matchedUser.avatar ||
+            null;
+        }
+      }
+
+      const initials = (name || "S")
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((n) => n[0].toUpperCase())
+        .join("");
+
+      return {
+        name,
+        avatarUrl: avatarUrl && typeof avatarUrl === "string" && avatarUrl.trim() ? avatarUrl.trim() : null,
+        initials,
+      };
+    },
+    [usersMap]
+  );
 
   // Month & Year state (Dynamic current date)
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -164,11 +228,34 @@ const ContentCalendar = () => {
     return uniqueTasks.filter((task) => {
       if (!task.publishDate) return false;
 
+      // Regular users only see tasks created by themselves.
+      // Admin and Operation Manager can see all users' tasks.
+      if (!isPrivileged) {
+        const currentUserId = user?._id || user?.id;
+        const currentUserNameLower = (user?.name || "").trim().toLowerCase();
+
+        const taskCreatorId =
+          typeof task.createdBy === "object"
+            ? task.createdBy?._id?.toString()
+            : task.createdBy?.toString();
+        const taskCreatedByNameLower = (task.createdByName || "").trim().toLowerCase();
+
+        const creator = getCreatorInfo(task);
+        const resolvedCreatorNameLower = (creator?.name || "").trim().toLowerCase();
+
+        const isMine =
+          (currentUserId && taskCreatorId === currentUserId.toString()) ||
+          (currentUserNameLower && taskCreatedByNameLower === currentUserNameLower) ||
+          (currentUserNameLower && resolvedCreatorNameLower === currentUserNameLower);
+
+        if (!isMine) return false;
+      }
+
       if (selectedClient !== "All" && task.clientName !== selectedClient) return false;
       if (selectedCategory !== "All" && task.category !== selectedCategory) return false;
       if (selectedContentType !== "All" && task.contentType !== selectedContentType) return false;
       if (selectedStatus !== "All" && task.status !== selectedStatus) return false;
-      if (selectedAssignee !== "All") {
+      if (isPrivileged && selectedAssignee !== "All") {
         const creator = task.createdBy?.name || task.createdByName || task.assigneeName;
         if (creator !== selectedAssignee) return false;
       }
@@ -192,6 +279,9 @@ const ContentCalendar = () => {
     });
   }, [
     uniqueTasks,
+    isPrivileged,
+    user,
+    getCreatorInfo,
     selectedClient,
     selectedCategory,
     selectedContentType,
@@ -388,6 +478,50 @@ const ContentCalendar = () => {
     const mm = String(d.getMinutes()).padStart(2, "0");
     return `${hh}:${mm}`;
   };
+
+  // Content type badge style helper
+  const getContentTypeStyle = (contentType) => {
+    const type = (contentType || "Post").trim().toLowerCase();
+    switch (type) {
+      case "reel":
+        return {
+          bg: "bg-fuchsia-50 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-800/80",
+          label: "REEL",
+        };
+      case "post":
+        return {
+          bg: "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/80",
+          label: "POST",
+        };
+      case "carousel":
+        return {
+          bg: "bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/80",
+          label: "CAROUSEL",
+        };
+      case "story":
+        return {
+          bg: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80",
+          label: "STORY",
+        };
+      case "youtube":
+        return {
+          bg: "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/80",
+          label: "YT",
+        };
+      case "gmb":
+        return {
+          bg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80",
+          label: "GMB",
+        };
+      default:
+        return {
+          bg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+          label: (contentType || "POST").toUpperCase(),
+        };
+    }
+  };
+
+
 
   const outletContext = useOutletContext() || {};
   const setSidebarOpen = outletContext?.setSidebarOpen;
@@ -610,21 +744,23 @@ const ContentCalendar = () => {
             ))}
           </select>
 
-          {/* Assignee */}
-          <select
-            value={selectedAssignee}
-            onChange={(e) => setSelectedAssignee(e.target.value)}
-            className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-          >
-            <option value="All">Assignee</option>
-            {assigneeOptions
-              .filter((a) => a !== "All")
-              .map((a) => (
-                <option key={a} value={a}>
-                  {a}
-                </option>
-              ))}
-          </select>
+          {/* Assignee / Created By - Admin & Operation Manager only */}
+          {isPrivileged && (
+            <select
+              value={selectedAssignee}
+              onChange={(e) => setSelectedAssignee(e.target.value)}
+              className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              <option value="All">Created By / Assignee</option>
+              {assigneeOptions
+                .filter((a) => a !== "All")
+                .map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+            </select>
+          )}
 
           {/* Priority */}
           <select
@@ -707,7 +843,7 @@ const ContentCalendar = () => {
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDrop(e, dayItem.date)}
                   onClick={() => handleAddPostOnDate(dayItem.date)}
-                  className={`min-h-[145px] sm:min-h-[160px] p-2 flex flex-col justify-between transition-colors cursor-pointer ${
+                  className={`min-h-[165px] sm:min-h-[185px] p-2 flex flex-col justify-between transition-colors cursor-pointer ${
                     dayItem.isCurrentMonth
                       ? "bg-white dark:bg-slate-900"
                       : "bg-slate-50/50 dark:bg-slate-950/40 text-slate-400"
@@ -753,6 +889,8 @@ const ContentCalendar = () => {
                         !["Completed", "Live"].includes(post.status) &&
                         post.publishDate &&
                         (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+                      const creator = getCreatorInfo(post);
+                      const typeStyle = getContentTypeStyle(post.contentType);
 
                       return (
                         <div
@@ -760,18 +898,65 @@ const ContentCalendar = () => {
                           draggable
                           onDragStart={(e) => handleDragStart(e, post._id)}
                           onClick={(e) => handleCardClick(post, e)}
-                          className="p-1.5 rounded-lg border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-850 shadow-2xs hover:shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer relative overflow-hidden group/card"
-                          style={{ borderLeftWidth: "3px", borderLeftColor: clientColor }}
+                          className="p-1.5 sm:p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-850 shadow-2xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1"
+                          style={{ borderLeftWidth: "3.5px", borderLeftColor: clientColor }}
                         >
-                          <div className="flex items-center justify-between gap-1 text-[10px] leading-tight mb-0.5">
-                            <span className="font-bold text-slate-700 dark:text-slate-200 truncate font-mono uppercase">
-                              {formatCardTime(post.publishDate)} {post.contentType}
-                            </span>
-                            {renderStatusBadge(post.status, isRisk)}
+                          {/* Top Row: Time + Content Type Pill + Status / Risk Badge */}
+                          <div className="flex items-center justify-between gap-1 text-[10px] leading-tight">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="font-mono font-bold text-slate-600 dark:text-slate-300 text-[10px]">
+                                {formatCardTime(post.publishDate)}
+                              </span>
+                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wide border ${typeStyle.bg}`}>
+                                {typeStyle.label}
+                              </span>
+                            </div>
+                            <div className="shrink-0">
+                              {renderStatusBadge(post.status, isRisk)}
+                            </div>
                           </div>
 
-                          <div className="text-[11px] font-bold text-slate-900 dark:text-white truncate">
-                            {post.clientName}
+                          {/* Middle Row: Task Title (Prominent & Clear) */}
+                          <div className="text-[11px] font-bold text-slate-900 dark:text-white leading-snug line-clamp-2" title={post.taskTitle || post.clientName}>
+                            {post.taskTitle || "Untitled Task"}
+                          </div>
+
+                          {/* Bottom Row: Client Name (Left) + Creator with Avatar (Right) */}
+                          <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[10px]">
+                            <span
+                              className="font-bold truncate max-w-[70px] sm:max-w-[85px]"
+                              style={{ color: clientColor }}
+                              title={post.clientName}
+                            >
+                              {post.clientName}
+                            </span>
+
+                            <div className="flex items-center gap-1 shrink-0 max-w-[85px] sm:max-w-[95px]" title={`Created by ${creator.name}`}>
+                              <div className="relative shrink-0 w-4 h-4 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs">
+                                {creator.avatarUrl ? (
+                                  <img
+                                    src={creator.avatarUrl}
+                                    alt={creator.name}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                      const fb = e.currentTarget.parentElement?.querySelector(".cal-avatar-fallback");
+                                      if (fb) fb.style.display = "flex";
+                                    }}
+                                  />
+                                ) : null}
+                                <div
+                                  className="cal-avatar-fallback w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[7.5px] items-center justify-center uppercase shadow-2xs"
+                                  style={{ display: creator.avatarUrl ? "none" : "flex" }}
+                                >
+                                  {creator.initials}
+                                </div>
+                              </div>
+                              <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium truncate">
+                                {creator.name}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -831,22 +1016,72 @@ const ContentCalendar = () => {
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 flex-1">
-                    {postsForDay.map((p) => (
-                      <div
-                        key={p._id}
-                        onClick={(e) => handleCardClick(p, e)}
-                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs shadow-2xs hover:border-indigo-400 transition-colors"
-                        style={{ borderLeftWidth: "3px", borderLeftColor: p.clientColor || "#6366f1" }}
-                      >
-                        <div className="font-bold text-[10px] text-slate-500">
-                          {formatCardTime(p.publishDate)} · {p.contentType}
+                  <div className="space-y-2 flex-1">
+                    {postsForDay.map((p) => {
+                      const creator = getCreatorInfo(p);
+                      const typeStyle = getContentTypeStyle(p.contentType);
+                      const isRisk =
+                        !["Completed", "Live"].includes(p.status) &&
+                        p.publishDate &&
+                        (new Date(p.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+
+                      return (
+                        <div
+                          key={p._id}
+                          onClick={(e) => handleCardClick(p, e)}
+                          className="p-2 rounded-xl bg-white dark:bg-slate-850 border border-slate-200/90 dark:border-slate-700/80 text-xs shadow-2xs hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer space-y-1.5"
+                          style={{ borderLeftWidth: "3.5px", borderLeftColor: p.clientColor || "#6366f1" }}
+                        >
+                          <div className="flex items-center justify-between gap-1 text-[10px]">
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="font-mono font-bold text-slate-600 dark:text-slate-300">
+                                {formatCardTime(p.publishDate)}
+                              </span>
+                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wide border ${typeStyle.bg}`}>
+                                {typeStyle.label}
+                              </span>
+                            </div>
+                            <div className="shrink-0">
+                              {renderStatusBadge(p.status, isRisk)}
+                            </div>
+                          </div>
+
+                          <div className="font-bold text-[11px] text-slate-900 dark:text-white leading-snug line-clamp-2" title={p.taskTitle || p.clientName}>
+                            {p.taskTitle || "Untitled Task"}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[10px]">
+                            <span className="font-bold truncate max-w-[70px]" style={{ color: p.clientColor || "#6366f1" }} title={p.clientName}>
+                              {p.clientName}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0 max-w-[85px]" title={`Created by ${creator.name}`}>
+                              <div className="relative shrink-0 w-4 h-4 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs">
+                                {creator.avatarUrl ? (
+                                  <img
+                                    src={creator.avatarUrl}
+                                    alt={creator.name}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                      const fb = e.currentTarget.parentElement?.querySelector(".cal-week-fallback");
+                                      if (fb) fb.style.display = "flex";
+                                    }}
+                                  />
+                                ) : null}
+                                <div
+                                  className="cal-week-fallback w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[7.5px] items-center justify-center uppercase shadow-2xs"
+                                  style={{ display: creator.avatarUrl ? "none" : "flex" }}
+                                >
+                                  {creator.initials}
+                                </div>
+                              </div>
+                              <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium truncate">{creator.name}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="font-bold text-slate-900 dark:text-white truncate">
-                          {p.clientName}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {postsForDay.length === 0 && (
                       <div className="h-full flex items-center justify-center text-[11px] text-slate-400 italic">
                         No posts scheduled
@@ -892,54 +1127,97 @@ const ContentCalendar = () => {
                 No scheduled posts found for this month.
               </div>
             ) : (
-              calendarTasks.map((task) => (
-                <div
-                  key={task._id}
-                  onClick={(e) => handleCardClick(task, e)}
-                  className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  style={{ borderLeftWidth: "4px", borderLeftColor: task.clientColor || "#6366f1" }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 text-center font-mono text-xs font-bold text-slate-600 dark:text-slate-300">
-                      {formatCardTime(task.publishDate)}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 dark:text-white">
-                          {task.clientName}
-                        </span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 uppercase">
-                          {task.contentType}
-                        </span>
-                        <span className="text-xs text-slate-400">
-                          {new Date(task.publishDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-500 font-medium mt-0.5">
-                        {task.taskTitle}
-                      </div>
-                    </div>
-                  </div>
+              calendarTasks.map((task) => {
+                const creator = getCreatorInfo(task);
+                const typeStyle = getContentTypeStyle(task.contentType);
+                const isRisk =
+                  !["Completed", "Live"].includes(task.status) &&
+                  task.publishDate &&
+                  (new Date(task.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
 
-                  <div className="flex items-center gap-3 self-end sm:self-auto" onClick={(e) => e.stopPropagation()}>
-                    {renderStatusBadge(task.status)}
-                    <button
-                      type="button"
-                      onClick={() => handleCardClick(task, { stopPropagation: () => {} })}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    >
-                      <FiEdit2 size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteTask(task, e)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    >
-                      <FiTrash2 size={14} />
-                    </button>
+                return (
+                  <div
+                    key={task._id}
+                    onClick={(e) => handleCardClick(task, e)}
+                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 hover:shadow-xs transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3"
+                    style={{ borderLeftWidth: "4px", borderLeftColor: task.clientColor || "#6366f1" }}
+                  >
+                    <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                      <div className="w-14 text-center shrink-0">
+                        <div className="font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200">
+                          {formatCardTime(task.publishDate)}
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">
+                          {new Date(task.publishDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        </div>
+                      </div>
+
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-xs" style={{ color: task.clientColor || "#6366f1" }}>
+                            {task.clientName}
+                          </span>
+                          <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded border uppercase tracking-wider ${typeStyle.bg}`}>
+                            {typeStyle.label}
+                          </span>
+                        </div>
+                        <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-snug line-clamp-1">
+                          {task.taskTitle || "Untitled Task"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 self-end md:self-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+                      {/* Creator Profile Chip */}
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60" title={`Created by ${creator.name}`}>
+                        <div className="relative w-5 h-5 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 shadow-2xs">
+                          {creator.avatarUrl ? (
+                            <img
+                              src={creator.avatarUrl}
+                              alt={creator.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fb = e.currentTarget.parentElement?.querySelector(".cal-list-fallback");
+                                if (fb) fb.style.display = "flex";
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className="cal-list-fallback w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[8px] items-center justify-center uppercase shadow-2xs"
+                            style={{ display: creator.avatarUrl ? "none" : "flex" }}
+                          >
+                            {creator.initials}
+                          </div>
+                        </div>
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300 max-w-[90px] truncate">
+                          {creator.name}
+                        </span>
+                      </div>
+
+                      {renderStatusBadge(task.status, isRisk)}
+
+                      <button
+                        type="button"
+                        onClick={() => handleCardClick(task, { stopPropagation: () => {} })}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                        title="Edit post"
+                      >
+                        <FiEdit2 size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteTask(task, e)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                        title="Delete post"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -967,36 +1245,73 @@ const ContentCalendar = () => {
               </button>
             </div>
 
-            <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-              {selectedDayPosts.posts.map((post) => (
-                <div
-                  key={post._id}
-                  onClick={(e) => {
-                    setSelectedDayPosts(null);
-                    handleCardClick(post, e);
-                  }}
-                  className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 transition-all cursor-pointer flex items-center justify-between gap-3"
-                  style={{ borderLeftWidth: "4px", borderLeftColor: post.clientColor || "#6366f1" }}
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
-                        {formatCardTime(post.publishDate)}
-                      </span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 uppercase">
-                        {post.contentType}
-                      </span>
+            <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+              {selectedDayPosts.posts.map((post) => {
+                const creator = getCreatorInfo(post);
+                const typeStyle = getContentTypeStyle(post.contentType);
+                const isRisk =
+                  !["Completed", "Live"].includes(post.status) &&
+                  post.publishDate &&
+                  (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+
+                return (
+                  <div
+                    key={post._id}
+                    onClick={(e) => {
+                      setSelectedDayPosts(null);
+                      handleCardClick(post, e);
+                    }}
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 hover:border-blue-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
+                    style={{ borderLeftWidth: "4px", borderLeftColor: post.clientColor || "#6366f1" }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
+                          {formatCardTime(post.publishDate)}
+                        </span>
+                        <span className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded border uppercase tracking-wider ${typeStyle.bg}`}>
+                          {typeStyle.label}
+                        </span>
+                      </div>
+                      <div>{renderStatusBadge(post.status, isRisk)}</div>
                     </div>
-                    <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
-                      {post.clientName}
+
+                    <div className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2">
+                      {post.taskTitle || "Untitled Task"}
                     </div>
-                    <div className="text-xs text-slate-500 truncate max-w-[220px]">
-                      {post.taskTitle}
+
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                      <span className="font-bold text-[11px]" style={{ color: post.clientColor || "#6366f1" }}>
+                        {post.clientName}
+                      </span>
+                      <div className="flex items-center gap-1.5" title={`Created by ${creator.name}`}>
+                        <div className="relative w-4.5 h-4.5 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 shadow-2xs">
+                          {creator.avatarUrl ? (
+                            <img
+                              src={creator.avatarUrl}
+                              alt={creator.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.style.display = "none";
+                                const fb = e.currentTarget.parentElement?.querySelector(".cal-modal-fallback");
+                                if (fb) fb.style.display = "flex";
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className="cal-modal-fallback w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[8px] items-center justify-center uppercase shadow-2xs"
+                            style={{ display: creator.avatarUrl ? "none" : "flex" }}
+                          >
+                            {creator.initials}
+                          </div>
+                        </div>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{creator.name}</span>
+                      </div>
                     </div>
                   </div>
-                  <div>{renderStatusBadge(post.status)}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">

@@ -5,6 +5,7 @@ import Preloader from "./components/common/Preloader";
 import OfficeHoursPausedPopup from "./components/common/OfficeHoursPausedPopup";
 import ResumePausedTasksPopup from "./components/common/ResumePausedTasksPopup";
 import LunchBreakPopup from "./components/common/LunchBreakPopup";
+import WaterReminderManager from "./components/common/WaterReminderManager";
 
 const App = () => {
   return (
@@ -15,6 +16,7 @@ const App = () => {
       <OfficeHoursPausedPopup />
       <ResumePausedTasksPopup />
       <LunchBreakPopup />
+      <WaterReminderManager />
     </>
   );
 };

@@ -65,3 +65,9 @@ export const reactivateUserAPI = async (id) => {
 
   return response.data;
 };
+
+// LOG WATER BREAK
+export const logWaterBreakAPI = async () => {
+  const response = await axiosInstance.post('/users/water-log');
+  return response.data;
+};

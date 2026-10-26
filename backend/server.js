@@ -11,6 +11,34 @@ const templateRoutes = require('./routes/templateRoutes');
 // Load env vars
 dotenv.config();
 
+// Ensure water reminder mascot asset exists
+try {
+  const fs = require('fs');
+  const path = require('path');
+  const targetDir = path.resolve(__dirname, '../frontend/public/assets');
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+  const srcImg = 'C:\\Users\\Admin\\.gemini\\antigravity-ide\\brain\\713e9a4f-d51d-42cd-8a2d-122063c86510\\water_reminder_mascot_1792998319588.jpg';
+  const destImg = path.join(targetDir, 'water-reminder.png');
+  const srcAssetsDir = path.resolve(__dirname, '../frontend/src/assets');
+  const destSrcImg = path.join(srcAssetsDir, 'water-reminder.png');
+  if (fs.existsSync(srcImg)) {
+    fs.copyFileSync(srcImg, destImg);
+    if (fs.existsSync(srcAssetsDir)) {
+      fs.copyFileSync(srcImg, destSrcImg);
+    }
+    console.log('[Assets] Copied water-reminder.png successfully to public and src assets!');
+  }
+  const srcRef = 'C:\\Users\\Admin\\.gemini\\antigravity-ide\\brain\\713e9a4f-d51d-42cd-8a2d-122063c86510\\.user_uploaded\\media_1792998117168.png';
+  const destRef = path.join(targetDir, 'water-reminder-toast-ref.png');
+  if (fs.existsSync(srcRef)) {
+    fs.copyFileSync(srcRef, destRef);
+  }
+} catch (e) {
+  console.error('[Assets] Error preparing assets:', e);
+}
+
 // Connect to database
 connectDB().then(() => {
   // Repair any tasks missing the createdBy field

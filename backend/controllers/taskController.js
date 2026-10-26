@@ -97,7 +97,7 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
   if (prevStatus === "In Progress") {
     // Designer was actively working; freeze / accrue session working time
     let sessionWorkedMs;
-    
+
     if (newStatus === "Not Started" && item.actualStartTime) {
       // Calculate strict duration for Not Started to preserve exact time outside business hours
       sessionWorkedMs = Math.max(0, nowMs - new Date(item.actualStartTime).getTime());
@@ -116,7 +116,7 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
     }
 
     closeOpenHistoryEntry("In Progress", now, sessionWorkedMs);
-    
+
     // Clear actualStartTime so frontend optimistic updates don't double count time
     item.actualStartTime = null;
 
@@ -209,7 +209,7 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
           if (d && d.includes(",")) {
             try {
               d = new Date(d).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-            } catch (e) {}
+            } catch (e) { }
           }
           if (!d || d.includes(",")) {
             d = h.startTime ? new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
@@ -369,7 +369,7 @@ const calculateItemWorkingTime = (item) => {
   let totalTrackedTime = 0;
   let hasOpenSession = false;
   let openSessionStart = null;
-  
+
   if (item.statusHistory && Array.isArray(item.statusHistory)) {
     item.statusHistory.forEach(h => {
       if (h.status === "In Progress") {
@@ -464,7 +464,7 @@ exports.getTasks = async (req, res) => {
 
       let projectIds = assignedProjects.map(p => p._id);
       const deptProjIds = projectsInDept.map(p => p._id.toString());
-      
+
       // Merge projectIds avoiding duplicates
       const projectIdsSet = new Set([...projectIds.map(id => id.toString()), ...deptProjIds]);
       projectIds = Array.from(projectIdsSet);
@@ -509,7 +509,7 @@ exports.getTasks = async (req, res) => {
 
       const usersInDept = await User.find(userDeptQuery).select("_id").lean();
       const userIds = usersInDept.map(u => u._id);
-      
+
       const deptOr = [
         { assignedTo: { $in: userIds } },
         { "subtasks.assignedTo": { $in: userIds } }
@@ -596,7 +596,7 @@ exports.getTasks = async (req, res) => {
         })
         .populate({
           path: "assignedTo",
-          select: "name email department profile",
+          select: "name email department role profile",
           populate: { path: "profile", select: "profileImage" },
         })
         .populate({
@@ -606,7 +606,7 @@ exports.getTasks = async (req, res) => {
         })
         .populate({
           path: "subtasks.assignedTo",
-          select: "name email department",
+          select: "name email department role",
         });
 
       if (req.query.full === "true") {
@@ -663,7 +663,7 @@ const isSameDay = (d1, d2) => {
 exports.createTask = async (req, res) => {
   try {
     req.body.createdBy = req.user._id;
-    
+
     // Auto-set start date to creation date
     const now = new Date();
     req.body.startDate = now;
@@ -897,7 +897,7 @@ exports.createTask = async (req, res) => {
 exports.updateTask = async (req, res) => {
   try {
     const currentUserId = req.user._id ? req.user._id.toString() : req.user.id;
-    
+
     // .........................................Prevent overriding read-only fields on update..........................................      
     delete req.body.createdBy;
     delete req.body.project;
@@ -962,7 +962,7 @@ exports.updateTask = async (req, res) => {
         const workingTimeMs = targetItem ? calculateItemWorkingTime(targetItem) : 0;
         const OfficeSettings = require("../models/OfficeSettings");
         const settings = await OfficeSettings.findOne({ key: "global" }) || { endHour: 19 };
-        
+
         const dateStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
         const hourStr = String(settings.endHour || 19).padStart(2, "0");
         const pausedAtTime = new Date(`${dateStr}T${hourStr}:00:00+05:30`);
@@ -982,8 +982,8 @@ exports.updateTask = async (req, res) => {
       req.body.autoPaused = false;
     }
 
-   
-// .........................................Time tracking logic for parent task...........................................
+
+    // .........................................Time tracking logic for parent task...........................................
     const OfficeSettings = require("../models/OfficeSettings");
     const officeSettings = (await OfficeSettings.findOne({ key: "global" })) || {
       startHour: 9,
@@ -1287,7 +1287,7 @@ exports.updateTask = async (req, res) => {
         // A member updated their own task status. Notify all admins, operation managers, and the task creator!
         const managers = await User.find({ role: { $in: ["admin", "operationmanager"] } });
         const recipientIds = new Set(managers.map(m => m._id.toString()));
-        
+
         const creatorId = task.createdBy?._id || task.createdBy;
         if (creatorId && creatorId.toString() !== currentUserId) {
           recipientIds.add(creatorId.toString());
@@ -1320,7 +1320,7 @@ exports.updateTask = async (req, res) => {
       } else {
         // An admin/manager or creator updated the task status. Notify assignee and creator!
         const recipientIds = new Set();
-        
+
         const recipient = task.assignedTo?._id || task.assignedTo;
         if (recipient && recipient.toString() !== currentUserId) {
           recipientIds.add(recipient.toString());
@@ -1391,7 +1391,7 @@ exports.updateTask = async (req, res) => {
       for (const sub of (task.subtasks || [])) {
         // Find previous subtask state
         const prevSub = previousSubtasks.find(p => p._id && sub._id && p._id.toString() === sub._id.toString());
-        
+
         if (!prevSub) {
           // New subtask added! If assigned, send notification
           const subAssignee = sub.assignedTo?._id || sub.assignedTo;
@@ -1457,7 +1457,7 @@ exports.updateTask = async (req, res) => {
               // Member updated their own subtask status. Notify all admins, operation managers, and the task creator!
               const managers = await User.find({ role: { $in: ["admin", "operationmanager"] } });
               const recipientIds = new Set(managers.map(m => m._id.toString()));
-              
+
               const creatorId = task.createdBy?._id || task.createdBy;
               if (creatorId && creatorId.toString() !== currentUserId) {
                 recipientIds.add(creatorId.toString());

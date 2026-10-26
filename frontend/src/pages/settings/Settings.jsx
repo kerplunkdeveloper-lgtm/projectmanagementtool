@@ -14,8 +14,14 @@ import {
   FiSun,
   FiMonitor,
   FiClock,
+  FiDroplet,
+  FiCheck,
+  FiEye,
 } from "react-icons/fi";
 import { LuPaintbrush } from "react-icons/lu";
+import { updateUser, logWaterBreak } from "../../features/users/userSlice";
+import { triggerWaterReminderPreview } from "../../components/common/WaterReminderManager.jsx";
+import WaterReminderToast from "../../components/common/WaterReminderToast.jsx";
 
 const colors = [
   {
@@ -161,6 +167,87 @@ const Settings = () => {
       console.error(err);
     } finally {
       setSavingHours(false);
+    }
+  };
+
+  // Individual Water Reminder Settings
+  const [waterEnabled, setWaterEnabled] = useState(
+    user?.waterReminder?.enabled !== false
+  );
+  const [waterInterval, setWaterInterval] = useState(
+    user?.waterReminder?.interval || 60
+  );
+  const [waterStart, setWaterStart] = useState(
+    user?.waterReminder?.workingHours?.start || "09:00"
+  );
+  const [waterEnd, setWaterEnd] = useState(
+    user?.waterReminder?.workingHours?.end || "17:00"
+  );
+  const [savingWater, setSavingWater] = useState(false);
+  const [loggingGlass, setLoggingGlass] = useState(false);
+  const [showInlinePreview, setShowInlinePreview] = useState(false);
+
+  useEffect(() => {
+    if (user?.waterReminder) {
+      if (user.waterReminder.enabled !== undefined) {
+        setWaterEnabled(user.waterReminder.enabled !== false);
+      }
+      if (user.waterReminder.interval) {
+        setWaterInterval(Number(user.waterReminder.interval));
+      }
+      if (user.waterReminder.workingHours?.start) {
+        setWaterStart(user.waterReminder.workingHours.start);
+      }
+      if (user.waterReminder.workingHours?.end) {
+        setWaterEnd(user.waterReminder.workingHours.end);
+      }
+    }
+  }, [user?.waterReminder]);
+
+  const todayStr = new Date().toLocaleDateString("en-CA");
+  const todayWaterLogs = (user?.waterReminder?.logs || []).filter(
+    (l) => l.date === todayStr
+  );
+  const todayWaterCount = todayWaterLogs.length;
+
+  const handleSaveWaterSettings = async () => {
+    setSavingWater(true);
+    try {
+      const updatedReminder = {
+        enabled: waterEnabled,
+        interval: Number(waterInterval),
+        workingHours: {
+          start: waterStart,
+          end: waterEnd,
+        },
+      };
+      await dispatch(
+        updateUser({
+          id: "me",
+          userData: {
+            waterReminder: updatedReminder,
+          },
+        })
+      ).unwrap();
+      toast.success("Water reminder settings saved!");
+    } catch (err) {
+      toast.error("Failed to save water reminder settings");
+      console.error(err);
+    } finally {
+      setSavingWater(false);
+    }
+  };
+
+  const handleQuickLogGlass = async () => {
+    setLoggingGlass(true);
+    try {
+      await dispatch(logWaterBreak()).unwrap();
+      toast.success("Glass of water logged! 💧");
+    } catch (err) {
+      toast.error("Failed to log glass of water");
+      console.error(err);
+    } finally {
+      setLoggingGlass(false);
     }
   };
 
@@ -339,6 +426,259 @@ const Settings = () => {
                     );
                   })}
                 </div>
+              </div>
+            </div>
+
+            {/* WATER BREAK REMINDER (INDIVIDUAL USER SETTING) */}
+            <div className="theme-bg-card border theme-border rounded-2xl p-5 shadow-sm mt-5 relative overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4 border-b theme-border pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-sm font-bold">
+                    <FiDroplet />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold theme-text-primary uppercase tracking-wider">
+                      Water Break Reminder
+                    </h3>
+                  </div>
+                  <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-md">
+                    Personal
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={triggerWaterReminderPreview}
+                    className="px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-700/60 bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-extrabold text-[11px] tracking-wide shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                    title="Trigger live toast notification preview"
+                  >
+                    <FiEye size={13} />
+                    <span>Preview Toast</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveWaterSettings}
+                    disabled={savingWater}
+                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-600 hover:to-teal-500 text-white font-extrabold text-[11px] tracking-wide shadow-md shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {savingWater ? (
+                      "Saving..."
+                    ) : (
+                      <>
+                        <FiCheck size={13} />
+                        <span>Save Preferences</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mascot Hero Card */}
+              <div className="mb-5 p-3.5 rounded-2xl bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-transparent dark:from-emerald-950/25 dark:via-teal-950/15 dark:to-transparent border border-emerald-100 dark:border-emerald-900/40 flex items-center gap-3.5">
+                <div className="w-14 h-14 shrink-0 rounded-2xl bg-white dark:bg-slate-900 p-1 border border-emerald-100 dark:border-emerald-800/40 shadow-sm flex items-center justify-center overflow-hidden">
+                  <img
+                    src="/assets/water-reminder.png"
+                    alt="Water Mascot"
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      e.target.src = "/Robots/robot-1.png";
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                    Hydration Assistant
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed font-medium">
+                    Sorted monitors your active work time and displays a friendly toast to help you stay healthy and hydrated.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                {/* Enable/Disable Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-xl border theme-border bg-slate-50/50 dark:bg-slate-900/30">
+                  <div className="space-y-0.5">
+                    <label
+                      htmlFor="water-reminder-toggle"
+                      className="text-xs font-black theme-text-primary block cursor-pointer"
+                    >
+                      Enable Water Reminders
+                    </label>
+                    <p className="text-[10px] theme-text-secondary">
+                      Show popup toasts during active work on this site
+                    </p>
+                  </div>
+                  <button
+                    id="water-reminder-toggle"
+                    type="button"
+                    role="switch"
+                    aria-checked={waterEnabled}
+                    onClick={() => setWaterEnabled(!waterEnabled)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                      waterEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        waterEnabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {waterEnabled && (
+                  <>
+                    {/* Interval Selector */}
+                    <div>
+                      <label className="block text-xs font-black theme-text-secondary uppercase tracking-wider mb-2.5">
+                        Reminder Interval
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { value: 30, label: "30 Minutes", badge: "Frequent" },
+                          { value: 60, label: "60 Minutes", badge: "Recommended" },
+                          { value: 90, label: "90 Minutes", badge: "Extended" },
+                        ].map((opt) => {
+                          const isSelected = waterInterval === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setWaterInterval(opt.value)}
+                              className={`flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all cursor-pointer relative ${
+                                isSelected
+                                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold shadow-sm"
+                                  : "theme-border theme-bg-card theme-text-secondary hover:theme-bg-main font-semibold"
+                              }`}
+                            >
+                              <span className="text-xs font-black">{opt.label}</span>
+                              <span
+                                className={`text-[9px] mt-1 px-1.5 py-0.5 rounded-full ${
+                                  isSelected
+                                    ? "bg-emerald-500 text-white font-bold"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium"
+                                }`}
+                              >
+                                {opt.badge}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Working Hours Settings */}
+                    <div>
+                      <label className="block text-xs font-black theme-text-secondary uppercase tracking-wider mb-2.5">
+                        Active Working Hours
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase tracking-wider theme-text-secondary block">
+                            Reminder Start
+                          </label>
+                          <input
+                            type="time"
+                            value={waterStart}
+                            onChange={(e) => setWaterStart(e.target.value)}
+                            className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold theme-text-primary cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase tracking-wider theme-text-secondary block">
+                            Reminder End
+                          </label>
+                          <input
+                            type="time"
+                            value={waterEnd}
+                            onChange={(e) => setWaterEnd(e.target.value)}
+                            className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold theme-text-primary cursor-pointer focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5">
+                        Reminders are automatically paused outside your specified active hours.
+                      </p>
+                    </div>
+
+                    {/* Daily Tracker & Quick Log */}
+                    <div className="p-3.5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black theme-text-primary">
+                            Today's Hydration:
+                          </span>
+                          <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
+                            {todayWaterCount} / 8 glasses
+                          </span>
+                        </div>
+                        {/* 8 water glass dots */}
+                        <div className="flex items-center gap-1 mt-2">
+                          {[...Array(8)].map((_, i) => (
+                            <span
+                              key={i}
+                              className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] transition-all ${
+                                i < todayWaterCount
+                                  ? "bg-gradient-to-tr from-emerald-400 to-teal-400 text-white shadow-sm"
+                                  : "bg-slate-200 dark:bg-slate-800 text-slate-400"
+                              }`}
+                            >
+                              💧
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleQuickLogGlass}
+                        disabled={loggingGlass}
+                        className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-700/50 hover:bg-emerald-50 dark:hover:bg-slate-700/60 text-emerald-600 dark:text-emerald-400 font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <FiDroplet size={13} className="text-emerald-500" />
+                        <span>{loggingGlass ? "Logging..." : "Log a glass now"}</span>
+                      </button>
+                    </div>
+
+                    {/* Live Toast Preview Toggle & Section */}
+                    <div className="pt-3 border-t theme-border space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <FiEye className="text-emerald-500" size={14} />
+                          <span className="text-xs font-bold theme-text-primary">
+                            Visual Toast Preview
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowInlinePreview(!showInlinePreview)}
+                          className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline underline-offset-2 transition-colors cursor-pointer"
+                        >
+                          {showInlinePreview ? "Hide In-Card Preview" : "Show In-Card Preview"}
+                        </button>
+                      </div>
+
+                      {showInlinePreview && (
+                        <div className="p-4 rounded-2xl bg-slate-100/60 dark:bg-slate-900/60 border border-emerald-200/50 dark:border-emerald-800/40 flex flex-col items-center gap-2">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            Interactive Preview
+                          </div>
+                          <WaterReminderToast
+                            onLog={handleQuickLogGlass}
+                            onSnooze={() => toast.success("Snoozed 30 mins (preview) ⏰")}
+                            onClose={() => setShowInlinePreview(false)}
+                            progress={100}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

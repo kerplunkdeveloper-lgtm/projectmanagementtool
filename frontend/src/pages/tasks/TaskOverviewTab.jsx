@@ -138,19 +138,38 @@ const checkTaskProductivityAndDate = (
     dateFilter === "Today"
       ? todayStr
       : /^\d{4}-\d{2}-\d{2}$/.test(dateFilter)
-      ? dateFilter
-      : null;
+        ? dateFilter
+        : null;
 
   if (targetDateStr) {
     const taskStartStr = getLocalDateStr(task.startDate);
     const taskDueStr = getLocalDateStr(task.dueDate);
     const taskCreatedStr = getLocalDateStr(task.createdAt);
     const taskAssignedStr = getLocalDateStr(task.assignedDate);
+    const taskUpdatedStr = getLocalDateStr(task.updatedAt);
     if (
       taskStartStr === targetDateStr ||
       taskDueStr === targetDateStr ||
       taskCreatedStr === targetDateStr ||
-      taskAssignedStr === targetDateStr
+      taskAssignedStr === targetDateStr ||
+      taskUpdatedStr === targetDateStr
+    ) {
+      return true;
+    }
+
+    // Active ongoing task (Not Started / Pending / In Progress / In Review / On Hold / Correction)
+    const stUpper = (task.status || "Not Started").toUpperCase();
+    const isCompletedOrRejected = stUpper === "COMPLETED" || stUpper === "DONE" || stUpper === "REJECTED" || stUpper === "CANCELLED";
+    if (!isCompletedOrRejected && !task.actualEndTime) {
+      return true;
+    }
+
+    // Today falls within task date range
+    if (
+      taskStartStr &&
+      taskDueStr &&
+      targetDateStr >= taskStartStr &&
+      targetDateStr <= taskDueStr
     ) {
       return true;
     }
@@ -184,11 +203,27 @@ const checkTaskProductivityAndDate = (
         const subStart = getLocalDateStr(sub.startDate);
         const subDue = getLocalDateStr(sub.dueDate);
         const subCreated = getLocalDateStr(sub.createdAt);
+        const subUpdated = getLocalDateStr(sub.updatedAt);
+        const subStUpper = (sub.status || "Not Started").toUpperCase();
+        const subActive =
+          subStUpper !== "COMPLETED" &&
+          subStUpper !== "DONE" &&
+          subStUpper !== "REJECTED" &&
+          subStUpper !== "CANCELLED" &&
+          !sub.actualEndTime;
+        const subInRange =
+          subStart &&
+          subDue &&
+          targetDateStr >= subStart &&
+          targetDateStr <= subDue;
         return (
           (subAssignDate && getLocalDateStr(subAssignDate) === targetDateStr) ||
           subStart === targetDateStr ||
           subDue === targetDateStr ||
-          subCreated === targetDateStr
+          subCreated === targetDateStr ||
+          subUpdated === targetDateStr ||
+          subActive ||
+          subInRange
         );
       });
     }
@@ -627,11 +662,10 @@ const ApprovalTimeDisplay = React.memo(
       <div className="relative inline-flex items-center gap-1 justify-center">
         {totalWaitMs > 0 && (
           <div
-            className={`px-2 py-0.5 rounded-lg font-black text-[11px] tracking-wide border shadow-2xs ${
-              isInReview
+            className={`px-2 py-0.5 rounded-lg font-black text-[11px] tracking-wide border shadow-2xs ${isInReview
                 ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25"
                 : "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20"
-            }`}
+              }`}
           >
             {isInReview && (
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0 mr-1 inline-block" />
@@ -779,6 +813,9 @@ const renderUserAvatarSmall = (u, sizeClass = "w-6 h-6 text-[9px]") => {
 // Department badge styling
 const getDeptBadgeStyle = (dept) => {
   const d = dept?.toLowerCase() || "";
+  if (d.includes("cinema") || d.includes("cinematog")) {
+    return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/40";
+  }
   if (d.includes("graphic") || d.includes("design")) {
     return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800/40";
   }
@@ -800,6 +837,7 @@ const getDeptBadgeStyle = (dept) => {
 const shortenDept = (dept) => {
   if (!dept) return "";
   const d = dept.toLowerCase().trim();
+  if (d.includes("cinema") || d.includes("cinematog")) return "Cinema";
   if (d.includes("graphic")) return "GD";
   if (d.includes("video")) return "VE";
   if (d.includes("social") && d.includes("manager")) return "SMM";
@@ -1018,7 +1056,7 @@ const TaskOverviewTab = ({
   const [assigneeSearchQuery, setAssigneeSearchQuery] = useState("");
   const assigneeDropdownRef = useRef(null);
 
-  const [internalDepartmentFilter, setInternalDepartmentFilter] = useState("Graphic Designer");
+  const [internalDepartmentFilter, setInternalDepartmentFilter] = useState("All");
   const overviewDepartmentFilter =
     propDepartmentFilter !== undefined
       ? propDepartmentFilter
@@ -1368,26 +1406,15 @@ const TaskOverviewTab = ({
   const filteredOverviewTasks = useMemo(() => {
     return tasks
       .filter((task) => {
-        const isAdminOrManager =
-          user?.role === "admin" || user?.role === "operationmanager";
         const creatorId = task.createdBy?._id || task.createdBy;
         const projId = task.project?._id || task.project;
         const projectObj = projId ? projectsMap.get(String(projId)) : null;
 
-        if (!isAdminOrManager) {
-          const isCreator = creatorId === currentUserId;
-          const assigneeId = task.assignedTo?._id || task.assignedTo;
-          const isAssignee = assigneeId === currentUserId;
-          const isPublicProject = projectObj?.access === "Public";
-
-          if (!isCreator && !isAssignee && !isPublicProject) {
-            return false;
-          }
-        }
-
-        const clientObj = task.project?.client?.companyName
-          ? task.project.client
-          : projectObj?.client || task.project?.client;
+        const clientObj =
+          task.client ||
+          (task.project?.client?.companyName
+            ? task.project.client
+            : projectObj?.client || task.project?.client);
 
         if (overviewClientFilter !== "All") {
           const cId =
@@ -1405,46 +1432,75 @@ const TaskOverviewTab = ({
           return false;
         }
 
-        if (overviewStatusFilter === "Overdue") {
-          const isOverdue =
-            task.dueDate &&
-            new Date(task.dueDate) < new Date() &&
-            task.status !== "Completed";
-          if (!isOverdue) return false;
-        } else if (overviewStatusFilter === "Due Today") {
-          const isDueToday =
-            task.dueDate &&
-            isSameDate(task.dueDate, new Date()) &&
-            task.status !== "Completed";
-          if (!isDueToday) return false;
-        } else if (overviewStatusFilter === "Active Tasks") {
-          const statusUpper = (task.status || "Not Started").toUpperCase();
-          const isCompleted = statusUpper === "COMPLETED";
-          const isRejected = statusUpper === "REJECTED";
-          if (isCompleted || isRejected) return false;
-        } else if (overviewStatusFilter === "Needs Attention") {
-          const s = (task.status || "").toLowerCase();
-          const isAttention =
-            s.includes("correction") ||
-            s.includes("hold") ||
-            s.includes("block") ||
-            task.isBlocked;
-          if (!isAttention) return false;
-        } else if (
-          overviewStatusFilter?.toLowerCase() === "in review" ||
-          overviewStatusFilter?.toLowerCase() === "in-review" ||
-          overviewStatusFilter?.toLowerCase() === "inreview"
-        ) {
-          const s = (task.status || "").toLowerCase();
-          if (s !== "in review" && s !== "in-review" && !s.includes("review")) {
+        if (overviewStatusFilter && overviewStatusFilter !== "All") {
+          const sf = overviewStatusFilter.toLowerCase().trim();
+          const taskSt = (task.status || "Not Started").toLowerCase().trim();
+
+          if (sf === "overdue") {
+            const isOverdue =
+              task.dueDate &&
+              new Date(task.dueDate) < new Date() &&
+              !taskSt.includes("complete") &&
+              !taskSt.includes("done");
+            if (!isOverdue) return false;
+          } else if (sf === "due today") {
+            const isDueToday =
+              task.dueDate &&
+              isSameDate(task.dueDate, new Date()) &&
+              !taskSt.includes("complete") &&
+              !taskSt.includes("done");
+            if (!isDueToday) return false;
+          } else if (sf === "active tasks") {
+            const isCompleted =
+              taskSt.includes("complete") ||
+              taskSt.includes("done") ||
+              taskSt.includes("approve");
+            const isRejected =
+              taskSt.includes("reject") || taskSt.includes("cancel");
+            if (isCompleted || isRejected) return false;
+          } else if (sf === "needs attention") {
+            const isAttention =
+              taskSt.includes("correction") ||
+              taskSt.includes("hold") ||
+              taskSt.includes("block") ||
+              task.isBlocked;
+            if (!isAttention) return false;
+          } else if (sf.includes("review")) {
+            if (!taskSt.includes("review")) return false;
+          } else if (sf.includes("progress")) {
+            if (!taskSt.includes("progress")) return false;
+          } else if (
+            sf.includes("not started") ||
+            sf === "pending" ||
+            sf === "todo"
+          ) {
+            if (
+              taskSt !== "not started" &&
+              taskSt !== "notstarted" &&
+              taskSt !== "pending" &&
+              taskSt !== "todo" &&
+              taskSt !== ""
+            ) {
+              return false;
+            }
+          } else if (sf.includes("hold")) {
+            if (!taskSt.includes("hold") && !taskSt.includes("block"))
+              return false;
+          } else if (sf.includes("complete") || sf.includes("done")) {
+            if (
+              !taskSt.includes("complete") &&
+              !taskSt.includes("done") &&
+              !taskSt.includes("approve")
+            )
+              return false;
+          } else if (sf.includes("correction")) {
+            if (!taskSt.includes("correction")) return false;
+          } else if (sf.includes("reject")) {
+            if (!taskSt.includes("reject") && !taskSt.includes("cancel"))
+              return false;
+          } else if (taskSt !== sf) {
             return false;
           }
-        } else if (
-          overviewStatusFilter !== "All" &&
-          (task.status || "").toLowerCase() !==
-            overviewStatusFilter?.toLowerCase()
-        ) {
-          return false;
         }
 
         if (
@@ -1470,6 +1526,9 @@ const TaskOverviewTab = ({
 
         if (overviewDepartmentFilter && overviewDepartmentFilter !== "All") {
           const targetDeptLower = overviewDepartmentFilter.toLowerCase();
+          const isTargetCinema =
+            targetDeptLower.includes("cinema") || targetDeptLower.includes("video");
+
           const assigneeId =
             typeof task.assignedTo === "object"
               ? task.assignedTo?._id
@@ -1488,41 +1547,130 @@ const TaskOverviewTab = ({
               ? task.createdBy
               : usersMap.get(String(creatorId));
 
-          const taskDept =
-            assignedUserObj?.department || creatorUserObj?.department || "";
-          const taskDeptLower = taskDept.toLowerCase();
+          const taskDept = (task.department || task.workType || "").toLowerCase();
+          const taskCt = String(task.contentType || "").toUpperCase();
+          const taskTitle = String(task.title || "").toLowerCase();
 
-          let matchesDept = false;
-          if (targetDeptLower.includes("graphic")) {
-            matchesDept =
-              taskDeptLower.includes("graphic") ||
-              taskDeptLower.includes("design");
-          } else if (
-            targetDeptLower.includes("video") ||
-            targetDeptLower.includes("videographer") ||
-            targetDeptLower.includes("cinematographer")
-          ) {
-            matchesDept =
-              taskDeptLower.includes("video") || taskDeptLower.includes("edit") || taskDeptLower.includes("cinematographer");
-          } else if (targetDeptLower.includes("web")) {
-            matchesDept =
-              taskDeptLower.includes("web") || taskDeptLower.includes("dev");
-          } else if (targetDeptLower.includes("seo")) {
-            matchesDept = taskDeptLower.includes("seo");
-          } else if (targetDeptLower.includes("social")) {
-            matchesDept =
-              taskDeptLower.includes("social") || taskDeptLower.includes("smm");
-          } else if (targetDeptLower.includes("performance")) {
-            matchesDept =
-              taskDeptLower.includes("performance") ||
-              taskDeptLower.includes("marketer");
+          const uDept = (assignedUserObj?.department || assignedUserObj?.profile?.department || "").toLowerCase();
+          const uRole = (assignedUserObj?.role || "").toLowerCase();
+          const uDesig = (assignedUserObj?.designation || "").toLowerCase();
+
+          const crDept = (creatorUserObj?.department || creatorUserObj?.profile?.department || "").toLowerCase();
+          const crRole = (creatorUserObj?.role || "").toLowerCase();
+
+          // 1. Check if assigned user belongs explicitly to Graphic Design
+          const isAssignedGraphic =
+            uDept.includes("graphic") ||
+            uDept.includes("design") ||
+            uRole.includes("graphic") ||
+            uRole.includes("design") ||
+            uDesig.includes("graphic") ||
+            uDesig.includes("design");
+
+          // 2. Check if assigned user belongs explicitly to Cinematography
+          const isAssignedCinema =
+            uDept.includes("cinema") ||
+            uDept.includes("cinematog") ||
+            uRole.includes("cinema") ||
+            uRole.includes("cinematog") ||
+            uDesig.includes("cinema") ||
+            uDesig.includes("cinematog");
+
+          // 3. Check subtasks
+          const hasGraphicSubtask = Array.isArray(task.subtasks) && task.subtasks.some((sub) => {
+            const sDept = (sub.department || sub.workType || "").toLowerCase();
+            const sUid = typeof sub.assignedTo === "object" ? sub.assignedTo?._id : sub.assignedTo;
+            const sUser = typeof sub.assignedTo === "object" ? sub.assignedTo : usersMap.get(String(sUid));
+            const suDept = (sUser?.department || "").toLowerCase();
+            const suRole = (sUser?.role || "").toLowerCase();
+            return (
+              sDept.includes("graphic") ||
+              sDept.includes("design") ||
+              suDept.includes("graphic") ||
+              suDept.includes("design") ||
+              suRole.includes("graphic") ||
+              suRole.includes("design")
+            );
+          });
+
+          const hasCinemaSubtask = Array.isArray(task.subtasks) && task.subtasks.some((sub) => {
+            const sDept = (sub.department || sub.workType || "").toLowerCase();
+            const sCt = String(sub.contentType || "").toUpperCase();
+            const sUid = typeof sub.assignedTo === "object" ? sub.assignedTo?._id : sub.assignedTo;
+            const sUser = typeof sub.assignedTo === "object" ? sub.assignedTo : usersMap.get(String(sUid));
+            const suDept = (sUser?.department || "").toLowerCase();
+            const suRole = (sUser?.role || "").toLowerCase();
+            return (
+              sDept.includes("cinema") ||
+              sDept.includes("cinematog") ||
+              sDept.includes("camera") ||
+              sDept.includes("video shoot") ||
+              ["SHOOT", "CINEMATIC", "FOOTAGE"].includes(sCt) ||
+              suDept.includes("cinema") ||
+              suDept.includes("cinematog") ||
+              suRole.includes("cinema") ||
+              suRole.includes("cinematog")
+            );
+          });
+
+          // 4. Task explicit attributes
+          const isExplicitCinemaDept =
+            taskDept.includes("cinema") ||
+            taskDept.includes("cinematog") ||
+            taskDept.includes("camera") ||
+            taskDept.includes("video shoot");
+
+          const isExplicitGraphicDept =
+            taskDept.includes("graphic") ||
+            taskDept.includes("design");
+
+          const isExplicitCinemaContent =
+            ["SHOOT", "CINEMATIC", "FOOTAGE", "VIDEO SHOOT"].includes(taskCt) ||
+            taskTitle.includes("shoot") ||
+            taskTitle.includes("cinematog") ||
+            taskTitle.includes("camera");
+
+          const isExplicitGraphicContent =
+            ["IMAGE", "POST", "CAROUSEL", "BANNER", "LOGO", "STORY"].includes(taskCt);
+
+          // 5. Categorize task into Cinematographer vs Graphic Designer
+          // Video Editor users are treated as Cinema/Cinematographer
+          const isAssignedVideo =
+            uDept.includes("video") ||
+            uRole.includes("video") ||
+            uDesig.includes("video") ||
+            uDept.includes("editor") ||
+            uRole.includes("editor");
+
+          const belongsToCinema =
+            isAssignedCinema ||
+            isAssignedVideo ||
+            hasCinemaSubtask ||
+            isExplicitCinemaDept ||
+            isExplicitCinemaContent ||
+            (taskCt === "VIDEO" && !isAssignedGraphic && !isExplicitGraphicDept);
+
+          // A task belongs to Graphic Designer if:
+          // - assignee is a graphic designer, OR
+          // - task has explicit graphic content/dept, OR
+          // - task is unassigned (no department-specific assignee), OR
+          // - task doesn't belong to Cinema
+          const isAssignedToOtherDept =
+            isAssignedCinema || isAssignedVideo;
+
+          const belongsToGraphic =
+            isAssignedGraphic ||
+            hasGraphicSubtask ||
+            isExplicitGraphicDept ||
+            isExplicitGraphicContent ||
+            (!isAssignedToOtherDept && !belongsToCinema);
+
+          if (isTargetCinema) {
+            if (!belongsToCinema) return false;
           } else {
-            matchesDept =
-              taskDeptLower.includes(targetDeptLower) ||
-              targetDeptLower.includes(taskDeptLower);
+            // Graphic Designer tab: exclude cinema/video dept tasks
+            if (belongsToCinema && !belongsToGraphic) return false;
           }
-
-          if (!matchesDept) return false;
         }
 
         if (!checkTaskProductivityAndDate(task, dateFilter)) {
@@ -1719,7 +1867,9 @@ const TaskOverviewTab = ({
     setOverviewClientFilter("All");
     setOverviewCreatedByFilter("All");
     setOverviewAssigneeFilter("All");
-    setOverviewDepartmentFilter("All");
+    if (!propDepartmentFilter) {
+      setOverviewDepartmentFilter("All");
+    }
     setOverviewContentTypeFilter("All");
     setOverviewStatusFilter("All");
     setOverviewPriorityFilter("All");
@@ -1731,7 +1881,7 @@ const TaskOverviewTab = ({
     overviewClientFilter !== "All" ||
     overviewCreatedByFilter !== "All" ||
     overviewAssigneeFilter !== "All" ||
-    overviewDepartmentFilter !== "All" ||
+    (!propDepartmentFilter && overviewDepartmentFilter !== "All") ||
     overviewContentTypeFilter !== "All" ||
     overviewStatusFilter !== "All" ||
     overviewPriorityFilter !== "All" ||
@@ -1741,1201 +1891,395 @@ const TaskOverviewTab = ({
     <div className="space-y-4">
       {/* 1. EXECUTIVE LIVE STATUS KPI METRICS BAR */}
       {false && (
-      <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-        {/* KPI: Total Overview */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          onClick={() => setOverviewStatusFilter("All")}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${
-            overviewStatusFilter === "All"
-              ? "bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-700 text-[#ffffff] border-indigo-400 shadow-lg shadow-indigo-600/35 ring-2 ring-indigo-300 dark:ring-indigo-400"
-              : "bg-white dark:bg-[#121626] border-slate-200/90 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-[11px] font-black uppercase tracking-wider ${
-                overviewStatusFilter === "All"
-                  ? "text-indigo-100"
-                  : "text-slate-600 dark:text-[#94a3b8]"
+        <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          {/* KPI: Total Overview */}
+          <motion.div
+            whileHover={{ y: -2 }}
+            onClick={() => setOverviewStatusFilter("All")}
+            className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${overviewStatusFilter === "All"
+                ? "bg-gradient-to-br from-indigo-600 via-indigo-700 to-blue-700 text-[#ffffff] border-indigo-400 shadow-lg shadow-indigo-600/35 ring-2 ring-indigo-300 dark:ring-indigo-400"
+                : "bg-white dark:bg-[#121626] border-slate-200/90 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs"
               }`}
-            >
-              Total Monitored
-            </span>
-            <div className="flex items-center gap-1.5">
-              {overviewStatusFilter === "All" && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
-                  Active
-                </span>
-              )}
-              <div
-                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                  overviewStatusFilter === "All"
-                    ? "bg-white/20 text-[#ffffff] border border-white/20"
-                    : "bg-slate-100 dark:bg-[#1e2433] text-slate-700 dark:text-[#cbd5e1] border border-slate-200/60 dark:border-[#334155]"
-                }`}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className={`text-[11px] font-black uppercase tracking-wider ${overviewStatusFilter === "All"
+                    ? "text-indigo-100"
+                    : "text-slate-600 dark:text-[#94a3b8]"
+                  }`}
               >
-                <FiLayers size={14} />
+                Total Monitored
+              </span>
+              <div className="flex items-center gap-1.5">
+                {overviewStatusFilter === "All" && (
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                    Active
+                  </span>
+                )}
+                <div
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${overviewStatusFilter === "All"
+                      ? "bg-white/20 text-[#ffffff] border border-white/20"
+                      : "bg-slate-100 dark:bg-[#1e2433] text-slate-700 dark:text-[#cbd5e1] border border-slate-200/60 dark:border-[#334155]"
+                    }`}
+                >
+                  <FiLayers size={14} />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span
-              className={`text-2xl font-black tracking-tight ${
-                overviewStatusFilter === "All"
-                  ? "text-[#ffffff]"
-                  : "text-slate-900 dark:text-[#f8fafc]"
-              }`}
-            >
-              {kpiStats.total}
-            </span>
-            <span
-              className={`text-[10px] font-bold ${
-                overviewStatusFilter === "All"
-                  ? "text-indigo-100"
+            <div className="mt-2 flex items-baseline gap-2">
+              <span
+                className={`text-2xl font-black tracking-tight ${overviewStatusFilter === "All"
+                    ? "text-[#ffffff]"
+                    : "text-slate-900 dark:text-[#f8fafc]"
+                  }`}
+              >
+                {kpiStats.total}
+              </span>
+              <span
+                className={`text-[10px] font-bold ${overviewStatusFilter === "All"
+                    ? "text-indigo-100"
+                    : "text-slate-500 dark:text-[#94a3b8]"
+                  }`}
+              >
+                All Tasks
+              </span>
+            </div>
+            <div
+              className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${overviewStatusFilter === "All"
+                  ? "text-indigo-200"
                   : "text-slate-500 dark:text-[#94a3b8]"
-              }`}
-            >
-              All Tasks
-            </span>
-          </div>
-          <div
-            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
-              overviewStatusFilter === "All"
-                ? "text-indigo-200"
-                : "text-slate-500 dark:text-[#94a3b8]"
-            }`}
-          >
-            <span>Read-only tracking</span>
-          </div>
-        </motion.div>
-
-        {/* KPI: In Progress */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          onClick={() =>
-            setOverviewStatusFilter(
-              overviewStatusFilter === "In Progress" ? "All" : "In Progress",
-            )
-          }
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${
-            overviewStatusFilter === "In Progress"
-              ? "bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-600 text-[#ffffff] border-cyan-400 shadow-lg shadow-cyan-500/35 ring-2 ring-cyan-300 dark:ring-cyan-400"
-              : "bg-white dark:bg-[#0c1a2e] border-sky-200/90 dark:border-cyan-900/60 hover:border-sky-300 dark:hover:border-cyan-700/60 shadow-xs"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-[11px] font-black uppercase tracking-wider ${
-                overviewStatusFilter === "In Progress"
-                  ? "text-cyan-100"
-                  : "text-sky-900 dark:text-[#38bdf8]"
-              }`}
-            >
-              In Progress
-            </span>
-            <div className="flex items-center gap-1.5">
-              {overviewStatusFilter === "In Progress" && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
-                  Active
-                </span>
-              )}
-              <div
-                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                  overviewStatusFilter === "In Progress"
-                    ? "bg-white/20 text-[#ffffff] border border-white/20"
-                    : "bg-sky-100/90 dark:bg-sky-950/80 text-sky-600 dark:text-[#38bdf8] border border-sky-200/70 dark:border-sky-800/60"
                 }`}
+            >
+              <span>Read-only tracking</span>
+            </div>
+          </motion.div>
+
+          {/* KPI: In Progress */}
+          <motion.div
+            whileHover={{ y: -2 }}
+            onClick={() =>
+              setOverviewStatusFilter(
+                overviewStatusFilter === "In Progress" ? "All" : "In Progress",
+              )
+            }
+            className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${overviewStatusFilter === "In Progress"
+                ? "bg-gradient-to-br from-cyan-600 via-blue-600 to-indigo-600 text-[#ffffff] border-cyan-400 shadow-lg shadow-cyan-500/35 ring-2 ring-cyan-300 dark:ring-cyan-400"
+                : "bg-white dark:bg-[#0c1a2e] border-sky-200/90 dark:border-cyan-900/60 hover:border-sky-300 dark:hover:border-cyan-700/60 shadow-xs"
+              }`}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className={`text-[11px] font-black uppercase tracking-wider ${overviewStatusFilter === "In Progress"
+                    ? "text-cyan-100"
+                    : "text-sky-900 dark:text-[#38bdf8]"
+                  }`}
               >
-                <span className="relative flex h-2.5 w-2.5">
-                  <span
-                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                      overviewStatusFilter === "In Progress"
-                        ? "bg-white"
-                        : "bg-sky-400"
+                In Progress
+              </span>
+              <div className="flex items-center gap-1.5">
+                {overviewStatusFilter === "In Progress" && (
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                    Active
+                  </span>
+                )}
+                <div
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${overviewStatusFilter === "In Progress"
+                      ? "bg-white/20 text-[#ffffff] border border-white/20"
+                      : "bg-sky-100/90 dark:bg-sky-950/80 text-sky-600 dark:text-[#38bdf8] border border-sky-200/70 dark:border-sky-800/60"
                     }`}
-                  ></span>
-                  <span
-                    className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                      overviewStatusFilter === "In Progress"
-                        ? "bg-white"
-                        : "bg-sky-600 dark:bg-[#38bdf8]"
-                    }`}
-                  ></span>
-                </span>
+                >
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span
+                      className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${overviewStatusFilter === "In Progress"
+                          ? "bg-white"
+                          : "bg-sky-400"
+                        }`}
+                    ></span>
+                    <span
+                      className={`relative inline-flex rounded-full h-2.5 w-2.5 ${overviewStatusFilter === "In Progress"
+                          ? "bg-white"
+                          : "bg-sky-600 dark:bg-[#38bdf8]"
+                        }`}
+                    ></span>
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span
-              className={`text-2xl font-black tracking-tight ${
-                overviewStatusFilter === "In Progress"
-                  ? "text-[#ffffff]"
+            <div className="mt-2 flex items-baseline gap-2">
+              <span
+                className={`text-2xl font-black tracking-tight ${overviewStatusFilter === "In Progress"
+                    ? "text-[#ffffff]"
+                    : "text-sky-600 dark:text-[#38bdf8]"
+                  }`}
+              >
+                {kpiStats.inProgress}
+              </span>
+              <span
+                className={`text-[10px] font-bold ${overviewStatusFilter === "In Progress"
+                    ? "text-cyan-100"
+                    : "text-slate-600 dark:text-[#94a3b8]"
+                  }`}
+              >
+                Active Now
+              </span>
+            </div>
+            <div
+              className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${overviewStatusFilter === "In Progress"
+                  ? "text-cyan-100"
                   : "text-sky-600 dark:text-[#38bdf8]"
-              }`}
-            >
-              {kpiStats.inProgress}
-            </span>
-            <span
-              className={`text-[10px] font-bold ${
-                overviewStatusFilter === "In Progress"
-                  ? "text-cyan-100"
-                  : "text-slate-600 dark:text-[#94a3b8]"
-              }`}
-            >
-              Active Now
-            </span>
-          </div>
-          <div
-            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
-              overviewStatusFilter === "In Progress"
-                ? "text-cyan-100"
-                : "text-sky-600 dark:text-[#38bdf8]"
-            }`}
-          >
-            <span>Live production</span>
-          </div>
-        </motion.div>
-
-        {/* KPI: In Review */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          onClick={() =>
-            setOverviewStatusFilter(
-              overviewStatusFilter === "In Review" ? "All" : "In Review",
-            )
-          }
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${
-            overviewStatusFilter === "In Review"
-              ? "bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 text-[#ffffff] border-amber-400 shadow-lg shadow-amber-500/35 ring-2 ring-amber-300 dark:ring-amber-400"
-              : "bg-white dark:bg-[#211a0f] border-amber-200/90 dark:border-amber-900/60 hover:border-amber-300 dark:hover:border-amber-700/60 shadow-xs"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-[11px] font-black uppercase tracking-wider ${
-                overviewStatusFilter === "In Review"
-                  ? "text-amber-100"
-                  : "text-amber-900 dark:text-[#fbbf24]"
-              }`}
-            >
-              In Review
-            </span>
-            <div className="flex items-center gap-1.5">
-              {overviewStatusFilter === "In Review" && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
-                  Active
-                </span>
-              )}
-              <div
-                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                  overviewStatusFilter === "In Review"
-                    ? "bg-white/20 text-[#ffffff] border border-white/20"
-                    : "bg-amber-100/90 dark:bg-amber-950/80 text-amber-600 dark:text-[#fbbf24] border border-amber-200/70 dark:border-amber-800/60"
                 }`}
+            >
+              <span>Live production</span>
+            </div>
+          </motion.div>
+
+          {/* KPI: In Review */}
+          <motion.div
+            whileHover={{ y: -2 }}
+            onClick={() =>
+              setOverviewStatusFilter(
+                overviewStatusFilter === "In Review" ? "All" : "In Review",
+              )
+            }
+            className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${overviewStatusFilter === "In Review"
+                ? "bg-gradient-to-br from-amber-500 via-amber-600 to-orange-600 text-[#ffffff] border-amber-400 shadow-lg shadow-amber-500/35 ring-2 ring-amber-300 dark:ring-amber-400"
+                : "bg-white dark:bg-[#211a0f] border-amber-200/90 dark:border-amber-900/60 hover:border-amber-300 dark:hover:border-amber-700/60 shadow-xs"
+              }`}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className={`text-[11px] font-black uppercase tracking-wider ${overviewStatusFilter === "In Review"
+                    ? "text-amber-100"
+                    : "text-amber-900 dark:text-[#fbbf24]"
+                  }`}
               >
-                <FiEye size={14} />
+                In Review
+              </span>
+              <div className="flex items-center gap-1.5">
+                {overviewStatusFilter === "In Review" && (
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                    Active
+                  </span>
+                )}
+                <div
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${overviewStatusFilter === "In Review"
+                      ? "bg-white/20 text-[#ffffff] border border-white/20"
+                      : "bg-amber-100/90 dark:bg-amber-950/80 text-amber-600 dark:text-[#fbbf24] border border-amber-200/70 dark:border-amber-800/60"
+                    }`}
+                >
+                  <FiEye size={14} />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span
-              className={`text-2xl font-black tracking-tight ${
-                overviewStatusFilter === "In Review"
-                  ? "text-[#ffffff]"
+            <div className="mt-2 flex items-baseline gap-2">
+              <span
+                className={`text-2xl font-black tracking-tight ${overviewStatusFilter === "In Review"
+                    ? "text-[#ffffff]"
+                    : "text-amber-600 dark:text-[#fbbf24]"
+                  }`}
+              >
+                {kpiStats.inReview}
+              </span>
+              <span
+                className={`text-[10px] font-bold ${overviewStatusFilter === "In Review"
+                    ? "text-amber-100"
+                    : "text-slate-600 dark:text-[#94a3b8]"
+                  }`}
+              >
+                Waiting Sign-off
+              </span>
+            </div>
+            <div
+              className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${overviewStatusFilter === "In Review"
+                  ? "text-amber-100"
                   : "text-amber-600 dark:text-[#fbbf24]"
-              }`}
-            >
-              {kpiStats.inReview}
-            </span>
-            <span
-              className={`text-[10px] font-bold ${
-                overviewStatusFilter === "In Review"
-                  ? "text-amber-100"
-                  : "text-slate-600 dark:text-[#94a3b8]"
-              }`}
-            >
-              Waiting Sign-off
-            </span>
-          </div>
-          <div
-            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
-              overviewStatusFilter === "In Review"
-                ? "text-amber-100"
-                : "text-amber-600 dark:text-[#fbbf24]"
-            }`}
-          >
-            <span>Manager verification</span>
-          </div>
-        </motion.div>
-
-        {/* KPI: Needs Attention */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          onClick={() =>
-            setOverviewStatusFilter(
-              overviewStatusFilter === "Needs Attention" ? "All" : "Needs Attention",
-            )
-          }
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${
-            overviewStatusFilter === "Needs Attention"
-              ? "bg-gradient-to-br from-rose-600 via-rose-600 to-red-600 text-[#ffffff] border-rose-400 shadow-lg shadow-rose-500/35 ring-2 ring-rose-300 dark:ring-rose-400"
-              : "bg-white dark:bg-[#241118] border-rose-200/90 dark:border-rose-900/60 hover:border-rose-300 dark:hover:border-rose-700/60 shadow-xs"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-[11px] font-black uppercase tracking-wider ${
-                overviewStatusFilter === "Needs Attention"
-                  ? "text-rose-100"
-                  : "text-rose-900 dark:text-[#fb7185]"
-              }`}
-            >
-              Needs Attention
-            </span>
-            <div className="flex items-center gap-1.5">
-              {overviewStatusFilter === "Needs Attention" && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
-                  Active
-                </span>
-              )}
-              <div
-                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                  overviewStatusFilter === "Needs Attention"
-                    ? "bg-white/20 text-[#ffffff] border border-white/20"
-                    : "bg-rose-100/90 dark:bg-rose-950/80 text-rose-600 dark:text-[#fb7185] border border-rose-200/70 dark:border-rose-800/60"
                 }`}
+            >
+              <span>Manager verification</span>
+            </div>
+          </motion.div>
+
+          {/* KPI: Needs Attention */}
+          <motion.div
+            whileHover={{ y: -2 }}
+            onClick={() =>
+              setOverviewStatusFilter(
+                overviewStatusFilter === "Needs Attention" ? "All" : "Needs Attention",
+              )
+            }
+            className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md ${overviewStatusFilter === "Needs Attention"
+                ? "bg-gradient-to-br from-rose-600 via-rose-600 to-red-600 text-[#ffffff] border-rose-400 shadow-lg shadow-rose-500/35 ring-2 ring-rose-300 dark:ring-rose-400"
+                : "bg-white dark:bg-[#241118] border-rose-200/90 dark:border-rose-900/60 hover:border-rose-300 dark:hover:border-rose-700/60 shadow-xs"
+              }`}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className={`text-[11px] font-black uppercase tracking-wider ${overviewStatusFilter === "Needs Attention"
+                    ? "text-rose-100"
+                    : "text-rose-900 dark:text-[#fb7185]"
+                  }`}
               >
-                <FiAlertTriangle size={14} />
+                Needs Attention
+              </span>
+              <div className="flex items-center gap-1.5">
+                {overviewStatusFilter === "Needs Attention" && (
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                    Active
+                  </span>
+                )}
+                <div
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${overviewStatusFilter === "Needs Attention"
+                      ? "bg-white/20 text-[#ffffff] border border-white/20"
+                      : "bg-rose-100/90 dark:bg-rose-950/80 text-rose-600 dark:text-[#fb7185] border border-rose-200/70 dark:border-rose-800/60"
+                    }`}
+                >
+                  <FiAlertTriangle size={14} />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span
-              className={`text-2xl font-black tracking-tight ${
-                overviewStatusFilter === "Needs Attention"
-                  ? "text-[#ffffff]"
+            <div className="mt-2 flex items-baseline gap-2">
+              <span
+                className={`text-2xl font-black tracking-tight ${overviewStatusFilter === "Needs Attention"
+                    ? "text-[#ffffff]"
+                    : "text-rose-600 dark:text-[#fb7185]"
+                  }`}
+              >
+                {kpiStats.needsAttention}
+              </span>
+              <span
+                className={`text-[10px] font-bold ${overviewStatusFilter === "Needs Attention"
+                    ? "text-rose-100"
+                    : "text-slate-600 dark:text-[#94a3b8]"
+                  }`}
+              >
+                Hold / Block
+              </span>
+            </div>
+            <div
+              className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${overviewStatusFilter === "Needs Attention"
+                  ? "text-rose-100"
                   : "text-rose-600 dark:text-[#fb7185]"
-              }`}
-            >
-              {kpiStats.needsAttention}
-            </span>
-            <span
-              className={`text-[10px] font-bold ${
-                overviewStatusFilter === "Needs Attention"
-                  ? "text-rose-100"
-                  : "text-slate-600 dark:text-[#94a3b8]"
-              }`}
-            >
-              Hold / Block
-            </span>
-          </div>
-          <div
-            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
-              overviewStatusFilter === "Needs Attention"
-                ? "text-rose-100"
-                : "text-rose-600 dark:text-[#fb7185]"
-            }`}
-          >
-            <span>Corrections & Blocker</span>
-          </div>
-        </motion.div>
-
-        {/* KPI: Completed */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          onClick={() =>
-            setOverviewStatusFilter(
-              overviewStatusFilter === "Completed" ? "All" : "Completed",
-            )
-          }
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md col-span-2 sm:col-span-1 ${
-            overviewStatusFilter === "Completed"
-              ? "bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-[#ffffff] border-emerald-400 shadow-lg shadow-emerald-500/35 ring-2 ring-emerald-300 dark:ring-emerald-400"
-              : "bg-white dark:bg-[#0c1e18] border-emerald-200/90 dark:border-emerald-900/60 hover:border-emerald-300 dark:hover:border-emerald-700/60 shadow-xs"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-[11px] font-black uppercase tracking-wider ${
-                overviewStatusFilter === "Completed"
-                  ? "text-emerald-100"
-                  : "text-emerald-900 dark:text-[#34d399]"
-              }`}
-            >
-              Completed
-            </span>
-            <div className="flex items-center gap-1.5">
-              {overviewStatusFilter === "Completed" && (
-                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
-                  Active
-                </span>
-              )}
-              <div
-                className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                  overviewStatusFilter === "Completed"
-                    ? "bg-white/20 text-[#ffffff] border border-white/20"
-                    : "bg-emerald-100/90 dark:bg-emerald-950/80 text-emerald-600 dark:text-[#34d399] border border-emerald-200/70 dark:border-emerald-800/60"
                 }`}
+            >
+              <span>Corrections & Blocker</span>
+            </div>
+          </motion.div>
+
+          {/* KPI: Completed */}
+          <motion.div
+            whileHover={{ y: -2 }}
+            onClick={() =>
+              setOverviewStatusFilter(
+                overviewStatusFilter === "Completed" ? "All" : "Completed",
+              )
+            }
+            className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden backdrop-blur-md col-span-2 sm:col-span-1 ${overviewStatusFilter === "Completed"
+                ? "bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-[#ffffff] border-emerald-400 shadow-lg shadow-emerald-500/35 ring-2 ring-emerald-300 dark:ring-emerald-400"
+                : "bg-white dark:bg-[#0c1e18] border-emerald-200/90 dark:border-emerald-900/60 hover:border-emerald-300 dark:hover:border-emerald-700/60 shadow-xs"
+              }`}
+          >
+            <div className="flex items-center justify-between">
+              <span
+                className={`text-[11px] font-black uppercase tracking-wider ${overviewStatusFilter === "Completed"
+                    ? "text-emerald-100"
+                    : "text-emerald-900 dark:text-[#34d399]"
+                  }`}
               >
-                <FiCheckCircle size={14} />
+                Completed
+              </span>
+              <div className="flex items-center gap-1.5">
+                {overviewStatusFilter === "Completed" && (
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-white/20 text-[#ffffff] border border-white/25 tracking-wider">
+                    Active
+                  </span>
+                )}
+                <div
+                  className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${overviewStatusFilter === "Completed"
+                      ? "bg-white/20 text-[#ffffff] border border-white/20"
+                      : "bg-emerald-100/90 dark:bg-emerald-950/80 text-emerald-600 dark:text-[#34d399] border border-emerald-200/70 dark:border-emerald-800/60"
+                    }`}
+                >
+                  <FiCheckCircle size={14} />
+                </div>
               </div>
             </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span
-              className={`text-2xl font-black tracking-tight ${
-                overviewStatusFilter === "Completed"
-                  ? "text-[#ffffff]"
-                  : "text-emerald-600 dark:text-[#34d399]"
-              }`}
-            >
-              {kpiStats.completed}
-            </span>
-            <span
-              className={`text-[10px] font-bold ${
-                overviewStatusFilter === "Completed"
+            <div className="mt-2 flex items-baseline gap-2">
+              <span
+                className={`text-2xl font-black tracking-tight ${overviewStatusFilter === "Completed"
+                    ? "text-[#ffffff]"
+                    : "text-emerald-600 dark:text-[#34d399]"
+                  }`}
+              >
+                {kpiStats.completed}
+              </span>
+              <span
+                className={`text-[10px] font-bold ${overviewStatusFilter === "Completed"
+                    ? "text-emerald-100"
+                    : "text-slate-600 dark:text-[#94a3b8]"
+                  }`}
+              >
+                {kpiStats.completionRate}% Done
+              </span>
+            </div>
+            <div
+              className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${overviewStatusFilter === "Completed"
                   ? "text-emerald-100"
-                  : "text-slate-600 dark:text-[#94a3b8]"
-              }`}
+                  : "text-emerald-600 dark:text-[#34d399]"
+                }`}
             >
-              {kpiStats.completionRate}% Done
-            </span>
-          </div>
-          <div
-            className={`mt-1 flex items-center gap-1 text-[10px] font-semibold ${
-              overviewStatusFilter === "Completed"
-                ? "text-emerald-100"
-                : "text-emerald-600 dark:text-[#34d399]"
-            }`}
-          >
-            <span>Successfully delivered</span>
-          </div>
-        </motion.div>
-      </div>
+              <span>Successfully delivered</span>
+            </div>
+          </motion.div>
+        </div>
       )}
 
       {/* 2. SAAS CONTROL TOOLBAR: SEARCH & SMART FILTERS */}
       {false && (
-      <div className="relative z-30 bg-white/95 dark:bg-[#131625]/95 border border-slate-200/80 dark:border-white/10 rounded-2xl p-2.5 shadow-xs backdrop-blur-xl space-y-2">
-        <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5">
-          {/* Search bar */}
-          <div className="relative flex-1 min-w-[260px]">
-           
-            <input
-              type="text"
-              placeholder="Search tasks by name, client, copy, assignee, creator..."
-              value={projectSearch}
-              onChange={(e) => setProjectSearch(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-[12px] font-semibold rounded-xl bg-slate-50/80 dark:bg-[#161826] border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 dark:focus:border-blue-400 text-slate-800 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b] transition-all shadow-inner"
-            />
-            {projectSearch && (
-              <button
-                type="button"
-                onClick={() => setProjectSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-[#ffffff] cursor-pointer"
-              >
-                <FiX size={13} />
-              </button>
-            )}
-          </div>
+        <div className="relative z-30 bg-white/95 dark:bg-[#131625]/95 border border-slate-200/80 dark:border-white/10 rounded-2xl p-2.5 shadow-xs backdrop-blur-xl space-y-2">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5">
+            {/* Search bar */}
+            <div className="relative flex-1 min-w-[260px]">
 
-          {/* SaaS Filter Pills Row */}
-          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-            {/* Client Filter */}
-            <div className={`relative ${showClientDropdown ? "z-50" : "z-10"}`} ref={clientDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowClientDropdown((prev) => !prev)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                  overviewClientFilter !== "All"
-                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-[#93c5fd] dark:border-blue-700/60"
-                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                }`}
-              >
-                <span className="truncate max-w-[90px]">
-                  {overviewClientFilter === "All"
-                    ? "Client"
-                    : clients?.find((c) => c._id === overviewClientFilter)
-                        ?.companyName || "Client"}
-                </span>
-                <FiChevronDown
-                  size={12}
-                  className={`transition-transform duration-200 ${
-                    showClientDropdown ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {showClientDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute left-0 top-full mt-1.5 w-64 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
-                  >
-                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
-                      <input
-                        type="text"
-                        placeholder="Search clients..."
-                        value={clientSearchQuery}
-                        onChange={(e) => setClientSearchQuery(e.target.value)}
-                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOverviewClientFilter("All");
-                          setShowClientDropdown(false);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
-                          overviewClientFilter === "All"
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-[#93c5fd]"
-                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                        }`}
-                      >
-                        All Clients
-                      </button>
-                      {clients
-                        ?.filter((c) =>
-                          c.companyName
-                            ?.toLowerCase()
-                            .includes(clientSearchQuery.toLowerCase()),
-                        )
-                        .map((client) => (
-                          <button
-                            key={client._id}
-                            type="button"
-                            onClick={() => {
-                              setOverviewClientFilter(client._id);
-                              setShowClientDropdown(false);
-                            }}
-                            className={`w-full text-left px-2 py-1 rounded-xl transition-all flex items-center ${
-                              overviewClientFilter === client._id
-                                ? "bg-blue-50 dark:bg-blue-900/40"
-                                : "hover:bg-slate-50 dark:hover:bg-white/5"
-                            }`}
-                          >
-                            <ClientBadge
-                              client={client}
-                              size="sm"
-                              className="w-full justify-start !text-[10px]"
-                            />
-                          </button>
-                        ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Department Filter */}
-            <div className={`relative ${showDepartmentDropdown ? "z-50" : "z-10"}`} ref={departmentDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowDepartmentDropdown((prev) => !prev)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                  overviewDepartmentFilter !== "All"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-[#86efac] dark:border-emerald-700/60"
-                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                }`}
-              >
-                <span className="truncate max-w-[85px]">
-                  {overviewDepartmentFilter === "All"
-                    ? "Department"
-                    : overviewDepartmentFilter}
-                </span>
-                <FiChevronDown
-                  size={12}
-                  className={`transition-transform duration-200 ${
-                    showDepartmentDropdown ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {showDepartmentDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute left-0 top-full mt-1.5 w-56 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
-                  >
-                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
-                      <input
-                        type="text"
-                        placeholder="Search department..."
-                        value={departmentSearchQuery}
-                        onChange={(e) => setDepartmentSearchQuery(e.target.value)}
-                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOverviewDepartmentFilter("All");
-                          setShowDepartmentDropdown(false);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
-                          overviewDepartmentFilter === "All"
-                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
-                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                        }`}
-                      >
-                        All Departments
-                      </button>
-                      {uniqueDepartments
-                        ?.filter((dept) =>
-                          dept
-                            .toLowerCase()
-                            .includes(departmentSearchQuery.toLowerCase()),
-                        )
-                        .map((dept) => (
-                          <button
-                            key={dept}
-                            type="button"
-                            onClick={() => {
-                              setOverviewDepartmentFilter(dept);
-                              setShowDepartmentDropdown(false);
-                            }}
-                            className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] transition-all font-bold ${
-                              overviewDepartmentFilter === dept
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
-                                : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                            }`}
-                          >
-                            {dept}
-                          </button>
-                        ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Assignee Filter */}
-            <div className={`relative ${showAssigneeDropdown ? "z-50" : "z-10"}`} ref={assigneeDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowAssigneeDropdown((prev) => !prev)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                  overviewAssigneeFilter !== "All"
-                    ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-[#d8b4fe] dark:border-purple-700/60"
-                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                }`}
-              >
-                <span className="truncate max-w-[85px]">
-                  {overviewAssigneeFilter === "All"
-                    ? "Assignee"
-                    : uniqueAssignees.find(
-                        (u) => (u._id || u.id) === overviewAssigneeFilter,
-                      )?.name || "Assignee"}
-                </span>
-                <FiChevronDown
-                  size={12}
-                  className={`transition-transform duration-200 ${
-                    showAssigneeDropdown ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {showAssigneeDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute left-0 lg:left-auto lg:right-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
-                  >
-                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
-                      <input
-                        type="text"
-                        placeholder="Search assignee..."
-                        value={assigneeSearchQuery}
-                        onChange={(e) => setAssigneeSearchQuery(e.target.value)}
-                        className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOverviewAssigneeFilter("All");
-                          setShowAssigneeDropdown(false);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
-                          overviewAssigneeFilter === "All"
-                            ? "bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-[#d8b4fe]"
-                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                        }`}
-                      >
-                        All Assignees
-                      </button>
-                      {uniqueAssignees
-                        ?.filter((u) =>
-                          u.name
-                            ?.toLowerCase()
-                            .includes(assigneeSearchQuery.toLowerCase()),
-                        )
-                        .map((u) => {
-                          const uid = u._id || u.id;
-                          return (
-                            <button
-                              key={uid}
-                              type="button"
-                              onClick={() => {
-                                setOverviewAssigneeFilter(uid);
-                                setShowAssigneeDropdown(false);
-                              }}
-                              className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${
-                                overviewAssigneeFilter === uid
-                                  ? "bg-purple-50 dark:bg-purple-900/40 font-bold"
-                                  : "hover:bg-slate-50 dark:hover:bg-white/5"
-                              }`}
-                            >
-                              {renderUserAvatarSmall(u)}
-                              <span className="truncate text-[11px] text-slate-900 dark:text-[#f8fafc] font-bold">
-                                {u.name}
-                              </span>
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Status Filter Dropdown */}
-            <div className={`relative ${showStatusDropdown ? "z-50" : "z-10"}`} ref={statusDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowStatusDropdown((prev) => !prev)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                  overviewStatusFilter !== "All"
-                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-[#a5b4fc] dark:border-indigo-700/60"
-                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                }`}
-              >
-                <span className="truncate max-w-[85px]">
-                  {overviewStatusFilter === "All"
-                    ? "Status"
-                    : overviewStatusFilter}
-                </span>
-                <FiChevronDown
-                  size={12}
-                  className={`transition-transform duration-200 ${
-                    showStatusDropdown ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {showStatusDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute right-0 top-full mt-1.5 w-48 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5"
-                  >
-                    {[
-                      "All",
-                      "Active Tasks",
-                      "In Progress",
-                      "In Review",
-                      "Needs Attention",
-                      "Correction",
-                      "On Hold",
-                      "Completed",
-                      "Rejected",
-                      "Overdue",
-                      "Due Today",
-                    ].map((st) => (
-                      <button
-                        key={st}
-                        type="button"
-                        onClick={() => {
-                          setOverviewStatusFilter(st);
-                          setShowStatusDropdown(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${
-                          overviewStatusFilter === st
-                            ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-[#a5b4fc]"
-                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                        }`}
-                      >
-                        <span>{st === "All" ? "All Statuses" : st}</span>
-                        {overviewStatusFilter === st && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                        )}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Priority Filter */}
-            <div className={`relative ${showPriorityDropdown ? "z-50" : "z-10"}`} ref={priorityDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowPriorityDropdown((prev) => !prev)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                  overviewPriorityFilter !== "All"
-                    ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-[#fde047] dark:border-amber-700/60"
-                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                }`}
-              >
-                <span className="truncate max-w-[70px]">
-                  {overviewPriorityFilter === "All"
-                    ? "Priority"
-                    : overviewPriorityFilter}
-                </span>
-                <FiChevronDown
-                  size={12}
-                  className={`transition-transform duration-200 ${
-                    showPriorityDropdown ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {showPriorityDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5"
-                  >
-                    {["All", "Top High", "High", "Medium", "Low"].map((pr) => (
-                      <button
-                        key={pr}
-                        type="button"
-                        onClick={() => {
-                          setOverviewPriorityFilter(pr);
-                          setShowPriorityDropdown(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${
-                          overviewPriorityFilter === pr
-                            ? "bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-[#fde047]"
-                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                        }`}
-                      >
-                        <span>{pr === "All" ? "All Priorities" : pr}</span>
-                        {overviewPriorityFilter === pr && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                        )}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Date Quick Filter */}
-            <div className={`relative ${showDateDropdown ? "z-50" : "z-10"}`} ref={dateDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowDateDropdown((prev) => !prev)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${
-                  dateFilter !== "All"
-                    ? "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/40 dark:text-[#5eead4] dark:border-teal-700/60"
-                    : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                }`}
-              >
-                <FiCalendar size={12} className="opacity-70" />
-                <span>{dateFilter === "All" ? "Date" : dateFilter}</span>
-                <FiChevronDown
-                  size={12}
-                  className={`transition-transform duration-200 ${
-                    showDateDropdown ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              <AnimatePresence>
-                {showDateDropdown && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                    className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5"
-                  >
-                    {[
-                      { label: "All Dates", value: "All" },
-                      { label: "Today", value: "Today" },
-                      { label: "Yesterday", value: "Yesterday" },
-                      { label: "This Week", value: "This Week" },
-                      { label: "This Month", value: "This Month" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          setDateFilter(opt.value);
-                          setShowDateDropdown(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${
-                          dateFilter === opt.value
-                            ? "bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-[#5eead4]"
-                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                        }`}
-                      >
-                        <span>{opt.label}</span>
-                        {dateFilter === opt.value && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-                        )}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-
-        {/* Active Filter Tags Row & Clear Button */}
-        {hasActiveFilters && (
-          <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-white/5 flex-wrap">
-            <span className="text-[10px] font-black uppercase text-slate-400 dark:text-[#94a3b8] mr-1">
-              Active:
-            </span>
-
-            {projectSearch && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-[#f8fafc]">
-                "{projectSearch}"
-                <button
-                  onClick={() => setProjectSearch("")}
-                  className="hover:text-red-500 cursor-pointer"
-                >
-                  <FiX size={10} />
-                </button>
-              </span>
-            )}
-
-            {overviewStatusFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-[#a5b4fc] border border-indigo-200 dark:border-indigo-700/50">
-                Status: {overviewStatusFilter}
-                <button
-                  onClick={() => setOverviewStatusFilter("All")}
-                  className="hover:text-red-500 cursor-pointer"
-                >
-                  <FiX size={10} />
-                </button>
-              </span>
-            )}
-
-            {overviewClientFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-[#93c5fd] border border-blue-200 dark:border-blue-700/50">
-                Client:{" "}
-                {clients?.find((c) => c._id === overviewClientFilter)
-                  ?.companyName || "Client"}
-                <button
-                  onClick={() => setOverviewClientFilter("All")}
-                  className="hover:text-red-500 cursor-pointer"
-                >
-                  <FiX size={10} />
-                </button>
-              </span>
-            )}
-
-            {overviewDepartmentFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-[#86efac] border border-emerald-200 dark:border-emerald-700/50">
-                Dept: {overviewDepartmentFilter}
-                <button
-                  onClick={() => setOverviewDepartmentFilter("All")}
-                  className="hover:text-red-500 cursor-pointer"
-                >
-                  <FiX size={10} />
-                </button>
-              </span>
-            )}
-
-            {overviewAssigneeFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-[#d8b4fe] border border-purple-200 dark:border-purple-700/50">
-                Assignee:{" "}
-                {uniqueAssignees.find(
-                  (u) => (u._id || u.id) === overviewAssigneeFilter,
-                )?.name || "Assignee"}
-                <button
-                  onClick={() => setOverviewAssigneeFilter("All")}
-                  className="hover:text-red-500 cursor-pointer"
-                >
-                  <FiX size={10} />
-                </button>
-              </span>
-            )}
-
-            {dateFilter !== "All" && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-[#5eead4] border border-teal-200 dark:border-teal-700/50">
-                Date: {dateFilter}
-                <button
-                  onClick={() => setDateFilter("All")}
-                  className="hover:text-red-500 cursor-pointer"
-                >
-                  <FiX size={10} />
-                </button>
-              </span>
-            )}
-
-            <button
-              type="button"
-              onClick={handleResetAllFilters}
-              className="ml-auto text-[11px] font-extrabold text-blue-600 dark:text-[#38bdf8] hover:underline cursor-pointer"
-            >
-              Reset All
-            </button>
-          </div>
-        )}
-      </div>
-      )}
-
-      {/* PORTAL FILTERS: DATE, CLIENT, ASSIGNEE, CREATED BY, STATUS */}
-      {portalReady && document.getElementById("task-header-filters-portal")
-        ? createPortal(
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Date Filter & Navigator Group */}
-              <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs">
-                {/* Today Quick Button */}
+              <input
+                type="text"
+                placeholder="Search tasks by name, client, copy, assignee, creator..."
+                value={projectSearch}
+                onChange={(e) => setProjectSearch(e.target.value)}
+                className="w-full pl-9 pr-8 py-2 text-[12px] font-semibold rounded-xl bg-slate-50/80 dark:bg-[#161826] border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 dark:focus:border-blue-400 text-slate-800 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b] transition-all shadow-inner"
+              />
+              {projectSearch && (
                 <button
                   type="button"
-                  onClick={() => {
-                    const todayStr = format(new Date(), "yyyy-MM-dd");
-                    setDateFilter(todayStr);
-                  }}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${
-                    isTodaySelected
-                      ? "bg-blue-600 text-white shadow-sm shadow-blue-500/25"
-                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                  title="Filter for today's tasks"
+                  onClick={() => setProjectSearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-[#ffffff] cursor-pointer"
                 >
-                  Today
+                  <FiX size={13} />
                 </button>
+              )}
+            </div>
 
-                {/* Calendar Date Picker Button & Custom Dropdown matching screenshot */}
-                <div className="relative" ref={calendarDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCalendarDropdown((prev) => !prev);
-                      if (!showCalendarDropdown) {
-                        setCalendarViewMonth(currentDateObj);
-                      }
-                    }}
-                    className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all select-none shadow-2xs ${
-                      dateFilter !== "All"
-                        ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/50"
-                        : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                    }`}
-                    title="Click to open calendar picker"
-                  >
-                    <FiCalendar
-                      size={13}
-                      className={
-                        dateFilter !== "All"
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-emerald-500 dark:text-emerald-400"
-                      }
-                    />
-                    <span className="min-w-[85px] text-center font-bold">
-                      {displayDateText}
-                    </span>
-                    <FiChevronDown
-                      size={12}
-                      className={`text-slate-400 transition-transform duration-200 ${
-                        showCalendarDropdown ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
-
-                  <AnimatePresence>
-                    {showCalendarDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                        className="absolute left-0 top-full mt-2 w-[270px] bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[80] p-3.5 select-none backdrop-blur-md"
-                      >
-                        {/* Month / Year header with navigation */}
-                        <div className="flex items-center justify-between mb-2.5 px-1">
-                          <div className="flex items-center gap-1 text-xs font-extrabold text-slate-900 dark:text-[#f8fafc]">
-                            <span>{format(calendarViewMonth, "MMMM, yyyy")}</span>
-                            <FiChevronDown size={13} className="text-slate-400" />
-                          </div>
-                          <div className="flex items-center gap-0.5 text-slate-600 dark:text-slate-300">
-                            <button
-                              type="button"
-                              onClick={() => setCalendarViewMonth((prev) => subMonths(prev, 1))}
-                              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                              title="Previous month"
-                            >
-                              <FiChevronLeft size={15} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setCalendarViewMonth((prev) => addMonths(prev, 1))}
-                              className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
-                              title="Next month"
-                            >
-                              <FiChevronRight size={15} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Weekday headers: Su Mo Tu We Th Fr Sa */}
-                        <div className="grid grid-cols-7 mb-1.5 text-center text-[11px] font-bold text-slate-700 dark:text-slate-400">
-                          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((dayName) => (
-                            <span key={dayName} className="py-0.5">
-                              {dayName}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Calendar Day Grid */}
-                        <div className="grid grid-cols-7 gap-y-1 text-center text-xs">
-                          {calendarDays.map((day) => {
-                            const isCurrentMonth = isSameMonth(day, calendarViewMonth);
-                            const isSelected =
-                              (dateFilter === "Today" && isToday(day)) ||
-                              (dateFilter &&
-                                /^\d{4}-\d{2}-\d{2}$/.test(dateFilter) &&
-                                isSameDay(day, new Date(dateFilter + "T00:00:00")));
-                            const isDayToday = isToday(day);
-
-                            return (
-                              <button
-                                key={day.toISOString()}
-                                type="button"
-                                onClick={() => {
-                                  setDateFilter(format(day, "yyyy-MM-dd"));
-                                  setShowCalendarDropdown(false);
-                                }}
-                                className={`h-7 w-7 mx-auto flex items-center justify-center rounded-sm transition-all cursor-pointer font-bold ${
-                                  isSelected
-                                    ? "bg-blue-600 text-white border-2 border-slate-900 dark:border-white shadow-xs"
-                                    : isDayToday
-                                    ? "text-blue-600 dark:text-blue-400 font-extrabold hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                    : isCurrentMonth
-                                    ? "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10"
-                                    : "text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-white/5"
-                                }`}
-                              >
-                                {format(day, "d")}
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {/* Footer: Clear & Today */}
-                        <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-100 dark:border-white/10 px-1 text-xs font-bold">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDateFilter("All");
-                              setShowCalendarDropdown(false);
-                            }}
-                            className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                          >
-                            Clear
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const todayStr = format(new Date(), "yyyy-MM-dd");
-                              setDateFilter(todayStr);
-                              setCalendarViewMonth(new Date());
-                              setShowCalendarDropdown(false);
-                            }}
-                            className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                          >
-                            Today
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* Prev / Next buttons */}
-                <div className="flex items-center bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 rounded-xl overflow-hidden shadow-2xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextDate = subDays(currentDateObj, 1);
-                      setDateFilter(format(nextDate, "yyyy-MM-dd"));
-                    }}
-                    className="px-2 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 border-r border-slate-200/80 dark:border-white/10 transition-colors cursor-pointer"
-                    title="Previous Day"
-                  >
-                    <FiChevronLeft size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextDate = addDays(currentDateObj, 1);
-                      setDateFilter(format(nextDate, "yyyy-MM-dd"));
-                    }}
-                    className="px-2 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                    title="Next Day"
-                  >
-                    <FiChevronRight size={13} />
-                  </button>
-                </div>
-
-                {/* Clear Date Filter Button */}
-                {dateFilter !== "All" && (
-                  <button
-                    type="button"
-                    onClick={() => setDateFilter("All")}
-                    className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                    title="Clear date filter (All dates)"
-                  >
-                    <FiX size={13} />
-                  </button>
-                )}
-              </div>
-
+            {/* SaaS Filter Pills Row */}
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
               {/* Client Filter */}
-              <div
-                className={`relative ${showClientDropdown ? "z-50" : "z-10"}`}
-                ref={clientDropdownRef}
-              >
+              <div className={`relative ${showClientDropdown ? "z-50" : "z-10"}`} ref={clientDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setShowClientDropdown((prev) => !prev)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${
-                    overviewClientFilter !== "All"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${overviewClientFilter !== "All"
                       ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-[#93c5fd] dark:border-blue-700/60"
-                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
+                      : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    }`}
                 >
-                  <LuBuilding2
-                    size={13}
-                    className={
-                      overviewClientFilter !== "All"
-                        ? "text-blue-600"
-                        : "text-slate-400"
-                    }
-                  />
-                  <span className="truncate max-w-[100px]">
+                  <span className="truncate max-w-[90px]">
                     {overviewClientFilter === "All"
                       ? "Client"
                       : clients?.find((c) => c._id === overviewClientFilter)
-                          ?.companyName || "Client"}
+                        ?.companyName || "Client"}
                   </span>
                   <FiChevronDown
                     size={12}
-                    className={`transition-transform duration-200 text-slate-400 ${
-                      showClientDropdown ? "rotate-180" : ""
-                    }`}
+                    className={`transition-transform duration-200 ${showClientDropdown ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -2945,7 +2289,7 @@ const TaskOverviewTab = ({
                       initial={{ opacity: 0, y: 6, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                      className="absolute left-0 top-full mt-1.5 w-64 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
+                      className="absolute left-0 top-full mt-1.5 w-64 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
                     >
                       <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
                         <input
@@ -2953,9 +2297,8 @@ const TaskOverviewTab = ({
                           placeholder="Search clients..."
                           value={clientSearchQuery}
                           onChange={(e) => setClientSearchQuery(e.target.value)}
-                          className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                          className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
                           onClick={(e) => e.stopPropagation()}
-                          autoFocus
                         />
                       </div>
                       <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
@@ -2965,11 +2308,10 @@ const TaskOverviewTab = ({
                             setOverviewClientFilter("All");
                             setShowClientDropdown(false);
                           }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                            overviewClientFilter === "All"
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${overviewClientFilter === "All"
                               ? "bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-[#93c5fd]"
                               : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                          }`}
+                            }`}
                         >
                           All Clients
                         </button>
@@ -2987,16 +2329,15 @@ const TaskOverviewTab = ({
                                 setOverviewClientFilter(client._id);
                                 setShowClientDropdown(false);
                               }}
-                              className={`w-full text-left px-2 py-1 rounded-xl transition-all flex items-center ${
-                                overviewClientFilter === client._id
+                              className={`w-full text-left px-2 py-1 rounded-xl transition-all flex items-center ${overviewClientFilter === client._id
                                   ? "bg-blue-50 dark:bg-blue-900/40"
                                   : "hover:bg-slate-50 dark:hover:bg-white/5"
-                              }`}
+                                }`}
                             >
                               <ClientBadge
                                 client={client}
                                 size="sm"
-                                className="w-full justify-start !text-[11px]"
+                                className="w-full justify-start !text-[10px]"
                               />
                             </button>
                           ))}
@@ -3006,40 +2347,109 @@ const TaskOverviewTab = ({
                 </AnimatePresence>
               </div>
 
-              {/* Assignee Filter */}
-              <div
-                className={`relative ${showAssigneeDropdown ? "z-50" : "z-10"}`}
-                ref={assigneeDropdownRef}
-              >
+              {/* Department Filter */}
+              <div className={`relative ${showDepartmentDropdown ? "z-50" : "z-10"}`} ref={departmentDropdownRef}>
                 <button
                   type="button"
-                  onClick={() => setShowAssigneeDropdown((prev) => !prev)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${
-                    overviewAssigneeFilter !== "All"
-                      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-[#d8b4fe] dark:border-purple-700/60"
-                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
+                  onClick={() => setShowDepartmentDropdown((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${overviewDepartmentFilter !== "All"
+                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-[#86efac] dark:border-emerald-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    }`}
                 >
-                  <FiUser
-                    size={13}
-                    className={
-                      overviewAssigneeFilter !== "All"
-                        ? "text-purple-600"
-                        : "text-slate-400"
-                    }
-                  />
-                  <span className="truncate max-w-[95px]">
-                    {overviewAssigneeFilter === "All"
-                      ? "Assignee"
-                      : uniqueAssignees.find(
-                          (u) => (u._id || u.id) === overviewAssigneeFilter,
-                        )?.name || "Assignee"}
+                  <span className="truncate max-w-[85px]">
+                    {overviewDepartmentFilter === "All"
+                      ? "Department"
+                      : overviewDepartmentFilter}
                   </span>
                   <FiChevronDown
                     size={12}
-                    className={`transition-transform duration-200 text-slate-400 ${
-                      showAssigneeDropdown ? "rotate-180" : ""
+                    className={`transition-transform duration-200 ${showDepartmentDropdown ? "rotate-180" : ""
+                      }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showDepartmentDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      className="absolute left-0 top-full mt-1.5 w-56 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
+                    >
+                      <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                        <input
+                          type="text"
+                          placeholder="Search department..."
+                          value={departmentSearchQuery}
+                          onChange={(e) => setDepartmentSearchQuery(e.target.value)}
+                          className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOverviewDepartmentFilter("All");
+                            setShowDepartmentDropdown(false);
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${overviewDepartmentFilter === "All"
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
+                              : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                            }`}
+                        >
+                          All Departments
+                        </button>
+                        {uniqueDepartments
+                          ?.filter((dept) =>
+                            dept
+                              .toLowerCase()
+                              .includes(departmentSearchQuery.toLowerCase()),
+                          )
+                          .map((dept) => (
+                            <button
+                              key={dept}
+                              type="button"
+                              onClick={() => {
+                                setOverviewDepartmentFilter(dept);
+                                setShowDepartmentDropdown(false);
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] transition-all font-bold ${overviewDepartmentFilter === dept
+                                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
+                                  : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                                }`}
+                            >
+                              {dept}
+                            </button>
+                          ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Assignee Filter */}
+              <div className={`relative ${showAssigneeDropdown ? "z-50" : "z-10"}`} ref={assigneeDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowAssigneeDropdown((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${overviewAssigneeFilter !== "All"
+                      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-[#d8b4fe] dark:border-purple-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
                     }`}
+                >
+                  <span className="truncate max-w-[85px]">
+                    {overviewAssigneeFilter === "All"
+                      ? "Assignee"
+                      : uniqueAssignees.find(
+                        (u) => (u._id || u.id) === overviewAssigneeFilter,
+                      )?.name || "Assignee"}
+                  </span>
+                  <FiChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 ${showAssigneeDropdown ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -3049,7 +2459,7 @@ const TaskOverviewTab = ({
                       initial={{ opacity: 0, y: 6, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                      className="absolute left-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
+                      className="absolute left-0 lg:left-auto lg:right-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
                     >
                       <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
                         <input
@@ -3057,9 +2467,8 @@ const TaskOverviewTab = ({
                           placeholder="Search assignee..."
                           value={assigneeSearchQuery}
                           onChange={(e) => setAssigneeSearchQuery(e.target.value)}
-                          className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                          className="w-full px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
                           onClick={(e) => e.stopPropagation()}
-                          autoFocus
                         />
                       </div>
                       <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
@@ -3069,11 +2478,10 @@ const TaskOverviewTab = ({
                             setOverviewAssigneeFilter("All");
                             setShowAssigneeDropdown(false);
                           }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                            overviewAssigneeFilter === "All"
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${overviewAssigneeFilter === "All"
                               ? "bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-[#d8b4fe]"
                               : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                          }`}
+                            }`}
                         >
                           All Assignees
                         </button>
@@ -3093,122 +2501,13 @@ const TaskOverviewTab = ({
                                   setOverviewAssigneeFilter(uid);
                                   setShowAssigneeDropdown(false);
                                 }}
-                                className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${
-                                  overviewAssigneeFilter === uid
+                                className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${overviewAssigneeFilter === uid
                                     ? "bg-purple-50 dark:bg-purple-900/40 font-bold"
                                     : "hover:bg-slate-50 dark:hover:bg-white/5"
-                                }`}
+                                  }`}
                               >
                                 {renderUserAvatarSmall(u)}
-                                <span className="truncate text-xs text-slate-900 dark:text-[#f8fafc] font-bold">
-                                  {u.name}
-                                </span>
-                              </button>
-                            );
-                          })}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Created By Filter */}
-              <div
-                className={`relative ${showCreatedByDropdown ? "z-50" : "z-10"}`}
-                ref={createdByDropdownRef}
-              >
-                <button
-                  type="button"
-                  onClick={() => setShowCreatedByDropdown((prev) => !prev)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${
-                    overviewCreatedByFilter !== "All"
-                      ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-[#a5b4fc] dark:border-indigo-700/60"
-                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                >
-                  <FiUserCheck
-                    size={13}
-                    className={
-                      overviewCreatedByFilter !== "All"
-                        ? "text-indigo-600"
-                        : "text-slate-400"
-                    }
-                  />
-                  <span className="truncate max-w-[95px]">
-                    {overviewCreatedByFilter === "All"
-                      ? "Created By"
-                      : uniqueCreators.find(
-                          (u) => (u._id || u.id) === overviewCreatedByFilter,
-                        )?.name || "Created By"}
-                  </span>
-                  <FiChevronDown
-                    size={12}
-                    className={`transition-transform duration-200 text-slate-400 ${
-                      showCreatedByDropdown ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {showCreatedByDropdown && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                      className="absolute left-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
-                    >
-                      <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
-                        <input
-                          type="text"
-                          placeholder="Search creator..."
-                          value={createdBySearchQuery}
-                          onChange={(e) =>
-                            setCreatedBySearchQuery(e.target.value)
-                          }
-                          className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                        />
-                      </div>
-                      <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOverviewCreatedByFilter("All");
-                            setShowCreatedByDropdown(false);
-                          }}
-                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                            overviewCreatedByFilter === "All"
-                              ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-[#a5b4fc]"
-                              : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                          }`}
-                        >
-                          All Creators
-                        </button>
-                        {uniqueCreators
-                          ?.filter((u) =>
-                            u.name
-                              ?.toLowerCase()
-                              .includes(createdBySearchQuery.toLowerCase()),
-                          )
-                          .map((u) => {
-                            const uid = u._id || u.id;
-                            return (
-                              <button
-                                key={uid}
-                                type="button"
-                                onClick={() => {
-                                  setOverviewCreatedByFilter(uid);
-                                  setShowCreatedByDropdown(false);
-                                }}
-                                className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${
-                                  overviewCreatedByFilter === uid
-                                    ? "bg-indigo-50 dark:bg-indigo-900/40 font-bold"
-                                    : "hover:bg-slate-50 dark:hover:bg-white/5"
-                                }`}
-                              >
-                                {renderUserAvatarSmall(u)}
-                                <span className="truncate text-xs text-slate-900 dark:text-[#f8fafc] font-bold">
+                                <span className="truncate text-[11px] text-slate-900 dark:text-[#f8fafc] font-bold">
                                   {u.name}
                                 </span>
                               </button>
@@ -3221,37 +2520,24 @@ const TaskOverviewTab = ({
               </div>
 
               {/* Status Filter Dropdown */}
-              <div
-                className={`relative ${showStatusDropdown ? "z-50" : "z-10"}`}
-                ref={statusDropdownRef}
-              >
+              <div className={`relative ${showStatusDropdown ? "z-50" : "z-10"}`} ref={statusDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setShowStatusDropdown((prev) => !prev)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${
-                    overviewStatusFilter !== "All"
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-[#86efac] dark:border-emerald-700/60"
-                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${overviewStatusFilter !== "All"
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-[#a5b4fc] dark:border-indigo-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    }`}
                 >
-                  <FiFilter
-                    size={13}
-                    className={
-                      overviewStatusFilter !== "All"
-                        ? "text-emerald-600"
-                        : "text-slate-400"
-                    }
-                  />
-                  <span className="truncate max-w-[90px]">
+                  <span className="truncate max-w-[85px]">
                     {overviewStatusFilter === "All"
                       ? "Status"
                       : overviewStatusFilter}
                   </span>
                   <FiChevronDown
                     size={12}
-                    className={`transition-transform duration-200 text-slate-400 ${
-                      showStatusDropdown ? "rotate-180" : ""
-                    }`}
+                    className={`transition-transform duration-200 ${showStatusDropdown ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -3261,21 +2547,20 @@ const TaskOverviewTab = ({
                       initial={{ opacity: 0, y: 6, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                      className="absolute left-0 lg:left-auto lg:right-0 top-full mt-1.5 w-48 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5 backdrop-blur-md"
+                      className="absolute right-0 top-full mt-1.5 w-48 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5"
                     >
                       {[
                         "All",
                         "Active Tasks",
-                        "Not Started",
                         "In Progress",
-                        "On Hold",
                         "In Review",
-                        "Completed",
                         "Needs Attention",
                         "Correction",
+                        "On Hold",
+                        "Completed",
+                        "Rejected",
                         "Overdue",
                         "Due Today",
-                        "Rejected",
                       ].map((st) => (
                         <button
                           key={st}
@@ -3284,15 +2569,14 @@ const TaskOverviewTab = ({
                             setOverviewStatusFilter(st);
                             setShowStatusDropdown(false);
                           }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
-                            overviewStatusFilter === st
-                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${overviewStatusFilter === st
+                              ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-[#a5b4fc]"
                               : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
-                          }`}
+                            }`}
                         >
                           <span>{st === "All" ? "All Statuses" : st}</span>
                           {overviewStatusFilter === st && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                           )}
                         </button>
                       ))}
@@ -3301,12 +2585,806 @@ const TaskOverviewTab = ({
                 </AnimatePresence>
               </div>
 
-              {/* Reset All Filters button if any filter is active */}
-              {(dateFilter !== "All" ||
-                overviewClientFilter !== "All" ||
-                overviewAssigneeFilter !== "All" ||
-                overviewCreatedByFilter !== "All" ||
-                overviewStatusFilter !== "All") && (
+              {/* Priority Filter */}
+              <div className={`relative ${showPriorityDropdown ? "z-50" : "z-10"}`} ref={priorityDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowPriorityDropdown((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${overviewPriorityFilter !== "All"
+                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-[#fde047] dark:border-amber-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    }`}
+                >
+                  <span className="truncate max-w-[70px]">
+                    {overviewPriorityFilter === "All"
+                      ? "Priority"
+                      : overviewPriorityFilter}
+                  </span>
+                  <FiChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 ${showPriorityDropdown ? "rotate-180" : ""
+                      }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showPriorityDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5"
+                    >
+                      {["All", "Top High", "High", "Medium", "Low"].map((pr) => (
+                        <button
+                          key={pr}
+                          type="button"
+                          onClick={() => {
+                            setOverviewPriorityFilter(pr);
+                            setShowPriorityDropdown(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${overviewPriorityFilter === pr
+                              ? "bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-[#fde047]"
+                              : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                            }`}
+                        >
+                          <span>{pr === "All" ? "All Priorities" : pr}</span>
+                          {overviewPriorityFilter === pr && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Date Quick Filter */}
+              <div className={`relative ${showDateDropdown ? "z-50" : "z-10"}`} ref={dateDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowDateDropdown((prev) => !prev)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all cursor-pointer ${dateFilter !== "All"
+                      ? "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-900/40 dark:text-[#5eead4] dark:border-teal-700/60"
+                      : "bg-white dark:bg-[#161826] text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    }`}
+                >
+                  <FiCalendar size={12} className="opacity-70" />
+                  <span>{dateFilter === "All" ? "Date" : dateFilter}</span>
+                  <FiChevronDown
+                    size={12}
+                    className={`transition-transform duration-200 ${showDateDropdown ? "rotate-180" : ""
+                      }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showDateDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5"
+                    >
+                      {[
+                        { label: "All Dates", value: "All" },
+                        { label: "Today", value: "Today" },
+                        { label: "Yesterday", value: "Yesterday" },
+                        { label: "This Week", value: "This Week" },
+                        { label: "This Month", value: "This Month" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setDateFilter(opt.value);
+                            setShowDateDropdown(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all text-left cursor-pointer ${dateFilter === opt.value
+                              ? "bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-[#5eead4]"
+                              : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                            }`}
+                        >
+                          <span>{opt.label}</span>
+                          {dateFilter === opt.value && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Filter Tags Row & Clear Button */}
+          {hasActiveFilters && (
+            <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100 dark:border-white/5 flex-wrap">
+              <span className="text-[10px] font-black uppercase text-slate-400 dark:text-[#94a3b8] mr-1">
+                Active:
+              </span>
+
+              {projectSearch && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-[#f8fafc]">
+                  "{projectSearch}"
+                  <button
+                    onClick={() => setProjectSearch("")}
+                    className="hover:text-red-500 cursor-pointer"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </span>
+              )}
+
+              {overviewStatusFilter !== "All" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-[#a5b4fc] border border-indigo-200 dark:border-indigo-700/50">
+                  Status: {overviewStatusFilter}
+                  <button
+                    onClick={() => setOverviewStatusFilter("All")}
+                    className="hover:text-red-500 cursor-pointer"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </span>
+              )}
+
+              {overviewClientFilter !== "All" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-[#93c5fd] border border-blue-200 dark:border-blue-700/50">
+                  Client:{" "}
+                  {clients?.find((c) => c._id === overviewClientFilter)
+                    ?.companyName || "Client"}
+                  <button
+                    onClick={() => setOverviewClientFilter("All")}
+                    className="hover:text-red-500 cursor-pointer"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </span>
+              )}
+
+              {!propDepartmentFilter && overviewDepartmentFilter !== "All" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-[#86efac] border border-emerald-200 dark:border-emerald-700/50">
+                  Dept: {overviewDepartmentFilter}
+                  <button
+                    onClick={() => setOverviewDepartmentFilter("All")}
+                    className="hover:text-red-500 cursor-pointer"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </span>
+              )}
+
+              {overviewAssigneeFilter !== "All" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-[#d8b4fe] border border-purple-200 dark:border-purple-700/50">
+                  Assignee:{" "}
+                  {uniqueAssignees.find(
+                    (u) => (u._id || u.id) === overviewAssigneeFilter,
+                  )?.name || "Assignee"}
+                  <button
+                    onClick={() => setOverviewAssigneeFilter("All")}
+                    className="hover:text-red-500 cursor-pointer"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </span>
+              )}
+
+              {dateFilter !== "All" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-[#5eead4] border border-teal-200 dark:border-teal-700/50">
+                  Date: {dateFilter}
+                  <button
+                    onClick={() => setDateFilter("All")}
+                    className="hover:text-red-500 cursor-pointer"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={handleResetAllFilters}
+                className="ml-auto text-[11px] font-extrabold text-blue-600 dark:text-[#38bdf8] hover:underline cursor-pointer"
+              >
+                Reset All
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PORTAL FILTERS: DATE, CLIENT, ASSIGNEE, CREATED BY, STATUS */}
+      {portalReady && document.getElementById("task-header-filters-portal")
+        ? createPortal(
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Date Filter & Navigator Group */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-xs">
+              {/* Today Quick Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const todayStr = format(new Date(), "yyyy-MM-dd");
+                  setDateFilter(todayStr);
+                }}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer select-none ${isTodaySelected
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-500/25"
+                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                title="Filter for today's tasks"
+              >
+                Today
+              </button>
+
+              {/* Calendar Date Picker Button & Custom Dropdown matching screenshot */}
+              <div className="relative" ref={calendarDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCalendarDropdown((prev) => !prev);
+                    if (!showCalendarDropdown) {
+                      setCalendarViewMonth(currentDateObj);
+                    }
+                  }}
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all select-none shadow-2xs ${dateFilter !== "All"
+                      ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/50"
+                      : "bg-white dark:bg-[#161826] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                    }`}
+                  title="Click to open calendar picker"
+                >
+                  <FiCalendar
+                    size={13}
+                    className={
+                      dateFilter !== "All"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-emerald-500 dark:text-emerald-400"
+                    }
+                  />
+                  <span className="min-w-[85px] text-center font-bold">
+                    {displayDateText}
+                  </span>
+                  <FiChevronDown
+                    size={12}
+                    className={`text-slate-400 transition-transform duration-200 ${showCalendarDropdown ? "rotate-180" : ""
+                      }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {showCalendarDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                      className="absolute left-0 top-full mt-2 w-[270px] bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[80] p-3.5 select-none backdrop-blur-md"
+                    >
+                      {/* Month / Year header with navigation */}
+                      <div className="flex items-center justify-between mb-2.5 px-1">
+                        <div className="flex items-center gap-1 text-xs font-extrabold text-slate-900 dark:text-[#f8fafc]">
+                          <span>{format(calendarViewMonth, "MMMM, yyyy")}</span>
+                          <FiChevronDown size={13} className="text-slate-400" />
+                        </div>
+                        <div className="flex items-center gap-0.5 text-slate-600 dark:text-slate-300">
+                          <button
+                            type="button"
+                            onClick={() => setCalendarViewMonth((prev) => subMonths(prev, 1))}
+                            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                            title="Previous month"
+                          >
+                            <FiChevronLeft size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCalendarViewMonth((prev) => addMonths(prev, 1))}
+                            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                            title="Next month"
+                          >
+                            <FiChevronRight size={15} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Weekday headers: Su Mo Tu We Th Fr Sa */}
+                      <div className="grid grid-cols-7 mb-1.5 text-center text-[11px] font-bold text-slate-700 dark:text-slate-400">
+                        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((dayName) => (
+                          <span key={dayName} className="py-0.5">
+                            {dayName}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Calendar Day Grid */}
+                      <div className="grid grid-cols-7 gap-y-1 text-center text-xs">
+                        {calendarDays.map((day) => {
+                          const isCurrentMonth = isSameMonth(day, calendarViewMonth);
+                          const isSelected =
+                            (dateFilter === "Today" && isToday(day)) ||
+                            (dateFilter &&
+                              /^\d{4}-\d{2}-\d{2}$/.test(dateFilter) &&
+                              isSameDay(day, new Date(dateFilter + "T00:00:00")));
+                          const isDayToday = isToday(day);
+
+                          return (
+                            <button
+                              key={day.toISOString()}
+                              type="button"
+                              onClick={() => {
+                                setDateFilter(format(day, "yyyy-MM-dd"));
+                                setShowCalendarDropdown(false);
+                              }}
+                              className={`h-7 w-7 mx-auto flex items-center justify-center rounded-sm transition-all cursor-pointer font-bold ${isSelected
+                                  ? "bg-blue-600 text-white border-2 border-slate-900 dark:border-white shadow-xs"
+                                  : isDayToday
+                                    ? "text-blue-600 dark:text-blue-400 font-extrabold hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                    : isCurrentMonth
+                                      ? "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10"
+                                      : "text-slate-300 dark:text-slate-600 hover:bg-slate-50 dark:hover:bg-white/5"
+                                }`}
+                            >
+                              {format(day, "d")}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Footer: Clear & Today */}
+                      <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-100 dark:border-white/10 px-1 text-xs font-bold">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDateFilter("All");
+                            setShowCalendarDropdown(false);
+                          }}
+                          className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const todayStr = format(new Date(), "yyyy-MM-dd");
+                            setDateFilter(todayStr);
+                            setCalendarViewMonth(new Date());
+                            setShowCalendarDropdown(false);
+                          }}
+                          className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                        >
+                          Today
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Prev / Next buttons */}
+              <div className="flex items-center bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 rounded-xl overflow-hidden shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextDate = subDays(currentDateObj, 1);
+                    setDateFilter(format(nextDate, "yyyy-MM-dd"));
+                  }}
+                  className="px-2 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 border-r border-slate-200/80 dark:border-white/10 transition-colors cursor-pointer"
+                  title="Previous Day"
+                >
+                  <FiChevronLeft size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextDate = addDays(currentDateObj, 1);
+                    setDateFilter(format(nextDate, "yyyy-MM-dd"));
+                  }}
+                  className="px-2 py-1 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  title="Next Day"
+                >
+                  <FiChevronRight size={13} />
+                </button>
+              </div>
+
+              {/* Clear Date Filter Button */}
+              {dateFilter !== "All" && (
+                <button
+                  type="button"
+                  onClick={() => setDateFilter("All")}
+                  className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  title="Clear date filter (All dates)"
+                >
+                  <FiX size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* Client Filter */}
+            <div
+              className={`relative ${showClientDropdown ? "z-50" : "z-10"}`}
+              ref={clientDropdownRef}
+            >
+              <button
+                type="button"
+                onClick={() => setShowClientDropdown((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${overviewClientFilter !== "All"
+                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/40 dark:text-[#93c5fd] dark:border-blue-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+              >
+                <LuBuilding2
+                  size={13}
+                  className={
+                    overviewClientFilter !== "All"
+                      ? "text-blue-600"
+                      : "text-slate-400"
+                  }
+                />
+                <span className="truncate max-w-[100px]">
+                  {overviewClientFilter === "All"
+                    ? "Client"
+                    : clients?.find((c) => c._id === overviewClientFilter)
+                      ?.companyName || "Client"}
+                </span>
+                <FiChevronDown
+                  size={12}
+                  className={`transition-transform duration-200 text-slate-400 ${showClientDropdown ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {showClientDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    className="absolute left-0 top-full mt-1.5 w-64 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
+                  >
+                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Search clients..."
+                        value={clientSearchQuery}
+                        onChange={(e) => setClientSearchQuery(e.target.value)}
+                        className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverviewClientFilter("All");
+                          setShowClientDropdown(false);
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${overviewClientFilter === "All"
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-[#93c5fd]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                          }`}
+                      >
+                        All Clients
+                      </button>
+                      {clients
+                        ?.filter((c) =>
+                          c.companyName
+                            ?.toLowerCase()
+                            .includes(clientSearchQuery.toLowerCase()),
+                        )
+                        .map((client) => (
+                          <button
+                            key={client._id}
+                            type="button"
+                            onClick={() => {
+                              setOverviewClientFilter(client._id);
+                              setShowClientDropdown(false);
+                            }}
+                            className={`w-full text-left px-2 py-1 rounded-xl transition-all flex items-center ${overviewClientFilter === client._id
+                                ? "bg-blue-50 dark:bg-blue-900/40"
+                                : "hover:bg-slate-50 dark:hover:bg-white/5"
+                              }`}
+                          >
+                            <ClientBadge
+                              client={client}
+                              size="sm"
+                              className="w-full justify-start !text-[11px]"
+                            />
+                          </button>
+                        ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Assignee Filter */}
+            <div
+              className={`relative ${showAssigneeDropdown ? "z-50" : "z-10"}`}
+              ref={assigneeDropdownRef}
+            >
+              <button
+                type="button"
+                onClick={() => setShowAssigneeDropdown((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${overviewAssigneeFilter !== "All"
+                    ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/40 dark:text-[#d8b4fe] dark:border-purple-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+              >
+                <FiUser
+                  size={13}
+                  className={
+                    overviewAssigneeFilter !== "All"
+                      ? "text-purple-600"
+                      : "text-slate-400"
+                  }
+                />
+                <span className="truncate max-w-[95px]">
+                  {overviewAssigneeFilter === "All"
+                    ? "Assignee"
+                    : uniqueAssignees.find(
+                      (u) => (u._id || u.id) === overviewAssigneeFilter,
+                    )?.name || "Assignee"}
+                </span>
+                <FiChevronDown
+                  size={12}
+                  className={`transition-transform duration-200 text-slate-400 ${showAssigneeDropdown ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {showAssigneeDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    className="absolute left-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
+                  >
+                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Search assignee..."
+                        value={assigneeSearchQuery}
+                        onChange={(e) => setAssigneeSearchQuery(e.target.value)}
+                        className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverviewAssigneeFilter("All");
+                          setShowAssigneeDropdown(false);
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${overviewAssigneeFilter === "All"
+                            ? "bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-[#d8b4fe]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                          }`}
+                      >
+                        All Assignees
+                      </button>
+                      {uniqueAssignees
+                        ?.filter((u) =>
+                          u.name
+                            ?.toLowerCase()
+                            .includes(assigneeSearchQuery.toLowerCase()),
+                        )
+                        .map((u) => {
+                          const uid = u._id || u.id;
+                          return (
+                            <button
+                              key={uid}
+                              type="button"
+                              onClick={() => {
+                                setOverviewAssigneeFilter(uid);
+                                setShowAssigneeDropdown(false);
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${overviewAssigneeFilter === uid
+                                  ? "bg-purple-50 dark:bg-purple-900/40 font-bold"
+                                  : "hover:bg-slate-50 dark:hover:bg-white/5"
+                                }`}
+                            >
+                              {renderUserAvatarSmall(u)}
+                              <span className="truncate text-xs text-slate-900 dark:text-[#f8fafc] font-bold">
+                                {u.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Created By Filter */}
+            <div
+              className={`relative ${showCreatedByDropdown ? "z-50" : "z-10"}`}
+              ref={createdByDropdownRef}
+            >
+              <button
+                type="button"
+                onClick={() => setShowCreatedByDropdown((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${overviewCreatedByFilter !== "All"
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-[#a5b4fc] dark:border-indigo-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+              >
+                <FiUserCheck
+                  size={13}
+                  className={
+                    overviewCreatedByFilter !== "All"
+                      ? "text-indigo-600"
+                      : "text-slate-400"
+                  }
+                />
+                <span className="truncate max-w-[95px]">
+                  {overviewCreatedByFilter === "All"
+                    ? "Created By"
+                    : uniqueCreators.find(
+                      (u) => (u._id || u.id) === overviewCreatedByFilter,
+                    )?.name || "Created By"}
+                </span>
+                <FiChevronDown
+                  size={12}
+                  className={`transition-transform duration-200 text-slate-400 ${showCreatedByDropdown ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {showCreatedByDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    className="absolute left-0 top-full mt-1.5 w-60 max-h-[300px] flex flex-col bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden backdrop-blur-md"
+                  >
+                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                      <input
+                        type="text"
+                        placeholder="Search creator..."
+                        value={createdBySearchQuery}
+                        onChange={(e) =>
+                          setCreatedBySearchQuery(e.target.value)
+                        }
+                        className="w-full px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none text-slate-900 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-[#64748b]"
+                        onClick={(e) => e.stopPropagation()}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-1 flex flex-col gap-0.5 custom-scrollbar">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverviewCreatedByFilter("All");
+                          setShowCreatedByDropdown(false);
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${overviewCreatedByFilter === "All"
+                            ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-[#a5b4fc]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                          }`}
+                      >
+                        All Creators
+                      </button>
+                      {uniqueCreators
+                        ?.filter((u) =>
+                          u.name
+                            ?.toLowerCase()
+                            .includes(createdBySearchQuery.toLowerCase()),
+                        )
+                        .map((u) => {
+                          const uid = u._id || u.id;
+                          return (
+                            <button
+                              key={uid}
+                              type="button"
+                              onClick={() => {
+                                setOverviewCreatedByFilter(uid);
+                                setShowCreatedByDropdown(false);
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-2 ${overviewCreatedByFilter === uid
+                                  ? "bg-indigo-50 dark:bg-indigo-900/40 font-bold"
+                                  : "hover:bg-slate-50 dark:hover:bg-white/5"
+                                }`}
+                            >
+                              {renderUserAvatarSmall(u)}
+                              <span className="truncate text-xs text-slate-900 dark:text-[#f8fafc] font-bold">
+                                {u.name}
+                              </span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Status Filter Dropdown */}
+            <div
+              className={`relative ${showStatusDropdown ? "z-50" : "z-10"}`}
+              ref={statusDropdownRef}
+            >
+              <button
+                type="button"
+                onClick={() => setShowStatusDropdown((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-2xs select-none ${overviewStatusFilter !== "All"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/40 dark:text-[#86efac] dark:border-emerald-700/60"
+                    : "bg-white dark:bg-[#161826] text-slate-700 dark:text-[#f8fafc] border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+              >
+                <FiFilter
+                  size={13}
+                  className={
+                    overviewStatusFilter !== "All"
+                      ? "text-emerald-600"
+                      : "text-slate-400"
+                  }
+                />
+                <span className="truncate max-w-[90px]">
+                  {overviewStatusFilter === "All"
+                    ? "Status"
+                    : overviewStatusFilter}
+                </span>
+                <FiChevronDown
+                  size={12}
+                  className={`transition-transform duration-200 text-slate-400 ${showStatusDropdown ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {showStatusDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    className="absolute left-0 lg:left-auto lg:right-0 top-full mt-1.5 w-48 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1 z-[70] flex flex-col gap-0.5 backdrop-blur-md"
+                  >
+                    {[
+                      "All",
+                      "Active Tasks",
+                      "Not Started",
+                      "In Progress",
+                      "On Hold",
+                      "In Review",
+                      "Completed",
+                      "Needs Attention",
+                      "Correction",
+                      "Overdue",
+                      "Due Today",
+                      "Rejected",
+                    ].map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => {
+                          setOverviewStatusFilter(st);
+                          setShowStatusDropdown(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${overviewStatusFilter === st
+                            ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-[#86efac]"
+                            : "text-slate-800 dark:text-[#cbd5e1] hover:bg-slate-50 dark:hover:bg-white/10 dark:hover:text-[#ffffff]"
+                          }`}
+                      >
+                        <span>{st === "All" ? "All Statuses" : st}</span>
+                        {overviewStatusFilter === st && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        )}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Reset All Filters button if any filter is active */}
+            {(dateFilter !== "All" ||
+              overviewClientFilter !== "All" ||
+              overviewAssigneeFilter !== "All" ||
+              overviewCreatedByFilter !== "All" ||
+              overviewStatusFilter !== "All") && (
                 <button
                   type="button"
                   onClick={() => {
@@ -3323,124 +3401,124 @@ const TaskOverviewTab = ({
                   <span>Reset</span>
                 </button>
               )}
-            </div>,
-            document.getElementById("task-header-filters-portal"),
-          )
+          </div>,
+          document.getElementById("task-header-filters-portal"),
+        )
         : null}
 
       {/* PORTAL ACTIONS: EXPORT & COLUMNS */}
       {portalReady && document.getElementById("task-actions-portal")
         ? createPortal(
-            <>
+          <>
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300/80 bg-emerald-50 hover:bg-emerald-100/90 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800/50 dark:text-emerald-300 text-[11px] font-bold cursor-pointer transition-all shadow-2xs"
+              title="Export status data to Excel"
+            >
+              <FiDownload size={13} className="text-emerald-600 dark:text-emerald-400" />
+              <span>Export CSV</span>
+            </button>
+
+            <div className={`relative ${isColsOpen ? "z-50" : "z-10"}`} ref={colsDropdownRef}>
               <button
                 type="button"
-                onClick={handleExportExcel}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300/80 bg-emerald-50 hover:bg-emerald-100/90 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800/50 dark:text-emerald-300 text-[11px] font-bold cursor-pointer transition-all shadow-2xs"
-                title="Export status data to Excel"
+                onClick={() => setIsColsOpen(!isColsOpen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-[11px] font-bold cursor-pointer transition-all shadow-2xs hover:bg-slate-50 dark:bg-[#161826] dark:border-white/10 dark:text-[#f8fafc] dark:hover:bg-white/5"
               >
-                <FiDownload size={13} className="text-emerald-600 dark:text-emerald-400" />
-                <span>Export CSV</span>
+                <FiColumns size={13} className="text-blue-500" />
+                <span>Columns</span>
+                {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
+                  <span className="text-[9px] font-black bg-blue-500 text-[#ffffff] rounded-full w-4 h-4 flex items-center justify-center">
+                    {Object.values(hiddenColumns).filter(Boolean).length}
+                  </span>
+                )}
               </button>
 
-              <div className={`relative ${isColsOpen ? "z-50" : "z-10"}`} ref={colsDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsColsOpen(!isColsOpen)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-800 text-[11px] font-bold cursor-pointer transition-all shadow-2xs hover:bg-slate-50 dark:bg-[#161826] dark:border-white/10 dark:text-[#f8fafc] dark:hover:bg-white/5"
-                >
-                  <FiColumns size={13} className="text-blue-500" />
-                  <span>Columns</span>
-                  {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
-                    <span className="text-[9px] font-black bg-blue-500 text-[#ffffff] rounded-full w-4 h-4 flex items-center justify-center">
-                      {Object.values(hiddenColumns).filter(Boolean).length}
-                    </span>
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {isColsOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.96 }}
-                      className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-[70] space-y-1 backdrop-blur-md"
-                    >
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-1.5 px-1">
-                        <span className="text-[11px] font-black text-slate-800 dark:text-[#f8fafc] uppercase tracking-wider">
-                          Toggle Columns
-                        </span>
-                        {Object.values(hiddenColumns).some(Boolean) && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setHiddenColumns({
-                                taskName: false,
-                                projectName: false,
-                                clientName: false,
-                                contentCopy: false,
-                                contentType: false,
-                                createdBy: false,
-                                assignee: false,
-                                startDate: false,
-                                dueDate: false,
-                                priority: false,
-                                status: false,
-                                holdReason: false,
-                                totalHours: false,
-                                timeTracker: false,
-                                approvalInfo: false,
-                                action: false,
-                              })
+              <AnimatePresence>
+                {isColsOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#161826] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-[70] space-y-1 backdrop-blur-md"
+                  >
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-1.5 px-1">
+                      <span className="text-[11px] font-black text-slate-800 dark:text-[#f8fafc] uppercase tracking-wider">
+                        Toggle Columns
+                      </span>
+                      {Object.values(hiddenColumns).some(Boolean) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setHiddenColumns({
+                              taskName: false,
+                              projectName: false,
+                              clientName: false,
+                              contentCopy: false,
+                              contentType: false,
+                              createdBy: false,
+                              assignee: false,
+                              startDate: false,
+                              dueDate: false,
+                              priority: false,
+                              status: false,
+                              holdReason: false,
+                              totalHours: false,
+                              timeTracker: false,
+                              approvalInfo: false,
+                              action: false,
+                            })
+                          }
+                          className="text-[10px] font-extrabold text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto custom-scrollbar">
+                      {[
+                        { key: "taskName", label: "Task Name" },
+                        { key: "clientName", label: "Client Name" },
+                        { key: "contentType", label: "Content Type" },
+                        { key: "createdBy", label: "Created By" },
+                        { key: "assignee", label: "Assignee" },
+                        { key: "startDate", label: "Start Date" },
+                        { key: "dueDate", label: "End Date" },
+                        { key: "priority", label: "Priority" },
+                        { key: "status", label: "Status" },
+                        { key: "holdReason", label: "Hold / Block Reason" },
+                        { key: "totalHours", label: "Tracked Duration" },
+                        { key: "timeTracker", label: "Time Tracker Box" },
+                        { key: "approvalInfo", label: "Approve Info" },
+                        { key: "action", label: "Action" },
+                      ].map((col) => (
+                        <label
+                          key={col.key}
+                          className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-[11px] font-bold text-slate-700 dark:text-[#cbd5e1] select-none"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={!hiddenColumns[col.key]}
+                            onChange={() =>
+                              setHiddenColumns((prev) => ({
+                                ...prev,
+                                [col.key]: !prev[col.key],
+                              }))
                             }
-                            className="text-[10px] font-extrabold text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
-                          >
-                            Reset
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto custom-scrollbar">
-                        {[
-                          { key: "taskName", label: "Task Name" },
-                          { key: "clientName", label: "Client Name" },
-                          { key: "contentType", label: "Content Type" },
-                          { key: "createdBy", label: "Created By" },
-                          { key: "assignee", label: "Assignee" },
-                          { key: "startDate", label: "Start Date" },
-                          { key: "dueDate", label: "End Date" },
-                          { key: "priority", label: "Priority" },
-                          { key: "status", label: "Status" },
-                          { key: "holdReason", label: "Hold / Block Reason" },
-                          { key: "totalHours", label: "Tracked Duration" },
-                          { key: "timeTracker", label: "Time Tracker Box" },
-                          { key: "approvalInfo", label: "Approve Info" },
-                          { key: "action", label: "Action" },
-                        ].map((col) => (
-                          <label
-                            key={col.key}
-                            className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-[11px] font-bold text-slate-700 dark:text-[#cbd5e1] select-none"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={!hiddenColumns[col.key]}
-                              onChange={() =>
-                                setHiddenColumns((prev) => ({
-                                  ...prev,
-                                  [col.key]: !prev[col.key],
-                                }))
-                              }
-                              className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-white/10 dark:bg-black/20"
-                            />
-                            <span>{col.label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </>,
-            document.getElementById("task-actions-portal"),
-          )
+                            className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-white/10 dark:bg-black/20"
+                          />
+                          <span>{col.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </>,
+          document.getElementById("task-actions-portal"),
+        )
         : null}
 
       {/* 3. PREMIUM SAAS DATA TABLE CONTAINER */}
@@ -3778,13 +3856,12 @@ const TaskOverviewTab = ({
                           <td className="py-2 px-2.5 border-r border-slate-100 dark:border-white/5 text-center whitespace-nowrap">
                             {task.dueDate ? (
                               <div
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10.5px] font-bold ${
-                                  isOverdue
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10.5px] font-bold ${isOverdue
                                     ? "bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800"
                                     : isDueToday
                                       ? "bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800"
                                       : "bg-slate-50/70 dark:bg-white/5 text-slate-800 dark:text-[#f8fafc] border-slate-200 dark:border-white/10"
-                                }`}
+                                  }`}
                               >
                                 <FiClock
                                   size={10}
@@ -4018,11 +4095,10 @@ const TaskOverviewTab = ({
                       key={page}
                       type="button"
                       onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1.5 text-[12px] rounded-xl border transition-all cursor-pointer font-black ${
-                        currentPage === page
+                      className={`px-3 py-1.5 text-[12px] rounded-xl border transition-all cursor-pointer font-black ${currentPage === page
                           ? "bg-blue-600 text-[#ffffff] border-blue-600 shadow-sm"
                           : "border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/5 text-slate-700 dark:text-[#cbd5e1]"
-                      }`}
+                        }`}
                     >
                       {page}
                     </button>
