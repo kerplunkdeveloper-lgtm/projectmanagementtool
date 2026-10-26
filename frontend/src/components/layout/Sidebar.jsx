@@ -561,19 +561,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     return p.includes("shootcalendor") || p.includes("content-calendar") || p.includes("event-calendar");
   }, [location.pathname]);
 
-  const [openDropdowns, setOpenDropdowns] = useState(() => {
-    try {
-      const saved = localStorage.getItem("sidebar_open_dropdowns_v2");
-      if (saved) return JSON.parse(saved);
-      const calSaved = localStorage.getItem("sidebar_calendar_open");
-      return {
-        "All Calendar": calSaved !== null ? JSON.parse(calSaved) : true,
-        Tasks: true,
-      };
-    } catch {
-      return { "All Calendar": true, Tasks: true };
-    }
-  });
+  const [openDropdowns, setOpenDropdowns] = useState({});
 
   const toggleDropdown = React.useCallback((name) => {
     setOpenDropdowns((prev) => ({
@@ -584,9 +572,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
   useEffect(() => {
     try {
-      localStorage.setItem("sidebar_open_dropdowns_v2", JSON.stringify(openDropdowns));
+      localStorage.removeItem("sidebar_open_dropdowns_v2");
+      localStorage.removeItem("sidebar_calendar_open");
     } catch {}
-  }, [openDropdowns]);
+  }, []);
 
   // Auto-expand dropdown when navigating to a child page
   useEffect(() => {
