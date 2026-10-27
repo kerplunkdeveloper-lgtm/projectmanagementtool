@@ -200,7 +200,7 @@ exports.updateMom = async (req, res, next) => {
     }
 
     mom = await Mom.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

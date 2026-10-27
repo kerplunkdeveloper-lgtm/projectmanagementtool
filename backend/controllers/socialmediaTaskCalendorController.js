@@ -514,7 +514,7 @@ exports.updateSocialmediaTask = async (req, res) => {
     const task = await SocialmediaTaskCalendor.findByIdAndUpdate(
       req.params.id,
       body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     )
       .populate('client', 'companyName color icon')
       .populate({
@@ -569,7 +569,7 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
     const task = await SocialmediaTaskCalendor.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true }
+      { returnDocument: 'after' }
     )
       .populate('client', 'companyName color icon')
       .populate({

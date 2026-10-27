@@ -30,7 +30,7 @@ const handlePresenceChange = async (io, userId, newStatus, lastActivityAt = new 
     const user = await User.findByIdAndUpdate(
       userId,
       { $set: updateFields },
-      { new: true, select: 'name email role department profile presenceStatus lastSeen lastActivityAt' }
+      { returnDocument: 'after', select: 'name email role department profile presenceStatus lastSeen lastActivityAt' }
     );
 
     if (!user) return;

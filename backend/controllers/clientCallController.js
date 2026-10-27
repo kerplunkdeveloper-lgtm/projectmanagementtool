@@ -150,7 +150,7 @@ exports.updateCall = async (req, res) => {
     call = await ClientCall.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     )
       .populate('client', 'companyName')
       .populate({

@@ -529,11 +529,10 @@ const ApprovalTimeDisplay = React.memo(
 
         {totalWaitMs > 0 && (
           <div
-            className={`self-start flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide ${
-              isInReview
+            className={`self-start flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide ${isInReview
                 ? "bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/25 shadow-sm"
                 : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/25 shadow-sm"
-            }`}
+              }`}
           >
             {isInReview ? (
               <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse shrink-0" />
@@ -579,11 +578,10 @@ const ApprovalDurationBadge = ({
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide ${
-        isInReview
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide ${isInReview
           ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/25"
           : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/25"
-      }`}
+        }`}
     >
       {isInReview ? (
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
@@ -1171,20 +1169,19 @@ const getTaskStatsForDateFilter = (task, dateFilter, officeHours, nowTick) => {
 
 const PriorityBadge = ({ priority, isTopHigh }) => {
   const p = isTopHigh ? "Top High" : priority || "Medium";
-  
+
   return (
     <span
-      className={`badge-span ${
-        p === "Top High"
+      className={`badge-span ${p === "Top High"
           ? "badge-priority-top-high"
           : p === "High"
-          ? "badge-priority-high"
-          : p === "Low"
-          ? "badge-priority-low"
-          : "badge-priority-medium"
-      }`}
+            ? "badge-priority-high"
+            : p === "Low"
+              ? "badge-priority-low"
+              : "badge-priority-medium"
+        }`}
     >
-      {p === "Top High" ? "🔴 Top High" : p}
+      {p === "Top High" ? " Top High" : p}
     </span>
   );
 };
@@ -1220,7 +1217,7 @@ const MyTasksTab = ({
 }) => {
   const authUsers = useSelector((state) => state.auth?.users);
   const users = authUsers || [];
-  
+
   const [officeHours, setOfficeHours] = useState({
     startTime: "09:00",
     endTime: "19:00",
@@ -1301,7 +1298,7 @@ const MyTasksTab = ({
     try {
       const saved = localStorage.getItem("mytasks_hidden_columns");
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (e) { }
     return {
       id: false,
       priority: false,
@@ -1331,7 +1328,7 @@ const MyTasksTab = ({
         "mytasks_hidden_columns",
         JSON.stringify(hiddenColumns),
       );
-    } catch (e) {}
+    } catch (e) { }
   }, [hiddenColumns]);
 
   useEffect(() => {
@@ -1544,7 +1541,7 @@ const MyTasksTab = ({
       }
       if (
         statusFilter ===
-          "Not Started,In Progress,In Review,Correction,On Hold" ||
+        "Not Started,In Progress,In Review,Correction,On Hold" ||
         statusFilter === "Not Started,In Progress,In Review,On Hold" ||
         statusFilter === "Not Started,In Progress,In Review"
       ) {
@@ -1621,6 +1618,27 @@ const MyTasksTab = ({
     });
   }, [filteredTasksWithoutStatus, statusFilter]);
 
+  const statusCounts = React.useMemo(() => {
+    const counts = {
+      All: filteredTasksWithoutStatus.length,
+      "Not Started": 0,
+      "In Progress": 0,
+      "On Hold": 0,
+      "In Review": 0,
+      "Correction": 0,
+      "Completed": 0,
+    };
+    filteredTasksWithoutStatus.forEach((task) => {
+      const s = task.status;
+      if (!s || s === "Not Started" || s === "Pending") {
+        counts["Not Started"]++;
+      } else if (counts[s] !== undefined) {
+        counts[s]++;
+      }
+    });
+    return counts;
+  }, [filteredTasksWithoutStatus]);
+
   const totalItems = filteredTasks.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -1673,9 +1691,8 @@ const MyTasksTab = ({
     toast.custom(
       (t) => (
         <div
-          className={`${
-            t.visible ? "animate-enter" : "animate-leave"
-          } max-w-md w-full pointer-events-auto flex flex-col gap-4 p-5 rounded-2xl shadow-2xl border
+          className={`${t.visible ? "animate-enter" : "animate-leave"
+            } max-w-md w-full pointer-events-auto flex flex-col gap-4 p-5 rounded-2xl shadow-2xl border
           bg-white dark:bg-[#0f172a]
           border-amber-500/40 dark:border-amber-500/40
           backdrop-blur-xl z-[99999]`}
@@ -1816,9 +1833,8 @@ const MyTasksTab = ({
         toast.custom(
           (t) => (
             <div
-              className={`${
-                t.visible ? "animate-enter" : "animate-leave"
-              } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
+              className={`${t.visible ? "animate-enter" : "animate-leave"
+                } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
           bg-white dark:bg-[#0f172a]
           border-[var(--accent-color)]/30 dark:border-[var(--accent-color-dark)]/30
           backdrop-blur-xl z-[99999]`}
@@ -1980,9 +1996,8 @@ const MyTasksTab = ({
         toast.custom(
           (t) => (
             <div
-              className={`${
-                t.visible ? "animate-enter" : "animate-leave"
-              } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
+              className={`${t.visible ? "animate-enter" : "animate-leave"
+                } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
             bg-white dark:bg-[#0f172a]
             border-[var(--accent-color)]/30 dark:border-[var(--accent-color-dark)]/30
             backdrop-blur-xl z-[99999]`}
@@ -2046,8 +2061,8 @@ const MyTasksTab = ({
 
       toast.error(
         err?.data?.message ||
-          err?.error?.data?.message ||
-          "Failed to update task",
+        err?.error?.data?.message ||
+        "Failed to update task",
       );
     }
   };
@@ -2498,11 +2513,10 @@ const MyTasksTab = ({
               <button
                 type="button"
                 onClick={() => setShowDateDropdown((prev) => !prev)}
-                className={`flex items-center justify-between gap-1.5 px-3.5 py-1.5 rounded-full border text-[12px] font-bold transition-all shadow-sm cursor-pointer ${
-                  dateFilter !== "All"
+                className={`flex items-center justify-between gap-1.5 px-3.5 py-1.5 rounded-full border text-[12px] font-bold transition-all shadow-sm cursor-pointer ${dateFilter !== "All"
                     ? "bg-white border-blue-200 text-blue-600 dark:bg-blue-900/20 dark:border-blue-700/50 dark:text-blue-400"
                     : "bg-white border-slate-200 text-slate-700 dark:bg-[#151923] dark:border-slate-700/60 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-1.5">
                   <FiFilter className="text-blue-500" size={13} />
@@ -2511,9 +2525,8 @@ const MyTasksTab = ({
                   </span>
                 </div>
                 <FiChevronDown
-                  className={`text-slate-400 transition-transform duration-200 ${
-                    showDateDropdown ? "rotate-180" : ""
-                  }`}
+                  className={`text-slate-400 transition-transform duration-200 ${showDateDropdown ? "rotate-180" : ""
+                    }`}
                   size={13}
                 />
               </button>
@@ -2541,11 +2554,10 @@ const MyTasksTab = ({
                           setDateFilter(option.value);
                           setShowDateDropdown(false);
                         }}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[12px] font-bold transition-all text-left cursor-pointer ${
-                          dateFilter === option.value
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[12px] font-bold transition-all text-left cursor-pointer ${dateFilter === option.value
                             ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
                             : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
-                        }`}
+                          }`}
                       >
                         <span>{option.label}</span>
                         {dateFilter === option.value && (
@@ -2710,19 +2722,19 @@ const MyTasksTab = ({
                     statusFilter !== "All" ||
                     clientFilter !== "All" ||
                     dateFilter !== "All") && (
-                    <button
-                      onClick={() => {
-                        setPriorityFilter("All");
-                        setProjectFilter("All");
-                        setStatusFilter("All");
-                        setClientFilter("All");
-                        setDateFilter("All");
-                      }}
-                      className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1 rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
-                    >
-                      Clear All
-                    </button>
-                  )}
+                      <button
+                        onClick={() => {
+                          setPriorityFilter("All");
+                          setProjectFilter("All");
+                          setStatusFilter("All");
+                          setClientFilter("All");
+                          setDateFilter("All");
+                        }}
+                        className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1 rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    )}
                   <button
                     onClick={() => setFilterPanelOpen(false)}
                     className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
@@ -2788,30 +2800,29 @@ const MyTasksTab = ({
                       },
                       ...(statusFilter === "Overdue"
                         ? [
-                            {
-                              name: "Overdue",
-                              label: "Overdue",
-                              color: "bg-rose-600 animate-pulse",
-                            },
-                          ]
+                          {
+                            name: "Overdue",
+                            label: "Overdue",
+                            color: "bg-rose-600 animate-pulse",
+                          },
+                        ]
                         : statusFilter === "Due Today"
                           ? [
-                              {
-                                name: "Due Today",
-                                label: "Due Today",
-                                color: "bg-amber-600 animate-pulse",
-                              },
-                            ]
+                            {
+                              name: "Due Today",
+                              label: "Due Today",
+                              color: "bg-amber-600 animate-pulse",
+                            },
+                          ]
                           : []),
                     ].map((st) => (
                       <button
                         key={st.name}
                         onClick={() => setStatusFilter(st.name)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${
-                          statusFilter === st.name
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${statusFilter === st.name
                             ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md"
                             : "bg-slate-50 border-slate-200 dark:bg-white/[0.03] dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#3b82f6]/40"
-                        }`}
+                          }`}
                       >
                         {st.name !== "All" && (
                           <span
@@ -2855,11 +2866,10 @@ const MyTasksTab = ({
                       <button
                         key={p.name}
                         onClick={() => setPriorityFilter(p.name)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${
-                          priorityFilter === p.name
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${priorityFilter === p.name
                             ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md"
                             : "bg-slate-50 border-slate-200 dark:bg-white/[0.03] dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#3b82f6]/40"
-                        }`}
+                          }`}
                       >
                         {p.name !== "All" && (
                           <span
@@ -2883,11 +2893,10 @@ const MyTasksTab = ({
                   <div className="flex flex-col gap-1.5">
                     <button
                       onClick={() => setClientFilter("All")}
-                      className={`w-full text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${
-                        clientFilter === "All"
+                      className={`w-full text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${clientFilter === "All"
                           ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black"
                           : "bg-slate-50 border-slate-200 dark:bg-white/[0.03] dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-blue-400"
-                      }`}
+                        }`}
                     >
                       All Clients
                     </button>
@@ -2898,11 +2907,10 @@ const MyTasksTab = ({
                         <button
                           key={c.id || c.name || `client-${index}`}
                           onClick={() => setClientFilter(c.id)}
-                          className={`w-full flex items-center gap-2 text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${
-                            isSelected
+                          className={`w-full flex items-center gap-2 text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${isSelected
                               ? "text-white dark:text-black font-extrabold"
                               : "text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#3b82f6]/40"
-                          }`}
+                            }`}
                           style={{
                             backgroundColor: isSelected
                               ? c.color
@@ -2941,11 +2949,10 @@ const MyTasksTab = ({
                   <div className="flex flex-col gap-1.5">
                     <button
                       onClick={() => setProjectFilter("All")}
-                      className={`w-full text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${
-                        projectFilter === "All"
+                      className={`w-full text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${projectFilter === "All"
                           ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black"
                           : "bg-slate-50 border-slate-200 dark:bg-white/[0.03] dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-blue-400"
-                      }`}
+                        }`}
                     >
                       All Projects
                     </button>
@@ -2953,11 +2960,10 @@ const MyTasksTab = ({
                       <button
                         key={p.id || p.name || `project-${index}`}
                         onClick={() => setProjectFilter(p.id)}
-                        className={`w-full flex items-center gap-2 text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${
-                          projectFilter === p.id
+                        className={`w-full flex items-center gap-2 text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${projectFilter === p.id
                             ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black"
                             : "bg-slate-50 border-slate-200 dark:bg-white/[0.03] dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-blue-400"
-                        }`}
+                          }`}
                       >
                         <span className="w-5 h-5 rounded-lg bg-blue-500/20 text-blue-600 dark:bg-[#3b82f6]/20 dark:text-[#3b82f6] flex items-center justify-center text-[8px] font-extrabold shrink-0">
                           {p.name.charAt(0).toUpperCase()}
@@ -2992,17 +2998,19 @@ const MyTasksTab = ({
             { name: "In Progress", label: "In-progress" },
             { name: "On Hold", label: "On-hold" },
             { name: "In Review", label: "In-review" },
+            { name: "Correction", label: "Correction" },
             { name: "Completed", label: "Completed" },
           ].map((st) => {
             const isActive = statusFilter === st.name;
+            const count = statusCounts[st.name] ?? 0;
             return (
               <button
                 key={st.name}
                 onClick={() => setStatusFilter(st.name)}
                 className={`
-                  relative px-5 py-2 rounded-full text-[12px] font-bold tracking-wide transition-colors whitespace-nowrap shrink-0 z-10
-                  ${isActive 
-                    ? "text-white dark:text-white" 
+                  relative px-4 py-1.5 rounded-full text-[12px] font-bold tracking-wide transition-colors whitespace-nowrap shrink-0 z-10 flex items-center gap-1.5 cursor-pointer
+                  ${isActive
+                    ? "text-white dark:text-white"
                     : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                   }
                 `}
@@ -3015,6 +3023,15 @@ const MyTasksTab = ({
                   />
                 )}
                 <span className="relative z-10">{st.label}</span>
+                <span
+                  className={`relative z-10 text-[10px] font-black px-1.5 py-0.5 rounded-full transition-colors min-w-[18px] text-center ${
+                    isActive
+                      ? "bg-white/25 text-white"
+                      : "bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -3040,925 +3057,989 @@ const MyTasksTab = ({
           </p>
         </div>
       ) : viewType === "kanban" ? (
-        <MemoizedBlock 
+        <MemoizedBlock
           deps={[filteredTasks, tasks, draggedTaskId, projectsMap, expandedTasks, users, dateFilter, officeHours]}
           render={() => (
-        <div className="flex gap-6 overflow-x-auto pb-8 pt-2 scrollbar-thin px-2">
-          {[
-            "Not Started",
-            "In Progress",
-            "In Review",
-            "On Hold",
-            "Completed",
-            "Rejected",
-          ].map((colStatus) => {
-            const colTasks = filteredTasks.filter(
-              (t) => t.status === colStatus,
-            );
-            const style = getStatusStyle(colStatus);
+            <div className="flex gap-6 overflow-x-auto pb-8 pt-2 scrollbar-thin px-2">
+              {[
+                "Not Started",
+                "In Progress",
+                "In Review",
+                "On Hold",
+                "Completed",
+                "Rejected",
+              ].map((colStatus) => {
+                const colTasks = filteredTasks.filter(
+                  (t) => t.status === colStatus,
+                );
+                const style = getStatusStyle(colStatus);
 
-            return (
-              <div
-                key={colStatus}
-                className={`flex-shrink-0 w-[300px] sm:w-[340px] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 p-4 transition-colors duration-300 ${draggedTaskId ? "border-dashed border-blue-300 dark:border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10" : ""}`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, colStatus)}
-              >
-                <div className="mb-5 flex items-center justify-between">
-                  <h3 className="text-sm font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
-                    <span
-                      className={`w-2.5 h-2.5 rounded-full shadow-sm ${style.dot}`}
-                    ></span>
-                    {colStatus}
-                  </h3>
-                  <span className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
-                    {colTasks.length}
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-3 h-full min-h-[200px]">
-                  {colTasks.length === 0 ? (
-                    <div className="bg-white/50 dark:bg-[#11131e]/30 border-2 border-slate-200/50 dark:border-slate-800/40 border-dashed rounded-2xl h-32 flex flex-col items-center justify-center text-center px-4 transition-colors">
-                      <span className="text-[11px] font-bold text-slate-400 tracking-wider">
-                        Drop tasks here
+                return (
+                  <div
+                    key={colStatus}
+                    className={`flex-shrink-0 w-[300px] sm:w-[340px] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 p-4 transition-colors duration-300 ${draggedTaskId ? "border-dashed border-blue-300 dark:border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10" : ""}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, colStatus)}
+                  >
+                    <div className="mb-5 flex items-center justify-between">
+                      <h3 className="text-sm font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full shadow-sm ${style.dot}`}
+                        ></span>
+                        {colStatus}
+                      </h3>
+                      <span className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
+                        {colTasks.length}
                       </span>
                     </div>
-                  ) : (
-                    colTasks.map((task, idx) => {
-                      const isCompleted = task.status === "Completed";
-                      const isRejected = task.status === "Rejected";
-                      return (
-                        <div
-                          key={task._id || `task-board-${idx}`}
-                          draggable={!isRejected}
-                          onDragStart={(e) =>
-                            !isRejected && handleDragStart(e, task._id)
-                          }
-                          onDragEnd={() => setDraggedTaskId(null)}
-                          onClick={() => handleSelectTaskForDrawer(task._id)}
-                          className={`shadow-sm rounded-2xl p-5 border transition-all flex flex-col gap-3 ${
-                            isRejected
-                              ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60"
-                              : draggedTaskId === task._id
-                                ? "opacity-50 scale-95 border-blue-500 bg-white dark:bg-[#11131e]"
-                                : "bg-white dark:bg-[#11131e] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-slate-200 dark:border-slate-800 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-500/60 cursor-grab active:cursor-grabbing group"
-                          }`}
-                        >
-                          <div className="flex justify-between items-start flex-wrap gap-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase ${getPriorityStyle(task.priority || "Medium")}`}
-                              >
-                                {task.priority || "Medium"}
-                              </span>
-                            </div>
-                            {task.dueDate && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[9px] whitespace-nowrap tracking-wider">
-                                <FiCalendar size={10} />
-                                {new Date(task.dueDate).toLocaleDateString(
-                                  undefined,
-                                  {
-                                    month: "short",
-                                    day: "numeric",
-                                  },
-                                )}
-                              </span>
-                            )}
-                          </div>
-                          <h4
-                            className={`text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug flex flex-col gap-1.5 ${isCompleted ? "line-through decoration-green-600 dark:decoration-green-500 decoration-2 text-slate-405" : ""}`}
-                          >
-                            <span>{task.title}</span>
-                          </h4>
-                          <div className="flex items-center justify-between pt-4 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex-wrap gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1.5 text-[9px] font-black tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-900/40">
-                                <FiBriefcase size={10} />
-                                {(() => {
-                                  const projId =
-                                    task.project?._id || task.project;
-                                  const projectObj = projId
-                                    ? projectsMap.get(String(projId))
-                                    : null;
-                                  return (
-                                    projectObj?.name ||
-                                    task.project?.name ||
-                                    "Internal"
-                                  );
-                                })()}
-                              </span>
-                              {(() => {
-                                const projId =
-                                  task.project?._id || task.project;
-                                const projectObj = projId
-                                  ? projectsMap.get(String(projId))
-                                  : null;
-                                const client = task.project?.client?.companyName
-                                  ? task.project.client
-                                  : projectObj?.client || task.project?.client;
-                                if (client?.companyName) {
-                                  return (
-                                    <ClientBadge client={client} size="sm" />
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </div>
-                            {task.subtasks?.length > 0 && (
-                              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <FiCheckSquare
-                                  size={11}
-                                  className={
-                                    task.subtasks.filter(
-                                      (s) => s.status === "Completed",
-                                    ).length === task.subtasks.length
-                                      ? "text-emerald-500"
-                                      : ""
-                                  }
-                                />
-                                {
-                                  task.subtasks.filter(
-                                    (s) => s.status === "Completed",
-                                  ).length
-                                }
-                                /{task.subtasks.length}
-                              </span>
-                            )}
-                          </div>
+
+                    <div className="flex flex-col gap-3 h-full min-h-[200px]">
+                      {colTasks.length === 0 ? (
+                        <div className="bg-white/50 dark:bg-[#11131e]/30 border-2 border-slate-200/50 dark:border-slate-800/40 border-dashed rounded-2xl h-32 flex flex-col items-center justify-center text-center px-4 transition-colors">
+                          <span className="text-[11px] font-bold text-slate-400 tracking-wider">
+                            Drop tasks here
+                          </span>
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        )} />
+                      ) : (
+                        colTasks.map((task, idx) => {
+                          const isCompleted = task.status === "Completed";
+                          const isRejected = task.status === "Rejected";
+                          return (
+                            <div
+                              key={task._id || `task-board-${idx}`}
+                              draggable={!isRejected}
+                              onDragStart={(e) =>
+                                !isRejected && handleDragStart(e, task._id)
+                              }
+                              onDragEnd={() => setDraggedTaskId(null)}
+                              onClick={() => handleSelectTaskForDrawer(task._id)}
+                              className={`shadow-sm rounded-2xl p-5 border transition-all flex flex-col gap-3 ${isRejected
+                                  ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60"
+                                  : draggedTaskId === task._id
+                                    ? "opacity-50 scale-95 border-blue-500 bg-white dark:bg-[#11131e]"
+                                    : "bg-white dark:bg-[#11131e] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-slate-200 dark:border-slate-800 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-500/60 cursor-grab active:cursor-grabbing group"
+                                }`}
+                            >
+                              <div className="flex justify-between items-start flex-wrap gap-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase ${getPriorityStyle(task.priority || "Medium")}`}
+                                  >
+                                    {task.priority || "Medium"}
+                                  </span>
+                                </div>
+                                {task.dueDate && (
+                                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[9px] whitespace-nowrap tracking-wider">
+                                    <FiCalendar size={10} />
+                                    {new Date(task.dueDate).toLocaleDateString(
+                                      undefined,
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                      },
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                              <h4
+                                className={`text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug flex flex-col gap-1.5 ${isCompleted ? "line-through decoration-green-600 dark:decoration-green-500 decoration-2 text-slate-405" : ""}`}
+                              >
+                                <span>{task.title}</span>
+                              </h4>
+                              <div className="flex items-center justify-between pt-4 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex-wrap gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center gap-1.5 text-[9px] font-black tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-900/40">
+                                    <FiBriefcase size={10} />
+                                    {(() => {
+                                      const projId =
+                                        task.project?._id || task.project;
+                                      const projectObj = projId
+                                        ? projectsMap.get(String(projId))
+                                        : null;
+                                      return (
+                                        projectObj?.name ||
+                                        task.project?.name ||
+                                        "Internal"
+                                      );
+                                    })()}
+                                  </span>
+                                  {(() => {
+                                    const projId =
+                                      task.project?._id || task.project;
+                                    const projectObj = projId
+                                      ? projectsMap.get(String(projId))
+                                      : null;
+                                    const client = task.project?.client?.companyName
+                                      ? task.project.client
+                                      : projectObj?.client || task.project?.client;
+                                    if (client?.companyName) {
+                                      return (
+                                        <ClientBadge client={client} size="sm" />
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                </div>
+                                {task.subtasks?.length > 0 && (
+                                  <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <FiCheckSquare
+                                      size={11}
+                                      className={
+                                        task.subtasks.filter(
+                                          (s) => s.status === "Completed",
+                                        ).length === task.subtasks.length
+                                          ? "text-emerald-500"
+                                          : ""
+                                      }
+                                    />
+                                    {
+                                      task.subtasks.filter(
+                                        (s) => s.status === "Completed",
+                                      ).length
+                                    }
+                                    /{task.subtasks.length}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )} />
       ) : (
-        <MemoizedBlock 
+        <MemoizedBlock
           deps={[sortedTasks, tasks, hiddenColumns, expandedTasks, dateFilter, officeHours, projectsMap, users, visibleColCount, currentPage, itemsPerPage, totalItems, totalPages]}
           render={() => (
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-[#0f111a] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden  transition-all">
-            <div className="overflow-x-auto max-h-[calc(100vh-220px)] w-full scrollbar-thin">
-              <table className="w-full min-w-full text-left table-auto">
-                <thead>
-                  <tr className="sticky top-0 z-20  text-center bg-slate-50 dark:bg-[#11131e] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[12px] font-medium border-b border-slate-200 dark:border-slate-200 shadow-sm">
-                    {!hiddenColumns.id && (
-                      <ResizableHeader
-                        id="id"
-                        label="ID"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2  w-16"
-                      />
-                    )}
-                    {!hiddenColumns.priority && (
-                      <ResizableHeader
-                        id="priority"
-                        label="Priority"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-20"
-                      />
-                    )}
-                    {!hiddenColumns.taskName && (
-                      <ResizableHeader
-                        id="taskName"
-                        label="Task Name"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.contentCopy && (
-                      <ResizableHeader
-                        id="contentCopy"
-                        label="Content Copy"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[220px] max-w-[340px] w-[260px] whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.client && (
-                      <ResizableHeader
-                        id="client"
-                        label="Client"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-24"
-                      />
-                    )}
-                    {!hiddenColumns.contentType && (
-                      <ResizableHeader
-                        id="contentType"
-                        label="Content-type"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.status && (
-                      <ResizableHeader
-                        id="status"
-                        label="Status"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px]"
-                      />
-                    )}
-                    {!hiddenColumns.activeTime && (
-                      <ResizableHeader
-                        id="activeTime"
-                        label="Productivity"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.holdReason && (
-                      <ResizableHeader
-                        id="holdReason"
-                        label="Hold Reason"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px]"
-                      />
-                    )}
-                    {!hiddenColumns.blockedTime && (
-                      <ResizableHeader
-                        id="blockedTime"
-                        label="Blocked"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.revision && (
-                      <ResizableHeader
-                        id="revision"
-                        label="Revision"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
-                      />
-                    )}
-                    {!hiddenColumns.correctionHistory && (
-                      <ResizableHeader
-                        id="correctionHistory"
-                        label="Correction History"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 text-center"
-                      />
-                    )}
-                    {!hiddenColumns.timeTracker && (
-                      <ResizableHeader
-                        id="timeTracker"
-                        label="Total time spent for this task "
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.startDate && (
-                      <ResizableHeader
-                        id="startDate"
-                        label="Start Date"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
-                      />
-                    )}
-                    {!hiddenColumns.endDate && (
-                      <ResizableHeader
-                        id="endDate"
-                        label="DUE DATE"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
-                      />
-                    )}
-                    {!hiddenColumns.assignedBy && (
-                      <ResizableHeader
-                        id="assignedBy"
-                        label="Assigned By"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.approvalTime && (
-                      <ResizableHeader
-                        id="approvalTime"
-                        label="Approval Info"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-52 whitespace-nowrap"
-                      />
-                    )}
-                    {!hiddenColumns.createdTime && (
-                      <ResizableHeader
-                        id="createdTime"
-                        label="Created Time"
-                        colWidths={colWidths}
-                        handleMouseDown={handleMouseDown}
-                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[200px] w-56"
-                      />
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                  {sortedTasks.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={visibleColCount}
-                        className="px-6 py-8 text-center text-slate-450 dark:text-slate-500 font-bold bg-slate-50/5 dark:bg-slate-900/5 text-xs"
-                      >
-                        No tasks found.
-                      </td>
-                    </tr>
-                  ) : (
-                    sortedTasks.map((task, idx) => {
-                      const isCompleted = task.status === "Completed";
-                      const isRejected = task.status === "Rejected";
-                      const statusStyle = getStatusStyle(task.status);
-                      const isExpanded = !!expandedTasks[task._id];
-
-                      return (
-                        <React.Fragment key={task._id || `task-row-${idx}`}>
-                          <tr
-                            className={`transition-colors group ${
-                              isRejected
-                                ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none"
-                                : task.priority === "Top High"
-                                  ? "row-priority-top-high text-slate-700 dark:text-slate-200 hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] cursor-pointer"
-                                  : "text-slate-700 dark:text-slate-200 hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] cursor-pointer"
-                            }`}
-                            onClick={() => handleSelectTaskForDrawer(task._id)}
+            <div className="space-y-4">
+              <div className="bg-white dark:bg-[#0f111a] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden  transition-all">
+                <div className="overflow-x-auto max-h-[calc(100vh-220px)] w-full scrollbar-thin">
+                  <table className="w-full min-w-full text-left table-auto">
+                    <thead>
+                      <tr className="sticky top-0 z-20  text-center bg-slate-50 dark:bg-[#11131e] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[12px] font-medium border-b border-slate-200 dark:border-slate-200 shadow-sm">
+                        {!hiddenColumns.id && (
+                          <ResizableHeader
+                            id="id"
+                            label="ID"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2  w-16"
+                          />
+                        )}
+                        {!hiddenColumns.priority && (
+                          <ResizableHeader
+                            id="priority"
+                            label="Priority"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-20"
+                          />
+                        )}
+                        {!hiddenColumns.taskName && (
+                          <ResizableHeader
+                            id="taskName"
+                            label="Task Name"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap"
+                          />
+                        )}
+                        {!hiddenColumns.contentCopy && (
+                          <ResizableHeader
+                            id="contentCopy"
+                            label="Content Copy"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[220px] max-w-[340px] w-[260px] whitespace-nowrap"
+                          />
+                        )}
+                        {!hiddenColumns.client && (
+                          <ResizableHeader
+                            id="client"
+                            label="Client"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-24"
+                          />
+                        )}
+                        {!hiddenColumns.contentType && (
+                          <ResizableHeader
+                            id="contentType"
+                            label="Content-type"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
+                          />
+                        )}
+                        {!hiddenColumns.status && (
+                          <ResizableHeader
+                            id="status"
+                            label="Status"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px]"
+                          />
+                        )}
+                        {!hiddenColumns.activeTime && (
+                          <ResizableHeader
+                            id="activeTime"
+                            label="Productivity"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
+                          />
+                        )}
+                        {!hiddenColumns.holdReason && (
+                          <ResizableHeader
+                            id="holdReason"
+                            label="Hold Reason"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px]"
+                          />
+                        )}
+                        {!hiddenColumns.blockedTime && (
+                          <ResizableHeader
+                            id="blockedTime"
+                            label="Blocked"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
+                          />
+                        )}
+                        {!hiddenColumns.revision && (
+                          <ResizableHeader
+                            id="revision"
+                            label="Revision"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
+                          />
+                        )}
+                        {!hiddenColumns.correctionHistory && (
+                          <ResizableHeader
+                            id="correctionHistory"
+                            label="Correction History"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 text-center"
+                          />
+                        )}
+                        {!hiddenColumns.timeTracker && (
+                          <ResizableHeader
+                            id="timeTracker"
+                            label="Total time spent for this task "
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
+                          />
+                        )}
+                        {!hiddenColumns.startDate && (
+                          <ResizableHeader
+                            id="startDate"
+                            label="Start Date"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
+                          />
+                        )}
+                        {!hiddenColumns.endDate && (
+                          <ResizableHeader
+                            id="endDate"
+                            label="DUE DATE"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
+                          />
+                        )}
+                        {!hiddenColumns.assignedBy && (
+                          <ResizableHeader
+                            id="assignedBy"
+                            label="Assigned By"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 whitespace-nowrap"
+                          />
+                        )}
+                        {!hiddenColumns.approvalTime && (
+                          <ResizableHeader
+                            id="approvalTime"
+                            label="Approval Info"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-52 whitespace-nowrap"
+                          />
+                        )}
+                        {!hiddenColumns.createdTime && (
+                          <ResizableHeader
+                            id="createdTime"
+                            label="Created Time"
+                            colWidths={colWidths}
+                            handleMouseDown={handleMouseDown}
+                            defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[200px] w-56"
+                          />
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                      {sortedTasks.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={visibleColCount}
+                            className="px-6 py-8 text-center text-slate-450 dark:text-slate-500 font-bold bg-slate-50/5 dark:bg-slate-900/5 text-xs"
                           >
-                            {!hiddenColumns.id && (
-                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
-                                {getTaskDisplayId(task)}
-                              </td>
-                            )}
+                            No tasks found.
+                          </td>
+                        </tr>
+                      ) : (
+                        sortedTasks.map((task, idx) => {
+                          const isCompleted = task.status === "Completed";
+                          const isRejected = task.status === "Rejected";
+                          const statusStyle = getStatusStyle(task.status);
+                          const isExpanded = !!expandedTasks[task._id];
 
-                            {!hiddenColumns.priority && (
-                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
-                                <PriorityBadge
-                                  priority={task.priority}
-                                  isTopHigh={isSameDate(
-                                    task.startDate,
-                                    task.dueDate,
-                                  )}
-                                />
-                              </td>
-                            )}
-
-                            {!hiddenColumns.taskName && (
-                              <td className="px-3 py-2 font-bold border border-slate-200/70 dark:border-transparent text-left">
-                                <div className="flex flex-col gap-0.5">
-                                  <div
-                                    className={`flex items-center gap-2 ${isCompleted ? "line-through text-slate-400" : "text-slate-800 dark:text-white"}`}
-                                  >
-                                    <BiFile
-                                      size={20}
-                                      className="text-slate-400 shrink-0"
-                                    />
-                                    <span
-                                      className="text-sm font-medium truncate max-w-[260px]"
-                                      title={task.title}
-                                    >
-                                      {task.title}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 ml-6 mt-1">
-                                    {task.subtasks?.length > 0 && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleTaskExpanded(task._id);
-                                        }}
-                                        className="text-slate-405 hover:text-blue-600 flex items-center gap-0.5 text-xs sm:text-[10px] font-extrabold shrink-0"
-                                      >
-                                        {isExpanded ? (
-                                          <FiChevronDown size={14} />
-                                        ) : (
-                                          <FiChevronRight size={14} />
-                                        )}
-                                        <span>
-                                          Subtasks ({task.subtasks.length})
-                                        </span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                            )}
-
-                            {!hiddenColumns.contentCopy && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[320px]">
-                                  {task.contentCopy ? (
-                                    <>
-                                      <span>{task.contentCopy}</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(
-                                            task.contentCopy,
-                                          );
-                                          toast.success(
-                                            "Content copied to clipboard!",
-                                          );
-                                        }}
-                                        className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
-                                        title="Copy to clipboard"
-                                      >
-                                        <FiCopy size={12} />
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <span className="text-slate-400 italic font-normal">
-                                      —
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            )}
-
-                            {!hiddenColumns.client && (
-                              <td className="px-3 py-4.5 border border-slate-200/70 dark:border-transparent text-center">
-                                {(() => {
-                                  const projId =
-                                    task.project?._id || task.project;
-                                  const projectObj = projId
-                                    ? projectsMap.get(String(projId))
-                                    : null;
-                                  const client = task.project?.client
-                                    ?.companyName
-                                    ? task.project.client
-                                    : projectObj?.client ||
-                                      task.project?.client;
-                                  if (client) {
-                                    return (
-                                      <ClientBadge client={client} size="lg" />
-                                    );
-                                  }
-                                  return (
-                                    <span className="text-slate-400 italic text-xs sm:text-[10px]">
-                                      No Client
-                                    </span>
-                                  );
-                                })()}
-                              </td>
-                            )}
-
-                            {!hiddenColumns.contentType && (
-                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent whitespace-nowrap text-center">
-                                <span
-                                  className={`badge-span ${
-                                    task.contentType === "VIDEO"
-                                      ? "badge-type-video"
-                                      : task.contentType === "IMAGE"
-                                        ? "badge-type-image"
-                                        : task.contentType === "CAROUSEL"
-                                          ? "badge-type-carousel"
-                                          : task.contentType === "REEL"
-                                            ? "badge-type-reel"
-                                            : task.contentType === "POST"
-                                              ? "badge-type-post"
-                                              : task.contentType === "STORY"
-                                                ? "badge-type-story"
-                                                : task.contentType === "Website"
-                                                  ? "badge-type-video"
-                                                  : task.contentType === "SEO"
-                                                    ? "badge-type-image"
-                                                    : task.contentType === "Video shoot"
-                                                      ? "badge-type-carousel"
-                                                      : "badge-type-none"
+                          return (
+                            <React.Fragment key={task._id || `task-row-${idx}`}>
+                              <tr
+                                className={`transition-colors group ${isRejected
+                                    ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none"
+                                    : task.priority === "Top High"
+                                      ? "row-priority-top-high text-slate-700 dark:text-slate-200 hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] cursor-pointer"
+                                      : "text-slate-700 dark:text-slate-200 hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] cursor-pointer"
                                   }`}
-                                >
-                                  {typeof task.contentType === "string" ? task.contentType || "None" : "None"}
-                                </span>
-                              </td>
-                            )}
-
-                            {!hiddenColumns.status && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] text-center"
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={() => handleSelectTaskForDrawer(task._id)}
                               >
-                                {task.status === "Completed" ? (
-                                  <span className="badge-span badge-status-completed">
-                                    Completed
-                                  </span>
-                                ) : task.status === "In Review" ? (
-                                  <span className="badge-span badge-status-in-review">
-                                    In Review
-                                  </span>
-                                ) : task.status === "Correction" ? (
-                                  <div className="flex flex-col gap-1 items-center justify-center">
-                                    <span className="badge-span badge-status-correction animate-pulse">
-                                      Correction
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleStatusChange(task._id, "In Progress")}
-                                      className="px-2.5 py-0.5 text-[9px] font-extrabold bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-2xs transition-all cursor-pointer"
-                                    >
-                                      Resume Work
-                                    </button>
-                                  </div>
-                                ) : task.status === "Rejected" ? (
-                                  <span className="badge-span badge-status-rejected">
-                                    Rejected
-                                  </span>
-                                ) : (
-                                  <select
-                                    value={task.status || "Not Started"}
-                                    onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                                    className={`badge-select ${
-                                      task.status === "In Progress"
-                                        ? "badge-status-in-progress"
-                                        : task.status === "In Review"
-                                          ? "badge-status-in-review"
-                                          : task.status === "On Hold"
-                                            ? "badge-status-on-hold"
-                                            : "badge-status-not-started"
-                                    }`}
-                                  >
-                                    <option value="Not Started" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
-                                      Not Started
-                                    </option>
-                                    <option value="In Progress" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
-                                      In Progress
-                                    </option>
-                                    <option value="In Review" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
-                                      In Review
-                                    </option>
-                                    <option value="On Hold" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
-                                      On Hold
-                                    </option>
-                                  </select>
+                                {!hiddenColumns.id && (
+                                  <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                                    {getTaskDisplayId(task)}
+                                  </td>
                                 )}
-                              </td>
-                            )}
 
-                            {!hiddenColumns.activeTime && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <WorkTimeCell
-                                  task={task}
-                                  dateFilter={dateFilter}
-                                  officeHours={officeHours}
-                                />
-                              </td>
-                            )}
+                                {!hiddenColumns.priority && (
+                                  <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
+                                    <PriorityBadge
+                                      priority={task.priority}
+                                      isTopHigh={isSameDate(
+                                        task.startDate,
+                                        task.dueDate,
+                                      )}
+                                    />
+                                  </td>
+                                )}
 
-                            {!hiddenColumns.holdReason && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {(() => {
-                                  if (task.status !== "On Hold") {
-                                    return (
-                                      <span className="text-slate-300 dark:text-slate-600 font-semibold text-xs">
-                                        —
-                                      </span>
-                                    );
-                                  }
-                                  const holdEntry = [
-                                    ...(task.statusHistory || []),
-                                  ]
-                                    .reverse()
-                                    .find((h) => h.status === "On Hold");
-                                  const reason = holdEntry?.reason;
-                                  if (!reason) {
-                                    return (
-                                      <span className="text-slate-400 italic text-[10px]">
-                                        No Reason
-                                      </span>
-                                    );
-                                  }
-                                  return (
-                                    <span
-                                      className="inline-block px-2.5 py-1 bg-amber-50 border border-amber-200/60 dark:border-amber-500/20 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-md text-[10.5px] font-bold shadow-sm truncate max-w-[130px]"
-                                      title={reason}
-                                    >
-                                      {reason}
-                                    </span>
-                                  );
-                                })()}
-                              </td>
-                            )}
-
-                            {!hiddenColumns.blockedTime && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <BlockedTimeCell
-                                  task={task}
-                                  dateFilter={dateFilter}
-                                  officeHours={officeHours}
-                                />
-                              </td>
-                            )}
-
-                            {!hiddenColumns.revision && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <div className="flex justify-center items-center gap-1.5">
-                                  <span className="font-extrabold text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20 shadow-xs">
-                                    {task.revisions || (task.correctionHistory?.length ? task.correctionHistory.length : 0)}
-                                  </span>
-                                </div>
-                              </td>
-                            )}
-
-                            {!hiddenColumns.correctionHistory && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] max-w-[260px] text-left"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {(() => {
-                                  const history = task.correctionHistory || [];
-                                  if (history.length === 0) {
-                                    return (
-                                      <span className="text-slate-300 dark:text-slate-600 font-semibold text-xs flex justify-center">
-                                        —
-                                      </span>
-                                    );
-                                  }
-                                  const latest = history[history.length - 1];
-                                  return (
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-400 font-extrabold text-[10px] rounded border border-orange-200 dark:border-orange-800 shrink-0">
-                                          {history.length} {history.length === 1 ? "Correction" : "Corrections"}
+                                {!hiddenColumns.taskName && (
+                                  <td className="px-3 py-2 font-bold border border-slate-200/70 dark:border-transparent text-left">
+                                    <div className="flex flex-col gap-0.5">
+                                      <div
+                                        className={`flex items-center gap-2 ${isCompleted ? "line-through text-slate-400" : "text-slate-800 dark:text-white"}`}
+                                      >
+                                        <BiFile
+                                          size={20}
+                                          className="text-slate-400 shrink-0"
+                                        />
+                                        <span
+                                          className="text-sm font-medium truncate max-w-[260px]"
+                                          title={task.title}
+                                        >
+                                          {task.title}
                                         </span>
-                                        {latest.requestedAt && (
-                                          <span className="text-[10px] text-slate-400 font-bold">
-                                            {new Date(latest.requestedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                                          </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 ml-6 mt-1">
+                                        {task.subtasks?.length > 0 && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleTaskExpanded(task._id);
+                                            }}
+                                            className="text-slate-405 hover:text-blue-600 flex items-center gap-0.5 text-xs sm:text-[10px] font-extrabold shrink-0"
+                                          >
+                                            {isExpanded ? (
+                                              <FiChevronDown size={14} />
+                                            ) : (
+                                              <FiChevronRight size={14} />
+                                            )}
+                                            <span>
+                                              Subtasks ({task.subtasks.length})
+                                            </span>
+                                          </button>
                                         )}
                                       </div>
-                                      {latest.reason && (
-                                        <span
-                                          className="text-[11px] font-medium text-slate-700 dark:text-slate-300 line-clamp-2"
-                                          title={latest.reason}
-                                        >
-                                          "{latest.reason}"
+                                    </div>
+                                  </td>
+                                )}
+
+                                {!hiddenColumns.contentCopy && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[320px]">
+                                      {task.contentCopy ? (
+                                        <>
+                                          <span>{task.contentCopy}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              navigator.clipboard.writeText(
+                                                task.contentCopy,
+                                              );
+                                              toast.success(
+                                                "Content copied to clipboard!",
+                                              );
+                                            }}
+                                            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
+                                            title="Copy to clipboard"
+                                          >
+                                            <FiCopy size={12} />
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <span className="text-slate-400 italic font-normal">
+                                          —
                                         </span>
                                       )}
                                     </div>
-                                  );
-                                })()}
-                              </td>
-                            )}
+                                  </td>
+                                )}
 
-                            {!hiddenColumns.timeTracker && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <TodayTrackerCell
-                                  task={task}
-                                  dateFilter={dateFilter}
-                                  officeHours={officeHours}
-                                />
-                              </td>
-                            )}
+                                {!hiddenColumns.client && (
+                                  <td className="px-3 py-4.5 border border-slate-200/70 dark:border-transparent text-center">
+                                    {(() => {
+                                      const projId =
+                                        task.project?._id || task.project;
+                                      const projectObj = projId
+                                        ? projectsMap.get(String(projId))
+                                        : null;
+                                      const client = task.project?.client
+                                        ?.companyName
+                                        ? task.project.client
+                                        : projectObj?.client ||
+                                        task.project?.client;
+                                      if (client) {
+                                        return (
+                                          <ClientBadge client={client} size="lg" />
+                                        );
+                                      }
+                                      return (
+                                        <span className="text-slate-400 italic text-xs sm:text-[10px]">
+                                          No Client
+                                        </span>
+                                      );
+                                    })()}
+                                  </td>
+                                )}
 
-                            {!hiddenColumns.startDate && (
-                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
-                                <span
-                                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.startDate ? "bg-blue-200 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20" : "text-slate-450 dark:text-slate-505 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
-                                >
-                                  <FiCalendar size={11} />
-                                  {formatDate(task.startDate)}
-                                </span>
-                              </td>
-                            )}
+                                {!hiddenColumns.contentType && (
+                                  <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent whitespace-nowrap text-center">
+                                    <span
+                                      className={`badge-span ${task.contentType === "VIDEO"
+                                          ? "badge-type-video"
+                                          : task.contentType === "IMAGE"
+                                            ? "badge-type-image"
+                                            : task.contentType === "CAROUSEL"
+                                              ? "badge-type-carousel"
+                                              : task.contentType === "REEL"
+                                                ? "badge-type-reel"
+                                                : task.contentType === "POST"
+                                                  ? "badge-type-post"
+                                                  : task.contentType === "STORY"
+                                                    ? "badge-type-story"
+                                                    : task.contentType === "Website"
+                                                      ? "badge-type-video"
+                                                      : task.contentType === "SEO"
+                                                        ? "badge-type-image"
+                                                        : task.contentType === "Video shoot"
+                                                          ? "badge-type-carousel"
+                                                          : "badge-type-none"
+                                        }`}
+                                    >
+                                      {typeof task.contentType === "string" ? task.contentType || "None" : "None"}
+                                    </span>
+                                  </td>
+                                )}
 
-                            {!hiddenColumns.endDate && (
-                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
-                                <span
-                                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.dueDate ? "bg-rose-200 text-rose-700 dark:bg-rose-500/10 dark:text-rose-350 border border-rose-200/50 dark:border-rose-500/20" : "text-slate-450 dark:text-slate-550 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
-                                >
-                                  <FiCalendar size={11} />
-                                  {formatDate(task.dueDate)}
-                                </span>
-                              </td>
-                            )}
+                                {!hiddenColumns.status && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {task.status === "Completed" ? (
+                                      <span className="badge-span badge-status-completed badge-status-fixed-width">
+                                        Completed
+                                      </span>
+                                    ) : task.status === "In Review" ? (
+                                      <span className="badge-span badge-status-in-review badge-status-fixed-width">
+                                        In Review
+                                      </span>
+                                    ) : task.status === "Correction" ? (
+                                      <div className="flex flex-col gap-1 items-center justify-center">
+                                        <span className="badge-span badge-status-correction badge-status-fixed-width animate-pulse">
+                                          Correction
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleStatusChange(task._id, "In Progress")}
+                                          className="px-2.5 py-0.5 text-[9px] font-extrabold bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-2xs transition-all cursor-pointer"
+                                        >
+                                          Resume Work
+                                        </button>
+                                      </div>
+                                    ) : task.status === "Rejected" ? (
+                                      <span className="badge-span badge-status-rejected badge-status-fixed-width">
+                                        Rejected
+                                      </span>
+                                    ) : (
+                                      <select
+                                        value={task.status || "Not Started"}
+                                        onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                                        className={`badge-select badge-status-fixed-width ${task.status === "In Progress"
+                                            ? "badge-status-in-progress"
+                                            : task.status === "In Review"
+                                              ? "badge-status-in-review"
+                                              : task.status === "On Hold"
+                                                ? "badge-status-on-hold"
+                                                : task.status === "Correction"
+                                                  ? "badge-status-correction"
+                                                  : "badge-status-not-started"
+                                          }`}
+                                      >
+                                        <option value="Not Started" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                          Not Started
+                                        </option>
+                                        <option value="In Progress" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                          In Progress
+                                        </option>
+                                        <option value="In Review" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                          In Review
+                                        </option>
+                                        <option value="Correction" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                          Correction
+                                        </option>
+                                        <option value="On Hold" className="bg-white dark:bg-gray-800 text-slate-700 dark:text-white">
+                                          On Hold
+                                        </option>
+                                      </select>
+                                    )}
+                                  </td>
+                                )}
 
-                            {!hiddenColumns.assignedBy && (
-                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 text-left">
-                                <div className="flex items-center gap-2.5">
-                                  {(() => {
-                                    const assignerId =
-                                      typeof task.assignedBy === "object"
-                                        ? task.assignedBy?._id
-                                        : task.assignedBy;
-                                    const assignerUser =
-                                      users.find((u) => u._id === assignerId) ||
-                                      (typeof task.assignedBy === "object"
-                                        ? task.assignedBy
-                                        : null) ||
-                                      task.createdBy;
-                                    const profilePic =
-                                      assignerUser?.profilePic ||
-                                      assignerUser?.profile?.profilePic;
-                                    const name =
-                                      task.assignedBy?.name ||
-                                      task.createdBy?.name ||
-                                      "Internal";
-                                    const dept = 
-                                      assignerUser?.department ||
-                                      assignerUser?.profile?.department ||
-                                      "No Department";
+                                {!hiddenColumns.activeTime && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <WorkTimeCell
+                                      task={task}
+                                      dateFilter={dateFilter}
+                                      officeHours={officeHours}
+                                    />
+                                  </td>
+                                )}
 
-                                    return (
-                                      <>
-                                        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm">
-                                          <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[11px] font-bold text-slate-500">
-                                            {name.charAt(0).toUpperCase()}
+                                {!hiddenColumns.holdReason && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {(() => {
+                                      if (task.status !== "On Hold") {
+                                        return (
+                                          <span className="text-slate-300 dark:text-slate-600 font-semibold text-xs">
+                                            —
+                                          </span>
+                                        );
+                                      }
+                                      const holdEntry = [
+                                        ...(task.statusHistory || []),
+                                      ]
+                                        .reverse()
+                                        .find((h) => h.status === "On Hold");
+                                      const reason = holdEntry?.reason;
+                                      if (!reason) {
+                                        return (
+                                          <span className="text-slate-400 italic text-[10px]">
+                                            No Reason
+                                          </span>
+                                        );
+                                      }
+                                      return (
+                                        <span
+                                          className="inline-block px-2.5 py-1 bg-amber-50 border border-amber-200/60 dark:border-amber-500/20 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-md text-[10.5px] font-bold shadow-sm truncate max-w-[130px]"
+                                          title={reason}
+                                        >
+                                          {reason}
+                                        </span>
+                                      );
+                                    })()}
+                                  </td>
+                                )}
+
+                                {!hiddenColumns.blockedTime && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <BlockedTimeCell
+                                      task={task}
+                                      dateFilter={dateFilter}
+                                      officeHours={officeHours}
+                                    />
+                                  </td>
+                                )}
+
+                                {!hiddenColumns.revision && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <div className="flex justify-center items-center gap-1.5">
+                                      <span className="font-extrabold text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20 shadow-xs">
+                                        {task.revisions || (task.correctionHistory?.length ? task.correctionHistory.length : 0)}
+                                      </span>
+                                    </div>
+                                  </td>
+                                )}
+
+                                {!hiddenColumns.correctionHistory && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] max-w-[260px] text-left"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {(() => {
+                                      const history = task.correctionHistory || [];
+                                      if (history.length === 0) {
+                                        return (
+                                          <span className="text-slate-300 dark:text-slate-600 font-semibold text-xs flex justify-center">
+                                            —
+                                          </span>
+                                        );
+                                      }
+                                      const latest = history[history.length - 1];
+                                      return (
+                                        <div className="flex flex-col gap-1">
+                                          <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-400 font-extrabold text-[10px] rounded border border-orange-200 dark:border-orange-800 shrink-0">
+                                              {history.length} {history.length === 1 ? "Correction" : "Corrections"}
+                                            </span>
+                                            {latest.requestedAt && (
+                                              <span className="text-[10px] text-slate-400 font-bold">
+                                                {new Date(latest.requestedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                              </span>
+                                            )}
                                           </div>
-                                          {profilePic && (
-                                            <img
-                                              src={profilePic}
-                                              alt={name}
-                                              className="absolute inset-0 w-full h-full object-cover"
-                                              onError={(e) => {
-                                                e.currentTarget.style.display = "none";
-                                              }}
-                                            />
+                                          {latest.reason && (
+                                            <span
+                                              className="text-[11px] font-medium text-slate-700 dark:text-slate-300 line-clamp-2"
+                                              title={latest.reason}
+                                            >
+                                              "{latest.reason}"
+                                            </span>
                                           )}
                                         </div>
-                                        <div className="flex flex-col justify-center">
-                                          <span className="font-extrabold text-[12px] text-slate-800 dark:text-slate-200 leading-tight">
-                                            {name}
-                                          </span>
-                                          <span className="text-[10px] text-slate-500 font-medium">
-                                            {dept}
-                                          </span>
-                                        </div>
-                                      </>
-                                    );
-                                  })()}
-                                </div>
-                              </td>
-                            )}
+                                      );
+                                    })()}
+                                  </td>
+                                )}
 
-                            {!hiddenColumns.approvalTime && (
-                              <td
-                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <ApprovalDurationBadge
-                                  approvalWaitingMs={task.approvalWaitingMs}
-                                  reviewStartedAt={task.reviewStartedAt}
-                                  status={task.status}
-                                />
-                              </td>
-                            )}
+                                {!hiddenColumns.timeTracker && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[140px] text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <TodayTrackerCell
+                                      task={task}
+                                      dateFilter={dateFilter}
+                                      officeHours={officeHours}
+                                    />
+                                  </td>
+                                )}
 
-                            {!hiddenColumns.createdTime && (
-                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-[11.5px]">
-                                <CreatedTime time={task.createdAt} />
-                              </td>
-                            )}
-                          </tr>
-                        </React.Fragment>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                                {!hiddenColumns.startDate && (
+                                  <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.startDate ? "bg-blue-200 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20" : "text-slate-450 dark:text-slate-505 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
+                                    >
+                                      <FiCalendar size={11} />
+                                      {formatDate(task.startDate)}
+                                    </span>
+                                  </td>
+                                )}
 
-            {/* Enhanced Pagination Controls */}
-            {totalItems > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 sidebar-bg  text-xs font-bold">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <span className="text-[11px] font-semibold">
-                      Rows per page:
-                    </span>
-                    <select
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#181a29] border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 text-xs font-bold outline-none focus:border-blue-500 shadow-2xs cursor-pointer transition-all hover:border-blue-400"
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </div>
-                  <span className="text-slate-500 dark:text-slate-400 text-[11.5px]">
-                    Showing{" "}
-                    <span className="text-slate-800 dark:text-slate-100 font-extrabold">
-                      {totalItems > 0
-                        ? (currentPage - 1) * itemsPerPage + 1
-                        : 0}
-                    </span>{" "}
-                    to{" "}
-                    <span className="text-slate-800 dark:text-slate-100 font-extrabold">
-                      {Math.min(currentPage * itemsPerPage, totalItems)}
-                    </span>{" "}
-                    of{" "}
-                    <span className="text-blue-600 dark:text-blue-400 font-extrabold">
-                      {totalItems}
-                    </span>{" "}
-                    tasks
-                  </span>
+                                {!hiddenColumns.endDate && (
+                                  <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.dueDate ? "bg-rose-200 text-rose-700 dark:bg-rose-500/10 dark:text-rose-350 border border-rose-200/50 dark:border-rose-500/20" : "text-slate-450 dark:text-slate-550 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
+                                    >
+                                      <FiCalendar size={11} />
+                                      {formatDate(task.dueDate)}
+                                    </span>
+                                  </td>
+                                )}
+
+                                {!hiddenColumns.assignedBy && (
+                                  <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] w-52 text-left">
+                                    <div className="flex items-center gap-2.5">
+                                      {(() => {
+                                        const assignerId =
+                                          typeof task.assignedBy === "object"
+                                            ? (task.assignedBy?._id || task.assignedBy?.id)
+                                            : task.assignedBy;
+                                        const createdById =
+                                          typeof task.createdBy === "object"
+                                            ? (task.createdBy?._id || task.createdBy?.id)
+                                            : task.createdBy;
+                                        const matchedUser = assignerId
+                                          ? users.find(
+                                              (u) =>
+                                                String(u._id) === String(assignerId) ||
+                                                String(u.id) === String(assignerId)
+                                            )
+                                          : null;
+                                        const createdUser = createdById
+                                          ? users.find(
+                                              (u) =>
+                                                String(u._id) === String(createdById) ||
+                                                String(u.id) === String(createdById)
+                                            )
+                                          : null;
+                                        const assignerUser =
+                                          matchedUser ||
+                                          (typeof task.assignedBy === "object"
+                                            ? task.assignedBy
+                                            : null) ||
+                                          createdUser ||
+                                          (typeof task.createdBy === "object"
+                                            ? task.createdBy
+                                            : null);
+
+                                        const avatarUrl =
+                                          (typeof assignerUser?.profile?.profileImage === "object"
+                                            ? assignerUser?.profile?.profileImage?.url
+                                            : assignerUser?.profile?.profileImage) ||
+                                          (typeof assignerUser?.profileImage === "object"
+                                            ? assignerUser?.profileImage?.url
+                                            : assignerUser?.profileImage) ||
+                                          assignerUser?.profilePic ||
+                                          assignerUser?.avatar ||
+                                          assignerUser?.profile?.profilePic ||
+                                          assignerUser?.profile?.avatar ||
+                                          (typeof task.assignedBy?.profile?.profileImage === "object"
+                                            ? task.assignedBy?.profile?.profileImage?.url
+                                            : task.assignedBy?.profile?.profileImage) ||
+                                          (typeof task.assignedBy?.profileImage === "object"
+                                            ? task.assignedBy?.profileImage?.url
+                                            : task.assignedBy?.profileImage) ||
+                                          task.assignedBy?.profilePic ||
+                                          task.assignedBy?.avatar;
+
+                                        const name =
+                                          assignerUser?.name ||
+                                          task.assignedBy?.name ||
+                                          task.createdBy?.name ||
+                                          "Internal";
+                                        const dept =
+                                          assignerUser?.department ||
+                                          assignerUser?.profile?.department ||
+                                          task.assignedBy?.department ||
+                                          task.assignedBy?.profile?.department ||
+                                          "No Department";
+
+                                        const initials = (name || "I")
+                                          .split(" ")
+                                          .filter(Boolean)
+                                          .map((n) => n[0])
+                                          .join("")
+                                          .substring(0, 2)
+                                          .toUpperCase() || name.charAt(0).toUpperCase();
+
+                                        const AVATAR_COLORS = [
+                                          "from-violet-500 to-indigo-600",
+                                          "from-cyan-500 to-blue-600",
+                                          "from-emerald-500 to-teal-600",
+                                          "from-orange-500 to-amber-600",
+                                          "from-pink-500 to-rose-600",
+                                        ];
+                                        const colorClass =
+                                          AVATAR_COLORS[
+                                            (name.charCodeAt(0) || 0) % AVATAR_COLORS.length
+                                          ];
+
+                                        return (
+                                          <>
+                                            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 shadow-sm flex items-center justify-center">
+                                              <div
+                                                className={`w-full h-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[10px]`}
+                                              >
+                                                {initials}
+                                              </div>
+                                              {avatarUrl && (
+                                                <img
+                                                  src={avatarUrl}
+                                                  alt={name}
+                                                  className="absolute inset-0 w-full h-full object-cover"
+                                                  onError={(e) => {
+                                                    e.currentTarget.style.display = "none";
+                                                  }}
+                                                />
+                                              )}
+                                            </div>
+                                            <div className="flex flex-col justify-center">
+                                              <span className="font-extrabold text-[12px] text-slate-800 dark:text-slate-200 leading-tight">
+                                                {name}
+                                              </span>
+                                              <span className="text-[10px] text-slate-500 font-medium">
+                                                {dept}
+                                              </span>
+                                            </div>
+                                          </>
+                                        );
+                                      })()}
+                                    </div>
+                                  </td>
+                                )}
+
+                                {!hiddenColumns.approvalTime && (
+                                  <td
+                                    className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <ApprovalDurationBadge
+                                      approvalWaitingMs={task.approvalWaitingMs}
+                                      reviewStartedAt={task.reviewStartedAt}
+                                      status={task.status}
+                                    />
+                                  </td>
+                                )}
+
+                                {!hiddenColumns.createdTime && (
+                                  <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-[11.5px]">
+                                    <CreatedTime time={task.createdAt} />
+                                  </td>
+                                )}
+                              </tr>
+                            </React.Fragment>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
 
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(1)}
-                      title="First Page"
-                      className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
-                    >
-                      <FiChevronsLeft size={16} />
-                    </button>
-
-                    <button
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      title="Previous Page"
-                      className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
-                    >
-                      <FiChevronLeft size={16} />
-                    </button>
-
-                    {getPageNumbers().map((page, idx) =>
-                      page === "..." ? (
-                        <span
-                          key={`ellipsis-${idx}`}
-                          className="px-1 text-slate-400 select-none font-bold"
-                        >
-                          ...
+                {/* Enhanced Pagination Controls */}
+                {totalItems > 0 && (
+                  <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 sidebar-bg  text-xs font-bold">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                        <span className="text-[11px] font-semibold">
+                          Rows per page:
                         </span>
-                      ) : (
-                        <button
-                          key={`page-${page}`}
-                          onClick={() => setCurrentPage(page)}
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition-all ${
-                            currentPage === page
-                              ? "bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black shadow-sm font-black"
-                              : "hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold"
-                          }`}
+                        <select
+                          value={itemsPerPage}
+                          onChange={(e) => {
+                            setItemsPerPage(Number(e.target.value));
+                            setCurrentPage(1);
+                          }}
+                          className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#181a29] border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 text-xs font-bold outline-none focus:border-blue-500 shadow-2xs cursor-pointer transition-all hover:border-blue-400"
                         >
-                          {page}
+                          <option value={5}>5</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={50}>50</option>
+                        </select>
+                      </div>
+                      <span className="text-slate-500 dark:text-slate-400 text-[11.5px]">
+                        Showing{" "}
+                        <span className="text-slate-800 dark:text-slate-100 font-extrabold">
+                          {totalItems > 0
+                            ? (currentPage - 1) * itemsPerPage + 1
+                            : 0}
+                        </span>{" "}
+                        to{" "}
+                        <span className="text-slate-800 dark:text-slate-100 font-extrabold">
+                          {Math.min(currentPage * itemsPerPage, totalItems)}
+                        </span>{" "}
+                        of{" "}
+                        <span className="text-blue-600 dark:text-blue-400 font-extrabold">
+                          {totalItems}
+                        </span>{" "}
+                        tasks
+                      </span>
+                    </div>
+
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage(1)}
+                          title="First Page"
+                          className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
+                        >
+                          <FiChevronsLeft size={16} />
                         </button>
-                      ),
+
+                        <button
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          title="Previous Page"
+                          className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
+                        >
+                          <FiChevronLeft size={16} />
+                        </button>
+
+                        {getPageNumbers().map((page, idx) =>
+                          page === "..." ? (
+                            <span
+                              key={`ellipsis-${idx}`}
+                              className="px-1 text-slate-400 select-none font-bold"
+                            >
+                              ...
+                            </span>
+                          ) : (
+                            <button
+                              key={`page-${page}`}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition-all ${currentPage === page
+                                  ? "bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black shadow-sm font-black"
+                                  : "hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold"
+                                }`}
+                            >
+                              {page}
+                            </button>
+                          ),
+                        )}
+
+                        <button
+                          disabled={currentPage === totalPages}
+                          onClick={() =>
+                            setCurrentPage((p) => Math.min(totalPages, p + 1))
+                          }
+                          title="Next Page"
+                          className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
+                        >
+                          <FiChevronRight size={16} />
+                        </button>
+
+                        <button
+                          disabled={currentPage === totalPages}
+                          onClick={() => setCurrentPage(totalPages)}
+                          title="Last Page"
+                          className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
+                        >
+                          <FiChevronsRight size={16} />
+                        </button>
+                      </div>
                     )}
-
-                    <button
-                      disabled={currentPage === totalPages}
-                      onClick={() =>
-                        setCurrentPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      title="Next Page"
-                      className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
-                    >
-                      <FiChevronRight size={16} />
-                    </button>
-
-                    <button
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(totalPages)}
-                      title="Last Page"
-                      className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
-                    >
-                      <FiChevronsRight size={16} />
-                    </button>
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-        )} />
+            </div>
+          )} />
       )}
 
       {/* SUBMIT FOR REVIEW CONFIRMATION MODAL */}
@@ -4224,7 +4305,7 @@ const MyTasksTab = ({
                               selectedTask.assignedBy || selectedTask.createdBy;
                             const avatarUrl =
                               (typeof assignerUser?.profile?.profileImage ===
-                              "object"
+                                "object"
                                 ? assignerUser?.profile?.profileImage?.url
                                 : assignerUser?.profile?.profileImage) ||
                               (typeof assignerUser?.profileImage === "object"
@@ -4262,8 +4343,8 @@ const MyTasksTab = ({
                             ];
                             const colorClass =
                               AVATAR_COLORS[
-                                ((assignerUser?.name || "I").charCodeAt(0) ||
-                                  0) % AVATAR_COLORS.length
+                              ((assignerUser?.name || "I").charCodeAt(0) ||
+                                0) % AVATAR_COLORS.length
                               ];
 
                             return (
@@ -4426,27 +4507,27 @@ const MyTasksTab = ({
                 {/* Approval Info Section */}
                 {(selectedTask.reviewStartedAt ||
                   selectedTask.approvalWaitingMs) && (
-                  <div className="bg-slate-50 dark:bg-[#111827] rounded-3xl p-5 border border-slate-100 dark:border-slate-800/80 space-y-3 shadow-sm">
-                    <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-700">
-                      <div className="w-7 h-7 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center shrink-0">
-                        <span className="text-blue-500 dark:text-blue-400 text-xs">
-                          ⏱
+                    <div className="bg-slate-50 dark:bg-[#111827] rounded-3xl p-5 border border-slate-100 dark:border-slate-800/80 space-y-3 shadow-sm">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-700">
+                        <div className="w-7 h-7 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 flex items-center justify-center shrink-0">
+                          <span className="text-blue-500 dark:text-blue-400 text-xs">
+                            ⏱
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                          Approval Info
                         </span>
                       </div>
-                      <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                        Approval Info
-                      </span>
+                      <ApprovalTimeDisplay
+                        reviewStartedAt={selectedTask.reviewStartedAt}
+                        completedAt={selectedTask.completedAt}
+                        approvalWaitingMs={selectedTask.approvalWaitingMs}
+                        status={selectedTask.status}
+                        lastReviewStartedAt={selectedTask.lastReviewStartedAt}
+                        reviewCycles={selectedTask.reviewCycles}
+                      />
                     </div>
-                    <ApprovalTimeDisplay
-                      reviewStartedAt={selectedTask.reviewStartedAt}
-                      completedAt={selectedTask.completedAt}
-                      approvalWaitingMs={selectedTask.approvalWaitingMs}
-                      status={selectedTask.status}
-                      lastReviewStartedAt={selectedTask.lastReviewStartedAt}
-                      reviewCycles={selectedTask.reviewCycles}
-                    />
-                  </div>
-                )}
+                  )}
               </div>
             </motion.div>
           </div>
