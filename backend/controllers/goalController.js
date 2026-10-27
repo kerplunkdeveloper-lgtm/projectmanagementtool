@@ -26,6 +26,9 @@ exports.getGoals = async (req, res) => {
 exports.createGoal = async (req, res) => {
   try {
     req.body.user = req.user.id;
+    if (!req.body.createdAt) {
+      req.body.createdAt = new Date();
+    }
 
     const goal = await Goal.create(req.body);
 

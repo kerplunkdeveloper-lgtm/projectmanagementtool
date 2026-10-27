@@ -7,9 +7,12 @@ import {
   FiMoon,
   FiUser,
   FiMail,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { MdOutlineEdit as MdPencilEdit } from "react-icons/md";
+import { motion } from "framer-motion";
 import { getProfile } from "../../../../features/profile/profileSlice";
 
 const WelcomeUser = () => {
@@ -19,6 +22,14 @@ const WelcomeUser = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hasAttemptedProfileFetch, setHasAttemptedProfileFetch] = useState(false);
+
+  const robotImages = [
+    "/Robots/robot-6.png",
+    "/Robots/robot-2.png",
+    "/Robots/robot-5.png",
+    "/Robots/robot-1.png",
+  ];
+  const [robotIndex, setRobotIndex] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -292,7 +303,7 @@ const WelcomeUser = () => {
 
   return (
     <>
-      <div className="relative overflow-hidden p-4 sm:p-2 mb-4 rounded-xl border-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300 theme-bg-accent">
+      <div className="relative overflow-hidden p-3 sm:p-3.5 mb-4 rounded-2xl border-none flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300 theme-bg-accent">
         {/* Background Image overlay with mix-blend-overlay */}
         <div className="absolute inset-0 z-0 select-none pointer-events-none">
           <img
@@ -307,14 +318,14 @@ const WelcomeUser = () => {
         </div>
 
         {/* Left Side: Greeting & User Profile Card */}
-        <div className="flex items-center gap-4 min-w-0 relative z-10">
+        <div className="flex items-center gap-3.5 min-w-0 relative z-10">
           {/* Avatar initials / Image */}
           <div
             onClick={() => setIsModalOpen(true)}
             className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-98 transition-all duration-300 group"
             title="Click to view profile details"
           >
-            <div className="w-20 h-20 md:w-[210px] md:h-[210px] rounded-full  shadow-sm">
+            <div className="w-16 h-16 sm:w-24 sm:h-24 md:w-[130px] md:h-[130px] lg:w-[200px] lg:h-[200px] rounded-full shadow-md">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -334,14 +345,14 @@ const WelcomeUser = () => {
 
           <div className="min-w-0">
             {/* Greeting label */}
-            <p className="text-[12px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 mb-1 text-white/90 dark:text-black/90">
-              <Icon className={`text-2xl ${iconColor} drop-shadow-sm`} />{" "}
+            <p className="text-[11px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 mb-0.5 text-white/90 dark:text-black/90">
+              <Icon className={`text-xl ${iconColor} drop-shadow-sm`} />{" "}
               {greeting}
             </p>
 
             {/* Name & Badges */}
-            <div className="flex flex-wrap items-center gap-4">
-              <h1 className="text-xl sm:text-4xl font-bold text-white leading-tight tracking-tight">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-xl sm:text-3xl font-bold text-white leading-tight tracking-tight">
                 {user?.name || "User"}
               </h1>
               <div className="flex items-center gap-1">
@@ -356,40 +367,46 @@ const WelcomeUser = () => {
             </div>
 
             {/* Email Address */}
-            <p className="text-[12px] font-medium text-white/90 dark:text-black/90 mt-1 select-all">
+            <p className="text-[11px] font-medium text-white/90 dark:text-black/90 mt-0.5 select-all">
               {user?.email}
             </p>
           </div>
         </div>
 
-        {/* Right Side: Responsive Reference Image Calendar & Clock Widget */}
-        <div className="flex flex-col sm:flex-row justify-between gap-2 bg-white dark:bg-[#070b13] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-2.5 shadow-xl w-full sm:w-[400px] min-w-0 relative z-10 backdrop-blur-sm shrink-0 select-none">
-          {/* Left Side: Calendar picker */}
-          <div className="flex-1 flex flex-col justify-between">
-            {/* Calendar Header */}
-            <div className="flex items-center justify-between px-1 mb-1">
+        {/* Right Side: Exact Reference Image Dual-Panel Calendar, Time & Mascot Card */}
+        <div className="bg-white dark:bg-[#070b13] border border-slate-200/80 dark:border-white/10 rounded-2xl p-2.5 sm:p-3 shadow-xl shadow-black/5 dark:shadow-none flex flex-row items-stretch justify-between gap-2 sm:gap-3.5 w-full sm:w-auto shrink-0 select-none">
+          {/* Left Panel: Calendar Picker */}
+          <div className="flex-1 min-w-0 sm:w-[205px] sm:flex-initial flex flex-col justify-between">
+            {/* Calendar Header: < Month Year > */}
+            <div className="flex items-center justify-between px-0.5 mb-1 sm:mb-1.5">
               <button
+                type="button"
                 onClick={handlePrevMonth}
-                className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-[#3b82f6] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
+                className="w-5.5 h-5.5 sm:w-5.5 sm:h-5.5 flex items-center justify-center rounded-md text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all cursor-pointer"
+                title="Previous month"
               >
-                ‹
+                <FiChevronLeft size={13} className="stroke-[2.5]" />
               </button>
-              <span className="text-[11px] font-black text-slate-800 dark:text-white">
+
+              <span className="text-[12.5px] sm:text-[13px] font-bold text-slate-900 dark:text-white tracking-tight select-none truncate">
                 {activeViewDate.toLocaleDateString("en-US", {
                   month: "long",
                   year: "numeric",
                 })}
               </span>
+
               <button
+                type="button"
                 onClick={handleNextMonth}
-                className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-[#3b82f6] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
+                className="w-5.5 h-5.5 sm:w-5.5 sm:h-5.5 flex items-center justify-center rounded-md text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all cursor-pointer"
+                title="Next month"
               >
-                ›
+                <FiChevronRight size={13} className="stroke-[2.5]" />
               </button>
             </div>
 
-            {/* Weekdays */}
-            <div className="grid grid-cols-7 text-center text-[7px] font-black text-slate-900 dark:text-white mb-1 tracking-wider">
+            {/* Weekdays Row: SUN MON TUE WED THU FRI SAT */}
+            <div className="grid grid-cols-7 text-center text-[8px] sm:text-[8.5px] font-extrabold text-slate-800 dark:text-slate-300 mb-1 tracking-tight select-none">
               <span>SUN</span>
               <span>MON</span>
               <span>TUE</span>
@@ -399,72 +416,136 @@ const WelcomeUser = () => {
               <span>SAT</span>
             </div>
 
-            {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-y-0.5 gap-x-0.5 text-center text-[10px] font-bold">
+            {/* Dates Grid */}
+            <div className="grid grid-cols-7 gap-y-0.5 sm:gap-y-0.5 gap-x-0.5 sm:gap-x-0.5 text-center">
               {getCalendarDays().map((cell, idx) => {
                 const isSelected =
                   cell.isCurrentMonth &&
                   cell.day === activeDate.getDate() &&
                   activeViewDate.getMonth() === activeDate.getMonth() &&
                   activeViewDate.getFullYear() === activeDate.getFullYear();
+
                 return (
-                  <span
+                  <button
                     key={idx}
-                    onClick={() =>
-                      handleDayClick(cell.day, cell.isCurrentMonth)
-                    }
-                    className={`h-5.5 w-5.5 flex items-center justify-center rounded-full transition-all cursor-pointer ${
+                    type="button"
+                    onClick={() => handleDayClick(cell.day, cell.isCurrentMonth)}
+                    className={`h-5.5 w-5.5 sm:h-5.5 sm:w-5.5 mx-auto flex items-center justify-center rounded-full text-[10px] sm:text-[10.5px] transition-all duration-150 cursor-pointer ${
                       isSelected
-                        ? "bg-blue-600 dark:bg-indigo-600 text-white font-black shadow-md shadow-blue-500/30"
+                        ? "bg-[#2563eb] text-white font-bold shadow-md shadow-blue-500/50 scale-105"
                         : cell.isCurrentMonth
-                          ? "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5"
-                          : "text-slate-350 dark:text-slate-700 font-normal"
+                        ? "text-slate-900 dark:text-white font-bold hover:bg-slate-100 dark:hover:bg-white/10"
+                        : "text-slate-400 dark:text-white/30 font-medium"
                     }`}
                   >
                     {cell.day}
-                  </span>
+                  </button>
                 );
               })}
             </div>
 
-            {/* Calendar Footer */}
-            <div className="mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-850">
+            {/* Calendar Footer: Today Pill */}
+            <div className="mt-1.5 sm:mt-1.5 pt-1 sm:pt-1 flex items-center justify-start border-t border-slate-100 dark:border-white/5">
               <button
+                type="button"
                 onClick={handleTodayClick}
-                className="text-[9px] font-extrabold text-blue-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1 bg-white dark:bg-slate-950 shadow-sm hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all"
+                className="px-2.5 sm:px-2.5 py-0.5 sm:py-0.5 rounded-lg border border-slate-200/90 dark:border-white/15 bg-white dark:bg-slate-800 text-[#2563eb] dark:text-blue-400 font-bold text-[10px] sm:text-[10px] shadow-2xs hover:shadow-sm hover:border-blue-400 dark:hover:border-blue-400 active:scale-95 transition-all cursor-pointer"
               >
                 Today
               </button>
             </div>
           </div>
 
-          {/* Divider: vertical on large screen, horizontal on mobile */}
-          <div className="hidden sm:block w-px bg-slate-200/80 dark:bg-slate-800/85 self-stretch my-0.5" />
-          <div className="block sm:hidden h-px w-full bg-slate-200/80 dark:bg-slate-800/85 my-1" />
+          {/* Divider: Clean vertical line */}
+          <div className="w-[1px] bg-slate-100 dark:bg-white/10 self-stretch my-0.5 shrink-0" />
 
-          {/* Right Side: Current Time Widget */}
-          <div className="flex-1 flex flex-col items-center  justify-center">
-            {/* Header */}
-            <div className="text-[10px] font-black mb-1.5 flex items-center gap-1.5">
+          {/* Right Panel: Current Time & Mascot */}
+          <div className="flex-1 min-w-0 sm:w-[200px] sm:flex-initial flex flex-col justify-center pl-1 sm:pl-0">
+            {/* Title */}
+            <div className="text-[12px] sm:text-[13px] font-bold text-slate-900 dark:text-white text-left mb-1 sm:mb-1.5 select-none">
               Current Time
             </div>
 
-            {/* Digital Clock Display */}
-            <div className="w-[88px] h-[88px] rounded-2xl theme-bg-accent opacity-90 border border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center justify-center shadow-inner">
-              {/* Digital Display: HH : MM */}
-              <div className="flex items-center text-white text-2xl font-bold my-0.5 tracking-tight leading-none">
-                <span>
-                  {String(currentTime.getHours() % 12 || 12).padStart(2, "0")}
-                </span>
-                <span className="mx-1 text-white  animate-pulse font-normal">
-                  :
-                </span>
-                <span>{String(currentTime.getMinutes()).padStart(2, "0")}</span>
+            {/* Row: Time Card + Greeting on left, Mascot on right */}
+            <div className="flex items-center justify-between gap-1 sm:gap-2">
+              {/* Left Column: Blue Time Card & Greeting Pill */}
+              <div className="flex flex-col items-start gap-1 sm:gap-1.5 min-w-0">
+                {/* Gradient Blue Digital Clock Box */}
+                <div className="w-[78px] sm:w-[98px] h-[64px] sm:h-[76px] rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white shadow-md shadow-blue-500/25 flex flex-col items-center justify-center p-1 sm:p-1.5 relative overflow-hidden group shrink-0">
+                  {/* Subtle top ambient shine */}
+                  <div className="absolute -top-4 -right-4 w-10 h-10 bg-white/15 rounded-full blur-sm pointer-events-none" />
+
+                  {/* Digital Time: HH:MM */}
+                  <div className="flex items-center text-[17px] sm:text-[22px] font-black tracking-tight leading-none text-white select-none">
+                    <span>
+                      {String(currentTime.getHours() % 12 || 12).padStart(2, "0")}
+                    </span>
+                    <span className="mx-0.5 text-white/90 animate-pulse font-bold">
+                      :
+                    </span>
+                    <span>
+                      {String(currentTime.getMinutes()).padStart(2, "0")}
+                    </span>
+                  </div>
+
+                  {/* AM/PM */}
+                  <div className="text-[9px] sm:text-[10px] font-extrabold text-white/95 mt-0.5 sm:mt-1 uppercase tracking-wider select-none">
+                    {currentTime.getHours() >= 12 ? "PM" : "AM"}
+                  </div>
+                </div>
+
+                {/* Greeting Pill */}
+                <div className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-100/90 dark:bg-white/10 border border-slate-200/70 dark:border-white/10 shadow-2xs max-w-full">
+                  <span className="text-[10px] sm:text-[11px] leading-none shrink-0">
+                    {currentTime.getHours() < 12
+                      ? "☀️"
+                      : currentTime.getHours() < 17
+                      ? "☀️"
+                      : currentTime.getHours() < 21
+                      ? "🌆"
+                      : "🌙"}
+                  </span>
+                  <span className="text-[8px] sm:text-[9.5px] font-bold text-slate-800 dark:text-slate-200 leading-none truncate">
+                    {currentTime.getHours() < 12
+                      ? "Good morning"
+                      : currentTime.getHours() < 17
+                      ? "Good afternoon"
+                      : currentTime.getHours() < 21
+                      ? "Good evening"
+                      : "Good night"}
+                  </span>
+                </div>
               </div>
 
-              {/* AM/PM Pill */}
-              <div className="text-white text-[11px] font-black uppercase px-2 py-0 rounded mt-1 tracking-wider">
-                {currentTime.getHours() >= 12 ? "PM" : "AM"}
+              {/* Right Column: 3D Cute Robot Mascot */}
+              <div className="relative shrink-0 flex items-center justify-center">
+                <motion.div
+                  animate={{ y: [0, -2.5, 0] }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="relative cursor-pointer group"
+                  onClick={() =>
+                    setRobotIndex((prev) => (prev + 1) % robotImages.length)
+                  }
+                  title="Click to interact with mascot!"
+                >
+                  <img
+                    src={robotImages[robotIndex]}
+                    alt="Robot Mascot"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/Robots/robot-1.png";
+                    }}
+                    className="w-16 sm:w-[76px] h-20 sm:h-[105px] object-contain filter drop-shadow-md select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
+                  />
+                  {/* Celebration sparkles beside thumbs up */}
+                  <div className="absolute top-2 -right-1 text-blue-500 font-bold text-[10px] animate-bounce pointer-events-none select-none">
+                    ✨
+                  </div>
+                </motion.div>
               </div>
             </div>
           </div>

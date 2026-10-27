@@ -722,6 +722,22 @@ const Dashboardmain = () => {
   const [calendarPosition, setCalendarPosition] = useState({ top: 0, left: 0 });
   const [goalPage, setGoalPage] = useState(1);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [goalSortBy, setGoalSortBy] = useState(() => {
+    return localStorage.getItem("my_goals_sort_by") || "newest";
+  });
+  const [showGoalSortMenu, setShowGoalSortMenu] = useState(false);
+
+  const getGoalCreatedTime = (g) => {
+    if (g?.createdAt) {
+      const t = new Date(g.createdAt).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    if (g?._id && typeof g._id === "string" && g._id.length === 24) {
+      const t = parseInt(g._id.substring(0, 8), 16) * 1000;
+      if (!isNaN(t) && t > 0) return t;
+    }
+    return 0;
+  };
 
   const goalStats = React.useMemo(() => {
     let upcoming = [];
@@ -738,7 +754,7 @@ const Dashboardmain = () => {
       if (aPending !== bPending) {
         return aPending ? -1 : 1;
       }
-      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      return getGoalCreatedTime(b) - getGoalCreatedTime(a);
     });
 
     sortedGoals.forEach((g) => {
@@ -774,16 +790,52 @@ const Dashboardmain = () => {
     else if (goalTab === "Overdue") list = goalStats.overdue;
     else list = goalStats.completed;
 
-    // Always sort pending work first
     return [...list].sort((a, b) => {
-      const aPending = !a.completed;
-      const bPending = !b.completed;
-      if (aPending !== bPending) {
-        return aPending ? -1 : 1;
+      // Pending work always first (unless in Completed tab)
+      if (goalTab !== "Completed") {
+        const aPending = !a.completed;
+        const bPending = !b.completed;
+        if (aPending !== bPending) {
+          return aPending ? -1 : 1;
+        }
       }
-      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+
+      if (goalSortBy === "dueDate") {
+        const dateA = a.endDate
+          ? new Date(a.endDate).getTime()
+          : a.startDate
+          ? new Date(a.startDate).getTime()
+          : Infinity;
+        const dateB = b.endDate
+          ? new Date(b.endDate).getTime()
+          : b.startDate
+          ? new Date(b.startDate).getTime()
+          : Infinity;
+        if (dateA !== dateB) return dateA - dateB;
+      } else if (goalSortBy === "oldest") {
+        const diff = getGoalCreatedTime(a) - getGoalCreatedTime(b);
+        if (diff !== 0) return diff;
+      } else if (goalSortBy === "alphabetical") {
+        const nameA = (a.taskName || "").trim().toLowerCase();
+        const nameB = (b.taskName || "").trim().toLowerCase();
+        const comp = nameA.localeCompare(nameB);
+        if (comp !== 0) return comp;
+      }
+
+      // Default: Newest posted first
+      if (goalTab === "Completed" && goalSortBy === "newest") {
+        const compA = a.completedAt
+          ? new Date(a.completedAt).getTime()
+          : getGoalCreatedTime(a);
+        const compB = b.completedAt
+          ? new Date(b.completedAt).getTime()
+          : getGoalCreatedTime(b);
+        return compB - compA;
+      }
+
+      return getGoalCreatedTime(b) - getGoalCreatedTime(a);
     });
-  }, [goalTab, goalStats]);
+  }, [goalTab, goalStats, goalSortBy]);
 
   const GOALS_PER_PAGE = 5;
   const totalGoalPages = Math.ceil(activeTabGoals.length / GOALS_PER_PAGE) || 1;
@@ -913,6 +965,7 @@ const Dashboardmain = () => {
 
       if (res?.data?._id) {
         setNewCreatedGoalId(res.data._id);
+        setGoalPage(1);
       }
 
       if (customName === null) {
@@ -1693,12 +1746,135 @@ const Dashboardmain = () => {
               </div>
             </div>
 
-            {/* Rounded rectangular ... button */}
-            <button className="w-7 h-6 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 cursor-pointer">
-              <span className="text-xs font-bold tracking-widest leading-none">
-                •••
-              </span>
-            </button>
+            {/* Header Right: Sort Control & Menu */}
+            <div className="relative flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowGoalSortMenu((prev) => !prev)}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  showGoalSortMenu || goalSortBy !== "newest"
+                    ? "border-blue-500/40 bg-blue-50/60 text-blue-600 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400"
+                    : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
+                }`}
+                title="Sort tasks"
+              >
+                <FiSliders
+                  size={11}
+                  className={goalSortBy !== "newest" ? "text-blue-500 dark:text-blue-400" : "text-slate-400 dark:text-slate-500"}
+                />
+                <span className="text-[11px] font-semibold">
+                  {goalSortBy === "dueDate"
+                    ? "Due date"
+                    : goalSortBy === "oldest"
+                    ? "Oldest"
+                    : goalSortBy === "alphabetical"
+                    ? "A–Z"
+                    : "Newest"}
+                </span>
+                <FiChevronDown
+                  size={10}
+                  className={`transition-transform duration-200 text-slate-400 dark:text-slate-500 ${
+                    showGoalSortMenu ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Rounded rectangular ... button */}
+              <button
+                type="button"
+                onClick={() => setShowGoalSortMenu((prev) => !prev)}
+                className={`w-7 h-6 rounded-lg border transition-all flex items-center justify-center cursor-pointer ${
+                  showGoalSortMenu
+                    ? "border-blue-500/40 bg-blue-50/60 text-blue-600 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-400"
+                    : "border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                }`}
+                title="Sort options"
+              >
+                <span className="text-xs font-bold tracking-widest leading-none">
+                  •••
+                </span>
+              </button>
+
+              {/* Sort Popover Dropdown */}
+              <AnimatePresence>
+                {showGoalSortMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setShowGoalSortMenu(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -4, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -4, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-[#182234] rounded-xl border border-slate-200 dark:border-white/10 shadow-xl p-1.5 z-40"
+                    >
+                      <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-white/5 mb-1 flex items-center justify-between">
+                        <span>Sort tasks by</span>
+                        <FiSliders size={10} />
+                      </div>
+                      {[
+                        {
+                          id: "newest",
+                          label: "Newest posted",
+                          desc: "Most recently created at top",
+                        },
+                        {
+                          id: "oldest",
+                          label: "Oldest posted",
+                          desc: "First created at top",
+                        },
+                        {
+                          id: "dueDate",
+                          label: "Due date",
+                          desc: "Closest deadline first",
+                        },
+                        {
+                          id: "alphabetical",
+                          label: "Alphabetical (A–Z)",
+                          desc: "Order by task title",
+                        },
+                      ].map((opt) => {
+                        const isSelected = goalSortBy === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              setGoalSortBy(opt.id);
+                              localStorage.setItem("my_goals_sort_by", opt.id);
+                              setGoalPage(1);
+                              setShowGoalSortMenu(false);
+                            }}
+                            className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs transition-colors cursor-pointer group ${
+                              isSelected
+                                ? "bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold"
+                                : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            }`}
+                          >
+                            <div className="pr-2">
+                              <div className="font-medium text-xs leading-none">
+                                {opt.label}
+                              </div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-tight">
+                                {opt.desc}
+                              </div>
+                            </div>
+                            {isSelected ? (
+                              <FiCheck
+                                size={13}
+                                className="text-blue-600 dark:text-blue-400 shrink-0"
+                              />
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Tabs matching reference image */}
