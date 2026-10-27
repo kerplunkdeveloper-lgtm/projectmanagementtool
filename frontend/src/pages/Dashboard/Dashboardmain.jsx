@@ -748,12 +748,6 @@ const Dashboardmain = () => {
     today.setHours(0, 0, 0, 0);
 
     const sortedGoals = [...goals].sort((a, b) => {
-      // Pending work first
-      const aPending = !a.completed;
-      const bPending = !b.completed;
-      if (aPending !== bPending) {
-        return aPending ? -1 : 1;
-      }
       return getGoalCreatedTime(b) - getGoalCreatedTime(a);
     });
 
@@ -791,14 +785,6 @@ const Dashboardmain = () => {
     else list = goalStats.completed;
 
     return [...list].sort((a, b) => {
-      // Pending work always first (unless in Completed tab)
-      if (goalTab !== "Completed") {
-        const aPending = !a.completed;
-        const bPending = !b.completed;
-        if (aPending !== bPending) {
-          return aPending ? -1 : 1;
-        }
-      }
 
       if (goalSortBy === "dueDate") {
         const dateA = a.endDate
