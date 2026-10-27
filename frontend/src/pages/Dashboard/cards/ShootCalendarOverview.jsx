@@ -102,7 +102,7 @@ const ShootCalendarOverview = () => {
   const [selectedClient, setSelectedClient] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedShootForModal, setSelectedShootForModal] = useState(null);
-  const [viewMode, setViewMode] = useState("table"); // "table" | "grid"
+  const [viewMode, setViewMode] = useState("grid"); // "grid" | "table"
 
   const userRole = (currentUser?.role?.name || currentUser?.role || "")
     .toString()
@@ -263,11 +263,12 @@ const ShootCalendarOverview = () => {
       });
     }
 
-    // Sort chronologically
+    // Sort recent date first (latest date first)
     list.sort((a, b) => {
-      const dateA = new Date(a.schedule?.shootDate || 0);
-      const dateB = new Date(b.schedule?.shootDate || 0);
-      return dateA - dateB;
+      const dateA = new Date(a.schedule?.shootDate || 0).getTime();
+      const dateB = new Date(b.schedule?.shootDate || 0).getTime();
+      if (dateB !== dateA) return dateB - dateA;
+      return (b.schedule?.startTime || "").localeCompare(a.schedule?.startTime || "");
     });
 
     return list;
@@ -599,19 +600,24 @@ const ShootCalendarOverview = () => {
         ) : (
           /* ─── GRID / CARDS VIEW ─── */
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {filteredShoots.slice(0, 4).map((shoot) => {
+            {filteredShoots.slice(0, 4).map((shoot, index) => {
               const statusStyle = getStatusStyles(shoot.status);
               const isVideo = (shoot.shootType || "").toLowerCase().includes("video");
               const relativeDate = getRelativeDateLabel(shoot.schedule?.shootDate);
               const formattedDate = shoot.schedule?.shootDate
                 ? format(new Date(shoot.schedule.shootDate), "EEE, MMM d")
                 : "Date TBD";
+              const isFirstActive = index === 0;
 
               return (
                 <div
                   key={shoot._id}
                   onClick={() => setSelectedShootForModal(shoot)}
-                  className={`bg-white dark:bg-[#131d2e] rounded-xl p-3 border border-slate-200/90 dark:border-slate-800/90 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group ${statusStyle.cardBorder}`}
+                  className={`bg-white dark:bg-[#131d2e] rounded-xl p-3 border transition-all cursor-pointer flex flex-col justify-between group ${statusStyle.cardBorder} ${
+                    isFirstActive
+                      ? "border-emerald-500/80 dark:border-emerald-500/60 ring-2 ring-emerald-500/20 shadow-xs"
+                      : "border-slate-200/90 dark:border-slate-800/90 shadow-2xs hover:shadow-md"
+                  }`}
                 >
                   <div>
                     <div className="flex items-center justify-between gap-1 mb-2">

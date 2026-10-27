@@ -2,10 +2,15 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import { logWaterBreak } from '../features/users/userSlice';
-import { stopWaterReminderSound } from '../utils/sound';
+import { stopWaterReminderSound, playWaterReminderSound } from '../utils/sound';
+import {
+  showWaterDesktopNotification,
+  closeWaterDesktopNotification,
+  startTitleBlink,
+  stopTitleBlink,
+} from '../utils/browserNotification';
 
 export const WATER_REMINDER_TOAST_ID = 'water-break-reminder';
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes of inactivity considered idle
 
 /**
  * Checks if current local time is within the user's configured working hours.
@@ -41,7 +46,7 @@ export const isWithinWorkingHours = (workingHours) => {
 /**
  * useWaterReminder hook
  * Manages active website use time tracking, interval checks, working hours enforcement,
- * snooze behavior, dismiss cycles, and water logging.
+ * background tab execution, desktop notifications, snooze behavior, dismiss cycles, and water logging.
  */
 export const useWaterReminder = () => {
   const dispatch = useDispatch();
@@ -82,6 +87,7 @@ export const useWaterReminder = () => {
   });
 
   const lastActivityRef = useRef(Date.now());
+  const lastTickRef = useRef(Date.now());
   const activeSecondsRef = useRef(activeSeconds);
   activeSecondsRef.current = activeSeconds;
 
@@ -116,12 +122,30 @@ export const useWaterReminder = () => {
     const handleReset = () => {
       setActiveSeconds(0);
       activeSecondsRef.current = 0;
+      lastTickRef.current = Date.now();
+      stopTitleBlink();
+      closeWaterDesktopNotification();
     };
     window.addEventListener('water-reminder-reset-timer', handleReset);
     return () => window.removeEventListener('water-reminder-reset-timer', handleReset);
   }, []);
 
-  // Listen for user interactions on the site to track active presence
+  // When user returns to tab, restore tab title
+  useEffect(() => {
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        stopTitleBlink();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    window.addEventListener('focus', handleVisibilityOrFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      window.removeEventListener('focus', handleVisibilityOrFocus);
+    };
+  }, []);
+
+  // Listen for user interactions on the site to update presence timestamp
   useEffect(() => {
     let lastRecorded = 0;
     const handleActivity = () => {
@@ -161,6 +185,8 @@ export const useWaterReminder = () => {
         if (val === 0 && isReminderOpen) {
           setIsReminderOpen(false);
           stopWaterReminderSound();
+          stopTitleBlink();
+          closeWaterDesktopNotification();
         }
       }
       const todayStr = new Date().toLocaleDateString('en-CA');
@@ -174,33 +200,43 @@ export const useWaterReminder = () => {
     return () => window.removeEventListener('storage', handleStorage);
   }, [userId, isReminderOpen]);
 
-  // Main active timer interval
+  // Main active timer interval (Tracks real elapsed time across all tabs & in background)
   useEffect(() => {
     if (!userId || !isEnabled) {
       if (isReminderOpen) {
         toast.dismiss(WATER_REMINDER_TOAST_ID);
         stopWaterReminderSound();
+        stopTitleBlink();
+        closeWaterDesktopNotification();
         setIsReminderOpen(false);
       }
       return;
     }
 
+    lastTickRef.current = Date.now();
+
     const timer = setInterval(() => {
-      // 1. Check document visibility (only count when browser tab is active/visible)
-      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      const deltaSec = Math.max(1, Math.floor((now - lastTickRef.current) / 1000));
+      lastTickRef.current = now;
 
-      // 2. Check user activity (within 5 minutes idle threshold)
-      const isUserActive = Date.now() - lastActivityRef.current < IDLE_TIMEOUT_MS;
-      if (!isUserActive) return;
+      // Multi-tab deduping: prevent multiple open tabs from simultaneously incrementing the same second
+      const savedLastTick = parseInt(localStorage.getItem(`water_reminder_last_tick_${userId}`) || '0', 10);
+      if (savedLastTick && (now - savedLastTick) < 850) {
+        return;
+      }
+      try {
+        localStorage.setItem(`water_reminder_last_tick_${userId}`, now.toString());
+      } catch {}
 
-      // 3. For test intervals (<= 5 minutes), bypass working hours check so user can easily test!
+      // Working hours check: For test intervals (<= 5 minutes), bypass working hours check so user can easily test
       if (intervalMinutes > 5) {
         const inWorkingHours = isWithinWorkingHours(workingHours);
         if (!inWorkingHours) return;
       }
 
-      // Increment active seconds directly
-      const nextSeconds = activeSecondsRef.current + 1;
+      // Increment active seconds by elapsed time
+      const nextSeconds = activeSecondsRef.current + Math.min(deltaSec, targetSeconds);
       activeSecondsRef.current = nextSeconds;
       setActiveSeconds(nextSeconds);
 
@@ -210,13 +246,29 @@ export const useWaterReminder = () => {
 
       // Log progress to console for live monitoring
       if (nextSeconds % 5 === 0 || nextSeconds >= targetSeconds) {
-        console.log(`[💧 WaterReminder] Active: ${nextSeconds}/${targetSeconds}s (Interval: ${intervalMinutes}m)`);
+        console.log(`[💧 WaterReminder] Elapsed: ${nextSeconds}/${targetSeconds}s (Interval: ${intervalMinutes}m) [Tab: ${document.visibilityState}]`);
       }
 
       // Check if threshold reached
       if (nextSeconds >= targetSeconds && !isReminderOpen) {
-        console.log('[💧 WaterReminder] ⏰ Threshold reached! Triggering Water Break Popup & Sound!');
+        console.log('[💧 WaterReminder] ⏰ Threshold reached! Triggering Water Break Popup, Desktop Alert & Sound!');
         setIsReminderOpen(true);
+        playWaterReminderSound();
+
+        // If tab is in background or window is unfocused, fire Desktop Notification & Tab Title Blink
+        if (document.visibilityState !== 'visible' || !document.hasFocus()) {
+          showWaterDesktopNotification({
+            title: '💧 Time to drink water!',
+            body: `You've reached your ${intervalMinutes}m hydration goal. Take a refreshing sip of water!`,
+            onClick: () => {
+              try {
+                window.focus();
+              } catch {}
+              setIsReminderOpen(true);
+            },
+          });
+          startTitleBlink('💧 Drink Water! (Break Time)');
+        }
       }
     }, 1000);
 
@@ -227,9 +279,12 @@ export const useWaterReminder = () => {
   const handleClose = useCallback(() => {
     toast.dismiss(WATER_REMINDER_TOAST_ID);
     stopWaterReminderSound();
+    stopTitleBlink();
+    closeWaterDesktopNotification();
     setIsReminderOpen(false);
     setActiveSeconds(0);
     activeSecondsRef.current = 0;
+    lastTickRef.current = Date.now();
     if (userId) {
       try {
         localStorage.setItem(`water_reminder_active_sec_${userId}`, '0');
@@ -241,8 +296,12 @@ export const useWaterReminder = () => {
   const handleSnooze = useCallback((snoozeMinutes = 30) => {
     toast.dismiss(WATER_REMINDER_TOAST_ID);
     stopWaterReminderSound();
+    stopTitleBlink();
+    closeWaterDesktopNotification();
     setIsReminderOpen(false);
-    // Rewind activeSeconds so that snoozeMinutes of active use will trigger next reminder
+    lastTickRef.current = Date.now();
+
+    // Rewind activeSeconds so that snoozeMinutes of elapsed time will trigger next reminder
     const mins = typeof snoozeMinutes === 'number' ? snoozeMinutes : 30;
     const snoozeSeconds = mins * 60;
     const remainingBeforeNext = Math.max(0, targetSeconds - snoozeSeconds);
@@ -271,9 +330,12 @@ export const useWaterReminder = () => {
   const handleLogGlass = useCallback(async () => {
     toast.dismiss(WATER_REMINDER_TOAST_ID);
     stopWaterReminderSound();
+    stopTitleBlink();
+    closeWaterDesktopNotification();
     setIsReminderOpen(false);
     setActiveSeconds(0);
     activeSecondsRef.current = 0;
+    lastTickRef.current = Date.now();
 
     const todayStr = new Date().toLocaleDateString('en-CA');
     const newCount = todayLogsCount + 1;

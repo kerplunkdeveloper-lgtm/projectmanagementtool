@@ -17,11 +17,18 @@ import {
   FiDroplet,
   FiCheck,
   FiEye,
+  FiBell,
 } from "react-icons/fi";
 import { LuPaintbrush } from "react-icons/lu";
 import { updateUser, logWaterBreak } from "../../features/users/userSlice";
 import { triggerWaterReminderPreview } from "../../components/common/WaterReminderManager.jsx";
 import WaterReminderToast from "../../components/common/WaterReminderToast.jsx";
+import {
+  requestNotificationPermission,
+  getNotificationPermission,
+  showWaterDesktopNotification,
+  isNotificationSupported,
+} from "../../utils/browserNotification";
 
 const colors = [
   {
@@ -186,6 +193,29 @@ const Settings = () => {
   const [savingWater, setSavingWater] = useState(false);
   const [loggingGlass, setLoggingGlass] = useState(false);
   const [showInlinePreview, setShowInlinePreview] = useState(false);
+  const [notifPermission, setNotifPermission] = useState(() => getNotificationPermission());
+
+  const handleRequestNotif = async () => {
+    const granted = await requestNotificationPermission();
+    setNotifPermission(getNotificationPermission());
+    if (granted) {
+      toast.success("Desktop alerts enabled! You'll be reminded even in other tabs 💧");
+      showWaterDesktopNotification({
+        title: "💧 Water Reminder Active!",
+        body: "You'll receive desktop alerts like this one when it's time for a water break.",
+      });
+    } else {
+      toast.error("Notification permission not granted");
+    }
+  };
+
+  const handlePreviewPopup = async () => {
+    if (notifPermission === "default") {
+      await requestNotificationPermission();
+      setNotifPermission(getNotificationPermission());
+    }
+    triggerWaterReminderPreview();
+  };
 
   useEffect(() => {
     if (user?.waterReminder) {
@@ -213,6 +243,10 @@ const Settings = () => {
   const handleSaveWaterSettings = async () => {
     setSavingWater(true);
     try {
+      if (waterEnabled && notifPermission === "default") {
+        await requestNotificationPermission();
+        setNotifPermission(getNotificationPermission());
+      }
       const updatedReminder = {
         enabled: waterEnabled,
         interval: Number(waterInterval),
@@ -455,7 +489,7 @@ const Settings = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={triggerWaterReminderPreview}
+                    onClick={handlePreviewPopup}
                     className="px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-700/60 bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-extrabold text-[11px] tracking-wide shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
                     title="Trigger live water break popup reminder with sound"
                   >
@@ -499,12 +533,12 @@ const Settings = () => {
                     <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
                   </h4>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed font-medium">
-                    Sorted monitors your active work time and displays a friendly toast to help you stay healthy and hydrated.
+                    Sorted tracks your hydration schedule and alerts you even when browsing other tabs or apps!
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* Enable/Disable Toggle */}
                 <div className="flex items-center justify-between p-3 rounded-xl border theme-border bg-slate-50/50 dark:bg-slate-900/30">
                   <div className="space-y-0.5">
@@ -515,7 +549,7 @@ const Settings = () => {
                       Enable Water Reminders
                     </label>
                     <p className="text-[10px] theme-text-secondary">
-                      Show popup toasts during active work on this site
+                      Show hydration reminders & play music during active work
                     </p>
                   </div>
                   <button
@@ -535,6 +569,43 @@ const Settings = () => {
                     />
                   </button>
                 </div>
+
+                {/* Background & Other Tab Desktop Alert Status Banner */}
+                {waterEnabled && (
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-teal-200/80 dark:border-teal-900/50 bg-teal-50/60 dark:bg-teal-950/20 text-xs gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                        <FiBell size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">
+                          Other Tab & Background Notifications
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5">
+                          {notifPermission === "granted"
+                            ? "Desktop alerts active. You will be reminded with sound & popup even when working in other tabs."
+                            : notifPermission === "denied"
+                            ? "Desktop notifications are blocked in browser settings. Drink water sound & tab title alert will still play."
+                            : "Enable desktop alerts to get reminder popups even when browsing YouTube, Gmail, or other tabs."}
+                        </p>
+                      </div>
+                    </div>
+                    {notifPermission !== "granted" && notifPermission !== "unsupported" && (
+                      <button
+                        type="button"
+                        onClick={handleRequestNotif}
+                        className="px-2.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-black text-[10px] shrink-0 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                      >
+                        Enable Alerts
+                      </button>
+                    )}
+                    {notifPermission === "granted" && (
+                      <span className="text-[10px] font-black text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/60 px-2 py-0.5 rounded-md shrink-0 border border-teal-200 dark:border-teal-800/60">
+                        Active ✓
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {waterEnabled && (
                   <>

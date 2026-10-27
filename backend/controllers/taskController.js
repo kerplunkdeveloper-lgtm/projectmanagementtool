@@ -640,6 +640,7 @@ exports.getTasks = async (req, res) => {
       data: tasks,
     });
   } catch (err) {
+    console.error("[getTasks Error]:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
