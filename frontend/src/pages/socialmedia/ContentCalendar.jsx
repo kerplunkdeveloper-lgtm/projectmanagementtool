@@ -21,6 +21,12 @@ import {
   FiLock,
   FiEye,
   FiDownload,
+  FiPlay,
+  FiImage,
+  FiVideo,
+  FiBarChart2,
+  FiTarget,
+  FiArrowRight,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,6 +39,14 @@ import {
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
+import SearchableDropdown from "../../components/common/SearchableDropdown";
+import PendingCommitmentModal from "../../components/common/PendingCommitmentModal";
+import {
+  computeAllClientsCommitments,
+  computeSingleClientCommitments,
+  getTaskCommitmentProgress,
+  formatCommitmentDate,
+} from "../../utils/smCommitmentUtils";
 import { formatLocalDateKey } from "../../utils/dateUtils";
 import calendarMascotImg from "../../../public/assets/calendorchar.png";
 
@@ -51,7 +65,7 @@ const MONTH_NAMES = [
   "December",
 ];
 
-const WEEK_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const CATEGORIES = [
   "All",
@@ -242,42 +256,53 @@ const ContentCalendar = () => {
     return map;
   }, [users, user]);
 
-  // Resolve creator information (avatar and name)
-  const getCreatorInfo = useCallback(
+  // Resolve user information (prefer assigned member, fallback to creator)
+  const getUserInfo = useCallback(
     (task) => {
-      const createdBy = task?.createdBy;
       const assignee = task?.assignee;
-      const rawName =
-        (typeof createdBy === "object" ? createdBy?.name : null) ||
-        (typeof assignee === "object" ? assignee?.name : null) ||
-        task?.createdByName ||
-        task?.assigneeName ||
-        (typeof createdBy === "string" ? createdBy : null) ||
-        "Admin";
+      const createdBy = task?.createdBy;
 
-      const cId = (typeof createdBy === "object" ? createdBy?._id : createdBy)?.toString();
       const aId = (typeof assignee === "object" ? assignee?._id : assignee)?.toString();
-      const cName = (typeof createdBy === "object" ? createdBy?.name : null) || task?.createdByName;
       const aName = (typeof assignee === "object" ? assignee?.name : null) || task?.assigneeName;
 
-      const matchedUser =
-        (cId && usersMap.get(cId)) ||
-        (aId && usersMap.get(aId)) ||
-        (cName && usersMap.get(cName.trim().toLowerCase())) ||
-        (aName && usersMap.get(aName.trim().toLowerCase())) ||
-        (rawName && usersMap.get(rawName.trim().toLowerCase())) ||
-        (typeof createdBy === "object" ? createdBy : null) ||
-        (typeof assignee === "object" ? assignee : null);
+      const cId = (typeof createdBy === "object" ? createdBy?._id : createdBy)?.toString();
+      const cName = (typeof createdBy === "object" ? createdBy?.name : null) || task?.createdByName;
 
-      const name = matchedUser?.name || cName || aName || rawName;
+      const hasValidAssignee = aName && aName !== "Unassigned" && aName.trim().length > 0;
+
+      let targetUser = null;
+      let resolvedName = "";
+      let isAssignee = false;
+
+      if (hasValidAssignee) {
+        targetUser =
+          (aId && usersMap.get(aId)) ||
+          (aName && usersMap.get(aName.trim().toLowerCase())) ||
+          (typeof assignee === "object" ? assignee : null);
+        resolvedName = targetUser?.name || aName;
+        isAssignee = true;
+      }
+
+      if (!resolvedName || resolvedName === "Unassigned") {
+        targetUser =
+          (cId && usersMap.get(cId)) ||
+          (cName && usersMap.get(cName.trim().toLowerCase())) ||
+          (typeof createdBy === "object" ? createdBy : null);
+        resolvedName =
+          targetUser?.name ||
+          cName ||
+          (typeof createdBy === "string" ? createdBy : null) ||
+          "Admin";
+        isAssignee = false;
+      }
 
       const avatarUrl =
-        extractAvatarUrl(matchedUser) ||
+        extractAvatarUrl(targetUser) ||
+        extractAvatarUrl(hasValidAssignee ? assignee : null) ||
         extractAvatarUrl(createdBy) ||
-        extractAvatarUrl(assignee) ||
         null;
 
-      const initials = (name || "U")
+      const initials = (resolvedName || "U")
         .split(" ")
         .filter(Boolean)
         .slice(0, 2)
@@ -285,13 +310,17 @@ const ContentCalendar = () => {
         .join("") || "U";
 
       return {
-        name,
+        name: resolvedName,
         avatarUrl,
         initials,
+        isAssignee,
       };
     },
     [usersMap, extractAvatarUrl]
   );
+
+  // Backward compatible alias for existing logic
+  const getCreatorInfo = getUserInfo;
 
   // Month & Year state (Dynamic current date)
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -324,6 +353,15 @@ const ContentCalendar = () => {
 
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // Pending Commitments & Calendar Date State
+  const [isPendingCommitmentOpen, setIsPendingCommitmentOpen] = useState(false);
+  const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState(realTodayStr);
+
+  // Compute live commitments across all clients (posts, reels, deliverables)
+  const commitmentOverview = useMemo(() => {
+    return computeAllClientsCommitments(clients, tasks, currentMonth + 1, currentYear);
+  }, [clients, tasks, currentMonth, currentYear]);
+
   // Fetch dynamic tasks and stats
   useEffect(() => {
     dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }))
@@ -346,31 +384,33 @@ const ContentCalendar = () => {
     });
   }, [tasks]);
 
-  // Dynamic client options
+  // Dynamic client options (alphabetically sorted)
   const clientOptions = useMemo(() => {
     const set = new Set();
     clients.forEach((c) => {
-      if (c.companyName) set.add(c.companyName);
+      if (c.companyName) set.add(c.companyName.trim());
     });
     uniqueTasks.forEach((t) => {
-      if (t.clientName) set.add(t.clientName);
+      if (t.clientName) set.add(t.clientName.trim());
     });
-    return ["All", ...Array.from(set)];
+    const sorted = Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
+    return ["All", ...sorted];
   }, [clients, uniqueTasks]);
 
-  // Dynamic creator / assignee options
+  // Dynamic creator / assignee options (alphabetically sorted)
   const assigneeOptions = useMemo(() => {
     const set = new Set();
     users.forEach((u) => {
-      if (u.name) set.add(u.name);
+      if (u.name) set.add(u.name.trim());
     });
     uniqueTasks.forEach((t) => {
-      const creator = t.createdBy?.name || t.createdByName;
-      const assignee = t.assignee?.name || t.assigneeName;
+      const creator = (t.createdBy?.name || t.createdByName)?.trim();
+      const assignee = (t.assignee?.name || t.assigneeName)?.trim();
       if (creator) set.add(creator);
       if (assignee) set.add(assignee);
     });
-    return ["All", ...Array.from(set)];
+    const sorted = Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
+    return ["All", ...sorted];
   }, [users, uniqueTasks]);
 
   // Filtered tasks for calendar (only tasks with publishDate)
@@ -451,13 +491,12 @@ const ContentCalendar = () => {
     atRiskOnly,
   ]);
 
-  // Calendar month grid calculation (Monday start)
+  // Calendar month grid calculation (Sunday start matching Image 2)
   const calendarDays = useMemo(() => {
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
     const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-    let firstDayIndex = firstDayOfMonth.getDay() - 1;
-    if (firstDayIndex === -1) firstDayIndex = 6;
+    const firstDayIndex = firstDayOfMonth.getDay(); // 0 is Sunday
 
     const days = [];
 
@@ -502,20 +541,19 @@ const ContentCalendar = () => {
     return days;
   }, [currentYear, currentMonth]);
 
-  // Calendar week view days calculation (Monday to Sunday for currentDate's week)
+  // Calendar week view days calculation (Sunday to Saturday matching Image 2)
   const currentWeekDays = useMemo(() => {
     const d = new Date(currentDate);
     const dayOfWeek = d.getDay(); // 0 (Sun) to 6 (Sat)
-    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
-    const monday = new Date(d);
-    monday.setDate(d.getDate() + diffToMonday);
-    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(d);
+    sunday.setDate(d.getDate() - dayOfWeek);
+    sunday.setHours(0, 0, 0, 0);
 
     const weekDays = [];
     for (let i = 0; i < 7; i++) {
-      const dayDate = new Date(monday);
-      dayDate.setDate(monday.getDate() + i);
+      const dayDate = new Date(sunday);
+      dayDate.setDate(sunday.getDate() + i);
       weekDays.push({
         date: dayDate,
         dayNumber: dayDate.getDate(),
@@ -525,8 +563,9 @@ const ContentCalendar = () => {
         isToday: formatLocalDateKey(dayDate) === realTodayStr,
       });
     }
+
     return weekDays;
-  }, [currentDate, realTodayStr]);
+  }, [currentDate, currentMonth, currentYear, realTodayStr]);
 
   // Group tasks by date string (YYYY-MM-DD)
   const tasksByDate = useMemo(() => {
@@ -991,6 +1030,40 @@ const ContentCalendar = () => {
         </div>
       </div>
 
+      {/* Top Deliverables Progress Tracker (Image 2) */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="w-full max-w-2xl mx-auto space-y-2 text-center md:text-left">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-slate-900 dark:text-white flex items-center gap-2">
+              <span className="font-extrabold text-sm">{MONTH_NAMES[currentMonth]}</span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {commitmentOverview.totalDeliverablesPublished}/{commitmentOverview.totalDeliverablesCommitted} deliverables published
+              </span>
+            </span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">
+              {commitmentOverview.deliverablesProgressPct}%
+            </span>
+          </div>
+
+          <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500 shadow-sm"
+              style={{ width: `${commitmentOverview.deliverablesProgressPct}%` }}
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsPendingCommitmentOpen(true)}
+          className="shrink-0 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/80 hover:bg-indigo-50/40 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+        >
+          <FiBarChart2 size={15} className="text-indigo-500" />
+          <span>Pending Commitments</span>
+        </button>
+      </div>
+
       {/* 5 KPI Metric Cards - 100% Dynamic from MongoDB */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {/* COMMITMENTS */}
@@ -1060,23 +1133,19 @@ const ContentCalendar = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 relative z-30">
         <div className="flex flex-wrap items-center gap-2">
-          {/* All Clients (Dynamic DB Clients) */}
-          <select
+          {/* All Clients (Dynamic DB Clients with Search Box) */}
+          <SearchableDropdown
             value={selectedClient}
-            onChange={(e) => setSelectedClient(e.target.value)}
-            className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-          >
-            <option value="All">All clients</option>
-            {clientOptions
-              .filter((c) => c !== "All")
-              .map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-          </select>
+            onChange={(val) => setSelectedClient(val)}
+            options={clientOptions.filter((c) => c !== "All")}
+            allLabel="All clients"
+            placeholder="All clients"
+            searchPlaceholder="Search clients..."
+            emptyText="No clients found"
+            menuWidth="w-64 sm:w-72"
+          />
 
           {/* Category */}
           <select
@@ -1120,22 +1189,18 @@ const ContentCalendar = () => {
             ))}
           </select>
 
-          {/* Assignee / Created By - Admin & Operation Manager only */}
+          {/* Assignee / Created By with Search Box - Admin & Operation Manager only */}
           {isPrivileged && (
-            <select
+            <SearchableDropdown
               value={selectedAssignee}
-              onChange={(e) => setSelectedAssignee(e.target.value)}
-              className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-            >
-              <option value="All">Created By / Assignee</option>
-              {assigneeOptions
-                .filter((a) => a !== "All")
-                .map((a) => (
-                  <option key={a} value={a}>
-                    {a}
-                  </option>
-                ))}
-            </select>
+              onChange={(val) => setSelectedAssignee(val)}
+              options={assigneeOptions.filter((a) => a !== "All")}
+              allLabel="Created By / Assignee"
+              placeholder="Created By / Assignee"
+              searchPlaceholder="Search creator..."
+              emptyText="No creators found"
+              menuWidth="w-64 sm:w-72"
+            />
           )}
 
           {/* Priority */}
@@ -1213,186 +1278,229 @@ const ContentCalendar = () => {
 
       {/* VIEW MODES: MONTH | WEEK | LIST */}
       <div className="space-y-4">
-        {/* 1. MONTH VIEW */}
-      {viewMode === "Month" && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto scrollbar-thin">
-            <div className="min-w-[720px] lg:min-w-0">
-              {/* Days of Week Header */}
-              <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center py-2.5">
-                {WEEK_DAYS.map((day) => (
-                  <div key={day}>{day}</div>
-                ))}
-              </div>
+        {/* 1. MONTH VIEW (Full Width View) */}
+        {viewMode === "Month" && (
+          <div className="w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto scrollbar-thin">
+              <div className="min-w-[1050px] 2xl:min-w-full">
+                {/* Days of Week Header (Sun to Sat matching Image 2) */}
+                <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center py-2.5">
+                  {WEEK_DAYS.map((day) => (
+                    <div key={day} className="px-1 truncate">{day}</div>
+                  ))}
+                </div>
 
-              {/* Days Grid Cells */}
-              <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800/80 border-b border-slate-200 dark:border-slate-800">
-            {calendarDays.map((dayItem, index) => {
-              const dateKey = dayItem.dateKey;
-              const postsForDay = tasksByDate[dateKey] || [];
-              const isToday = dayItem.dateKey === realTodayStr;
+                {/* Days Grid Cells */}
+                <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800/80 border-b border-slate-200 dark:border-slate-800">
+                  {calendarDays.map((dayItem, index) => {
+                    const dateKey = dayItem.dateKey;
+                    const postsForDay = tasksByDate[dateKey] || [];
+                    const isToday = dayItem.dateKey === realTodayStr;
+                    const isSelectedDay =
+                      dayItem.dateKey === selectedCalendarDateKey || (isToday && !selectedCalendarDateKey);
 
-              const displayedPosts = postsForDay.slice(0, 3);
-              const remainingCount = postsForDay.length - displayedPosts.length;
+                    const displayedPosts = postsForDay.slice(0, 3);
+                    const remainingCount = postsForDay.length - displayedPosts.length;
 
-              return (
-                <div
-                  key={index}
-                  onDragOver={!isReadOnly ? handleDragOver : undefined}
-                  onDrop={!isReadOnly ? (e) => handleDrop(e, dayItem.date) : undefined}
-                  onClick={!isReadOnly ? () => handleAddPostOnDate(dayItem.date) : undefined}
-                  className={`min-h-[165px] sm:min-h-[185px] p-2 flex flex-col justify-between transition-colors ${
-                    isReadOnly ? "cursor-default" : "cursor-pointer"
-                  } ${
-                    dayItem.isCurrentMonth
-                      ? "bg-white dark:bg-slate-900"
-                      : "bg-slate-50/50 dark:bg-slate-950/40 text-slate-400"
-                  } hover:bg-slate-50/80 dark:hover:bg-slate-800/30 group`}
-                >
-                  {/* Cell Top Bar */}
-                  <div className="flex items-center justify-between mb-1.5" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
-                          isToday
-                            ? "bg-blue-600 text-white shadow-xs font-black"
+                    return (
+                      <div
+                        key={index}
+                        onDragOver={!isReadOnly ? handleDragOver : undefined}
+                        onDrop={!isReadOnly ? (e) => handleDrop(e, dayItem.date) : undefined}
+                        onClick={() => {
+                          setSelectedCalendarDateKey(dayItem.dateKey);
+                          if (!isReadOnly) handleAddPostOnDate(dayItem.date);
+                        }}
+                        className={`min-h-[175px] sm:min-h-[195px] p-2 flex flex-col justify-between transition-all relative ${
+                          isReadOnly ? "cursor-default" : "cursor-pointer"
+                        } ${
+                          isSelectedDay
+                            ? "ring-2 ring-emerald-500 rounded-2xl bg-emerald-50/15 dark:bg-emerald-950/20 z-10 shadow-xs"
                             : dayItem.isCurrentMonth
-                              ? "text-slate-800 dark:text-slate-200"
-                              : "text-slate-400"
-                        }`}
+                            ? "bg-white dark:bg-slate-900"
+                            : "bg-slate-50/50 dark:bg-slate-950/40 text-slate-400"
+                        } hover:bg-slate-50/80 dark:hover:bg-slate-800/30 group`}
                       >
-                        {dayItem.dayNumber}
-                      </span>
-
-                      {postsForDay.length > 0 && dayItem.isCurrentMonth && (
-                        <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                          {postsForDay.length} {postsForDay.length === 1 ? "post" : "posts"}
-                        </span>
-                      )}
-                    </div>
-
-                    {!isReadOnly && (
-                      <button
-                        type="button"
-                        onClick={() => handleAddPostOnDate(dayItem.date)}
-                        className="w-5 h-5 rounded-md flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                        title={`Add post on ${dayItem.dayNumber} ${MONTH_NAMES[currentMonth]}`}
-                      >
-                        <FiPlus size={13} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Posts Cards inside cell */}
-                  <div className="space-y-1.5 flex-1 overflow-hidden">
-                    {displayedPosts.map((post) => {
-                      const clientColor = post.clientColor || "#6366f1";
-                      const postDiffHours = post.publishDate
-                        ? (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
-                        : -1;
-                      const isRisk =
-                        !["Completed", "Live"].includes(post.status) &&
-                        postDiffHours >= 0 &&
-                        postDiffHours <= 24;
-                      const creator = getCreatorInfo(post);
-                      const typeStyle = getContentTypeStyle(post.contentType);
-                      const statusStyle = getStatusCardStyles(post.status, isRisk);
-
-                      return (
+                        {/* Cell Top Bar */}
                         <div
-                          key={post._id}
-                          draggable={!isReadOnly}
-                          onDragStart={!isReadOnly ? (e) => handleDragStart(e, post._id) : undefined}
-                          onClick={(e) => handleCardClick(post, e)}
-                          className={`p-1.5 sm:p-2 rounded-xl border ${statusStyle.card} hover:-translate-y-0.5 transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1`}
-                          style={{ borderLeftWidth: "3.5px", borderLeftColor: clientColor }}
+                          className="flex items-center justify-between mb-1.5"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {/* Top Row: Time + Content Type Pill + Status / Risk Badge */}
-                          <div className="flex items-center justify-between gap-1 text-[10px] leading-tight">
-                            <div className="flex items-center gap-1 min-w-0">
-                              <span className="font-mono font-bold text-slate-600 dark:text-slate-300 text-[10px]">
-                                {formatCardTime(post.publishDate)}
-                              </span>
-                              <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wide border ${typeStyle.bg}`}>
-                                {typeStyle.label}
-                              </span>
-                            </div>
-                            <div className="shrink-0">
-                              {renderStatusBadge(post.status, isRisk)}
-                            </div>
-                          </div>
-
-                          {/* Middle Row: Task Title (Prominent & Clear) */}
-                          <div className="text-[11px] font-bold text-slate-900 dark:text-white leading-snug line-clamp-2" title={post.taskTitle || post.clientName}>
-                            {post.taskTitle || "Untitled Task"}
-                          </div>
-
-                          {/* Bottom Row: Client Name (Left) + Creator with Avatar (Right) */}
-                          <div className={`flex items-center justify-between gap-1 pt-1 border-t ${statusStyle.divider} text-[10px]`}>
+                          <div className="flex items-center gap-1.5">
                             <span
-                              className="font-bold truncate max-w-[70px] sm:max-w-[85px]"
-                              style={{ color: clientColor }}
-                              title={post.clientName}
+                              className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold transition-transform ${
+                                isToday
+                                  ? "bg-emerald-600 text-white shadow-xs font-black ring-2 ring-emerald-500/30"
+                                  : dayItem.isCurrentMonth
+                                  ? "text-slate-800 dark:text-slate-200 font-extrabold"
+                                  : "text-slate-400 font-medium"
+                              }`}
                             >
-                              {post.clientName}
+                              {dayItem.dayNumber}
                             </span>
 
-                            <div className="flex items-center gap-1 shrink-0 max-w-[85px] sm:max-w-[95px]" title={`Created by ${creator.name}`}>
-                              <div className="relative shrink-0 w-4 h-4 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs">
-                                {creator.avatarUrl ? (
-                                  <img
-                                    src={creator.avatarUrl}
-                                    alt={creator.name}
-                                    className="w-full h-full object-cover"
-                                    loading="lazy"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = "none";
-                                      const fb = e.currentTarget.parentElement?.querySelector(".cal-avatar-fallback");
-                                      if (fb) fb.style.display = "flex";
-                                    }}
-                                  />
-                                ) : null}
+                            {postsForDay.length > 0 && dayItem.isCurrentMonth && (
+                              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                                {postsForDay.length} {postsForDay.length === 1 ? "post" : "posts"}
+                              </span>
+                            )}
+                          </div>
+
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={() => handleAddPostOnDate(dayItem.date)}
+                              className="w-5 h-5 rounded-md flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                              title={`Add post on ${dayItem.dayNumber} ${MONTH_NAMES[currentMonth]}`}
+                            >
+                              <FiPlus size={13} />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Posts Cards inside cell */}
+                        <div className="space-y-1.5 flex-1 overflow-hidden">
+                          {displayedPosts.map((post) => {
+                            const clientColor = post.clientColor || "#6366f1";
+                            const postDiffHours = post.publishDate
+                              ? (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
+                              : -1;
+                            const isRisk =
+                              !["Completed", "Live"].includes(post.status) &&
+                              postDiffHours >= 0 &&
+                              postDiffHours <= 24;
+                            const typeStyle = getContentTypeStyle(post.contentType);
+                            const statusStyle = getStatusCardStyles(post.status, isRisk);
+                            const postCommitment = getTaskCommitmentProgress(
+                              post,
+                              clients,
+                              tasks,
+                              currentMonth + 1,
+                              currentYear
+                            );
+                            const userInfo = getUserInfo(post);
+
+                            return (
+                              <div
+                                key={post._id}
+                                draggable={!isReadOnly}
+                                onDragStart={!isReadOnly ? (e) => handleDragStart(e, post._id) : undefined}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCalendarDateKey(dayItem.dateKey);
+                                  handleCardClick(post, e);
+                                }}
+                                className={`p-2 rounded-xl border ${statusStyle.card} hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1.5 shadow-2xs`}
+                                style={{ borderLeftWidth: "3.5px", borderLeftColor: clientColor }}
+                              >
+                                {/* Top Row: Time + Content Type Pill + Status / Risk Badge */}
+                                <div className="flex items-center justify-between gap-1 text-[10px] leading-tight">
+                                  <div className="flex items-center gap-1 min-w-0">
+                                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300 text-[10px] shrink-0">
+                                      {formatCardTime(post.publishDate)}
+                                    </span>
+                                    <span
+                                      className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wide border shrink-0 ${typeStyle.bg}`}
+                                    >
+                                      {typeStyle.label}
+                                    </span>
+                                  </div>
+                                  <div className="shrink-0">
+                                    {renderStatusBadge(post.status, isRisk)}
+                                  </div>
+                                </div>
+
+                                {/* Middle Row: Client - Content Type */}
                                 <div
-                                  className="cal-avatar-fallback w-full h-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[7.5px] items-center justify-center uppercase shadow-2xs"
-                                  style={{ display: creator.avatarUrl ? "none" : "flex" }}
+                                  className="text-[11px] font-extrabold text-slate-900 dark:text-white leading-tight truncate"
+                                  title={`${post.clientName} - ${post.contentType}${post.taskTitle ? ` : ${post.taskTitle}` : ""}`}
                                 >
-                                  {creator.initials}
+                                  {post.clientName} - {post.contentType}
+                                </div>
+
+                                {/* Deliverables Commitment Tag */}
+                                {postCommitment ? (
+                                  <div className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 inline-block shrink-0" />
+                                    <span className="truncate">
+                                      {MONTH_NAMES[currentMonth]} {postCommitment.type} {postCommitment.published}/{postCommitment.committed}
+                                    </span>
+                                  </div>
+                                ) : post.taskTitle ? (
+                                  <div className="text-[9.5px] text-slate-400 truncate">
+                                    {post.taskTitle}
+                                  </div>
+                                ) : null}
+
+                                {/* Bottom Row: User Profile & Name + Client color indicator */}
+                                <div
+                                  className={`pt-1 border-t ${statusStyle.divider || "border-slate-100 dark:border-slate-800/80"} flex items-center justify-between gap-1.5 text-[10px]`}
+                                >
+                                  <div
+                                    className="flex items-center gap-1.5 min-w-0 flex-1"
+                                    title={`${userInfo.isAssignee ? "Assigned to" : "Created by"}: ${userInfo.name}`}
+                                  >
+                                    <div className="relative shrink-0 w-4 h-4 rounded-full overflow-hidden ring-1 ring-slate-200/90 dark:ring-slate-700 shadow-2xs">
+                                      {userInfo.avatarUrl ? (
+                                        <img
+                                          src={userInfo.avatarUrl}
+                                          alt={userInfo.name}
+                                          className="w-full h-full object-cover"
+                                          loading="lazy"
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = "none";
+                                            const fb = e.currentTarget.parentElement?.querySelector(".cal-card-fallback");
+                                            if (fb) fb.style.display = "flex";
+                                          }}
+                                        />
+                                      ) : null}
+                                      <div
+                                        className="cal-card-fallback w-full h-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white font-extrabold text-[7.5px] items-center justify-center uppercase shadow-2xs"
+                                        style={{ display: userInfo.avatarUrl ? "none" : "flex" }}
+                                      >
+                                        {userInfo.initials}
+                                      </div>
+                                    </div>
+                                    <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">
+                                      {userInfo.name}
+                                    </span>
+                                  </div>
+
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full shrink-0 shadow-2xs ring-1 ring-white dark:ring-slate-900"
+                                    style={{ backgroundColor: clientColor }}
+                                    title={`Client: ${post.clientName}`}
+                                  />
                                 </div>
                               </div>
-                              <span className="text-[9.5px] text-slate-500 dark:text-slate-400 font-medium truncate">
-                                {creator.name}
-                              </span>
-                            </div>
-                          </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
 
-                  {/* "+X more" button */}
-                  {remainingCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedDayPosts({
-                          date: dayItem.date,
-                          posts: postsForDay,
-                        });
-                      }}
-                      className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline pt-1 text-left block w-full cursor-pointer"
-                    >
-                      +{remainingCount} more
-                    </button>
-                  )}
+                        {/* "+X more" button */}
+                        {remainingCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDayPosts({
+                                date: dayItem.date,
+                                posts: postsForDay,
+                              });
+                            }}
+                            className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:underline pt-1 text-left block w-full cursor-pointer transition-colors"
+                          >
+                            +{remainingCount} more
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* 2. WEEK VIEW */}
       {viewMode === "Week" && (
@@ -1476,7 +1584,7 @@ const ContentCalendar = () => {
                             <span className="font-bold truncate max-w-[70px]" style={{ color: p.clientColor || "#6366f1" }} title={p.clientName}>
                               {p.clientName}
                             </span>
-                            <div className="flex items-center gap-1 shrink-0 max-w-[85px]" title={`Created by ${creator.name}`}>
+                            <div className="flex items-center gap-1 shrink-0 max-w-[95px]" title={`${creator.isAssignee ? "Assigned to" : "Created by"}: ${creator.name}`}>
                               <div className="relative shrink-0 w-4 h-4 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs">
                                 {creator.avatarUrl ? (
                                   <img
@@ -1599,7 +1707,7 @@ const ContentCalendar = () => {
 
                     <div className="flex items-center gap-3 self-end md:self-auto shrink-0" onClick={(e) => e.stopPropagation()}>
                       {/* Creator Profile Chip */}
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60" title={`Created by ${creator.name}`}>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60" title={`${creator.isAssignee ? "Assigned to" : "Created by"}: ${creator.name}`}>
                         <div className="relative w-5 h-5 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 shadow-2xs">
                           {creator.avatarUrl ? (
                             <img
@@ -1721,7 +1829,7 @@ const ContentCalendar = () => {
                       <span className="font-bold text-[11px]" style={{ color: post.clientColor || "#6366f1" }}>
                         {post.clientName}
                       </span>
-                      <div className="flex items-center gap-1.5" title={`Created by ${creator.name}`}>
+                      <div className="flex items-center gap-1.5" title={`${creator.isAssignee ? "Assigned to" : "Created by"}: ${creator.name}`}>
                         <div className="relative w-4.5 h-4.5 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 shadow-2xs">
                           {creator.avatarUrl ? (
                             <img
@@ -1777,6 +1885,28 @@ const ContentCalendar = () => {
         task={selectedTaskForEdit}
         initialDate={initialDateForCreate}
         isReadOnly={isReadOnly}
+      />
+
+      {/* Pending Commitment Modal (Detailed Client Breakdown) */}
+      <PendingCommitmentModal
+        isOpen={isPendingCommitmentOpen}
+        onClose={() => setIsPendingCommitmentOpen(false)}
+        clients={clients}
+        tasks={tasks}
+        currentMonth={currentMonth + 1}
+        currentYear={currentYear}
+        onSelectClient={(clientName) => {
+          setSelectedClient(clientName);
+        }}
+        onCreateTaskForClient={isReadOnly ? null : (clientObj) => {
+          setSelectedTaskForEdit({
+            client: clientObj?._id,
+            clientName: clientObj?.companyName,
+            clientColor: clientObj?.color,
+          });
+          setInitialDateForCreate(new Date());
+          setIsModalOpen(true);
+        }}
       />
     </div>
   );

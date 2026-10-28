@@ -1,15 +1,21 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { FiSearch, FiChevronDown, FiX } from "react-icons/fi";
+import { FiSearch, FiChevronDown, FiX, FiCheck } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SearchableDropdown = ({
-  options = [], // { value, label, group? }
+  options = [], // [{ value, label, group? }] or array of strings
   value,
   onChange,
   placeholder = "Select...",
+  allLabel = null, // e.g. "All clients" (value: "All")
+  searchPlaceholder = "Search...",
+  emptyText = "No results found",
   className = "",
+  buttonClassName = "",
+  menuWidth = "w-64",
   disabled = false,
   groupBy = false,
+  maxHeight = "max-h-60",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -23,22 +29,63 @@ const SearchableDropdown = ({
         setSearchTerm("");
       }
     };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && isOpen) {
+        setIsOpen(false);
+        setSearchTerm("");
+      }
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  // Normalize options to [{ value, label, group? }]
+  const normalizedOptions = useMemo(() => {
+    const list = [];
+    if (allLabel) {
+      list.push({ value: "All", label: allLabel });
+    }
+
+    (options || []).forEach((opt) => {
+      if (typeof opt === "string") {
+        if (opt === "All" && allLabel) return;
+        list.push({ value: opt, label: opt });
+      } else if (opt && typeof opt === "object") {
+        if (opt.value === "All" && allLabel) return;
+        list.push({
+          value: opt.value ?? opt.label,
+          label: opt.label ?? opt.value,
+          group: opt.group,
+        });
+      }
+    });
+
+    return list;
+  }, [options, allLabel]);
 
   const selectedOption = useMemo(
-    () => options.find((opt) => opt.value === value),
-    [options, value]
+    () => normalizedOptions.find((opt) => opt.value === value),
+    [normalizedOptions, value]
   );
 
+  const displayLabel = useMemo(() => {
+    if (selectedOption) return selectedOption.label;
+    if (value && value !== "All") return value;
+    if (allLabel) return allLabel;
+    return placeholder;
+  }, [selectedOption, value, allLabel, placeholder]);
+
   const filteredOptions = useMemo(() => {
-    if (!searchTerm) return options;
-    const lowerSearch = searchTerm.toLowerCase();
-    return options.filter((opt) =>
+    if (!searchTerm.trim()) return normalizedOptions;
+    const lowerSearch = searchTerm.trim().toLowerCase();
+    return normalizedOptions.filter((opt) =>
       opt.label.toLowerCase().includes(lowerSearch)
     );
-  }, [options, searchTerm]);
+  }, [normalizedOptions, searchTerm]);
 
   const groupedOptions = useMemo(() => {
     if (!groupBy) return { ungrouped: filteredOptions };
@@ -51,34 +98,46 @@ const SearchableDropdown = ({
     return groups;
   }, [filteredOptions, groupBy]);
 
+  const handleSelect = (val) => {
+    if (onChange) onChange(val);
+    setIsOpen(false);
+    setSearchTerm("");
+  };
+
+  const isFiltered = value && value !== "All";
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
         disabled={disabled}
         onClick={() => {
-          setIsOpen(!isOpen);
-          if (!isOpen) {
-            setTimeout(() => inputRef.current?.focus(), 50);
+          const nextOpen = !isOpen;
+          setIsOpen(nextOpen);
+          if (nextOpen) {
+            setTimeout(() => inputRef.current?.focus(), 60);
+          } else {
+            setSearchTerm("");
           }
         }}
-        className={`w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none transition-all ${
-          disabled
-            ? "opacity-50 cursor-not-allowed"
-            : "hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer"
-        }`}
+        className={
+          buttonClassName
+            ? `${buttonClassName} ${isFiltered ? "is-active" : ""}`
+            : `w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                isFiltered
+                  ? "bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-600 text-indigo-700 dark:text-indigo-300 font-bold shadow-xs"
+                  : "bg-white dark:bg-[#1e293b] text-slate-800 dark:text-slate-100 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
+              } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`
+        }
+        title={typeof displayLabel === "string" ? displayLabel : undefined}
       >
-        <span className="truncate">
-          {selectedOption ? (
-            selectedOption.label
-          ) : (
-            <span className="text-slate-400">{placeholder}</span>
-          )}
+        <span className="truncate max-w-[130px] sm:max-w-[170px] text-left">
+          {displayLabel}
         </span>
         <FiChevronDown
-          size={14}
-          className={`shrink-0 text-slate-400 transition-transform ${
-            isOpen ? "rotate-180" : ""
+          size={13}
+          className={`shrink-0 text-slate-400 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-indigo-500" : ""
           }`}
         />
       </button>
@@ -86,83 +145,90 @@ const SearchableDropdown = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.15 }}
-            className="absolute z-[9999] top-full left-0 mt-1 w-full min-w-[200px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl overflow-hidden flex flex-col"
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.12 }}
+            className={`absolute z-[80] top-full left-0 mt-1.5 ${menuWidth} min-w-[210px] bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden flex flex-col`}
           >
-            <div className="p-2 border-b border-slate-100 dark:border-slate-700 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900/50">
-              <FiSearch size={14} className="text-slate-400 shrink-0" />
+            {/* Search Input Box */}
+            <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-[#1e293b]/60 flex items-center gap-2">
+              <FiSearch size={13} className="text-slate-400 shrink-0 ml-1" />
               <input
                 ref={inputRef}
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search..."
-                className="w-full bg-transparent outline-none text-[11px] font-semibold text-slate-800 dark:text-slate-200 placeholder:text-slate-400"
+                placeholder={searchPlaceholder}
+                className="w-full bg-transparent outline-none text-xs font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400"
               />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm("")}
-                  className="text-slate-400 hover:text-slate-600"
+                  className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors"
+                  title="Clear search"
                 >
                   <FiX size={12} />
                 </button>
               )}
             </div>
 
-            <div className="max-h-48 overflow-y-auto scrollbar-thin flex flex-col p-1">
+            {/* Options List */}
+            <div className={`${maxHeight} overflow-y-auto scrollbar-thin py-1`}>
               {filteredOptions.length === 0 ? (
-                <div className="p-2 text-center text-[10px] text-slate-400 italic">
-                  No results found
+                <div className="py-4 px-3 text-center text-xs text-slate-400 italic">
+                  {emptyText}
                 </div>
               ) : groupBy ? (
                 Object.entries(groupedOptions).map(([group, opts]) => (
                   <div key={group} className="mb-1 last:mb-0">
-                    <div className="px-2 py-1 text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900 rounded">
+                    <div className="px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50">
                       {group}
                     </div>
-                    {opts.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          onChange(opt.value);
-                          setIsOpen(false);
-                          setSearchTerm("");
-                        }}
-                        className={`w-full text-left px-2 py-1.5 text-[11px] font-bold rounded flex items-center justify-between ${
-                          value === opt.value
-                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                            : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-                        }`}
-                      >
-                        <span className="truncate">{opt.label}</span>
-                      </button>
-                    ))}
+                    {opts.map((opt) => {
+                      const isSelected = value === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleSelect(opt.value)}
+                          className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                            isSelected
+                              ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold"
+                              : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1e293b]"
+                          }`}
+                        >
+                          <span className="truncate pr-2">{opt.label}</span>
+                          {isSelected && (
+                            <FiCheck size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 ))
               ) : (
-                filteredOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      onChange(opt.value);
-                      setIsOpen(false);
-                      setSearchTerm("");
-                    }}
-                    className={`w-full text-left px-2 py-1.5 text-[11px] font-bold rounded flex items-center justify-between ${
-                      value === opt.value
-                        ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    }`}
-                  >
-                    <span className="truncate">{opt.label}</span>
-                  </button>
-                ))
+                filteredOptions.map((opt) => {
+                  const isSelected = value === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleSelect(opt.value)}
+                      className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1e293b]"
+                      }`}
+                    >
+                      <span className="truncate pr-2">{opt.label}</span>
+                      {isSelected && (
+                        <FiCheck size={13} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })
               )}
             </div>
           </motion.div>

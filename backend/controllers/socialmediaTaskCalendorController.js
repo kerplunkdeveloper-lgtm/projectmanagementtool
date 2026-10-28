@@ -33,7 +33,7 @@ const cleanDuplicates = async () => {
 // @access  Private
 exports.getSocialmediaMetadata = async (req, res) => {
   try {
-    const clients = await Client.find({}).select('companyName color industry').sort({ companyName: 1 });
+    const clients = await Client.find({}).select('companyName color industry posts reels story').sort({ companyName: 1 });
     const users = await User.find({ accountStatus: { $ne: 'inactive' } }).select('name role department email').sort({ name: 1 });
 
     res.status(200).json({
@@ -211,7 +211,7 @@ exports.getSocialmediaTasks = async (req, res) => {
     }
 
     let tasks = await SocialmediaTaskCalendor.find(query)
-      .populate('client', 'companyName color icon')
+      .populate('client', 'companyName color icon industry posts reels story')
       .populate({
         path: 'assignee',
         select: 'name email role profile',
@@ -363,7 +363,7 @@ exports.getSocialmediaStats = async (req, res) => {
 exports.getSocialmediaTaskById = async (req, res) => {
   try {
     const task = await SocialmediaTaskCalendor.findById(req.params.id)
-      .populate('client', 'companyName color icon')
+      .populate('client', 'companyName color icon industry posts reels story')
       .populate({
         path: 'assignee',
         select: 'name email role profile',
@@ -452,7 +452,7 @@ exports.createSocialmediaTask = async (req, res) => {
     body.createdByName = req.user ? req.user.name : (body.createdByName || 'Admin');
 
     let task = await SocialmediaTaskCalendor.create(body);
-    task = await task.populate('client', 'companyName color icon');
+    task = await task.populate('client', 'companyName color icon industry posts reels story');
     task = await task.populate({
       path: 'assignee',
       select: 'name email role profile',
@@ -551,7 +551,7 @@ exports.updateSocialmediaTask = async (req, res) => {
       body,
       { returnDocument: 'after', runValidators: true }
     )
-      .populate('client', 'companyName color icon')
+      .populate('client', 'companyName color icon industry posts reels story')
       .populate({
         path: 'assignee',
         select: 'name email role profile',
@@ -626,7 +626,7 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
       updateData,
       { returnDocument: 'after' }
     )
-      .populate('client', 'companyName color icon')
+      .populate('client', 'companyName color icon industry posts reels story')
       .populate({
         path: 'assignee',
         select: 'name email role profile',

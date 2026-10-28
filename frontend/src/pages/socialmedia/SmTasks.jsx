@@ -27,9 +27,15 @@ import {
   FiCheck,
   FiChevronDown,
   FiDownload,
+  FiBarChart2,
+  FiClock,
+  FiAlertCircle,
+  FiMoreVertical,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import ClientBadge from "../../components/common/ClientBadge";
+import PendingCommitmentModal from "../../components/common/PendingCommitmentModal";
+import { computeAllClientsCommitments } from "../../utils/smCommitmentUtils";
 import {
   getSocialmediaTasks,
   getSocialmediaStats,
@@ -39,6 +45,7 @@ import {
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
+import SearchableDropdown from "../../components/common/SearchableDropdown";
 
 const CATEGORIES = [
   "All",
@@ -70,6 +77,11 @@ const STATUSES = ["All", "In QC", "Scheduled", "Overdue", "Not started", "In pro
 const PRIORITIES = ["All", "High", "Medium", "Low"];
 const COMMITMENTS = ["All", "Yes", "No"];
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
 const formatDisplayDate = (dateVal) => {
   if (!dateVal) return "-";
   try {
@@ -98,6 +110,113 @@ const formatPublishDateTime = (dateVal) => {
   } catch {
     return "-";
   }
+};
+
+/**
+ * Render Due Date badge based on task status & overdue days
+ * If status is Live/Completed: green background with Live indicator
+ * If status is NOT Live and due date is past/today: red background with overdue days count
+ */
+const renderDueDateBadge = (dueDate, status) => {
+  if (!dueDate) return <span className="text-slate-400 font-medium">-</span>;
+
+  const due = new Date(dueDate);
+  if (isNaN(due.getTime())) return <span className="text-slate-400 font-medium">-</span>;
+
+  const dateStr = formatDisplayDate(dueDate);
+  const isLive = status === "Live" || status === "Completed";
+
+  // Calculate day difference relative to start of today in local time
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dueDayStart = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+  const diffDays = Math.round((dueDayStart - todayStart) / (1000 * 60 * 60 * 24));
+
+  // 1. Status Live / Completed: Green background badge
+  if (isLive) {
+    return (
+      <span
+        title={`Due: ${dateStr} • Status is ${status}`}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs whitespace-nowrap"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+        <span>{dateStr}</span>
+        <span className="text-[9.5px] font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-400 pl-0.5">
+          • {status === "Live" ? "Live" : "Done"}
+        </span>
+      </span>
+    );
+  }
+
+  // 2. Not Live and Overdue (past due date): Red background badge with overdue days
+  if (diffDays < 0) {
+    const overdueDays = Math.abs(diffDays);
+    const dayLabel = overdueDays === 1 ? "1d overdue" : `${overdueDays}d overdue`;
+    return (
+      <span
+        title={`Due: ${dateStr} • Overdue by ${overdueDays} ${overdueDays === 1 ? "day" : "days"}`}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
+        <span>{dateStr}</span>
+        <span className="text-[9.5px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
+          • {dayLabel}
+        </span>
+      </span>
+    );
+  }
+
+  // 3. Not Live and Due Today: Red background badge
+  if (diffDays === 0) {
+    return (
+      <span
+        title={`Due today (${dateStr}) • Status is ${status || "Pending"}`}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
+        <span>{dateStr}</span>
+        <span className="text-[9.5px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
+          • Due today
+        </span>
+      </span>
+    );
+  }
+
+  // 4. Future Due Date (not yet overdue)
+  const dayLabel = diffDays === 1 ? "Due tomorrow" : `Due in ${diffDays}d`;
+  return (
+    <span
+      title={`Due in ${diffDays} days (${dateStr})`}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700 whitespace-nowrap"
+    >
+      <FiCalendar size={12} className="text-slate-400 shrink-0" />
+      <span>{dateStr}</span>
+      <span className="text-[10px] text-slate-400 font-medium pl-0.5">
+        • {dayLabel}
+      </span>
+    </span>
+  );
+};
+
+/**
+ * Helper to check if a task is overdue (past due date and not Live/Completed, or status is Overdue)
+ */
+const isTaskOverdue = (task) => {
+  if (!task) return false;
+  if (["Completed", "Live"].includes(task.status)) return false;
+  if (task.status === "Overdue") return true;
+
+  const targetDate = task.dueDate || task.publishDate;
+  if (!targetDate) return false;
+
+  const due = new Date(targetDate);
+  if (isNaN(due.getTime())) return false;
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const dueDayStart = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+
+  return dueDayStart < todayStart;
 };
 
 // Rich Category Styling (Curated tag theme with colored dot)
@@ -300,6 +419,12 @@ const SmTasks = () => {
   const canFilterByCreatedBy = userRoleClean === "admin" || userRoleClean === "operationmanager";
   const isReadOnly = userRoleClean === "admin" || userRoleClean === "operationmanager";
 
+  // Month & Commitments state (Image 1 style)
+  const currentNow = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(currentNow.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(currentNow.getFullYear());
+  const [isPendingCommitmentOpen, setIsPendingCommitmentOpen] = useState(false);
+
   // Lookup map for users by ID and lowercase name for fast profile matching
   const usersMap = useMemo(() => {
     const map = new Map();
@@ -388,7 +513,7 @@ const SmTasks = () => {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
   const [selectedCommitment, setSelectedCommitment] = useState("All");
-  
+
   // Comprehensive Date Filter States
   const [dateFilterPreset, setDateFilterPreset] = useState("All"); // "All", "Today", "Tomorrow", "This Week", "This Month", "Overdue", "Custom"
   const [dateFilterField, setDateFieldType] = useState("any"); // "any" (Publish or Due), "publish", "due"
@@ -718,6 +843,87 @@ const SmTasks = () => {
 
   const totalPages = Math.ceil(filteredTasks.length / itemsPerPage) || 1;
 
+  // Filtered clients matching current selection (client, category, creator)
+  const relevantClients = useMemo(() => {
+    let list = clients || [];
+
+    if (selectedClient !== "All") {
+      const match = list.filter(
+        (c) => c.companyName?.trim().toLowerCase() === selectedClient.trim().toLowerCase()
+      );
+      if (match.length > 0) return match;
+
+      // Fallback: build from task info if client not in clients array
+      const foundTask = uniqueTasks.find(
+        (t) => (t.clientName || "").trim().toLowerCase() === selectedClient.trim().toLowerCase()
+      );
+      return [
+        {
+          _id: foundTask?.client?._id || foundTask?.client || selectedClient,
+          companyName: selectedClient,
+          color: foundTask?.clientColor || "#6366f1",
+          industry: foundTask?.category || "General",
+          posts: 0,
+          reels: 0,
+          story: 0,
+        },
+      ];
+    }
+
+    if (selectedCategory !== "All") {
+      const catLower = selectedCategory.trim().toLowerCase();
+      const clientsWithCategory = new Set(
+        uniqueTasks
+          .filter((t) => (t.category || "").trim().toLowerCase() === catLower && t.clientName)
+          .map((t) => t.clientName.trim().toLowerCase())
+      );
+      const filtered = list.filter(
+        (c) =>
+          (c.industry && c.industry.trim().toLowerCase() === catLower) ||
+          clientsWithCategory.has((c.companyName || "").trim().toLowerCase())
+      );
+      if (filtered.length > 0) list = filtered;
+    }
+
+    if (!canFilterByCreatedBy) {
+      const myClientNames = new Set(
+        filteredTasks.map((t) => (t.clientName || "").trim().toLowerCase()).filter(Boolean)
+      );
+      if (myClientNames.size > 0) {
+        list = list.filter((c) => myClientNames.has((c.companyName || "").trim().toLowerCase()));
+      }
+    } else if (selectedCreatedBy !== "All") {
+      const creatorClientNames = new Set(
+        filteredTasks.map((t) => (t.clientName || "").trim().toLowerCase()).filter(Boolean)
+      );
+      if (creatorClientNames.size > 0) {
+        list = list.filter((c) => creatorClientNames.has((c.companyName || "").trim().toLowerCase()));
+      }
+    }
+
+    return list;
+  }, [
+    clients,
+    uniqueTasks,
+    filteredTasks,
+    selectedClient,
+    selectedCategory,
+    selectedCreatedBy,
+    canFilterByCreatedBy,
+  ]);
+
+  // Dynamically compute commitment overview based on current active filters
+  const isRestrictedToClients = selectedClient !== "All";
+  const commitmentOverview = useMemo(() => {
+    return computeAllClientsCommitments(
+      relevantClients,
+      filteredTasks,
+      selectedMonth,
+      selectedYear,
+      isRestrictedToClients
+    );
+  }, [relevantClients, filteredTasks, selectedMonth, selectedYear, isRestrictedToClients]);
+
   const currentCommitmentsCount = useMemo(() => {
     return filteredTasks.filter((t) => t.commitment).length;
   }, [filteredTasks]);
@@ -932,32 +1138,70 @@ const SmTasks = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100  p-2 space-y-6">
-      {/* Top Header */}
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-2 space-y-6">
+      {/* Top Header - Matching Image 1 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-[11px] font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-            Social Media Manager
+            Social Media Tasks
           </span>
-          <h1 className="text-2xl  font-extrabold text-slate-900 dark:text-white tracking-tight">
-            My tasks
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Social Media Tasks
           </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Plan, track and deliver all your social media content in one place.
+          </p>
         </div>
 
-        {isReadOnly ? (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs self-start sm:self-auto shadow-2xs">
-            <FiLock size={13} />
-            <span>Read Only</span>
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+          {/* Month Selector Dropdown (Image 1) */}
+          <div className="relative">
+            <select
+              value={`${selectedYear}-${selectedMonth}`}
+              onChange={(e) => {
+                const [y, m] = e.target.value.split("-").map(Number);
+                setSelectedYear(y);
+                setSelectedMonth(m);
+                setCurrentPage(1);
+              }}
+              className="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              {[-2, -1, 0, 1, 2].map((offset) => {
+                const d = new Date(currentNow.getFullYear(), currentNow.getMonth() + offset, 1);
+                const m = d.getMonth() + 1;
+                const y = d.getFullYear();
+                return (
+                  <option key={`${y}-${m}`} value={`${y}-${m}`}>
+                    {MONTH_NAMES[m - 1]} {y}
+                  </option>
+                );
+              })}
+            </select>
+            <FiCalendar
+              size={13}
+              className="absolute left-[-1]  top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
+            <FiChevronDown
+              size={13}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
           </div>
-        ) : (
-          <button
-            onClick={handleCreateNew}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.98] transition-all self-start sm:self-auto cursor-pointer"
-          >
-            <FiPlus size={16} className="stroke-[2.5]" />
-            <span>+ New task</span>
-          </button>
-        )}
+
+          {isReadOnly ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs shadow-2xs">
+              <FiLock size={13} />
+              <span>Read Only</span>
+            </div>
+          ) : (
+            <button
+              onClick={handleCreateNew}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all cursor-pointer"
+            >
+              <FiPlus size={15} className="stroke-[2.5]" />
+              <span>Create task</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Synchronized Banner (Image 1 style) */}
@@ -966,7 +1210,7 @@ const SmTasks = () => {
           <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
             <FiRepeat size={16} />
           </div>
-          <p className="text-xs  text-emerald-900 dark:text-emerald-200 font-medium">
+          <p className="text-xs text-emerald-900 dark:text-emerald-200 font-medium">
             <span className="font-bold">Every row here is also a calendar card.</span> Give a task a publish date and
             it drops onto the content calendar in that slot — no second entry, no "add to calendar" step.
           </p>
@@ -981,13 +1225,262 @@ const SmTasks = () => {
         </button>
       </div>
 
-      {/* SaaS Filter Controls Toolbar - 2-Tier Clean Alignment */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3.5">
+      {/* Commitments Overview Section (Posts, Reels, Stories & Health Monitors) */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+        {/* Section Header: Title, Subtitle, Overall Deliverables summary & Client Modal Trigger */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-100 dark:border-slate-800/60">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/40 shrink-0">
+              <FiCalendar size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-tight">
+                  {selectedClient !== "All"
+                    ? `${selectedClient} Commitments`
+                    : `${MONTH_NAMES[selectedMonth - 1]} Commitments`}
+                </h3>
+                {selectedClient !== "All" && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    Filtered by Client
+                  </span>
+                )}
+                {hasActiveFilters && selectedClient === "All" && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    Filtered View
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                {selectedClient !== "All"
+                  ? `Tracking deliverables for ${selectedClient} • ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
+                  : `Track your deliverables across clients • ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+            {/* Deliverables summary badge */}
+            <div className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200/70 dark:border-slate-700/60">
+              <span className="text-slate-400 font-medium">Deliverables:</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
+                {commitmentOverview.totalDeliverablesPublished}
+              </span>
+              <span>/</span>
+              <span>{commitmentOverview.totalDeliverablesCommitted}</span>
+              <span className="text-slate-400 font-normal">
+                ({commitmentOverview.deliverablesProgressPct}%)
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsPendingCommitmentOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-white dark:bg-slate-800 hover:bg-indigo-50/40 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 transition-all cursor-pointer shadow-2xs"
+            >
+              <FiBarChart2 size={14} className="text-indigo-500" />
+              <span>View by client</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 5-Card Metrics Grid: Posts, Reels, Stories, At Risk, Awaiting Approval */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+          {/* Card 1: Posts Progress Card */}
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700/60 p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/40 shrink-0">
+                  <FiImage size={15} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-base font-black text-slate-900 dark:text-white leading-none block truncate">
+                    {commitmentOverview.totalPostsCommitted} Posts
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">committed</span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block leading-none">
+                  {commitmentOverview.totalPostsPublished}
+                </span>
+                <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">published</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[10px] font-bold text-slate-400">Progress</span>
+                <span className="font-extrabold text-slate-700 dark:text-slate-200">
+                  {commitmentOverview.postsProgressPct}%
+                </span>
+              </div>
+              <div className="h-2 bg-slate-200/80 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, commitmentOverview.postsProgressPct)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Reels Progress Card */}
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700/60 p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200/60 dark:border-purple-800/40 shrink-0">
+                  <FiPlay size={15} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-base font-black text-slate-900 dark:text-white leading-none block truncate">
+                    {commitmentOverview.totalReelsCommitted} Reels
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">committed</span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-sm font-black text-purple-600 dark:text-purple-400 block leading-none">
+                  {commitmentOverview.totalReelsPublished}
+                </span>
+                <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">published</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[10px] font-bold text-slate-400">Progress</span>
+                <span className="font-extrabold text-slate-700 dark:text-slate-200">
+                  {commitmentOverview.reelsProgressPct}%
+                </span>
+              </div>
+              <div className="h-2 bg-slate-200/80 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, commitmentOverview.reelsProgressPct)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Stories Progress Card (NEW) */}
+          <div className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-700/60 p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/40 shrink-0">
+                  <FiZap size={15} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-base font-black text-slate-900 dark:text-white leading-none block truncate">
+                    {commitmentOverview.totalStoriesCommitted} Stories
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">committed</span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-sm font-black text-amber-600 dark:text-amber-400 block leading-none">
+                  {commitmentOverview.totalStoriesPublished}
+                </span>
+                <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">published</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[10px] font-bold text-slate-400">Progress</span>
+                <span className="font-extrabold text-slate-700 dark:text-slate-200">
+                  {commitmentOverview.storiesProgressPct}%
+                </span>
+              </div>
+              <div className="h-2 bg-slate-200/80 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, commitmentOverview.storiesProgressPct)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: At Risk Card (Interactive Filter Toggle) */}
+          <div
+            onClick={() => setAtRiskOnly((prev) => !prev)}
+            title={atRiskOnly ? "Click to clear At risk filter" : "Click to view only At risk tasks"}
+            className={`border p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5 cursor-pointer select-none ${atRiskOnly
+                ? "bg-rose-100/70 dark:bg-rose-950/40 border-rose-400 dark:border-rose-700 ring-2 ring-rose-400/40"
+                : "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/50 hover:border-rose-300 dark:hover:border-rose-800"
+              }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                  <FiAlertCircle size={16} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-base font-black text-rose-600 dark:text-rose-400 leading-none block truncate">
+                    {commitmentOverview.atRiskCount} At risk
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">due &le; 24h</span>
+                </div>
+              </div>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${atRiskOnly
+                    ? "bg-rose-600 text-white"
+                    : "bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300"
+                  }`}
+              >
+                {atRiskOnly ? "Active" : "Action"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-bold text-rose-600 dark:text-rose-400 pt-1 border-t border-rose-100 dark:border-rose-900/30">
+              <span>{atRiskOnly ? "Clear filter" : "Filter at-risk"}</span>
+              <FiArrowRight size={12} className={atRiskOnly ? "rotate-180" : ""} />
+            </div>
+          </div>
+
+          {/* Card 5: Awaiting Approval Card (Interactive Status Filter Toggle) */}
+          <div
+            onClick={() => {
+              setSelectedStatus((prev) => (prev === "In QC" ? "All" : "In QC"));
+              setCurrentPage(1);
+            }}
+            title={selectedStatus === "In QC" ? "Click to clear In QC filter" : "Click to view In QC tasks"}
+            className={`border p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5 cursor-pointer select-none ${selectedStatus === "In QC"
+                ? "bg-amber-100/70 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700 ring-2 ring-amber-400/40"
+                : "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/50 hover:border-amber-300 dark:hover:border-amber-800"
+              }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                  <FiClock size={16} />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-base font-black text-amber-600 dark:text-amber-400 leading-none block truncate">
+                    {commitmentOverview.awaitingApprovalCount} In QC
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">awaiting approval</span>
+                </div>
+              </div>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${selectedStatus === "In QC"
+                    ? "bg-amber-600 text-white"
+                    : "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
+                  }`}
+              >
+                {selectedStatus === "In QC" ? "Active" : "Review"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-bold text-amber-600 dark:text-amber-400 pt-1 border-t border-amber-100 dark:border-amber-900/30">
+              <span>{selectedStatus === "In QC" ? "Clear filter" : "Filter In QC"}</span>
+              <FiArrowRight size={12} className={selectedStatus === "In QC" ? "rotate-180" : ""} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Reference Matching Filter UI Container */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
         {/* Row 1: Search Input & Action Buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Prominent Search Input */}
-          <div className="relative flex-1 max-w-sm">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={15} />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative w-full sm:w-80 md:w-96">
+           
             <input
               type="text"
               placeholder="Search tasks, clients, creators..."
@@ -996,7 +1489,7 @@ const SmTasks = () => {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              className="toolbar-search-input w-full"
+              className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-xs sm:text-[13px] font-normal focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
             />
             {searchQuery && (
               <button
@@ -1005,7 +1498,7 @@ const SmTasks = () => {
                   setSearchQuery("");
                   setCurrentPage(1);
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 title="Clear search"
               >
                 <FiX size={14} />
@@ -1013,16 +1506,16 @@ const SmTasks = () => {
             )}
           </div>
 
-          {/* Right Action Controls */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Action Controls: Export to Excel + At Risk Toggle */}
+          <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
             {/* Export to Excel */}
             <button
               type="button"
               onClick={handleExportExcel}
-              className="inline-flex items-center gap-1.5 px-3.5 h-[36px] rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-2xs"
-              title="Export filtered content calendar table to Excel"
+              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl text-xs sm:text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-all cursor-pointer shadow-sm shadow-blue-500/25 shrink-0"
+              title="Export filtered tasks to Excel"
             >
-              <FiDownload size={13} />
+              <FiDownload size={14} className="stroke-[2.5]" />
               <span>Export to Excel</span>
             </button>
 
@@ -1033,44 +1526,27 @@ const SmTasks = () => {
                 setAtRiskOnly(!atRiskOnly);
                 setCurrentPage(1);
               }}
-              className={`inline-flex items-center gap-2 px-3.5 h-[36px] rounded-xl text-xs font-bold transition-all cursor-pointer border shadow-2xs ${
+              className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-xl text-xs sm:text-[13px] font-semibold transition-all cursor-pointer border shrink-0 shadow-2xs ${
                 atRiskOnly
-                  ? "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 shadow-xs"
-                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60"
+                  ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 ring-2 ring-rose-400/20"
+                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300"
               }`}
+              title="Filter tasks at risk (due in <= 24 hours)"
             >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+              <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-4 ring-rose-100 dark:ring-rose-900/60 shrink-0"></span>
               </span>
               <span>At risk</span>
             </button>
-
-            {/* Reset Filters Button */}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="inline-flex items-center gap-1.5 px-3.5 h-[36px] rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50/80 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-100 dark:hover:bg-rose-950/70 transition-colors cursor-pointer shadow-2xs"
-                title="Reset all active filters"
-              >
-                <FiRotateCcw size={13} />
-                <span>Reset filters</span>
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Row 2: Filter Select Dropdowns with No Text Clipping & No Horizontal Scrollbars */}
-        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1 shrink-0 select-none">
-            <FiFilter size={12} className="text-indigo-500" />
-            <span>Filters:</span>
-            {activeFiltersCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-black leading-none">
-                {activeFiltersCount}
-              </span>
-            )}
+        {/* Row 2: Filter Pills Row */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          {/* FILTERS: Label */}
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 select-none mr-1">
+            <FiFilter size={14} className="text-blue-500" />
+            <span>FILTERS:</span>
           </div>
 
           {/* Client Filter - Searchable Dropdown */}
@@ -1081,20 +1557,14 @@ const SmTasks = () => {
                 setIsClientDropdownOpen(!isClientDropdownOpen);
                 setClientSearchQuery("");
               }}
-              className={`inline-flex items-center justify-between gap-2 px-3 h-[34px] rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
-                selectedClient !== "All"
-                  ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-700 dark:text-blue-300 font-bold"
-                  : isClientDropdownOpen
-                  ? "bg-slate-50 dark:bg-slate-800 border-blue-400 dark:border-blue-500 text-slate-900 dark:text-white"
-                  : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
-              }`}
+              className={`toolbar-filter-btn ${selectedClient !== "All" ? "is-active" : ""}`}
               title="Filter by Client"
             >
               <span className="truncate max-w-[120px]">
                 {selectedClient === "All" ? "All clients" : selectedClient}
               </span>
               <FiChevronDown
-                size={13}
+                size={14}
                 className={`text-slate-400 transition-transform duration-150 shrink-0 ${
                   isClientDropdownOpen ? "rotate-180 text-blue-500" : ""
                 }`}
@@ -1107,7 +1577,6 @@ const SmTasks = () => {
                 {/* Search Box */}
                 <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
                   <div className="relative flex items-center">
-                    <FiSearch size={13} className="absolute left-2.5 text-slate-400 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Search clients..."
@@ -1186,42 +1655,32 @@ const SmTasks = () => {
           </div>
 
           {/* Created by Filter (Admin & Operation Manager only - Social Media Managers) */}
-          {canFilterByCreatedBy && (
-            <select
+          {canFilterByCreatedBy ? (
+            <SearchableDropdown
               value={selectedCreatedBy}
-              onChange={(e) => {
-                setSelectedCreatedBy(e.target.value);
+              onChange={(val) => {
+                setSelectedCreatedBy(val);
                 setCurrentPage(1);
               }}
-              className={`toolbar-filter-select ${selectedCreatedBy !== "All" ? "is-active" : ""}`}
+              options={createdByOptions.filter((c) => c !== "All")}
+              allLabel="Created by (SMM)"
+              placeholder="Created by (SMM)"
+              searchPlaceholder="Search creator..."
+              emptyText="No creators found"
+              menuWidth="w-64"
+              buttonClassName="toolbar-filter-btn"
+            />
+          ) : (
+            <div
+              className="toolbar-filter-btn cursor-default select-none opacity-85"
+              title="Viewing tasks created by you"
             >
-              <option value="All">Created by (SMM)</option>
-              {createdByOptions
-                .filter((c) => c !== "All")
-                .map((creator) => (
-                  <option key={creator} value={creator}>
-                    {creator}
-                  </option>
-                ))}
-            </select>
+              <span className="truncate max-w-[130px]">{user?.name || "Created by (SMM)"}</span>
+              <FiChevronDown size={14} className="text-slate-400 shrink-0" />
+            </div>
           )}
 
-          {/* Category Filter */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => {
-              setSelectedCategory(e.target.value);
-              setCurrentPage(1);
-            }}
-            className={`toolbar-filter-select ${selectedCategory !== "All" ? "is-active" : ""}`}
-          >
-            <option value="All">Category</option>
-            {CATEGORIES.filter((c) => c !== "All").map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+    
 
           {/* Content Type Filter */}
           <select
@@ -1291,18 +1750,12 @@ const SmTasks = () => {
             ))}
           </select>
 
-          {/* Comprehensive Date Filter Popover */}
+          {/* Date Filter Popover */}
           <div className="relative" ref={dateDropdownRef}>
             <button
               type="button"
               onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-              className={`inline-flex items-center justify-between gap-1.5 px-3 h-[34px] rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
-                isDateFilterActive
-                  ? "bg-blue-50 dark:bg-blue-950/40 border-blue-500 text-blue-700 dark:text-blue-300 font-bold"
-                  : isDateDropdownOpen
-                  ? "bg-slate-50 dark:bg-slate-800 border-blue-400 dark:border-blue-500 text-slate-900 dark:text-white"
-                  : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600"
-              }`}
+              className={`toolbar-filter-btn ${isDateFilterActive ? "is-active" : ""}`}
               title="Filter by Date"
             >
               <div className="flex items-center gap-1.5 truncate max-w-[150px]">
@@ -1310,7 +1763,7 @@ const SmTasks = () => {
                 <span className="truncate">{dateFilterLabel}</span>
               </div>
               <FiChevronDown
-                size={13}
+                size={14}
                 className={`text-slate-400 transition-transform duration-150 shrink-0 ${
                   isDateDropdownOpen ? "rotate-180 text-blue-500" : ""
                 }`}
@@ -1495,344 +1948,359 @@ const SmTasks = () => {
           </div>
         </div>
 
-        {/* Counter Info matching Image 1 - 100% Dynamic */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-500 dark:text-slate-400">
+        {/* Row 3: Meta Info (Showing X of Y tasks · Z are calendar commitments) */}
+        <div className="flex items-center justify-between pt-1 text-xs text-slate-500 dark:text-slate-400">
           <div>
-            Showing <span className="font-bold text-slate-700 dark:text-slate-200">{filteredTasks.length}</span> of{" "}
-            <span className="font-bold text-slate-700 dark:text-slate-200">{uniqueTasks.length}</span> tasks ·{" "}
-            <span className="font-bold text-indigo-600 dark:text-indigo-400">{currentCommitmentsCount}</span> are calendar
-            commitments
+            Showing <strong className="font-bold text-slate-900 dark:text-white">{filteredTasks.length}</strong> of{" "}
+            <strong className="font-bold text-slate-900 dark:text-white">{uniqueTasks.length}</strong> tasks ·{" "}
+            <strong className="font-bold text-blue-600 dark:text-blue-400">{currentCommitmentsCount}</strong> are calendar commitments
           </div>
+
           {hasActiveFilters && (
-            <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hidden sm:inline">
-              Filtered ({filteredTasks.length} of {uniqueTasks.length})
-            </span>
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
+              title="Reset all active filters"
+            >
+              <FiRotateCcw size={12} />
+              <span>Reset filters</span>
+            </button>
           )}
         </div>
       </div>
 
-      {/* Main Table (Matching 1st Image) */}
+      {/* Main Table Container */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <th className="py-3 px-4">Task</th>
-                <th className="py-3 px-4">Client</th>
-                <th className="py-3 px-3">Category</th>
-                <th className="py-3 px-3">Content Type</th>
-                <th className="py-3 px-4">Created by</th>
-                <th className="py-3 px-3">Due Date</th>
-                <th className="py-3 px-3">Status</th>
-                <th className="py-3 px-3">Priority</th>
-                <th className="py-3 px-3">QC</th>
-                <th className="py-3 px-4 bg-slate-100/50 dark:bg-slate-800/80 font-bold">Publish Date</th>
-                <th className="py-3 px-3 bg-slate-100/50 dark:bg-slate-800/80 font-bold">Commitment</th>
-                <th className="py-3 px-3 bg-slate-100/50 dark:bg-slate-800/80 font-bold">Calendar</th>
-                <th className="py-3 px-3 text-center">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-              {loading && tasks.length === 0 ? (
-                <tr>
-                  <td colSpan={13} className="py-12 text-center text-slate-400 italic">
-                    Loading social media tasks...
-                  </td>
+            <table className="w-full text-left text-xs whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="py-3 px-4">Task</th>
+                  <th className="py-3 px-4">Client</th>
+                  <th className="py-3 px-3">Category</th>
+                  <th className="py-3 px-3">Content Type</th>
+                  <th className="py-3 px-4">Created by</th>
+                  <th className="py-3 px-3">Due Date</th>
+                  <th className="py-3 px-3">Status</th>
+                  <th className="py-3 px-3">Priority</th>
+                  <th className="py-3 px-3">QC</th>
+                  <th className="py-3 px-4 bg-slate-100/50 dark:bg-slate-800/80 font-bold">Publish Date</th>
+                  <th className="py-3 px-3 bg-slate-100/50 dark:bg-slate-800/80 font-bold">Calendar</th>
+                  <th className="py-3 px-3 text-center">Action</th>
                 </tr>
-              ) : paginatedTasks.length === 0 ? (
-                <tr>
-                  <td colSpan={13} className="py-12 text-center">
-                    <div className="flex flex-col items-center justify-center py-6">
-                      <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-500 mb-3">
-                        <FiCalendar size={22} />
-                      </div>
-                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
-                        No social media tasks found
-                      </p>
-                      <p className="text-xs text-slate-400 mb-4 max-w-sm text-center">
-                        Create your first social media task or plan directly on the Content Calendar.
-                      </p>
-                      <button
-                        onClick={handleCreateNew}
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
-                      >
-                        + Create First Task
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                paginatedTasks.map((task) => {
-                  const clientColor = task.clientColor || "#6366f1";
-
-                  return (
-                    <tr
-                      key={task._id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer"
-                      onClick={() => handleEditTask(task)}
-                    >
-                      {/* TASK NAME with Left Accent Line */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <span
-                            className="w-1 h-5 rounded-full shrink-0"
-                            style={{ backgroundColor: clientColor }}
-                          />
-                          <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">
-                            {task.taskTitle}
-                          </span>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                {loading && tasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={12} className="py-12 text-center text-slate-400 italic">
+                      Loading social media tasks...
+                    </td>
+                  </tr>
+                ) : paginatedTasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={12} className="py-12 text-center">
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-500 mb-3">
+                          <FiCalendar size={22} />
                         </div>
-                      </td>
-
-                      {/* CLIENT */}
-                      <td className="py-3 px-4">
-                        {(() => {
-                          const clientObj = getClientObject(task);
-                          return (
-                            <ClientBadge
-                              client={clientObj}
-                              size="md"
-                              className="!text-[11px] !py-1 !px-2.5 rounded-lg font-bold shadow-2xs max-w-[170px]"
-                            />
-                          );
-                        })()}
-                      </td>
-
-                      {/* CATEGORY (Sleek Tag Badge with Dot) */}
-                      <td className="py-3 px-3">
-                        {(() => {
-                          const catStyle = getCategoryStyle(task.category);
-                          return (
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
-                              <span className="truncate max-w-[90px]">{task.category || "Content"}</span>
-                            </span>
-                          );
-                        })()}
-                      </td>
-
-                      {/* CONTENT TYPE (Pill Badge with Format Micro-Icon) */}
-                      <td className="py-3 px-3">
-                        {(() => {
-                          const typeCfg = getContentTypeConfig(task.contentType);
-                          const TypeIcon = typeCfg.icon;
-                          return (
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border shadow-2xs transition-colors ${typeCfg.bg} ${typeCfg.text} ${typeCfg.border}`}
-                            >
-                              <TypeIcon className={`w-3 h-3 shrink-0 ${typeCfg.iconClass}`} />
-                              <span className="truncate max-w-[85px]">{task.contentType || "Post"}</span>
-                            </span>
-                          );
-                        })()}
-                      </td>
-
-                      {/* CREATED BY */}
-                      <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
-                        {(() => {
-                          const creator = getCreatorInfo(task);
-                          return (
-                            <div className="flex items-center gap-2.5">
-                              <div className="relative shrink-0 w-6 h-6">
-                                {creator.avatarUrl ? (
-                                  <img
-                                    src={creator.avatarUrl}
-                                    alt={creator.name}
-                                    className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
-                                    loading="lazy"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = "none";
-                                      const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
-                                      if (fallback) fallback.style.display = "flex";
-                                    }}
-                                  />
-                                ) : null}
-                                <div
-                                  className="avatar-fallback w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[10px] items-center justify-center uppercase shadow-2xs"
-                                  style={{ display: creator.avatarUrl ? "none" : "flex" }}
-                                >
-                                  {creator.initials}
-                                </div>
-                              </div>
-                              <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px]" title={creator.name}>
-                                {creator.name}
-                              </span>
-                            </div>
-                          );
-                        })()}
-                      </td>
-
-                      {/* DUE DATE */}
-                      <td className="py-3 px-3 text-slate-600 dark:text-slate-400">
-                        {formatDisplayDate(task.dueDate)}
-                      </td>
-
-                      {/* STATUS - Interactive quick-change dropdown */}
-                      <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={task.status}
-                          disabled={isReadOnly}
-                          onChange={(e) => handleQuickStatusChange(task, e.target.value)}
-                          className={`table-status-select ${isReadOnly ? "cursor-default opacity-90" : "cursor-pointer"} focus:ring-1 focus:ring-indigo-500 shadow-2xs ${
-                            task.status === "In QC"
-                              ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                              : task.status === "Scheduled"
-                              ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
-                              : task.status === "Overdue"
-                              ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
-                              : task.status === "Not started"
-                              ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                              : task.status === "In progress"
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
-                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                          }`}
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
+                          No social media tasks found
+                        </p>
+                        <p className="text-xs text-slate-400 mb-4 max-w-sm text-center">
+                          Create your first social media task or plan directly on the Content Calendar.
+                        </p>
+                        <button
+                          onClick={handleCreateNew}
+                          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
                         >
-                          {STATUSES.filter((s) => s !== "All").map((st) => (
-                            <option key={st} value={st}>
-                              {st}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+                          + Create First Task
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedTasks.map((task) => {
+                    const clientColor = task.clientColor || "#6366f1";
+                    const isOverdue = isTaskOverdue(task);
 
-                      {/* PRIORITY */}
-                      <td className="py-3 px-3 font-bold">
-                        {task.priority === "High" && <span className="text-rose-600 dark:text-rose-400">High</span>}
-                        {task.priority === "Medium" && <span className="text-amber-600 dark:text-amber-400">Medium</span>}
-                        {task.priority === "Low" && <span className="text-slate-500 dark:text-slate-400">Low</span>}
-                      </td>
+                    return (
+                      <tr
+                        key={task._id}
+                        className={`transition-colors group cursor-pointer ${isOverdue
+                            ? "overdue-row-blink border-l-4 border-l-rose-500 hover:border-l-rose-600"
+                            : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                          }`}
+                        onClick={() => handleEditTask(task)}
+                      >
+                        {/* TASK NAME with Left Accent Line */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="w-1 h-5 rounded-full shrink-0"
+                              style={{ backgroundColor: clientColor }}
+                            />
+                            <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">
+                              {task.taskTitle}
+                            </span>
+                          </div>
+                        </td>
 
-                      {/* QC */}
-                      <td className="py-3 px-3">
-                        {task.qc === "Pending" && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
-                            Pending
-                          </span>
-                        )}
-                        {task.qc === "Passed" && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/50">
-                            Passed
-                          </span>
-                        )}
-                        {task.qc === "Rejected" && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
-                            Rejected
-                          </span>
-                        )}
-                        {(!task.qc || task.qc === "-") && <span className="text-slate-400">-</span>}
-                      </td>
+                        {/* CLIENT */}
+                        <td className="py-3 px-4">
+                          {(() => {
+                            const clientObj = getClientObject(task);
+                            return (
+                              <ClientBadge
+                                client={clientObj}
+                                size="md"
+                                className="!text-[11px] !py-1 !px-2.5 rounded-lg font-bold shadow-2xs max-w-[170px]"
+                              />
+                            );
+                          })()}
+                        </td>
 
-                      {/* PUBLISH DATE (Shaded column) */}
-                      <td className="py-3 px-4 bg-slate-50/60 dark:bg-slate-800/40 font-mono text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
-                        {formatPublishDateTime(task.publishDate)}
-                      </td>
+                        {/* CATEGORY (Sleek Tag Badge with Dot) */}
+                        <td className="py-3 px-3">
+                          {(() => {
+                            const catStyle = getCategoryStyle(task.category);
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
+                                <span className="truncate max-w-[90px]">{task.category || "Content"}</span>
+                              </span>
+                            );
+                          })()}
+                        </td>
 
-                      {/* COMMITMENT (Shaded column) */}
-                      <td className="py-3 px-3 bg-slate-50/60 dark:bg-slate-800/40">
-                        {task.commitment ? (
-                          <span className="inline-flex items-center gap-1 font-bold text-indigo-700 dark:text-indigo-400">
-                            <FiLock size={11} className="opacity-70" />
-                            <span>Yes</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 font-semibold text-slate-400">
-                            <FiLock size={11} className="opacity-40" />
-                            <span>No</span>
-                          </span>
-                        )}
-                      </td>
+                        {/* CONTENT TYPE (Pill Badge with Format Micro-Icon) */}
+                        <td className="py-3 px-3">
+                          {(() => {
+                            const typeCfg = getContentTypeConfig(task.contentType);
+                            const TypeIcon = typeCfg.icon;
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border shadow-2xs transition-colors ${typeCfg.bg} ${typeCfg.text} ${typeCfg.border}`}
+                              >
+                                <TypeIcon className={`w-3 h-3 shrink-0 ${typeCfg.iconClass}`} />
+                                <span className="truncate max-w-[85px]">{task.contentType || "Post"}</span>
+                              </span>
+                            );
+                          })()}
+                        </td>
 
-                      {/* CALENDAR (Shaded column) */}
-                      <td className="py-3 px-3 bg-slate-50/60 dark:bg-slate-800/40">
-                        {task.onCalendar ? (
-                          <span
-                            className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenCalendar();
-                            }}
+                        {/* CREATED BY */}
+                        <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                          {(() => {
+                            const creator = getCreatorInfo(task);
+                            return (
+                              <div className="flex items-center gap-2.5">
+                                <div className="relative shrink-0 w-6 h-6">
+                                  {creator.avatarUrl ? (
+                                    <img
+                                      src={creator.avatarUrl}
+                                      alt={creator.name}
+                                      className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
+                                      loading="lazy"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = "none";
+                                        const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
+                                        if (fallback) fallback.style.display = "flex";
+                                      }}
+                                    />
+                                  ) : null}
+                                  <div
+                                    className="avatar-fallback w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[10px] items-center justify-center uppercase shadow-2xs"
+                                    style={{ display: creator.avatarUrl ? "none" : "flex" }}
+                                  >
+                                    {creator.initials}
+                                  </div>
+                                </div>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px]" title={creator.name}>
+                                  {creator.name}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </td>
+
+                        {/* DUE DATE */}
+                        <td className="py-3 px-3">
+                          {renderDueDateBadge(task.dueDate, task.status)}
+                        </td>
+
+                        {/* STATUS - Interactive quick-change dropdown */}
+                        <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={task.status}
+                            disabled={isReadOnly}
+                            onChange={(e) => handleQuickStatusChange(task, e.target.value)}
+                            className={`table-status-select ${isReadOnly ? "cursor-default opacity-90" : "cursor-pointer"} focus:ring-1 focus:ring-indigo-500 shadow-2xs ${task.status === "In QC"
+                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                : task.status === "Scheduled"
+                                  ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
+                                  : task.status === "Overdue"
+                                    ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                                    : task.status === "Not started"
+                                      ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                                      : task.status === "In progress"
+                                        ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
+                                        : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              }`}
                           >
-                            On calendar
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">Not shown</span>
-                        )}
-                      </td>
+                            {STATUSES.filter((s) => s !== "All").map((st) => (
+                              <option key={st} value={st}>
+                                {st}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
 
-                      {/* ACTIONS */}
-                      <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleEditTask(task)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                            title={isReadOnly ? "View Task" : "Edit Task"}
-                          >
-                            <FiEye size={15} />
-                          </button>
-                          {!isReadOnly && (
+                        {/* PRIORITY */}
+                        <td className="py-3 px-3 font-bold">
+                          {task.priority === "High" && <span className="text-rose-600 dark:text-rose-400">High</span>}
+                          {task.priority === "Medium" && <span className="text-amber-600 dark:text-amber-400">Medium</span>}
+                          {task.priority === "Low" && <span className="text-slate-500 dark:text-slate-400">Low</span>}
+                        </td>
+
+                        {/* QC */}
+                        <td className="py-3 px-3">
+                          {task.qc === "Pending" && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
+                              Pending
+                            </span>
+                          )}
+                          {task.qc === "Passed" && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/50">
+                              Passed
+                            </span>
+                          )}
+                          {task.qc === "Rejected" && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+                              Rejected
+                            </span>
+                          )}
+                          {(!task.qc || task.qc === "-") && <span className="text-slate-400">-</span>}
+                        </td>
+
+                        {/* PUBLISH DATE (Shaded column) */}
+                        <td className="py-3 px-4 bg-slate-50/60 dark:bg-slate-800/40 font-mono text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
+                          {formatPublishDateTime(task.publishDate)}
+                        </td>
+
+                        {/* CALENDAR (Shaded column) */}
+                        <td className="py-3 px-3 bg-slate-50/60 dark:bg-slate-800/40">
+                          {task.onCalendar ? (
+                            <span
+                              className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenCalendar();
+                              }}
+                            >
+                              On calendar
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">Not shown</span>
+                          )}
+                        </td>
+
+                        {/* ACTIONS */}
+                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
-                              onClick={(e) => handleDeleteTask(task, e)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                              title="Delete Task"
+                              onClick={() => handleEditTask(task)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                              title={isReadOnly ? "View Task" : "Edit Task"}
                             >
-                              <FiTrash2 size={14} />
+                              <FiEye size={15} />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteTask(task, e)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                title="Delete Task"
+                              >
+                                <FiTrash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        {/* Footer Note and Pagination */}
-        <div className="px-5 py-3.5 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
-          <span className="text-[11px] italic">
-            Shaded columns are filled by Sorted, not by the SMM.
-          </span>
-
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-              Rows {filteredTasks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
-              {Math.min(currentPage * itemsPerPage, filteredTasks.length)} of {filteredTasks.length}
+          {/* Footer Note and Pagination */}
+          <div className="px-5 py-3.5 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] italic">
+              Shaded columns are filled by Sorted, not by the SMM.
             </span>
 
-            <div className="flex items-center gap-1">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="p-1 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:cursor-not-allowed"
-              >
-                <FiChevronLeft size={14} />
-              </button>
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="p-1 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:cursor-not-allowed"
-              >
-                <FiChevronRight size={14} />
-              </button>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                Rows {filteredTasks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
+                {Math.min(currentPage * itemsPerPage, filteredTasks.length)} of {filteredTasks.length}
+              </span>
+
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="p-1 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <FiChevronLeft size={14} />
+                </button>
+                <button
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="p-1 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  <FiChevronRight size={14} />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Task Creation / Edit Modal */}
-      <SmTaskModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        task={selectedTaskForEdit}
-        isReadOnly={isReadOnly}
-      />
-    </div>
-  );
+        {/* Task Creation / Edit Modal */}
+        <SmTaskModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          task={selectedTaskForEdit}
+          isReadOnly={isReadOnly}
+        />
+
+        {/* Pending Commitment Modal (Detailed Client Breakdown) */}
+        <PendingCommitmentModal
+          isOpen={isPendingCommitmentOpen}
+          onClose={() => setIsPendingCommitmentOpen(false)}
+          clients={clients}
+          tasks={tasks}
+          currentMonth={selectedMonth}
+          currentYear={selectedYear}
+          onSelectClient={(clientName) => {
+            setSelectedClient(clientName);
+            setCurrentPage(1);
+          }}
+          onCreateTaskForClient={isReadOnly ? null : (clientObj) => {
+            setSelectedTaskForEdit({
+              client: clientObj?._id,
+              clientName: clientObj?.companyName,
+              clientColor: clientObj?.color,
+            });
+            setIsModalOpen(true);
+          }}
+        />
+      </div>
+      );
 };
 
-export default SmTasks;
+      export default SmTasks;
