@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
@@ -837,6 +838,12 @@ const Dashboardmain = () => {
     setGoalPage(1);
   }, [goalTab]);
 
+  useEffect(() => {
+    // Preload celebration image to eliminate initial GPU texture decode lag
+    const img = new Image();
+    img.src = supermanImg;
+  }, []);
+
   const [projectPage, setProjectPage] = useState(1);
 
   const userProjects = React.useMemo(() => {
@@ -1245,23 +1252,24 @@ const Dashboardmain = () => {
   };
 
   const handleToggleGoalComplete = async (goal) => {
+    const nextCompletedState = !goal.completed;
+
+    if (nextCompletedState) {
+      setShowCelebration(true);
+      setTimeout(() => {
+        setShowCelebration(false);
+      }, 2500);
+    }
+
+    toast.success(
+      nextCompletedState ? "Goal completed!" : "Goal marked as pending",
+    );
+
     try {
-      const nextCompletedState = !goal.completed;
       await updateGoal({
         id: goal._id,
         goalData: { completed: nextCompletedState },
       }).unwrap();
-
-      if (nextCompletedState) {
-        setShowCelebration(true);
-        setTimeout(() => {
-          setShowCelebration(false);
-        }, 3000);
-      }
-
-      toast.success(
-        goal.completed ? "Goal marked as pending" : "Goal completed!",
-      );
     } catch (err) {
       toast.error("Failed to update goal");
     }
@@ -1637,54 +1645,66 @@ const Dashboardmain = () => {
   };
 
   const renderRocketCelebration = () => {
-    if (!showCelebration) return null;
-    return (
-      <div className="fixed inset-0 z-[99999] pointer-events-none overflow-hidden select-none">
+    if (!showCelebration || typeof document === "undefined") return null;
+    return createPortal(
+      <div className="fixed inset-0 z-[999999] pointer-events-none overflow-hidden select-none">
         <style
           dangerouslySetInnerHTML={{
             __html: `
         @keyframes launchSuperman {
-          /* LEFT BOTTOM */
+          /* 1. START: Left Side Bottom Corner */
           0% {
-            transform: translate(-300px, 100vh) scale(0.6);
+            transform: translate3d(-100px, calc(100vh - 80px), 0) scale(0.5);
+            opacity: 0;
+          }
+          12% {
+            transform: translate3d(calc(12vw - 40px), calc(80vh - 100px), 0) scale(0.8);
+            opacity: 1;
           }
 
-          /* CENTER - reach in 0.2s */
-          13.33% {
-            transform: translate(50vw, 40vh) scale(1.1);
+          /* 2. CENTER: Grand Heroic View (Eye-level & larger for clear user view) */
+          45% {
+            transform: translate3d(calc(50vw - 160px), calc(48vh - 160px), 0) scale(1.3);
+            opacity: 1;
+          }
+          62% {
+            transform: translate3d(calc(65vw - 150px), calc(33vh - 150px), 0) scale(1.22);
+            opacity: 1;
           }
 
-          /* CENTER - STOP for 0.5s */
-          46.67% {
-            transform: translate(50vw, 40vh) scale(1.1);
+          /* 3. END: Flying up and out directly through Top Right Corner */
+          85% {
+            transform: translate3d(calc(88vw - 100px), calc(12vh - 80px), 0) scale(0.95);
+            opacity: 1;
           }
-
-          /* TOP RIGHT */
           100% {
-            transform: translate(105vw, -150px) scale(0.6);
+            transform: translate3d(calc(100vw + 60px), -180px, 0) scale(0.65);
+            opacity: 0;
           }
         }
 
         .superman-container {
           position: absolute;
-          animation: launchSuperman 1.5s linear forwards;
-          will-change: transform;
-          
-          left:600;
-          
+          top: 0;
+          left: 0;
+          animation: launchSuperman 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          will-change: transform, opacity;
+          filter: drop-shadow(0 20px 35px rgba(0, 0, 0, 0.35)) drop-shadow(0 0 25px rgba(59, 130, 246, 0.35));
         }
       `,
           }}
         />
 
-        <div className="superman-container w-[300px] h-[300px]">
+        <div className="superman-container w-[320px] h-[320px]">
           <img
             src={supermanImg}
             alt="Superman"
-            className="w-full h-full object-contain"
+            decoding="async"
+            className="w-full h-full object-contain select-none pointer-events-none"
           />
         </div>
-      </div>
+      </div>,
+      document.body
     );
   };
   const roleNorm = (user?.role || "").toLowerCase().replace(/[\s_]+/g, "");
@@ -1954,7 +1974,7 @@ const Dashboardmain = () => {
                               e.stopPropagation();
                               handleToggleGoalComplete(g);
                             }}
-                            className="shrink-0 focus:outline-none cursor-pointer"
+                            className="shrink-0 focus:outline-none cursor-pointer active:scale-90 transition-transform duration-150"
                           >
                             {g.completed ? (
                               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 border border-emerald-600 shadow-sm shadow-emerald-500/40 flex items-center justify-center text-white transform transition-all duration-300 scale-105">

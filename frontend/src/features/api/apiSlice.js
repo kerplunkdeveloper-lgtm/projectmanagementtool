@@ -70,14 +70,60 @@ export const apiSlice = createApi({
         method: "PUT",
         body: goalData,
       }),
-      invalidatesTags: ["Goal"],
+      async onQueryStarted({ id, goalData }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData("getGoals", undefined, (draft) => {
+            if (!Array.isArray(draft)) return;
+            const goal = draft.find((g) => g._id === id);
+            if (goal) {
+              Object.assign(goal, goalData);
+              if (goalData.completed !== undefined) {
+                goal.completedAt = goalData.completed
+                  ? new Date().toISOString()
+                  : null;
+              }
+            }
+          })
+        );
+        try {
+          const { data: updatedGoalResponse } = await queryFulfilled;
+          if (updatedGoalResponse?.data) {
+            dispatch(
+              apiSlice.util.updateQueryData("getGoals", undefined, (draft) => {
+                if (!Array.isArray(draft)) return;
+                const index = draft.findIndex((g) => g._id === id);
+                if (index !== -1) {
+                  draft[index] = updatedGoalResponse.data;
+                }
+              })
+            );
+          }
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
     deleteGoal: builder.mutation({
       query: (id) => ({
         url: `/goals/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Goal"],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData("getGoals", undefined, (draft) => {
+            if (!Array.isArray(draft)) return;
+            const index = draft.findIndex((g) => g._id === id);
+            if (index !== -1) {
+              draft.splice(index, 1);
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
 
     // ==========================================

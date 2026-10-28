@@ -49,35 +49,33 @@ exports.createGoal = async (req, res) => {
 // @access  Private
 exports.updateGoal = async (req, res) => {
   try {
-    let goal = await Goal.findById(req.params.id);
-
-    if (!goal) {
-      return res.status(404).json({
-        success: false,
-        message: 'Goal not found',
-      });
+    if (req.body.completed !== undefined) {
+      req.body.completedAt = req.body.completed ? new Date() : null;
     }
 
-    // Make sure user is goal owner
-    if (goal.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    const filter = { _id: req.params.id };
+    if (req.user.role !== 'admin') {
+      filter.user = req.user.id;
+    }
+
+    const goal = await Goal.findOneAndUpdate(filter, req.body, {
+      returnDocument: 'after',
+      runValidators: true,
+    });
+
+    if (!goal) {
+      const exists = await Goal.findById(req.params.id);
+      if (!exists) {
+        return res.status(404).json({
+          success: false,
+          message: 'Goal not found',
+        });
+      }
       return res.status(401).json({
         success: false,
         message: 'Not authorized to update this goal',
       });
     }
-
-    if (req.body.completed !== undefined) {
-      if (req.body.completed) {
-        req.body.completedAt = new Date();
-      } else {
-        req.body.completedAt = null;
-      }
-    }
-
-    goal = await Goal.findByIdAndUpdate(req.params.id, req.body, {
-      returnDocument: 'after',
-      runValidators: true,
-    });
 
     res.status(200).json({
       success: true,
@@ -96,24 +94,26 @@ exports.updateGoal = async (req, res) => {
 // @access  Private
 exports.deleteGoal = async (req, res) => {
   try {
-    const goal = await Goal.findById(req.params.id);
-
-    if (!goal) {
-      return res.status(404).json({
-        success: false,
-        message: 'Goal not found',
-      });
+    const filter = { _id: req.params.id };
+    if (req.user.role !== 'admin') {
+      filter.user = req.user.id;
     }
 
-    // Make sure user is goal owner
-    if (goal.user.toString() !== req.user.id && req.user.role !== 'admin') {
+    const goal = await Goal.findOneAndDelete(filter);
+
+    if (!goal) {
+      const exists = await Goal.findById(req.params.id);
+      if (!exists) {
+        return res.status(404).json({
+          success: false,
+          message: 'Goal not found',
+        });
+      }
       return res.status(401).json({
         success: false,
         message: 'Not authorized to delete this goal',
       });
     }
-
-    await goal.deleteOne();
 
     res.status(200).json({
       success: true,
