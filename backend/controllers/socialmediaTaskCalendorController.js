@@ -399,6 +399,14 @@ exports.getSocialmediaTaskById = async (req, res) => {
 // @access  Private
 exports.createSocialmediaTask = async (req, res) => {
   try {
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    if (userRole === 'admin' || userRole === 'operationmanager') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+      });
+    }
+
     const body = { ...req.body };
     body.createdBy = req.user ? req.user.id : null;
 
@@ -475,6 +483,14 @@ exports.createSocialmediaTask = async (req, res) => {
 // @access  Private
 exports.updateSocialmediaTask = async (req, res) => {
   try {
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    if (userRole === 'admin' || userRole === 'operationmanager') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+      });
+    }
+
     const body = { ...req.body };
 
     // Recalculate commitment & onCalendar rule
@@ -517,11 +533,8 @@ exports.updateSocialmediaTask = async (req, res) => {
       }
     }
 
-    // Authorization check for non-privileged users
-    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
-
-    if (!isPrivileged && req.user) {
+    // Authorization check for regular users
+    if (req.user) {
       const existing = await SocialmediaTaskCalendor.findById(req.params.id);
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Task not found' });
@@ -577,9 +590,14 @@ exports.updateSocialmediaTask = async (req, res) => {
 exports.rescheduleSocialmediaTask = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
+    if (userRole === 'admin' || userRole === 'operationmanager') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+      });
+    }
 
-    if (!isPrivileged && req.user) {
+    if (req.user) {
       const existing = await SocialmediaTaskCalendor.findById(req.params.id);
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Task not found' });
@@ -647,9 +665,14 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
 exports.deleteSocialmediaTask = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
+    if (userRole === 'admin' || userRole === 'operationmanager') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+      });
+    }
 
-    if (!isPrivileged && req.user) {
+    if (req.user) {
       const existing = await SocialmediaTaskCalendor.findById(req.params.id);
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Task not found' });
@@ -688,6 +711,14 @@ exports.deleteSocialmediaTask = async (req, res) => {
 // @access  Private
 exports.cleanDuplicateTasks = async (req, res) => {
   try {
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    if (userRole === 'admin' || userRole === 'operationmanager') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+      });
+    }
+
     await cleanDuplicates();
     const remainingCount = await SocialmediaTaskCalendor.countDocuments();
     res.status(200).json({

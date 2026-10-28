@@ -18,7 +18,11 @@ import {
   FiEdit2,
   FiTrash2,
   FiRefreshCw,
+  FiLock,
+  FiEye,
+  FiDownload,
 } from "react-icons/fi";
+import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getSocialmediaTasks,
@@ -30,6 +34,7 @@ import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
 import { formatLocalDateKey } from "../../utils/dateUtils";
+import calendarMascotImg from "../../../public/assets/calendorchar.png";
 
 const MONTH_NAMES = [
   "January",
@@ -78,7 +83,7 @@ const STATUSES = ["All", "Live", "Scheduled", "In QC", "In progress", "Not start
 const PRIORITIES = ["All", "High", "Medium", "Low"];
 const COMMITMENTS = ["All", "Yes", "No"];
 
-// Full Page Centered Loading Component with Premium Ambient Glow & Glassmorphism
+// Full Page Centered Loading Component with 3D Mascot Character Animation & Ambient Glow
 const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
   return (
     <motion.div
@@ -98,31 +103,42 @@ const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.94, opacity: 0, y: -10 }}
         transition={{ type: "spring", damping: 25, stiffness: 320 }}
-        className="relative z-10 w-full max-w-sm sm:max-w-md p-7 sm:p-9 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl flex flex-col items-center text-center"
+        className="relative z-10 w-full max-w-sm sm:max-w-md p-7 sm:p-9 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-500/15 backdrop-blur-xl flex flex-col items-center text-center overflow-hidden"
       >
-        {/* Animated Hero Calendar Icon with Orbiting Glow Ring */}
-        <div className="relative w-20 h-20 mb-5 flex items-center justify-center">
-          {/* Subtle Outer Ping Glow */}
-          <div className="absolute -inset-2 rounded-3xl bg-gradient-to-tr from-indigo-500/25 via-purple-500/20 to-pink-500/20 animate-ping opacity-60 pointer-events-none" />
-          
-          {/* Middle Orbit Track */}
-          <div className="absolute -inset-1 rounded-3xl border-2 border-indigo-500/20 dark:border-indigo-400/20" />
-          
-          {/* Rotating Glowing Segment Ring */}
-          <div className="absolute -inset-1 rounded-3xl border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent border-r-purple-500 animate-spin" />
-          
-          {/* Inner 3D Gradient Icon Box */}
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-xl shadow-indigo-500/35 flex items-center justify-center">
-            <FiCalendar size={28} className="animate-pulse" />
-          </div>
+        {/* Subtle decorative top neon bar */}
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+
+        {/* 3D Mascot Character Hero with Floating Animation and Glowing Aura */}
+        <div className="relative mb-4.5 flex items-center justify-center">
+          {/* Ambient Outer Aura Glow */}
+          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-indigo-500/30 via-purple-500/30 to-pink-500/20 blur-2xl animate-pulse pointer-events-none" />
+
+         
+
+          {/* Mascot Image with Gentle Bobbing / Floating Motion */}
+          <motion.div
+            animate={{
+              y: [0, -7, 0],
+              rotate: [0, 1.2, -1.2, 0],
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: 3,
+              ease: "easeInOut",
+            }}
+            className="relative z-10 w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden ring-4 ring-indigo-500/25 shadow-2xl shadow-indigo-500/30 bg-slate-950 flex items-center justify-center border border-indigo-400/40"
+          >
+            <img
+              src={calendarMascotImg}
+              alt="Content Calendar Mascot"
+              className="w-full h-full object-cover select-none pointer-events-none"
+            />
+          </motion.div>
         </div>
 
         {/* Title & Status Chip */}
         <div className="space-y-1.5 mb-5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
-            <span>Syncing Schedule</span>
-          </div>
+          
 
           <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
             <span>Loading Calendar</span>
@@ -134,7 +150,7 @@ const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
           </h3>
 
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 max-w-xs">
-            Preparing deliverables & publishing dates for{" "}
+            Organizing deliverables & publishing schedule for{" "}
             <span className="font-bold text-slate-800 dark:text-slate-200">
               {monthName} {year}
             </span>
@@ -180,6 +196,7 @@ const ContentCalendar = () => {
   const role = user?.role || "admin";
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
   const isPrivileged = userRoleClean === "admin" || userRoleClean === "operationmanager";
+  const isReadOnly = isPrivileged;
 
   const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
   const clientsState = useSelector((state) => state.clients);
@@ -559,6 +576,7 @@ const ContentCalendar = () => {
 
   // Open modal to create a task on that day
   const handleAddPostOnDate = (dateObj) => {
+    if (isReadOnly) return;
     setSelectedTaskForEdit(null);
     setInitialDateForCreate(dateObj);
     setIsModalOpen(true);
@@ -572,6 +590,7 @@ const ContentCalendar = () => {
 
   const handleDeleteTask = (task, e) => {
     e.stopPropagation();
+    if (isReadOnly) return;
     if (window.confirm(`Delete "${task.taskTitle}"?`)) {
       dispatch(deleteSocialmediaTask(task._id)).then(() => {
         dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
@@ -581,17 +600,19 @@ const ContentCalendar = () => {
 
   // HTML5 Drag and Drop handlers
   const handleDragStart = (e, taskId) => {
+    if (isReadOnly) return;
     setDraggedTaskId(taskId);
     e.dataTransfer.setData("text/plain", taskId);
   };
 
   const handleDragOver = (e) => {
+    if (isReadOnly) return;
     e.preventDefault();
   };
 
   const handleDrop = (e, targetDate) => {
     e.preventDefault();
-    if (!draggedTaskId) return;
+    if (isReadOnly || !draggedTaskId) return;
 
     const task = tasks.find((t) => t._id === draggedTaskId);
     if (!task) return;
@@ -616,6 +637,99 @@ const ContentCalendar = () => {
   const handleModalClose = () => {
     setIsModalOpen(false);
     dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+  };
+
+  const handleExportExcel = () => {
+    if (!calendarTasks || calendarTasks.length === 0) {
+      toast.error("No content calendar posts to export");
+      return;
+    }
+
+    const headers = [
+      "Task Code",
+      "Task Title",
+      "Client",
+      "Category",
+      "Content Type",
+      "Status",
+      "Priority",
+      "QC Status",
+      "Commitment",
+      "Publish Date",
+      "Due Date",
+      "Creator",
+      "Assignee",
+      "Notes",
+    ];
+
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = calendarTasks.map((task) => {
+      const clientName = task.clientName || task.client?.companyName || "General";
+      const creator = getCreatorInfo(task)?.name || "Admin";
+      const assignee = task.assigneeName || task.assignee?.name || "Unassigned";
+
+      let pubStr = "-";
+      if (task.publishDate) {
+        try {
+          const d = new Date(task.publishDate);
+          pubStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+            d.getDate()
+          ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(
+            d.getMinutes()
+          ).padStart(2, "0")}`;
+        } catch {
+          pubStr = String(task.publishDate);
+        }
+      }
+
+      let dueStr = "-";
+      if (task.dueDate) {
+        try {
+          const d = new Date(task.dueDate);
+          dueStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+            d.getDate()
+          ).padStart(2, "0")}`;
+        } catch {
+          dueStr = String(task.dueDate);
+        }
+      }
+
+      return [
+        escapeCsv(task.taskCode || ""),
+        escapeCsv(task.taskTitle || ""),
+        escapeCsv(clientName),
+        escapeCsv(task.category || "Content"),
+        escapeCsv(task.contentType || "Post"),
+        escapeCsv(task.status || "Not started"),
+        escapeCsv(task.priority || "Medium"),
+        escapeCsv(task.qc || "-"),
+        escapeCsv(task.commitment ? "Yes" : "No"),
+        escapeCsv(pubStr),
+        escapeCsv(dueStr),
+        escapeCsv(creator),
+        escapeCsv(assignee),
+        escapeCsv(task.notes || ""),
+      ].join(",");
+    });
+
+    const csvContent = "\uFEFF" + [headers.map(escapeCsv).join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const todayStr = new Date().toISOString().split("T")[0];
+    const fileName = `Content_Calendar_${MONTH_NAMES[currentMonth]}_${currentYear}_${todayStr}.csv`;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${calendarTasks.length} calendar posts to Excel!`);
   };
 
   // Status card styling helper: returns clearly visible, elegant pastel backgrounds & borders per status
@@ -852,13 +966,20 @@ const ContentCalendar = () => {
             ))}
           </div>
 
-          <button
-            onClick={() => handleAddPostOnDate(new Date())}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer"
-          >
-            <FiPlus size={14} />
-            <span>Add Post</span>
-          </button>
+          {isReadOnly ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shadow-2xs">
+              <FiLock size={13} />
+              <span>Read Only</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => handleAddPostOnDate(new Date())}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer"
+            >
+              <FiPlus size={14} />
+              <span>Add Post</span>
+            </button>
+          )}
 
           <button
             onClick={() => navigate(`/${userRoleClean || "admin"}/sm-tasks`)}
@@ -1061,6 +1182,17 @@ const ContentCalendar = () => {
               {stats.atRisk ?? 0}
             </span>
           </button>
+
+          {/* Export to Excel */}
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-2xs"
+            title="Export filtered content calendar to Excel"
+          >
+            <FiDownload size={13} />
+            <span>Export to Excel</span>
+          </button>
         </div>
 
         <div className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -1106,10 +1238,12 @@ const ContentCalendar = () => {
               return (
                 <div
                   key={index}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, dayItem.date)}
-                  onClick={() => handleAddPostOnDate(dayItem.date)}
-                  className={`min-h-[165px] sm:min-h-[185px] p-2 flex flex-col justify-between transition-colors cursor-pointer ${
+                  onDragOver={!isReadOnly ? handleDragOver : undefined}
+                  onDrop={!isReadOnly ? (e) => handleDrop(e, dayItem.date) : undefined}
+                  onClick={!isReadOnly ? () => handleAddPostOnDate(dayItem.date) : undefined}
+                  className={`min-h-[165px] sm:min-h-[185px] p-2 flex flex-col justify-between transition-colors ${
+                    isReadOnly ? "cursor-default" : "cursor-pointer"
+                  } ${
                     dayItem.isCurrentMonth
                       ? "bg-white dark:bg-slate-900"
                       : "bg-slate-50/50 dark:bg-slate-950/40 text-slate-400"
@@ -1137,14 +1271,16 @@ const ContentCalendar = () => {
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleAddPostOnDate(dayItem.date)}
-                      className="w-5 h-5 rounded-md flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                      title={`Add post on ${dayItem.dayNumber} ${MONTH_NAMES[currentMonth]}`}
-                    >
-                      <FiPlus size={13} />
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddPostOnDate(dayItem.date)}
+                        className="w-5 h-5 rounded-md flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                        title={`Add post on ${dayItem.dayNumber} ${MONTH_NAMES[currentMonth]}`}
+                      >
+                        <FiPlus size={13} />
+                      </button>
+                    )}
                   </div>
 
                   {/* Posts Cards inside cell */}
@@ -1165,8 +1301,8 @@ const ContentCalendar = () => {
                       return (
                         <div
                           key={post._id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, post._id)}
+                          draggable={!isReadOnly}
+                          onDragStart={!isReadOnly ? (e) => handleDragStart(e, post._id) : undefined}
                           onClick={(e) => handleCardClick(post, e)}
                           className={`p-1.5 sm:p-2 rounded-xl border ${statusStyle.card} hover:-translate-y-0.5 transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1`}
                           style={{ borderLeftWidth: "3.5px", borderLeftColor: clientColor }}
@@ -1266,7 +1402,7 @@ const ContentCalendar = () => {
               Weekly Content Schedule
             </h3>
             <span className="text-xs text-slate-400">
-              Click any slot to add post
+              {isReadOnly ? "Read-only schedule view" : "Click any slot to add post"}
             </span>
           </div>
 
@@ -1276,14 +1412,16 @@ const ContentCalendar = () => {
               return (
                 <div
                   key={idx}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, dayItem.date)}
-                  onClick={() => handleAddPostOnDate(dayItem.date)}
+                  onDragOver={!isReadOnly ? handleDragOver : undefined}
+                  onDrop={!isReadOnly ? (e) => handleDrop(e, dayItem.date) : undefined}
+                  onClick={!isReadOnly ? () => handleAddPostOnDate(dayItem.date) : undefined}
                   className={`bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border ${
                     dayItem.isToday
                       ? "border-blue-500/80 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20"
                       : "border-slate-200 dark:border-slate-700/60"
-                  } min-h-[220px] flex flex-col justify-between cursor-pointer hover:border-blue-400 transition-colors`}
+                  } min-h-[220px] flex flex-col justify-between ${
+                    isReadOnly ? "cursor-default" : "cursor-pointer"
+                  } hover:border-blue-400 transition-colors`}
                 >
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700/50 mb-2">
                     <span className={`text-xs font-black uppercase ${dayItem.isToday ? "text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>
@@ -1310,8 +1448,8 @@ const ContentCalendar = () => {
                       return (
                         <div
                           key={p._id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, p._id)}
+                          draggable={!isReadOnly}
+                          onDragStart={!isReadOnly ? (e) => handleDragStart(e, p._id) : undefined}
                           onClick={(e) => handleCardClick(p, e)}
                           className={`p-2 rounded-xl border ${statusStyle.card} text-xs shadow-2xs hover:shadow-md transition-all cursor-pointer space-y-1.5`}
                           style={{ borderLeftWidth: "3.5px", borderLeftColor: p.clientColor || "#6366f1" }}
@@ -1373,16 +1511,18 @@ const ContentCalendar = () => {
                     )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddPostOnDate(dayItem.date);
-                    }}
-                    className="w-full mt-2 py-1 text-[11px] font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1"
-                  >
-                    <FiPlus size={12} /> Add
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddPostOnDate(dayItem.date);
+                      }}
+                      className="w-full mt-2 py-1 text-[11px] font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <FiPlus size={12} /> Add
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -1397,12 +1537,14 @@ const ContentCalendar = () => {
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               All Planned Social Media Posts ({calendarTasks.length})
             </h3>
-            <button
-              onClick={() => handleAddPostOnDate(new Date())}
-              className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
-            >
-              <FiPlus size={14} /> Add Post
-            </button>
+            {!isReadOnly && (
+              <button
+                onClick={() => handleAddPostOnDate(new Date())}
+                className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
+              >
+                <FiPlus size={14} /> Add Post
+              </button>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -1490,18 +1632,20 @@ const ContentCalendar = () => {
                         type="button"
                         onClick={() => handleCardClick(task, { stopPropagation: () => {} })}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
-                        title="Edit post"
+                        title={isReadOnly ? "View post details" : "Edit post"}
                       >
-                        <FiEdit2 size={14} />
+                        {isReadOnly ? <FiEye size={14} /> : <FiEdit2 size={14} />}
                       </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleDeleteTask(task, e)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
-                        title="Delete post"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
+                      {!isReadOnly && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteTask(task, e)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                          title="Delete post"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -1607,19 +1751,21 @@ const ContentCalendar = () => {
               })}
             </div>
 
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  const d = selectedDayPosts.date;
-                  setSelectedDayPosts(null);
-                  handleAddPostOnDate(d);
-                }}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer"
-              >
-                <FiPlus size={14} /> Add new post
-              </button>
-            </div>
+            {!isReadOnly && (
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = selectedDayPosts.date;
+                    setSelectedDayPosts(null);
+                    handleAddPostOnDate(d);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <FiPlus size={14} /> Add new post
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1630,6 +1776,7 @@ const ContentCalendar = () => {
         onClose={handleModalClose}
         task={selectedTaskForEdit}
         initialDate={initialDateForCreate}
+        isReadOnly={isReadOnly}
       />
     </div>
   );

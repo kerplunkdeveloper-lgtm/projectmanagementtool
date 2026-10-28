@@ -26,7 +26,9 @@ import {
   FiRotateCcw,
   FiCheck,
   FiChevronDown,
+  FiDownload,
 } from "react-icons/fi";
+import toast from "react-hot-toast";
 import ClientBadge from "../../components/common/ClientBadge";
 import {
   getSocialmediaTasks,
@@ -296,6 +298,7 @@ const SmTasks = () => {
   // Role check: Only admin and operation manager can see all users' tasks and filter by Created By
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
   const canFilterByCreatedBy = userRoleClean === "admin" || userRoleClean === "operationmanager";
+  const isReadOnly = userRoleClean === "admin" || userRoleClean === "operationmanager";
 
   // Lookup map for users by ID and lowercase name for fast profile matching
   const usersMap = useMemo(() => {
@@ -798,6 +801,108 @@ const SmTasks = () => {
     setCurrentPage(1);
   };
 
+  const handleExportExcel = () => {
+    if (!filteredTasks || filteredTasks.length === 0) {
+      toast.error("No tasks to export");
+      return;
+    }
+
+    const headers = [
+      "Task Code",
+      "Task Title",
+      "Client",
+      "Category",
+      "Content Type",
+      "Status",
+      "Priority",
+      "QC Status",
+      "Commitment",
+      "On Calendar",
+      "Publish Date",
+      "Due Date",
+      "Created By",
+      "Assignee",
+      "Notes",
+    ];
+
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = filteredTasks.map((task) => {
+      const clientName =
+        task.clientName ||
+        (typeof task.client === "object" ? task.client?.companyName : "") ||
+        "General";
+      const creator = getCreatorInfo(task)?.name || "Admin";
+      const assignee =
+        task.assigneeName ||
+        (typeof task.assignee === "object" ? task.assignee?.name : "") ||
+        "Unassigned";
+
+      let pubStr = "-";
+      if (task.publishDate) {
+        try {
+          const d = new Date(task.publishDate);
+          pubStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+            d.getDate()
+          ).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(
+            d.getMinutes()
+          ).padStart(2, "0")}`;
+        } catch {
+          pubStr = String(task.publishDate);
+        }
+      }
+
+      let dueStr = "-";
+      if (task.dueDate) {
+        try {
+          const d = new Date(task.dueDate);
+          dueStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+            d.getDate()
+          ).padStart(2, "0")}`;
+        } catch {
+          dueStr = String(task.dueDate);
+        }
+      }
+
+      return [
+        escapeCsv(task.taskCode || ""),
+        escapeCsv(task.taskTitle || ""),
+        escapeCsv(clientName),
+        escapeCsv(task.category || "Content"),
+        escapeCsv(task.contentType || "Post"),
+        escapeCsv(task.status || "Not started"),
+        escapeCsv(task.priority || "Medium"),
+        escapeCsv(task.qc || "-"),
+        escapeCsv(task.commitment ? "Yes" : "No"),
+        escapeCsv(task.onCalendar ? "Yes" : "No"),
+        escapeCsv(pubStr),
+        escapeCsv(dueStr),
+        escapeCsv(creator),
+        escapeCsv(assignee),
+        escapeCsv(task.notes || ""),
+      ].join(",");
+    });
+
+    const csvContent =
+      "\uFEFF" + [headers.map(escapeCsv).join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const todayStr = new Date().toISOString().split("T")[0];
+    const fileName = `Content_Calendar_Tasks_${todayStr}.csv`;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filteredTasks.length} tasks to Excel!`);
+  };
+
   const handleOpenCalendar = () => {
     navigate(`/${role}/content-calendar`);
   };
@@ -808,16 +913,19 @@ const SmTasks = () => {
   };
 
   const handleCreateNew = () => {
+    if (isReadOnly) return;
     setSelectedTaskForEdit(null);
     setIsModalOpen(true);
   };
 
   const handleQuickStatusChange = (task, newStatus) => {
+    if (isReadOnly) return;
     dispatch(updateSocialmediaTask({ id: task._id, data: { status: newStatus } }));
   };
 
   const handleDeleteTask = (task, e) => {
     e.stopPropagation();
+    if (isReadOnly) return;
     if (window.confirm(`Are you sure you want to delete "${task.taskTitle}"?`)) {
       dispatch(deleteSocialmediaTask(task._id));
     }
@@ -836,13 +944,20 @@ const SmTasks = () => {
           </h1>
         </div>
 
-        <button
-          onClick={handleCreateNew}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.98] transition-all self-start sm:self-auto cursor-pointer"
-        >
-          <FiPlus size={16} className="stroke-[2.5]" />
-          <span>+ New task</span>
-        </button>
+        {isReadOnly ? (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs self-start sm:self-auto shadow-2xs">
+            <FiLock size={13} />
+            <span>Read Only</span>
+          </div>
+        ) : (
+          <button
+            onClick={handleCreateNew}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.98] transition-all self-start sm:self-auto cursor-pointer"
+          >
+            <FiPlus size={16} className="stroke-[2.5]" />
+            <span>+ New task</span>
+          </button>
+        )}
       </div>
 
       {/* Synchronized Banner (Image 1 style) */}
@@ -900,6 +1015,17 @@ const SmTasks = () => {
 
           {/* Right Action Controls */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Export to Excel */}
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 px-3.5 h-[36px] rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-2xs"
+              title="Export filtered content calendar table to Excel"
+            >
+              <FiDownload size={13} />
+              <span>Export to Excel</span>
+            </button>
+
             {/* At Risk Toggle Button */}
             <button
               type="button"
@@ -1547,8 +1673,9 @@ const SmTasks = () => {
                       <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
                         <select
                           value={task.status}
+                          disabled={isReadOnly}
                           onChange={(e) => handleQuickStatusChange(task, e.target.value)}
-                          className={`table-status-select cursor-pointer focus:ring-1 focus:ring-indigo-500 shadow-2xs ${
+                          className={`table-status-select ${isReadOnly ? "cursor-default opacity-90" : "cursor-pointer"} focus:ring-1 focus:ring-indigo-500 shadow-2xs ${
                             task.status === "In QC"
                               ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
                               : task.status === "Scheduled"
@@ -1641,18 +1768,20 @@ const SmTasks = () => {
                             type="button"
                             onClick={() => handleEditTask(task)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                            title="Edit Task"
+                            title={isReadOnly ? "View Task" : "Edit Task"}
                           >
                             <FiEye size={15} />
                           </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteTask(task, e)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                            title="Delete Task"
-                          >
-                            <FiTrash2 size={14} />
-                          </button>
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteTask(task, e)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                              title="Delete Task"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1700,6 +1829,7 @@ const SmTasks = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         task={selectedTaskForEdit}
+        isReadOnly={isReadOnly}
       />
     </div>
   );

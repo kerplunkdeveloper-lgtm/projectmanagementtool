@@ -44,13 +44,22 @@ const STATUSES = ["Not started", "In progress", "In QC", "Scheduled", "Overdue",
 const PRIORITIES = ["High", "Medium", "Low"];
 const QC_STATUSES = ["-", "Pending", "Passed", "Rejected"];
 
-const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
+const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadOnly: isReadOnlyProp = null }) => {
   const dispatch = useDispatch();
   const { user: currentUser } = useSelector((state) => state.auth);
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || [];
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
+
+  const userRoleClean = (currentUser?.role?.name || currentUser?.role || "")
+    .toString()
+    .toLowerCase()
+    .replace(/[\s_]/g, "")
+    .trim();
+  const isReadOnly = isReadOnlyProp !== null
+    ? Boolean(isReadOnlyProp)
+    : (userRoleClean === "admin" || userRoleClean === "operationmanager");
 
   useEffect(() => {
     if (isOpen) {
@@ -277,6 +286,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isReadOnly) return;
     if (!formData.taskTitle.trim()) return;
 
     setSaving(true);
@@ -326,7 +336,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
   };
 
   const handleDelete = async () => {
-    if (!task?._id) return;
+    if (isReadOnly || !task?._id) return;
     if (window.confirm("Are you sure you want to delete this task?")) {
       try {
         await dispatch(deleteSocialmediaTask(task._id)).unwrap();
@@ -364,14 +374,24 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black tracking-widest uppercase px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/50">
-                {task?.taskCode || "NEW TASK"}
+                {task?.taskCode || (isReadOnly ? "TASK" : "NEW TASK")}
               </span>
-              <span className="text-[11px] font-semibold text-slate-400">
-                Social Media Manager
-              </span>
+              {isReadOnly ? (
+                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <FiLock size={10} /> Read Only
+                </span>
+              ) : (
+                <span className="text-[11px] font-semibold text-slate-400">
+                  Social Media Manager
+                </span>
+              )}
             </div>
             <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-0.5">
-              {task ? "Edit Social Media Task" : "Create New Social Media Task"}
+              {isReadOnly
+                ? "View Social Media Task"
+                : task
+                  ? "Edit Social Media Task"
+                  : "Create New Social Media Task"}
             </h2>
           </div>
 
@@ -399,10 +419,11 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                 <input
                   type="text"
                   required
+                  disabled={isReadOnly}
                   placeholder="e.g. Create Oktoberfest reel, Weekend lineup carousel..."
                   value={formData.taskTitle}
                   onChange={(e) => setFormData({ ...formData, taskTitle: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold transition-all"
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold transition-all disabled:opacity-85 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -417,7 +438,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                     value={formData.clientId || formData.clientName}
                     onChange={handleClientSelect}
                     required
-                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    disabled={isReadOnly}
+                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     <option value="">Select Client</option>
                     {clients.map((c) => (
@@ -439,7 +461,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                   <select
                     value={formData.assigneeId || formData.assigneeName}
                     onChange={handleAssigneeSelect}
-                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    disabled={isReadOnly}
+                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     <option value="">Select Assignee</option>
                     {users.map((u) => (
@@ -493,7 +516,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
@@ -510,7 +534,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                   <select
                     value={formData.contentType}
                     onChange={(e) => setFormData({ ...formData, contentType: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     {CONTENT_TYPES.map((ct) => (
                       <option key={ct} value={ct}>
@@ -530,8 +555,9 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                   rows={4}
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  disabled={isReadOnly}
                   placeholder="Add reel concept details, visual reference links, copy, hashtags, or reviewer feedback..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium leading-relaxed"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-medium leading-relaxed disabled:opacity-85 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -580,7 +606,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                       type="checkbox"
                       checked={formData.hasPublishDate}
                       onChange={(e) => setFormData({ ...formData, hasPublishDate: e.target.checked })}
-                      className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                      disabled={isReadOnly}
+                      className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
                     />
                     <span className="text-xs font-bold text-slate-900 dark:text-white">
                       Publish on Calendar
@@ -603,7 +630,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                           type="date"
                           value={formData.publishDate}
                           onChange={(e) => setFormData({ ...formData, publishDate: e.target.value })}
-                          className="w-full pl-8 pr-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500"
+                          disabled={isReadOnly}
+                          className="w-full pl-8 pr-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 disabled:opacity-85 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -618,7 +646,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                           type="time"
                           value={formData.publishTime}
                           onChange={(e) => setFormData({ ...formData, publishTime: e.target.value })}
-                          className="w-full pl-8 pr-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500"
+                          disabled={isReadOnly}
+                          className="w-full pl-8 pr-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 disabled:opacity-85 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -637,7 +666,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                     required
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500"
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500 disabled:opacity-85 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -648,7 +678,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     {PRIORITIES.map((pr) => (
                       <option key={pr} value={pr}>
@@ -668,7 +699,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     {STATUSES.map((st) => (
                       <option key={st} value={st}>
@@ -685,7 +717,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                   <select
                     value={formData.qc}
                     onChange={(e) => setFormData({ ...formData, qc: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    disabled={isReadOnly}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     {QC_STATUSES.map((q) => (
                       <option key={q} value={q}>
@@ -701,7 +734,12 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
 
           {/* Footer Actions */}
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            {task ? (
+            {isReadOnly ? (
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <FiLock size={13} className="text-amber-500" />
+                <span>Read-only view (Admin &amp; Operation Manager cannot edit)</span>
+              </div>
+            ) : task ? (
               <button
                 type="button"
                 onClick={handleDelete}
@@ -717,18 +755,24 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-colors cursor-pointer ${
+                  isReadOnly
+                    ? "text-white bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 shadow-xs"
+                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                }`}
               >
-                Cancel
+                Close
               </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 rounded-xl shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
-              >
-                <FiCheck size={16} />
-                <span>{saving ? "Saving..." : task ? "Save Changes" : "Create Task"}</span>
-              </button>
+              {!isReadOnly && (
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 dark:bg-indigo-600 dark:hover:bg-indigo-500 rounded-xl shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  <FiCheck size={16} />
+                  <span>{saving ? "Saving..." : task ? "Save Changes" : "Create Task"}</span>
+                </button>
+              )}
             </div>
           </div>
         </form>

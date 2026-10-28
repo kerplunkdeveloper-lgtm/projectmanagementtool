@@ -27,7 +27,9 @@ import {
   FiRefreshCw,
   FiList,
   FiGrid,
+  FiDownload,
 } from "react-icons/fi";
+import toast from "react-hot-toast";
 import { format, isToday, isTomorrow, isThisWeek, parseISO } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../../services/axiosInstance";
@@ -258,6 +260,7 @@ const ContentCalendarOverview = () => {
   const isSuperOrAdmin =
     userRole === "admin" ||
     userRole === "operationmanager";
+  const isReadOnly = isSuperOrAdmin;
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -455,6 +458,89 @@ const ContentCalendarOverview = () => {
     setSearchQuery("");
   };
 
+  const handleExportExcel = () => {
+    if (!filteredTasks || filteredTasks.length === 0) {
+      toast.error("No content calendar posts to export");
+      return;
+    }
+
+    const headers = [
+      "Task Code",
+      "Task Title",
+      "Client",
+      "Category",
+      "Content Type",
+      "Status",
+      "Priority",
+      "QC Status",
+      "Commitment",
+      "Publish Date",
+      "Due Date",
+      "Creator",
+      "Assignee",
+      "Notes",
+    ];
+
+    const escapeCsv = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = filteredTasks.map((task) => {
+      const clientName = task.client?.companyName || task.clientName || "General";
+      const creator = task.createdByName || task.createdBy?.name || "Admin";
+      const assignee = task.assigneeName || task.assignee?.name || "Unassigned";
+      let publishDateStr = "-";
+      if (task.publishDate) {
+        try {
+          publishDateStr = format(new Date(task.publishDate), "yyyy-MM-dd HH:mm");
+        } catch {
+          publishDateStr = String(task.publishDate);
+        }
+      }
+      let dueDateStr = "-";
+      if (task.dueDate) {
+        try {
+          dueDateStr = format(new Date(task.dueDate), "yyyy-MM-dd");
+        } catch {
+          dueDateStr = String(task.dueDate);
+        }
+      }
+
+      return [
+        escapeCsv(task.taskCode || ""),
+        escapeCsv(task.taskTitle || ""),
+        escapeCsv(clientName),
+        escapeCsv(task.category || "Content"),
+        escapeCsv(task.contentType || "Post"),
+        escapeCsv(task.status || "Not started"),
+        escapeCsv(task.priority || "Medium"),
+        escapeCsv(task.qc || "-"),
+        escapeCsv(task.commitment ? "Yes" : "No"),
+        escapeCsv(publishDateStr),
+        escapeCsv(dueDateStr),
+        escapeCsv(creator),
+        escapeCsv(assignee),
+        escapeCsv(task.notes || ""),
+      ].join(",");
+    });
+
+    const csvContent = "\uFEFF" + [headers.map(escapeCsv).join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const todayStr = new Date().toISOString().split("T")[0];
+    const fileName = `Content_Calendar_Table_${todayStr}.csv`;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${filteredTasks.length} posts to Excel!`);
+  };
+
   const calendarPath = `/${userRole || "admin"}/content-calendar`;
 
   return (
@@ -524,12 +610,14 @@ const ContentCalendarOverview = () => {
               <FiRefreshCw size={13} className={loading ? "animate-spin" : ""} />
             </button>
 
-            <Link
-              to={calendarPath}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg theme-bg-accent text-white shadow-2xs hover:opacity-95 transition-all cursor-pointer"
-            >
-              <FiPlus size={12} /> Create
-            </Link>
+            {!isReadOnly && (
+              <Link
+                to={calendarPath}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg theme-bg-accent text-white shadow-2xs hover:opacity-95 transition-all cursor-pointer"
+              >
+                <FiPlus size={12} /> Create
+              </Link>
+            )}
 
             <Link
               to={calendarPath}
@@ -642,6 +730,17 @@ const ContentCalendarOverview = () => {
               Reset
             </button>
           )}
+
+          {/* Export to Excel */}
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition-all cursor-pointer shrink-0"
+            title="Export content calendar table to Excel"
+          >
+            <FiDownload size={13} />
+            <span>Export to Excel</span>
+          </button>
         </div>
 
         {/* ─── Content Body: Table or Cards ──────────────────────────── */}
