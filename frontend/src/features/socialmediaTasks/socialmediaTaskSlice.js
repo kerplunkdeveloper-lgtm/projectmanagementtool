@@ -139,6 +139,41 @@ const initialState = {
   error: null,
 };
 
+const recalcStats = (state) => {
+  const now = new Date();
+  const commitments = state.tasks.filter((t) => t.commitment && t.publishDate);
+  const total = commitments.length;
+  const completed = commitments.filter((t) => ['Completed', 'Live'].includes(t.status)).length;
+  const overdue = commitments.filter((t) => {
+    if (['Completed', 'Live'].includes(t.status)) return false;
+    return new Date(t.publishDate) < now || t.status === 'Overdue';
+  }).length;
+  const pending = commitments.filter((t) =>
+    ['In QC', 'Scheduled', 'In progress', 'Not started'].includes(t.status) &&
+    new Date(t.publishDate) >= now
+  ).length;
+  const atRisk = commitments.filter((t) => {
+    if (['Completed', 'Live'].includes(t.status)) return false;
+    const targetDate = t.publishDate || t.dueDate;
+    if (!targetDate) return false;
+    const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
+    return diffHours >= 0 && diffHours <= 24;
+  }).length;
+  const achievement = total > 0 ? parseFloat(((completed / total) * 100).toFixed(1)) : 0;
+  const activeClients = new Set(commitments.map((t) => t.clientName).filter(Boolean)).size;
+
+  state.stats = {
+    ...state.stats,
+    commitments: total,
+    completed,
+    pending,
+    overdue,
+    atRisk,
+    achievement,
+    activeClients,
+  };
+};
+
 const socialmediaTaskSlice = createSlice({
   name: "socialmediaTasks",
   initialState,
@@ -187,6 +222,7 @@ const socialmediaTaskSlice = createSlice({
           if (action.payload.data.commitment) {
             state.commitmentsCount += 1;
           }
+          recalcStats(state);
         }
       })
 
@@ -197,6 +233,7 @@ const socialmediaTaskSlice = createSlice({
           if (index !== -1) {
             state.tasks[index] = action.payload.data;
           }
+          recalcStats(state);
         }
       })
 
@@ -207,6 +244,7 @@ const socialmediaTaskSlice = createSlice({
           if (index !== -1) {
             state.tasks[index] = action.payload.data;
           }
+          recalcStats(state);
         }
       })
 
@@ -214,6 +252,7 @@ const socialmediaTaskSlice = createSlice({
       .addCase(deleteSocialmediaTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.filter((t) => t._id !== action.payload);
         state.totalCount = Math.max(0, state.totalCount - 1);
+        recalcStats(state);
       })
 
       // GET METADATA

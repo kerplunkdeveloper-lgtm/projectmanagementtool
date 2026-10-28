@@ -114,8 +114,8 @@ socialmediaTaskCalendorSchema.virtual('isAtRisk').get(function () {
   const now = new Date();
   const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
 
-  // If already past due or within next 24 hours
-  return diffHours <= 24;
+  // If due within next 24 hours (not already overdue)
+  return diffHours >= 0 && diffHours <= 24;
 });
 
 // Pre-save hook: auto-sync commitment, onCalendar and taskCode

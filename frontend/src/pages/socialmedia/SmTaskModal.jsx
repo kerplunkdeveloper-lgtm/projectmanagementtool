@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FiX, FiCalendar, FiClock, FiLock, FiAlertCircle, FiCheck, FiTrash2 } from "react-icons/fi";
 import toast from "react-hot-toast";
@@ -68,6 +68,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
     contentType: "Reel",
     createdById: "",
     createdByName: "",
+    assigneeId: "",
+    assigneeName: "",
     dueDate: "",
     publishDate: "",
     publishTime: "18:00",
@@ -79,9 +81,41 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
   });
 
   const [saving, setSaving] = useState(false);
+  const activeSessionRef = useRef({ isOpen: false, taskId: null, initialDateStr: null });
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      activeSessionRef.current = { isOpen: false, taskId: null, initialDateStr: null };
+      return;
+    }
+
+    const currentTaskId = task?._id || "new";
+    const currentInitialDateStr = initialDate ? formatLocalDateKey(initialDate) : null;
+
+    // Only initialize form data when opening modal or when the selected task changes
+    const alreadyInitialized =
+      activeSessionRef.current.isOpen &&
+      activeSessionRef.current.taskId === currentTaskId &&
+      activeSessionRef.current.initialDateStr === currentInitialDateStr;
+
+    if (alreadyInitialized) {
+      // If client was empty and clients just loaded, fill clientId without wiping user input
+      if (!formData.clientId && clients.length > 0 && !task) {
+        setFormData((prev) => ({
+          ...prev,
+          clientId: prev.clientId || clients[0]._id,
+          clientName: prev.clientName || clients[0].companyName,
+          clientColor: prev.clientColor || clients[0].color || "#6366f1",
+        }));
+      }
+      return;
+    }
+
+    activeSessionRef.current = {
+      isOpen: true,
+      taskId: currentTaskId,
+      initialDateStr: currentInitialDateStr,
+    };
 
     if (task) {
       let pDate = "";
@@ -103,6 +137,15 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
       const creatorName =
         task.createdBy?.name ||
         task.createdByName ||
+        currentUser?.name ||
+        "Admin";
+
+      const assigneeId =
+        (typeof task.assignee === "object" ? task.assignee?._id : task.assignee) ||
+        currentUser?._id ||
+        "";
+      const assigneeName =
+        (typeof task.assignee === "object" ? task.assignee?.name : null) ||
         task.assigneeName ||
         currentUser?.name ||
         "Admin";
@@ -116,6 +159,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
         contentType: task.contentType || "Reel",
         createdById: task.createdBy?._id || task.createdBy || currentUser?._id || "",
         createdByName: creatorName,
+        assigneeId,
+        assigneeName,
         dueDate: dDate,
         publishDate: pDate,
         publishTime: pTime,
@@ -141,6 +186,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
         contentType: "Reel",
         createdById: currentUser?._id || "",
         createdByName: currentUser?.name || "Admin",
+        assigneeId: currentUser?._id || "",
+        assigneeName: currentUser?.name || "Admin",
         dueDate: defaultDateStr,
         publishDate: defaultDateStr,
         publishTime: "18:00",
@@ -241,7 +288,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
 
       let finalDueDate = null;
       if (formData.dueDate) {
-        finalDueDate = parseLocalDateOnly(formData.dueDate);
+        finalDueDate = parseLocalDateOnly(formData.dueDate, true);
       } else {
         finalDueDate = new Date();
       }
@@ -255,8 +302,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
         contentType: formData.contentType,
         createdBy: formData.createdById || currentUser?._id || currentUser?.id || null,
         createdByName: formData.createdByName || currentUser?.name || "Admin",
-        assignee: formData.createdById || currentUser?._id || currentUser?.id || null,
-        assigneeName: formData.createdByName || currentUser?.name || "Admin",
+        assignee: formData.assigneeId || currentUser?._id || currentUser?.id || null,
+        assigneeName: formData.assigneeName || currentUser?.name || "Admin",
         dueDate: finalDueDate,
         publishDate: finalPublishDate,
         status: formData.status,
@@ -298,11 +345,16 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
         ? parseLocalDateOnly(formData.dueDate, true)
         : null;
 
+  const diffHours = targetDateForRisk
+    ? (targetDateForRisk.getTime() - Date.now()) / (1000 * 60 * 60)
+    : -1;
+
   const isAtRisk =
     isCommitment &&
     !["Completed", "Live"].includes(formData.status) &&
     targetDateForRisk &&
-    (targetDateForRisk.getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+    diffHours >= 0 &&
+    diffHours <= 24;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-3 sm:p-4 md:p-6 overflow-y-auto">
@@ -379,36 +431,56 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null }) => {
                   </select>
                 </div>
 
-                {/* Created By (Logged-in User Who Posts) */}
+                {/* Assignee Selection */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                    Created By
+                    Assignee
                   </label>
-                  <div className="w-full px-3.5 py-2 bg-slate-100/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold flex items-center gap-2">
-                    <div className="relative shrink-0 w-5 h-5">
-                      {creatorInfo.avatarUrl ? (
-                        <img
-                          src={creatorInfo.avatarUrl}
-                          alt={creatorInfo.name}
-                          className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            const fallback = e.currentTarget.parentElement?.querySelector(".modal-avatar-fallback");
-                            if (fallback) fallback.style.display = "flex";
-                          }}
-                        />
-                      ) : null}
-                      <div
-                        className="modal-avatar-fallback w-5 h-5 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[9px] items-center justify-center uppercase"
-                        style={{ display: creatorInfo.avatarUrl ? "none" : "flex" }}
-                      >
-                        {creatorInfo.initials}
-                      </div>
+                  <select
+                    value={formData.assigneeId || formData.assigneeName}
+                    onChange={handleAssigneeSelect}
+                    className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="">Select Assignee</option>
+                    {users.map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.name} {u.department ? `(${u.department})` : ""}
+                      </option>
+                    ))}
+                    {formData.assigneeName && !users.some((u) => u.name === formData.assigneeName || u._id === formData.assigneeId) && (
+                      <option value={formData.assigneeName}>{formData.assigneeName}</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Creator Info Banner */}
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 text-xs">
+                <span className="text-[10.5px] font-semibold text-slate-500 dark:text-slate-400">Created by:</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="relative shrink-0 w-4.5 h-4.5">
+                    {creatorInfo.avatarUrl ? (
+                      <img
+                        src={creatorInfo.avatarUrl}
+                        alt={creatorInfo.name}
+                        className="w-4.5 h-4.5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          const fallback = e.currentTarget.parentElement?.querySelector(".modal-avatar-fallback");
+                          if (fallback) fallback.style.display = "flex";
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="modal-avatar-fallback w-4.5 h-4.5 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[8.5px] items-center justify-center uppercase"
+                      style={{ display: creatorInfo.avatarUrl ? "none" : "flex" }}
+                    >
+                      {creatorInfo.initials}
                     </div>
-                    <span className="truncate">
-                      {creatorInfo.name}
-                    </span>
                   </div>
+                  <span className="font-bold text-slate-700 dark:text-slate-300 text-xs truncate max-w-[150px]">
+                    {creatorInfo.name}
+                  </span>
                 </div>
               </div>
 

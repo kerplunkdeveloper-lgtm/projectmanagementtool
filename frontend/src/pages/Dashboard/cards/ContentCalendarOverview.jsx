@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
+import { getUsers } from "../../../features/users/userSlice";
 import {
   FiCalendar,
   FiClock,
@@ -36,42 +37,49 @@ const getStatusStyles = (status = "") => {
   switch (status) {
     case "Live":
       return {
+        cardBg: "bg-[#e6f9ee] dark:bg-emerald-950/25 border-emerald-200/90 dark:border-emerald-800/60",
         badge: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30",
         dot: "bg-emerald-500",
         cardBorder: "hover:border-emerald-400 dark:hover:border-emerald-500/50",
       };
     case "Scheduled":
       return {
+        cardBg: "bg-[#e8f4fd] dark:bg-sky-950/25 border-sky-200/90 dark:border-sky-800/60",
         badge: "bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-500/30",
         dot: "bg-sky-500",
         cardBorder: "hover:border-sky-400 dark:hover:border-sky-500/50",
       };
     case "In QC":
       return {
+        cardBg: "bg-[#fef7e3] dark:bg-amber-950/25 border-amber-200/90 dark:border-amber-800/60",
         badge: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
         dot: "bg-amber-500",
         cardBorder: "hover:border-amber-400 dark:hover:border-amber-500/50",
       };
     case "In progress":
       return {
+        cardBg: "bg-[#eef0fe] dark:bg-indigo-950/25 border-indigo-200/90 dark:border-indigo-800/60",
         badge: "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30",
         dot: "bg-indigo-500",
         cardBorder: "hover:border-indigo-400 dark:hover:border-indigo-500/50",
       };
     case "Overdue":
       return {
+        cardBg: "bg-[#feebee] dark:bg-rose-950/25 border-rose-200/90 dark:border-rose-800/60",
         badge: "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/30",
         dot: "bg-rose-500",
         cardBorder: "hover:border-rose-400 dark:hover:border-rose-500/50",
       };
     case "Completed":
       return {
+        cardBg: "bg-[#e6f9ee] dark:bg-teal-950/25 border-teal-200/90 dark:border-teal-800/60",
         badge: "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-500/30",
         dot: "bg-teal-500",
         cardBorder: "hover:border-teal-400 dark:hover:border-teal-500/50",
       };
     default:
       return {
+        cardBg: "bg-[#f4f6f8] dark:bg-slate-800/40 border-slate-200/90 dark:border-slate-700/80",
         badge: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
         dot: "bg-slate-400",
         cardBorder: "hover:border-slate-300 dark:hover:border-slate-600",
@@ -92,14 +100,18 @@ const getContentTypeIcon = (type = "") => {
 };
 
 // Relative date indicator
-const getRelativeDateLabel = (dateStr) => {
+const getRelativeDateLabel = (dateStr, status = "") => {
   if (!dateStr) return null;
   try {
     const d = typeof dateStr === "string" ? parseISO(dateStr) : dateStr;
     if (isToday(d)) return { text: "Today", color: "bg-emerald-500 text-white font-black animate-pulse" };
     if (isTomorrow(d)) return { text: "Tomorrow", color: "bg-sky-500 text-white font-bold" };
     const now = new Date();
-    if (d < now && !isToday(d)) return { text: "Past Due", color: "bg-rose-500 text-white font-black" };
+    const isCompleted = ["completed", "live"].includes((status || "").toLowerCase().trim());
+    if (d < now && !isToday(d)) {
+      if (isCompleted) return null;
+      return { text: "Past Due", color: "bg-rose-500 text-white font-black" };
+    }
     if (isThisWeek(d)) return { text: "This Week", color: "bg-indigo-500 text-white font-semibold" };
   } catch {
     return null;
@@ -108,22 +120,34 @@ const getRelativeDateLabel = (dateStr) => {
 };
 
 // Avatar helper
-const extractAvatarUrl = (profilePic) => {
-  if (!profilePic) return null;
-  if (typeof profilePic === "string") {
-    if (profilePic.startsWith("http")) return profilePic;
-    return `${axiosInstance.defaults.baseURL || ""}${profilePic.startsWith("/") ? "" : "/"}${profilePic}`;
-  }
-  if (typeof profilePic === "object" && profilePic.url) {
-    if (profilePic.url.startsWith("http")) return profilePic.url;
-    return `${axiosInstance.defaults.baseURL || ""}${profilePic.url.startsWith("/") ? "" : "/"}${profilePic.url}`;
-  }
-  return null;
-};
+const extractAvatarUrl = (target) => {
+  if (!target) return null;
+  if (typeof target === "string") {
+    const trimmed = target.trim();
+    if (!trimmed) return null;
+    if (
+      trimmed.startsWith("http://") ||
+      trimmed.startsWith("https://") ||
+      trimmed.startsWith("data:") ||
+      trimmed.startsWith("blob:")
+    ) {
+      return trimmed;
+    }
+    const backendBase = (
+      import.meta.env.VITE_API_BASE_URL ||
+      axiosInstance.defaults.baseURL ||
+      ""
+    ).replace(/\/api\/?$/, "");
 
-const getAssigneeAvatar = (task) => {
-  const target = task?.assignee || task?.createdBy;
-  if (target) {
+    if (trimmed.startsWith("/")) {
+      return backendBase ? `${backendBase}${trimmed}` : trimmed;
+    }
+    return backendBase ? `${backendBase}/${trimmed}` : `/${trimmed}`;
+  }
+  if (typeof target === "object") {
+    if (typeof target.url === "string" && target.url.trim()) return extractAvatarUrl(target.url);
+    if (target.profile?.profileImage) return extractAvatarUrl(target.profile.profileImage);
+    if (target.profileImage) return extractAvatarUrl(target.profileImage);
     if (target.avatar) return extractAvatarUrl(target.avatar);
     if (target.profilePic) return extractAvatarUrl(target.profilePic);
   }
@@ -132,8 +156,90 @@ const getAssigneeAvatar = (task) => {
 
 const ContentCalendarOverview = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const currentUser = useSelector((state) => state.auth?.user);
+  const usersFromStore = useSelector((state) => state.users?.users || []);
   const clientsFromStore = useSelector((state) => state.clients?.clients || []);
+
+  useEffect(() => {
+    if (!usersFromStore || usersFromStore.length === 0) {
+      dispatch(getUsers());
+    }
+  }, [dispatch, usersFromStore]);
+
+  // Fast user lookup map for creator/assignee profile images and names
+  const usersMap = useMemo(() => {
+    const map = new Map();
+    if (currentUser) {
+      if (currentUser._id) map.set(currentUser._id.toString(), currentUser);
+      if (currentUser.id) map.set(currentUser.id.toString(), currentUser);
+      if (currentUser.name) map.set(currentUser.name.trim().toLowerCase(), currentUser);
+    }
+    (usersFromStore || []).forEach((u) => {
+      if (u._id) map.set(u._id.toString(), u);
+      if (u.id) map.set(u.id.toString(), u);
+      if (u.name) map.set(u.name.trim().toLowerCase(), u);
+    });
+    return map;
+  }, [usersFromStore, currentUser]);
+
+  const getSingleUserInfo = useCallback(
+    (userTarget, nameTarget) => {
+      const uId = (typeof userTarget === "object" ? userTarget?._id : userTarget)?.toString();
+      const rawName =
+        (typeof userTarget === "object" ? userTarget?.name : null) ||
+        nameTarget ||
+        (typeof userTarget === "string" && !userTarget.match(/^[0-9a-fA-F]{24}$/) ? userTarget : "");
+
+      const matched =
+        (uId && usersMap.get(uId)) ||
+        (rawName && usersMap.get(rawName.trim().toLowerCase())) ||
+        (typeof userTarget === "object" ? userTarget : null);
+
+      const name = matched?.name || rawName || "Unassigned";
+      const avatarUrl = extractAvatarUrl(matched) || extractAvatarUrl(userTarget) || null;
+      const initials =
+        (name || "U")
+          .split(" ")
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((n) => n[0].toUpperCase())
+          .join("") || "U";
+
+      return { name, avatarUrl, initials };
+    },
+    [usersMap]
+  );
+
+  const getCreatorOrAssigneeInfo = useCallback(
+    (task) => {
+      const assigneeInfo = getSingleUserInfo(task?.assignee, task?.assigneeName);
+      const creatorInfo = getSingleUserInfo(task?.createdBy, task?.createdByName);
+
+      const hasValidAssignee =
+        assigneeInfo.name &&
+        assigneeInfo.name.trim().toLowerCase() !== "unassigned";
+
+      if (hasValidAssignee) {
+        return {
+          name: assigneeInfo.name,
+          avatarUrl: assigneeInfo.avatarUrl || creatorInfo.avatarUrl,
+          initials: assigneeInfo.initials,
+        };
+      }
+
+      const hasValidCreator =
+        creatorInfo.name &&
+        creatorInfo.name.trim().toLowerCase() !== "unassigned";
+
+      if (hasValidCreator) {
+        return creatorInfo;
+      }
+
+      return assigneeInfo;
+    },
+    [getSingleUserInfo]
+  );
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -147,11 +253,11 @@ const ContentCalendarOverview = () => {
   const userRole = (currentUser?.role?.name || currentUser?.role || "")
     .toString()
     .toLowerCase()
+    .replace(/[\s_]/g, "")
     .trim();
   const isSuperOrAdmin =
     userRole === "admin" ||
-    userRole === "operationmanager" ||
-    userRole === "operation manager";
+    userRole === "operationmanager";
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -349,7 +455,7 @@ const ContentCalendarOverview = () => {
     setSearchQuery("");
   };
 
-  const calendarPath = `/${currentUser?.role || "admin"}/content-calendar`;
+  const calendarPath = `/${userRole || "admin"}/content-calendar`;
 
   return (
     <div className="w-full sidebar-bg rounded-2xl border border-slate-200 dark:border-[#223149] shadow-xs p-4 sm:p-5 transition-all flex flex-col justify-between">
@@ -584,18 +690,12 @@ const ContentCalendarOverview = () => {
                 {filteredTasks.slice(0, 5).map((task) => {
                   const statusStyle = getStatusStyles(task.status);
                   const dateStr = task.publishDate || task.dueDate;
-                  const relativeDate = getRelativeDateLabel(dateStr);
+                  const relativeDate = getRelativeDateLabel(dateStr, task.status);
                   const formattedDate = dateStr
                     ? format(new Date(dateStr), "EEE, MMM d")
                     : "No Date";
                   const clientName = task.client?.companyName || task.clientName || "General";
-                  const creatorOrAssigneeName =
-                    task.assignee?.name ||
-                    task.assigneeName ||
-                    task.createdBy?.name ||
-                    task.createdByName ||
-                    "Unassigned";
-                  const avatarUrl = getAssigneeAvatar(task);
+                  const creatorOrAssignee = getCreatorOrAssigneeInfo(task);
 
                   return (
                     <tr
@@ -652,19 +752,30 @@ const ContentCalendarOverview = () => {
                       {/* Creator / Assignee */}
                       <td className="py-2 px-3 hidden md:table-cell whitespace-nowrap">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          {avatarUrl ? (
-                            <img
-                              src={avatarUrl}
-                              alt={creatorOrAssigneeName}
-                              className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0"
-                            />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-[9px] shrink-0">
-                              {creatorOrAssigneeName.charAt(0).toUpperCase()}
+                          <div className="relative shrink-0 w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-2xs">
+                            {creatorOrAssignee.avatarUrl ? (
+                              <img
+                                src={creatorOrAssignee.avatarUrl}
+                                alt={creatorOrAssignee.name}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                  const fb = e.currentTarget.parentElement?.querySelector(".cal-avatar-fallback");
+                                  if (fb) fb.classList.remove("hidden");
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              className={`cal-avatar-fallback w-full h-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-[9px] ${
+                                creatorOrAssignee.avatarUrl ? "hidden" : "flex"
+                              }`}
+                            >
+                              {creatorOrAssignee.initials}
                             </div>
-                          )}
-                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate max-w-[90px]">
-                            {creatorOrAssigneeName}
+                          </div>
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate max-w-[90px]" title={creatorOrAssignee.name}>
+                            {creatorOrAssignee.name}
                           </span>
                         </div>
                       </td>
@@ -694,18 +805,13 @@ const ContentCalendarOverview = () => {
                 ? format(new Date(dateStr), "EEE, MMM d")
                 : "No Date";
               const clientName = task.client?.companyName || task.clientName || "General";
-              const creatorOrAssigneeName =
-                task.assignee?.name ||
-                task.assigneeName ||
-                task.createdBy?.name ||
-                task.createdByName ||
-                "Unassigned";
+              const creatorOrAssignee = getCreatorOrAssigneeInfo(task);
 
               return (
                 <div
                   key={task._id}
                   onClick={() => setSelectedTaskForModal(task)}
-                  className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-[#111927]/60 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all cursor-pointer group flex flex-col justify-between"
+                  className={`p-3 rounded-xl border ${statusStyle.cardBg || "border-slate-200/80 bg-slate-50/50 dark:bg-[#111927]/60"} hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1.5">
                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
@@ -728,9 +834,33 @@ const ContentCalendarOverview = () => {
                       {getContentTypeIcon(task.contentType)}
                       <span>{task.contentType || "Post"}</span>
                     </span>
-                    <span className="font-medium text-slate-500 dark:text-slate-400 truncate max-w-[80px]">
-                      {creatorOrAssigneeName}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0 max-w-[95px]">
+                      <div className="relative shrink-0 w-4 h-4 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                        {creatorOrAssignee.avatarUrl ? (
+                          <img
+                            src={creatorOrAssignee.avatarUrl}
+                            alt={creatorOrAssignee.name}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              const fb = e.currentTarget.parentElement?.querySelector(".cal-grid-avatar-fallback");
+                              if (fb) fb.classList.remove("hidden");
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`cal-grid-avatar-fallback w-full h-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-[8px] ${
+                            creatorOrAssignee.avatarUrl ? "hidden" : "flex"
+                          }`}
+                        >
+                          {creatorOrAssignee.initials}
+                        </div>
+                      </div>
+                      <span className="font-medium text-slate-500 dark:text-slate-400 truncate text-[10px]" title={creatorOrAssignee.name}>
+                        {creatorOrAssignee.name}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
@@ -855,35 +985,85 @@ const ContentCalendarOverview = () => {
                 </div>
 
                 {/* Team & Assignee Info */}
-                <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111927] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Assignee:</span>
-                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <FiUser size={13} className="text-indigo-500" />
-                      {selectedTaskForModal.assignee?.name ||
-                        selectedTaskForModal.assigneeName ||
-                        "Unassigned"}
-                    </span>
-                  </div>
+                {(() => {
+                  const modalAssignee = getSingleUserInfo(
+                    selectedTaskForModal.assignee,
+                    selectedTaskForModal.assigneeName
+                  );
+                  const modalCreator = getSingleUserInfo(
+                    selectedTaskForModal.createdBy,
+                    selectedTaskForModal.createdByName
+                  );
 
-                  {selectedTaskForModal.createdBy && (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                      <span className="text-slate-500 dark:text-slate-400">Created By:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">
-                        {selectedTaskForModal.createdBy?.name ||
-                          selectedTaskForModal.createdByName ||
-                          "Admin"}
-                      </span>
-                    </div>
-                  )}
+                  return (
+                    <div className="p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#111927] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">Assignee:</span>
+                        <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <div className="relative shrink-0 w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                            {modalAssignee.avatarUrl ? (
+                              <img
+                                src={modalAssignee.avatarUrl}
+                                alt={modalAssignee.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                  const fb = e.currentTarget.parentElement?.querySelector(".cal-modal-assignee-fallback");
+                                  if (fb) fb.classList.remove("hidden");
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              className={`cal-modal-assignee-fallback w-full h-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-[9px] ${
+                                modalAssignee.avatarUrl ? "hidden" : "flex"
+                              }`}
+                            >
+                              {modalAssignee.initials}
+                            </div>
+                          </div>
+                          <span>{modalAssignee.name}</span>
+                        </span>
+                      </div>
 
-                  {selectedTaskForModal.commitment && (
-                    <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800 text-amber-600 dark:text-amber-400 font-bold">
-                      <FiStar size={12} className="fill-amber-500" />
-                      <span>Committed to Client Calendar</span>
+                      {selectedTaskForModal.createdBy && (
+                        <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                          <span className="text-slate-500 dark:text-slate-400">Created By:</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <div className="relative shrink-0 w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                              {modalCreator.avatarUrl ? (
+                                <img
+                                  src={modalCreator.avatarUrl}
+                                  alt={modalCreator.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = "none";
+                                    const fb = e.currentTarget.parentElement?.querySelector(".cal-modal-creator-fallback");
+                                    if (fb) fb.classList.remove("hidden");
+                                  }}
+                                />
+                              ) : null}
+                              <div
+                                className={`cal-modal-creator-fallback w-full h-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-[9px] ${
+                                  modalCreator.avatarUrl ? "hidden" : "flex"
+                                }`}
+                              >
+                                {modalCreator.initials}
+                              </div>
+                            </div>
+                            <span>{modalCreator.name}</span>
+                          </span>
+                        </div>
+                      )}
+
+                      {selectedTaskForModal.commitment && (
+                        <div className="flex items-center gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800 text-amber-600 dark:text-amber-400 font-bold">
+                          <FiStar size={12} className="fill-amber-500" />
+                          <span>Committed to Client Calendar</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 {/* Notes or caption */}
                 {selectedTaskForModal.notes && (

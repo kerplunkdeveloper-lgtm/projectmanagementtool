@@ -17,7 +17,9 @@ import {
   FiMenu,
   FiEdit2,
   FiTrash2,
+  FiRefreshCw,
 } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   getSocialmediaTasks,
   getSocialmediaStats,
@@ -76,6 +78,101 @@ const STATUSES = ["All", "Live", "Scheduled", "In QC", "In progress", "Not start
 const PRIORITIES = ["All", "High", "Medium", "Low"];
 const COMMITMENTS = ["All", "Yes", "No"];
 
+// Full Page Centered Loading Component with Premium Ambient Glow & Glassmorphism
+const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
+  return (
+    <motion.div
+      key="calendar-fullpage-loader"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.25 } }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#f8fafc]/85 dark:bg-[#090d16]/85 backdrop-blur-md overflow-hidden select-none pointer-events-auto"
+    >
+      {/* Ambient Floating Glow Spheres */}
+      <div className="absolute top-1/4 left-1/4 w-80 sm:w-96 h-80 sm:h-96 bg-indigo-500/15 dark:bg-indigo-600/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 sm:w-96 h-80 sm:h-96 bg-purple-500/15 dark:bg-purple-600/20 rounded-full blur-3xl pointer-events-none animate-pulse [animation-delay:1s]" />
+
+      {/* Main Glassmorphic Centered Card */}
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 16 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.94, opacity: 0, y: -10 }}
+        transition={{ type: "spring", damping: 25, stiffness: 320 }}
+        className="relative z-10 w-full max-w-sm sm:max-w-md p-7 sm:p-9 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl flex flex-col items-center text-center"
+      >
+        {/* Animated Hero Calendar Icon with Orbiting Glow Ring */}
+        <div className="relative w-20 h-20 mb-5 flex items-center justify-center">
+          {/* Subtle Outer Ping Glow */}
+          <div className="absolute -inset-2 rounded-3xl bg-gradient-to-tr from-indigo-500/25 via-purple-500/20 to-pink-500/20 animate-ping opacity-60 pointer-events-none" />
+          
+          {/* Middle Orbit Track */}
+          <div className="absolute -inset-1 rounded-3xl border-2 border-indigo-500/20 dark:border-indigo-400/20" />
+          
+          {/* Rotating Glowing Segment Ring */}
+          <div className="absolute -inset-1 rounded-3xl border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent border-r-purple-500 animate-spin" />
+          
+          {/* Inner 3D Gradient Icon Box */}
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-xl shadow-indigo-500/35 flex items-center justify-center">
+            <FiCalendar size={28} className="animate-pulse" />
+          </div>
+        </div>
+
+        {/* Title & Status Chip */}
+        <div className="space-y-1.5 mb-5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
+            <span>Syncing Schedule</span>
+          </div>
+
+          <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
+            <span>Loading Calendar</span>
+            <span className="flex gap-0.5 ml-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" />
+            </span>
+          </h3>
+
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 max-w-xs">
+            Preparing deliverables & publishing dates for{" "}
+            <span className="font-bold text-slate-800 dark:text-slate-200">
+              {monthName} {year}
+            </span>
+          </p>
+        </div>
+
+        {/* Smooth Gradient Progress Bar */}
+        <div className="w-full max-w-xs h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative mb-5 shadow-inner">
+          <motion.div
+            className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full"
+            initial={{ x: "-100%", width: "45%" }}
+            animate={{ x: "260%" }}
+            transition={{ repeat: Infinity, duration: 1.3, ease: "easeInOut" }}
+          />
+        </div>
+
+        {/* Status Micro-checklist Indicators */}
+        <div className="flex items-center justify-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Posts & Reels</span>
+          </div>
+          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse [animation-delay:0.2s]" />
+            <span>Deliverables</span>
+          </div>
+          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse [animation-delay:0.4s]" />
+            <span>QC Status</span>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 const ContentCalendar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -93,10 +190,17 @@ const ContentCalendar = () => {
   // Helper to extract clean avatar image URL from various User/Profile structures
   const extractAvatarUrl = useCallback((target) => {
     if (!target) return null;
-    if (typeof target === "string" && target.trim().startsWith("http")) return target.trim();
-    if (typeof target === "string" && target.trim().startsWith("/")) return target.trim();
+    if (typeof target === "string") {
+      const trimmed = target.trim();
+      if (trimmed.startsWith("http")) return trimmed;
+      if (trimmed.startsWith("/")) {
+        const backendBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/api\/?$/, "");
+        return backendBase ? `${backendBase}${trimmed}` : trimmed;
+      }
+      return trimmed;
+    }
     if (typeof target === "object") {
-      if (typeof target.url === "string" && target.url.trim()) return target.url.trim();
+      if (typeof target.url === "string" && target.url.trim()) return extractAvatarUrl(target.url);
       if (target.profile?.profileImage) return extractAvatarUrl(target.profile.profileImage);
       if (target.profileImage) return extractAvatarUrl(target.profileImage);
       if (target.avatar) return extractAvatarUrl(target.avatar);
@@ -201,19 +305,24 @@ const ContentCalendar = () => {
   const currentMonth = currentDate.getMonth(); // 0-indexed
   const realTodayStr = formatLocalDateKey(new Date());
 
+  const [initialLoading, setInitialLoading] = useState(true);
+
   // Fetch dynamic tasks and stats
   useEffect(() => {
-    dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
+    dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }))
+      .finally(() => setInitialLoading(false));
     dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
     dispatch(getClients());
     dispatch(getUsers());
   }, [dispatch, currentYear, currentMonth]);
 
-  // Deduplicate tasks by taskTitle + clientName
+  const isCalendarLoading = loading || initialLoading;
+
+  // Ensure tasks are unique by document _id without deleting valid posts with the same title
   const uniqueTasks = useMemo(() => {
     const seen = new Set();
-    return tasks.filter((t) => {
-      const key = `${(t.taskTitle || '').trim().toLowerCase()}___${(t.clientName || '').trim().toLowerCase()}`;
+    return (tasks || []).filter((t) => {
+      const key = t._id ? t._id.toString() : JSON.stringify(t);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -239,8 +348,10 @@ const ContentCalendar = () => {
       if (u.name) set.add(u.name);
     });
     uniqueTasks.forEach((t) => {
-      const creator = t.createdBy?.name || t.createdByName || t.assigneeName;
+      const creator = t.createdBy?.name || t.createdByName;
+      const assignee = t.assignee?.name || t.assigneeName;
       if (creator) set.add(creator);
+      if (assignee) set.add(assignee);
     });
     return ["All", ...Array.from(set)];
   }, [users, uniqueTasks]);
@@ -250,25 +361,33 @@ const ContentCalendar = () => {
     return uniqueTasks.filter((task) => {
       if (!task.publishDate) return false;
 
-      // Regular users only see tasks created by themselves.
+      // Regular users see tasks created by OR assigned to themselves.
       // Admin and Operation Manager can see all users' tasks.
       if (!isPrivileged) {
-        const currentUserId = user?._id || user?.id;
+        const currentUserId = (user?._id || user?.id)?.toString();
         const currentUserNameLower = (user?.name || "").trim().toLowerCase();
 
         const taskCreatorId =
-          typeof task.createdBy === "object"
+          (typeof task.createdBy === "object"
             ? task.createdBy?._id?.toString()
-            : task.createdBy?.toString();
+            : task.createdBy?.toString()) || "";
+        const taskAssigneeId =
+          (typeof task.assignee === "object"
+            ? task.assignee?._id?.toString()
+            : task.assignee?.toString()) || "";
         const taskCreatedByNameLower = (task.createdByName || "").trim().toLowerCase();
+        const taskAssigneeNameLower = (task.assigneeName || "").trim().toLowerCase();
 
         const creator = getCreatorInfo(task);
         const resolvedCreatorNameLower = (creator?.name || "").trim().toLowerCase();
 
         const isMine =
-          (currentUserId && taskCreatorId === currentUserId.toString()) ||
-          (currentUserNameLower && taskCreatedByNameLower === currentUserNameLower) ||
-          (currentUserNameLower && resolvedCreatorNameLower === currentUserNameLower);
+          (currentUserId && (taskCreatorId === currentUserId || taskAssigneeId === currentUserId)) ||
+          (currentUserNameLower && (
+            taskCreatedByNameLower === currentUserNameLower ||
+            taskAssigneeNameLower === currentUserNameLower ||
+            resolvedCreatorNameLower === currentUserNameLower
+          ));
 
         if (!isMine) return false;
       }
@@ -278,8 +397,9 @@ const ContentCalendar = () => {
       if (selectedContentType !== "All" && task.contentType !== selectedContentType) return false;
       if (selectedStatus !== "All" && task.status !== selectedStatus) return false;
       if (isPrivileged && selectedAssignee !== "All") {
-        const creator = task.createdBy?.name || task.createdByName || task.assigneeName;
-        if (creator !== selectedAssignee) return false;
+        const creator = task.createdBy?.name || task.createdByName;
+        const assignee = task.assignee?.name || task.assigneeName;
+        if (creator !== selectedAssignee && assignee !== selectedAssignee) return false;
       }
       if (selectedPriority !== "All" && task.priority !== selectedPriority) return false;
 
@@ -294,7 +414,7 @@ const ContentCalendar = () => {
         const targetDate = task.publishDate || task.dueDate;
         if (!targetDate) return false;
         const diffHours = (new Date(targetDate).getTime() - Date.now()) / (1000 * 60 * 60);
-        if (diffHours > 24) return false;
+        if (diffHours < 0 || diffHours > 24) return false;
       }
 
       return true;
@@ -453,7 +573,9 @@ const ContentCalendar = () => {
   const handleDeleteTask = (task, e) => {
     e.stopPropagation();
     if (window.confirm(`Delete "${task.taskTitle}"?`)) {
-      dispatch(deleteSocialmediaTask(task._id));
+      dispatch(deleteSocialmediaTask(task._id)).then(() => {
+        dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+      });
     }
   };
 
@@ -485,58 +607,102 @@ const ContentCalendar = () => {
           publishDate: newPublishDate,
         },
       })
-    );
+    ).then(() => {
+      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+    });
     setDraggedTaskId(null);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+  };
+
+  // Status card styling helper: returns clearly visible, elegant pastel backgrounds & borders per status
+  const getStatusCardStyles = (status = "", isAtRisk = false) => {
+    if (isAtRisk) {
+      return {
+        card: "bg-[#feebee] dark:bg-rose-950/35 border-rose-200/90 dark:border-rose-800/70 hover:bg-[#fed9de] dark:hover:bg-rose-950/55 hover:border-rose-300 dark:hover:border-rose-600 shadow-2xs hover:shadow-xs",
+        badge: "bg-rose-100 dark:bg-rose-900/70 text-rose-800 dark:text-rose-200 border-rose-300/80 dark:border-rose-700",
+        dot: "bg-rose-500 animate-pulse",
+        divider: "border-rose-200/80 dark:border-rose-900/50",
+        label: "Risk",
+      };
+    }
+
+    const s = (status || "").trim().toLowerCase();
+
+    switch (s) {
+      case "live":
+      case "completed":
+        return {
+          card: "bg-[#e6f9ee] dark:bg-emerald-950/35 border-emerald-200/90 dark:border-emerald-800/70 hover:bg-[#d5f5e2] dark:hover:bg-emerald-950/55 hover:border-emerald-300 dark:hover:border-emerald-600 shadow-2xs hover:shadow-xs",
+          badge: "bg-emerald-100 dark:bg-emerald-900/70 text-emerald-800 dark:text-emerald-200 border-emerald-300/80 dark:border-emerald-700",
+          dot: "bg-emerald-500",
+          divider: "border-emerald-200/80 dark:border-emerald-900/50",
+          label: "Live",
+        };
+      case "scheduled":
+        return {
+          card: "bg-[#e8f4fd] dark:bg-sky-950/35 border-sky-200/90 dark:border-sky-800/70 hover:bg-[#d8edfd] dark:hover:bg-sky-950/55 hover:border-sky-300 dark:hover:border-sky-600 shadow-2xs hover:shadow-xs",
+          badge: "bg-sky-100 dark:bg-sky-900/70 text-sky-800 dark:text-sky-200 border-sky-300/80 dark:border-sky-700",
+          dot: "bg-sky-500",
+          divider: "border-sky-200/80 dark:border-sky-900/50",
+          label: "Sched",
+        };
+      case "in qc":
+        return {
+          card: "bg-[#fef7e3] dark:bg-amber-950/35 border-amber-200/90 dark:border-amber-800/70 hover:bg-[#fdeec4] dark:hover:bg-amber-950/55 hover:border-amber-300 dark:hover:border-amber-600 shadow-2xs hover:shadow-xs",
+          badge: "bg-amber-100 dark:bg-amber-900/70 text-amber-800 dark:text-amber-200 border-amber-300/80 dark:border-amber-700",
+          dot: "bg-amber-500",
+          divider: "border-amber-200/80 dark:border-amber-900/50",
+          label: "QC",
+        };
+      case "in progress":
+        return {
+          card: "bg-[#eef0fe] dark:bg-indigo-950/35 border-indigo-200/90 dark:border-indigo-800/70 hover:bg-[#e0e4fe] dark:hover:bg-indigo-950/55 hover:border-indigo-300 dark:hover:border-indigo-600 shadow-2xs hover:shadow-xs",
+          badge: "bg-indigo-100 dark:bg-indigo-900/70 text-indigo-800 dark:text-indigo-200 border-indigo-300/80 dark:border-indigo-700",
+          dot: "bg-indigo-500",
+          divider: "border-indigo-200/80 dark:border-indigo-900/50",
+          label: "In Prog",
+        };
+      case "overdue":
+        return {
+          card: "bg-[#feebee] dark:bg-rose-950/35 border-rose-200/90 dark:border-rose-800/70 hover:bg-[#fed9de] dark:hover:bg-rose-950/55 hover:border-rose-300 dark:hover:border-rose-600 shadow-2xs hover:shadow-xs",
+          badge: "bg-rose-100 dark:bg-rose-900/70 text-rose-800 dark:text-rose-200 border-rose-300/80 dark:border-rose-700",
+          dot: "bg-rose-500 animate-pulse",
+          divider: "border-rose-200/80 dark:border-rose-900/50",
+          label: "Risk",
+        };
+      default:
+        // Not started / Draft / default
+        return {
+          card: "bg-[#f4f6f8] dark:bg-slate-800/60 border-slate-200/90 dark:border-slate-700/80 hover:bg-[#e9ecef] dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs hover:shadow-xs",
+          badge: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-slate-600",
+          dot: "bg-slate-400",
+          divider: "border-slate-200/70 dark:border-slate-700/60",
+          label: "Draft",
+        };
+    }
   };
 
   // Status badge styling helper
   const renderStatusBadge = (status, isAtRisk = false) => {
-    if (isAtRisk) {
-      return (
-        <span className="text-[9px] font-black tracking-wide text-rose-700 bg-rose-100 dark:bg-rose-950/70 dark:text-rose-300 px-1.5 py-0.5 rounded uppercase">
-          Risk
-        </span>
-      );
-    }
-
-    switch (status) {
-      case "Live":
-      case "Completed":
-        return (
-          <span className="text-[9px] font-black tracking-wide text-emerald-700 bg-emerald-100 dark:bg-emerald-950/70 dark:text-emerald-300 px-1.5 py-0.5 rounded uppercase">
-            Live
-          </span>
-        );
-      case "In QC":
-        return (
-          <span className="text-[9px] font-black tracking-wide text-amber-700 bg-amber-100 dark:bg-amber-950/70 dark:text-amber-300 px-1.5 py-0.5 rounded uppercase">
-            QC
-          </span>
-        );
-      case "Scheduled":
-        return (
-          <span className="text-[9px] font-black tracking-wide text-indigo-700 bg-indigo-100 dark:bg-indigo-950/70 dark:text-indigo-300 px-1.5 py-0.5 rounded uppercase">
-            Sched
-          </span>
-        );
-      case "Overdue":
-        return (
-          <span className="text-[9px] font-black tracking-wide text-rose-700 bg-rose-100 dark:bg-rose-950/70 dark:text-rose-300 px-1.5 py-0.5 rounded uppercase">
-            Risk
-          </span>
-        );
-      default:
-        return (
-          <span className="text-[9px] font-black tracking-wide text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-300 px-1.5 py-0.5 rounded uppercase">
-            Draft
-          </span>
-        );
-    }
+    const style = getStatusCardStyles(status, isAtRisk);
+    return (
+      <span
+        className={`inline-flex items-center gap-1 text-[9px] font-black tracking-wide px-1.5 py-0.5 rounded border uppercase shadow-2xs ${style.badge}`}
+      >
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
+        <span>{style.label}</span>
+      </span>
+    );
   };
 
   const formatCardTime = (dateVal) => {
     if (!dateVal) return "12:00";
     const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return "12:00";
     const hh = String(d.getHours()).padStart(2, "0");
     const mm = String(d.getMinutes()).padStart(2, "0");
     return `${hh}:${mm}`;
@@ -590,7 +756,17 @@ const ContentCalendar = () => {
   const setSidebarOpen = outletContext?.setSidebarOpen;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6 relative">
+      {/* Full Page Centered Loading Animation */}
+      <AnimatePresence>
+        {isCalendarLoading && (
+          <FullPageCalendarLoader
+            monthName={MONTH_NAMES[currentMonth]}
+            year={currentYear}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -617,30 +793,47 @@ const ContentCalendar = () => {
         </div>
 
         {/* Navigation & View switcher */}
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
           {/* Month/Week selector navigation */}
           <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5 shadow-xs">
             <button
               onClick={handlePrev}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              disabled={isCalendarLoading}
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40"
               title={viewMode === "Week" ? "Previous Week" : "Previous Month"}
             >
               <FiChevronLeft size={16} />
             </button>
             <button
               onClick={handleToday}
-              className="px-3 py-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              disabled={isCalendarLoading}
+              className="px-3 py-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
             >
               Today
             </button>
             <button
               onClick={handleNext}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              disabled={isCalendarLoading}
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40"
               title={viewMode === "Week" ? "Next Week" : "Next Month"}
             >
               <FiChevronRight size={16} />
             </button>
           </div>
+
+          {/* Quick Refresh Button */}
+          <button
+            type="button"
+            onClick={() => {
+              dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
+              dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+            }}
+            disabled={isCalendarLoading}
+            className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+            title="Refresh Calendar"
+          >
+            <FiRefreshCw size={14} className={isCalendarLoading ? "animate-spin text-indigo-500" : ""} />
+          </button>
 
           {/* View Mode Switcher */}
           <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 shadow-xs">
@@ -668,7 +861,7 @@ const ContentCalendar = () => {
           </button>
 
           <button
-            onClick={() => navigate(`/${role}/sm-tasks`)}
+            onClick={() => navigate(`/${userRoleClean || "admin"}/sm-tasks`)}
             className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
           >
             <FiList size={14} />
@@ -871,26 +1064,37 @@ const ContentCalendar = () => {
         </div>
 
         <div className="text-[11px] text-slate-500 dark:text-slate-400">
-          Showing <span className="font-bold text-slate-800 dark:text-slate-200">{stats.commitments ?? 0}</span>{" "}
-          commitments ·{" "}
-          <span className="font-bold text-slate-800 dark:text-slate-200">{stats.activeClients ?? 0}</span> clients
+          {isCalendarLoading ? (
+            <span className="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+              Loading calendar tasks...
+            </span>
+          ) : (
+            <>
+              Showing <span className="font-bold text-slate-800 dark:text-slate-200">{calendarTasks.length}</span>{" "}
+              posts ·{" "}
+              <span className="font-bold text-slate-800 dark:text-slate-200">{new Set(calendarTasks.map((t) => t.clientName).filter(Boolean)).size}</span> clients
+            </>
+          )}
         </div>
       </div>
 
       {/* VIEW MODES: MONTH | WEEK | LIST */}
-
-      {/* 1. MONTH VIEW */}
+      <div className="space-y-4">
+        {/* 1. MONTH VIEW */}
       {viewMode === "Month" && (
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-          {/* Days of Week Header */}
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center py-2.5">
-            {WEEK_DAYS.map((day) => (
-              <div key={day}>{day}</div>
-            ))}
-          </div>
+          <div className="overflow-x-auto scrollbar-thin">
+            <div className="min-w-[720px] lg:min-w-0">
+              {/* Days of Week Header */}
+              <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center py-2.5">
+                {WEEK_DAYS.map((day) => (
+                  <div key={day}>{day}</div>
+                ))}
+              </div>
 
-          {/* Days Grid Cells */}
-          <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800/80 border-b border-slate-200 dark:border-slate-800">
+              {/* Days Grid Cells */}
+              <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800/80 border-b border-slate-200 dark:border-slate-800">
             {calendarDays.map((dayItem, index) => {
               const dateKey = dayItem.dateKey;
               const postsForDay = tasksByDate[dateKey] || [];
@@ -947,12 +1151,16 @@ const ContentCalendar = () => {
                   <div className="space-y-1.5 flex-1 overflow-hidden">
                     {displayedPosts.map((post) => {
                       const clientColor = post.clientColor || "#6366f1";
+                      const postDiffHours = post.publishDate
+                        ? (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
+                        : -1;
                       const isRisk =
                         !["Completed", "Live"].includes(post.status) &&
-                        post.publishDate &&
-                        (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+                        postDiffHours >= 0 &&
+                        postDiffHours <= 24;
                       const creator = getCreatorInfo(post);
                       const typeStyle = getContentTypeStyle(post.contentType);
+                      const statusStyle = getStatusCardStyles(post.status, isRisk);
 
                       return (
                         <div
@@ -960,7 +1168,7 @@ const ContentCalendar = () => {
                           draggable
                           onDragStart={(e) => handleDragStart(e, post._id)}
                           onClick={(e) => handleCardClick(post, e)}
-                          className="p-1.5 sm:p-2 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-850 shadow-2xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-0.5 transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1"
+                          className={`p-1.5 sm:p-2 rounded-xl border ${statusStyle.card} hover:-translate-y-0.5 transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1`}
                           style={{ borderLeftWidth: "3.5px", borderLeftColor: clientColor }}
                         >
                           {/* Top Row: Time + Content Type Pill + Status / Risk Badge */}
@@ -984,7 +1192,7 @@ const ContentCalendar = () => {
                           </div>
 
                           {/* Bottom Row: Client Name (Left) + Creator with Avatar (Right) */}
-                          <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[10px]">
+                          <div className={`flex items-center justify-between gap-1 pt-1 border-t ${statusStyle.divider} text-[10px]`}>
                             <span
                               className="font-bold truncate max-w-[70px] sm:max-w-[85px]"
                               style={{ color: clientColor }}
@@ -1045,6 +1253,8 @@ const ContentCalendar = () => {
               );
             })}
           </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1088,10 +1298,14 @@ const ContentCalendar = () => {
                     {postsForDay.map((p) => {
                       const creator = getCreatorInfo(p);
                       const typeStyle = getContentTypeStyle(p.contentType);
+                      const pDiffHours = p.publishDate
+                        ? (new Date(p.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
+                        : -1;
                       const isRisk =
                         !["Completed", "Live"].includes(p.status) &&
-                        p.publishDate &&
-                        (new Date(p.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+                        pDiffHours >= 0 &&
+                        pDiffHours <= 24;
+                      const statusStyle = getStatusCardStyles(p.status, isRisk);
 
                       return (
                         <div
@@ -1099,7 +1313,7 @@ const ContentCalendar = () => {
                           draggable
                           onDragStart={(e) => handleDragStart(e, p._id)}
                           onClick={(e) => handleCardClick(p, e)}
-                          className="p-2 rounded-xl bg-white dark:bg-slate-850 border border-slate-200/90 dark:border-slate-700/80 text-xs shadow-2xs hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer space-y-1.5"
+                          className={`p-2 rounded-xl border ${statusStyle.card} text-xs shadow-2xs hover:shadow-md transition-all cursor-pointer space-y-1.5`}
                           style={{ borderLeftWidth: "3.5px", borderLeftColor: p.clientColor || "#6366f1" }}
                         >
                           <div className="flex items-center justify-between gap-1 text-[10px]">
@@ -1120,7 +1334,7 @@ const ContentCalendar = () => {
                             {p.taskTitle || "Untitled Task"}
                           </div>
 
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/80 text-[10px]">
+                          <div className={`flex items-center justify-between pt-1 border-t ${statusStyle.divider} text-[10px]`}>
                             <span className="font-bold truncate max-w-[70px]" style={{ color: p.clientColor || "#6366f1" }} title={p.clientName}>
                               {p.clientName}
                             </span>
@@ -1200,16 +1414,20 @@ const ContentCalendar = () => {
               calendarTasks.map((task) => {
                 const creator = getCreatorInfo(task);
                 const typeStyle = getContentTypeStyle(task.contentType);
+                const taskDiffHours = task.publishDate
+                  ? (new Date(task.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
+                  : -1;
                 const isRisk =
                   !["Completed", "Live"].includes(task.status) &&
-                  task.publishDate &&
-                  (new Date(task.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+                  taskDiffHours >= 0 &&
+                  taskDiffHours <= 24;
+                const statusStyle = getStatusCardStyles(task.status, isRisk);
 
                 return (
                   <div
                     key={task._id}
                     onClick={(e) => handleCardClick(task, e)}
-                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 hover:shadow-xs transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3"
+                    className={`p-3.5 rounded-xl border ${statusStyle.card} hover:shadow-xs transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3`}
                     style={{ borderLeftWidth: "4px", borderLeftColor: task.clientColor || "#6366f1" }}
                   >
                     <div className="flex items-start sm:items-center gap-3.5 min-w-0">
@@ -1292,6 +1510,7 @@ const ContentCalendar = () => {
           </div>
         </div>
       )}
+      </div>
 
       {/* Day Overview Popover / Modal when clicking "+X more" */}
       {selectedDayPosts && (
@@ -1319,10 +1538,14 @@ const ContentCalendar = () => {
               {selectedDayPosts.posts.map((post) => {
                 const creator = getCreatorInfo(post);
                 const typeStyle = getContentTypeStyle(post.contentType);
+                const popDiffHours = post.publishDate
+                  ? (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
+                  : -1;
                 const isRisk =
                   !["Completed", "Live"].includes(post.status) &&
-                  post.publishDate &&
-                  (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60) <= 24;
+                  popDiffHours >= 0 &&
+                  popDiffHours <= 24;
+                const statusStyle = getStatusCardStyles(post.status, isRisk);
 
                 return (
                   <div
@@ -1331,7 +1554,7 @@ const ContentCalendar = () => {
                       setSelectedDayPosts(null);
                       handleCardClick(post, e);
                     }}
-                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 hover:border-blue-400 hover:shadow-xs transition-all cursor-pointer space-y-2"
+                    className={`p-3 rounded-xl border ${statusStyle.card} hover:shadow-xs transition-all cursor-pointer space-y-2`}
                     style={{ borderLeftWidth: "4px", borderLeftColor: post.clientColor || "#6366f1" }}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -1350,7 +1573,7 @@ const ContentCalendar = () => {
                       {post.taskTitle || "Untitled Task"}
                     </div>
 
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                    <div className={`flex items-center justify-between pt-1.5 border-t ${statusStyle.divider} text-xs`}>
                       <span className="font-bold text-[11px]" style={{ color: post.clientColor || "#6366f1" }}>
                         {post.clientName}
                       </span>
@@ -1404,7 +1627,7 @@ const ContentCalendar = () => {
       {/* Task Creation / Edit Modal */}
       <SmTaskModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleModalClose}
         task={selectedTaskForEdit}
         initialDate={initialDateForCreate}
       />

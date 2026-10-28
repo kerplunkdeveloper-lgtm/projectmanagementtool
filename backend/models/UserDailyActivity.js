@@ -63,6 +63,5 @@ const userDailyActivitySchema = new mongoose.Schema(
 );
 
 userDailyActivitySchema.index({ user: 1, date: 1 }, { unique: true });
-userDailyActivitySchema.index({ date: 1 });
 
 module.exports = mongoose.model('UserDailyActivity', userDailyActivitySchema);

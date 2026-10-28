@@ -2,7 +2,7 @@ const SocialmediaTaskCalendor = require('../models/SocialmediaTaskCalendor');
 const Client = require('../models/Client');
 const User = require('../models/User');
 
-// Helper to remove any duplicate tasks based on taskTitle + clientName
+// Helper to remove any duplicate tasks based on taskTitle + clientName + publishDate (manual endpoint only)
 const cleanDuplicates = async () => {
   try {
     const all = await SocialmediaTaskCalendor.find().sort({ createdAt: 1 });
@@ -10,7 +10,8 @@ const cleanDuplicates = async () => {
     const toDelete = [];
 
     for (const doc of all) {
-      const key = `${(doc.taskTitle || '').trim().toLowerCase()}___${(doc.clientName || '').trim().toLowerCase()}`;
+      const pDate = doc.publishDate ? new Date(doc.publishDate).toISOString().slice(0, 10) : 'nodate';
+      const key = `${(doc.taskTitle || '').trim().toLowerCase()}___${(doc.clientName || '').trim().toLowerCase()}___${pDate}`;
       if (seen.has(key)) {
         toDelete.push(doc._id);
       } else {
@@ -26,9 +27,6 @@ const cleanDuplicates = async () => {
     console.error('[SocialmediaTaskCalendor] Deduplication error:', err);
   }
 };
-
-// Run deduplication on startup
-cleanDuplicates();
 
 // @desc    Get metadata (dynamic clients and users) for task creation/editing
 // @route   GET /api/socialmedia-task-calendar/meta
@@ -63,8 +61,6 @@ exports.getSocialmediaMetadata = async (req, res) => {
 // @access  Private
 exports.getSocialmediaTasks = async (req, res) => {
   try {
-    await cleanDuplicates();
-
     const {
       search,
       client,
@@ -88,13 +84,15 @@ exports.getSocialmediaTasks = async (req, res) => {
 
     const query = {};
 
-    // Restrict regular users strictly to tasks they created
+    // Allow regular users to see tasks they created or are assigned to
     let userCreatorCondition = null;
     if (!isPrivileged && req.user) {
       userCreatorCondition = {
         $or: [
           { createdBy: req.user._id },
           { createdByName: req.user.name },
+          { assignee: req.user._id },
+          { assigneeName: req.user.name },
         ],
       };
     } else if (isPrivileged && createdBy && createdBy !== 'All') {
@@ -105,11 +103,16 @@ exports.getSocialmediaTasks = async (req, res) => {
           $or: [
             { createdBy: creatorVal },
             { createdByName: creatorVal },
+            { assignee: creatorVal },
+            { assigneeName: creatorVal },
           ],
         };
       } else {
         userCreatorCondition = {
-          createdByName: new RegExp(`^${creatorVal}$`, 'i'),
+          $or: [
+            { createdByName: new RegExp(`^${creatorVal}$`, 'i') },
+            { assigneeName: new RegExp(`^${creatorVal}$`, 'i') },
+          ],
         };
       }
     }
@@ -187,9 +190,10 @@ exports.getSocialmediaTasks = async (req, res) => {
     } else if (year && month) {
       const y = parseInt(year, 10);
       const m = parseInt(month, 10);
-      const normalizedMonth = m > 12 ? 10 : (m === 0 ? 0 : m - 1);
-      const start = new Date(y, normalizedMonth, 1);
-      const end = new Date(y, normalizedMonth + 1, 0, 23, 59, 59, 999);
+      const normalizedMonth = Math.max(0, Math.min(11, m - 1));
+      // Pad 10 days before and after to include calendar padding days and crossing week views
+      const start = new Date(y, normalizedMonth, 1 - 10, 0, 0, 0, 0);
+      const end = new Date(y, normalizedMonth + 1, 10, 23, 59, 59, 999);
 
       query.publishDate = { $gte: start, $lte: end };
     }
@@ -220,7 +224,7 @@ exports.getSocialmediaTasks = async (req, res) => {
       })
       .sort({ publishDate: 1, dueDate: 1, createdAt: -1 });
 
-    // Filter "atRisk" if requested
+    // Filter "atRisk" if requested (diffHours >= 0 && diffHours <= 24)
     if (atRisk === 'true' || atRisk === true) {
       const now = new Date();
       tasks = tasks.filter((t) => {
@@ -229,7 +233,7 @@ exports.getSocialmediaTasks = async (req, res) => {
         const targetDate = t.publishDate || t.dueDate;
         if (!targetDate) return false;
         const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
-        return diffHours <= 24;
+        return diffHours >= 0 && diffHours <= 24;
       });
     }
 
@@ -280,6 +284,8 @@ exports.getSocialmediaStats = async (req, res) => {
       commitmentsQuery.$or = [
         { createdBy: req.user._id },
         { createdByName: req.user.name },
+        { assignee: req.user._id },
+        { assigneeName: req.user.name },
       ];
     }
 
@@ -309,13 +315,13 @@ exports.getSocialmediaStats = async (req, res) => {
     );
     const pendingCount = pendingTasks.length;
 
-    // Dynamic At risk: commitment + due within 24h + not completed
+    // Dynamic At risk: commitment + due within 24h + not completed (diffHours >= 0 && diffHours <= 24)
     const atRiskTasks = monthlyCommitments.filter((t) => {
       if (['Completed', 'Live'].includes(t.status)) return false;
       const targetDate = t.publishDate || t.dueDate;
       if (!targetDate) return false;
       const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
-      return diffHours <= 24;
+      return diffHours >= 0 && diffHours <= 24;
     });
     const atRiskCount = atRiskTasks.length;
 
@@ -511,6 +517,22 @@ exports.updateSocialmediaTask = async (req, res) => {
       }
     }
 
+    // Authorization check for non-privileged users
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
+
+    if (!isPrivileged && req.user) {
+      const existing = await SocialmediaTaskCalendor.findById(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Task not found' });
+      }
+      const isCreator = existing.createdBy && existing.createdBy.toString() === req.user._id.toString();
+      const isAssignee = existing.assignee && existing.assignee.toString() === req.user._id.toString();
+      if (!isCreator && !isAssignee) {
+        return res.status(403).json({ success: false, message: 'Not authorized to modify this task' });
+      }
+    }
+
     const task = await SocialmediaTaskCalendor.findByIdAndUpdate(
       req.params.id,
       body,
@@ -554,6 +576,21 @@ exports.updateSocialmediaTask = async (req, res) => {
 // @access  Private
 exports.rescheduleSocialmediaTask = async (req, res) => {
   try {
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
+
+    if (!isPrivileged && req.user) {
+      const existing = await SocialmediaTaskCalendor.findById(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Task not found' });
+      }
+      const isCreator = existing.createdBy && existing.createdBy.toString() === req.user._id.toString();
+      const isAssignee = existing.assignee && existing.assignee.toString() === req.user._id.toString();
+      if (!isCreator && !isAssignee) {
+        return res.status(403).json({ success: false, message: 'Not authorized to reschedule this task' });
+      }
+    }
+
     const { publishDate, dueDate } = req.body;
 
     const updateData = {};
@@ -609,6 +646,20 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
 // @access  Private
 exports.deleteSocialmediaTask = async (req, res) => {
   try {
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
+
+    if (!isPrivileged && req.user) {
+      const existing = await SocialmediaTaskCalendor.findById(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Task not found' });
+      }
+      const isCreator = existing.createdBy && existing.createdBy.toString() === req.user._id.toString();
+      if (!isCreator) {
+        return res.status(403).json({ success: false, message: 'Not authorized to delete this task' });
+      }
+    }
+
     const task = await SocialmediaTaskCalendor.findByIdAndDelete(req.params.id);
 
     if (!task) {
