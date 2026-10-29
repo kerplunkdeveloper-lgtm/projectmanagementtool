@@ -45,7 +45,8 @@ import {
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
-import SearchableDropdown from "../../components/common/SearchableDropdown";
+import SmTaskCards from "./SmTaskCards";
+import SmTaskFilters from "./SmTaskFilters";
 
 const CATEGORIES = [
   "All",
@@ -504,9 +505,6 @@ const SmTasks = () => {
 
   // Filter States
   const [selectedClient, setSelectedClient] = useState("All");
-  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
-  const [clientSearchQuery, setClientSearchQuery] = useState("");
-  const clientDropdownRef = useRef(null);
   const [selectedCreatedBy, setSelectedCreatedBy] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedContentType, setSelectedContentType] = useState("All");
@@ -519,52 +517,9 @@ const SmTasks = () => {
   const [dateFilterField, setDateFieldType] = useState("any"); // "any" (Publish or Due), "publish", "due"
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
-  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const dateDropdownRef = useRef(null);
 
   const [atRiskOnly, setAtRiskOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Close popover dropdowns on outside click
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        clientDropdownRef.current &&
-        !clientDropdownRef.current.contains(event.target)
-      ) {
-        setIsClientDropdownOpen(false);
-      }
-      if (
-        dateDropdownRef.current &&
-        !dateDropdownRef.current.contains(event.target)
-      ) {
-        setIsDateDropdownOpen(false);
-      }
-    };
-    if (isClientDropdownOpen || isDateDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isClientDropdownOpen, isDateDropdownOpen]);
-
-  const dateFilterLabel = useMemo(() => {
-    if (customStartDate && customEndDate) {
-      return `${customStartDate} → ${customEndDate}`;
-    }
-    if (customStartDate) {
-      return `Date: ${customStartDate}`;
-    }
-    if (dateFilterPreset !== "All") {
-      return `Date: ${dateFilterPreset}`;
-    }
-    return "Date";
-  }, [dateFilterPreset, customStartDate, customEndDate]);
-
-  const isDateFilterActive = useMemo(() => {
-    return dateFilterPreset !== "All" || Boolean(customStartDate) || Boolean(customEndDate);
-  }, [dateFilterPreset, customStartDate, customEndDate]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -593,14 +548,6 @@ const SmTasks = () => {
     });
     return ["All", ...Array.from(set)];
   }, [clients, tasks]);
-
-  // Filtered client options matching search box inside dropdown
-  const filteredClientOptions = useMemo(() => {
-    const list = clientOptions.filter((c) => c !== "All");
-    if (!clientSearchQuery.trim()) return list;
-    const q = clientSearchQuery.trim().toLowerCase();
-    return list.filter((c) => c.toLowerCase().includes(q));
-  }, [clientOptions, clientSearchQuery]);
 
   // Deduplicate tasks by taskTitle + clientName
   const uniqueTasks = useMemo(() => {
@@ -989,8 +936,6 @@ const SmTasks = () => {
 
   const handleResetFilters = () => {
     setSelectedClient("All");
-    setIsClientDropdownOpen(false);
-    setClientSearchQuery("");
     setSelectedCreatedBy("All");
     setSelectedCategory("All");
     setSelectedContentType("All");
@@ -1001,7 +946,6 @@ const SmTasks = () => {
     setDateFilterField("any");
     setCustomStartDate("");
     setCustomEndDate("");
-    setIsDateDropdownOpen(false);
     setAtRiskOnly(false);
     setSearchQuery("");
     setCurrentPage(1);
@@ -1207,10 +1151,10 @@ const SmTasks = () => {
       {/* Synchronized Banner (Image 1 style) */}
       <div className="bg-[#f0fdf4] dark:bg-emerald-950/30 border border-[#bbf7d0] dark:border-emerald-800/50 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-white flex items-center justify-center shrink-0">
             <FiRepeat size={16} />
           </div>
-          <p className="text-xs text-emerald-900 dark:text-emerald-200 font-medium">
+          <p className="text-xs text-emerald-900 dark:text-white font-medium">
             <span className="font-bold">Every row here is also a calendar card.</span> Give a task a publish date and
             it drops onto the content calendar in that slot — no second entry, no "add to calendar" step.
           </p>
@@ -1218,757 +1162,70 @@ const SmTasks = () => {
 
         <button
           onClick={handleOpenCalendar}
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-100 transition-colors shrink-0 whitespace-nowrap self-end md:self-auto cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:textwhite0 hover:text-emerald-800 dark:hover:textwhite0 transition-colors shrink-0 whitespace-nowrap self-end md:self-auto cursor-pointer"
         >
           <span>Open calendar</span>
           <FiArrowRight size={14} />
         </button>
       </div>
 
-      {/* Commitments Overview Section (Posts, Reels, Stories & Health Monitors) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-        {/* Section Header: Title, Subtitle, Overall Deliverables summary & Client Modal Trigger */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-100 dark:border-slate-800/60">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/40 shrink-0">
-              <FiCalendar size={18} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-tight">
-                  {selectedClient !== "All"
-                    ? `${selectedClient} Commitments`
-                    : `${MONTH_NAMES[selectedMonth - 1]} Commitments`}
-                </h3>
-                {selectedClient !== "All" && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    Filtered by Client
-                  </span>
-                )}
-                {hasActiveFilters && selectedClient === "All" && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                    Filtered View
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                {selectedClient !== "All"
-                  ? `Tracking deliverables for ${selectedClient} • ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`
-                  : `Track your deliverables across clients • ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}`}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-            {/* Deliverables summary badge */}
-            <div className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 text-xs font-bold border border-slate-200/70 dark:border-slate-700/60">
-              <span className="text-slate-400 font-medium">Deliverables:</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">
-                {commitmentOverview.totalDeliverablesPublished}
-              </span>
-              <span>/</span>
-              <span>{commitmentOverview.totalDeliverablesCommitted}</span>
-              <span className="text-slate-400 font-normal">
-                ({commitmentOverview.deliverablesProgressPct}%)
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsPendingCommitmentOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-white dark:bg-slate-800 hover:bg-indigo-50/40 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 transition-all cursor-pointer shadow-2xs"
-            >
-              <FiBarChart2 size={14} className="text-indigo-500" />
-              <span>View by client</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 5-Card Metrics Grid: Posts, Reels, Stories, At Risk, Awaiting Approval */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
-          {/* Card 1: Posts Progress Card */}
-          <div className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-emerald-300 dark:hover:border-emerald-700/60 p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/40 shrink-0">
-                  <FiImage size={15} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-base font-black text-slate-900 dark:text-white leading-none block truncate">
-                    {commitmentOverview.totalPostsCommitted} Posts
-                  </span>
-                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">committed</span>
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 block leading-none">
-                  {commitmentOverview.totalPostsPublished}
-                </span>
-                <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">published</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[10px] font-bold text-slate-400">Progress</span>
-                <span className="font-extrabold text-slate-700 dark:text-slate-200">
-                  {commitmentOverview.postsProgressPct}%
-                </span>
-              </div>
-              <div className="h-2 bg-slate-200/80 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, commitmentOverview.postsProgressPct)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Reels Progress Card */}
-          <div className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-purple-300 dark:hover:border-purple-700/60 p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200/60 dark:border-purple-800/40 shrink-0">
-                  <FiPlay size={15} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-base font-black text-slate-900 dark:text-white leading-none block truncate">
-                    {commitmentOverview.totalReelsCommitted} Reels
-                  </span>
-                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">committed</span>
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-sm font-black text-purple-600 dark:text-purple-400 block leading-none">
-                  {commitmentOverview.totalReelsPublished}
-                </span>
-                <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">published</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[10px] font-bold text-slate-400">Progress</span>
-                <span className="font-extrabold text-slate-700 dark:text-slate-200">
-                  {commitmentOverview.reelsProgressPct}%
-                </span>
-              </div>
-              <div className="h-2 bg-slate-200/80 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-purple-500 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, commitmentOverview.reelsProgressPct)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Stories Progress Card (NEW) */}
-          <div className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 hover:border-amber-300 dark:hover:border-amber-700/60 p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/40 shrink-0">
-                  <FiZap size={15} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-base font-black text-slate-900 dark:text-white leading-none block truncate">
-                    {commitmentOverview.totalStoriesCommitted} Stories
-                  </span>
-                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">committed</span>
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-sm font-black text-amber-600 dark:text-amber-400 block leading-none">
-                  {commitmentOverview.totalStoriesPublished}
-                </span>
-                <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">published</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[10px] font-bold text-slate-400">Progress</span>
-                <span className="font-extrabold text-slate-700 dark:text-slate-200">
-                  {commitmentOverview.storiesProgressPct}%
-                </span>
-              </div>
-              <div className="h-2 bg-slate-200/80 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-amber-500 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, commitmentOverview.storiesProgressPct)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: At Risk Card (Interactive Filter Toggle) */}
-          <div
-            onClick={() => setAtRiskOnly((prev) => !prev)}
-            title={atRiskOnly ? "Click to clear At risk filter" : "Click to view only At risk tasks"}
-            className={`border p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5 cursor-pointer select-none ${atRiskOnly
-                ? "bg-rose-100/70 dark:bg-rose-950/40 border-rose-400 dark:border-rose-700 ring-2 ring-rose-400/40"
-                : "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200/80 dark:border-rose-900/50 hover:border-rose-300 dark:hover:border-rose-800"
-              }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-                  <FiAlertCircle size={16} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-base font-black text-rose-600 dark:text-rose-400 leading-none block truncate">
-                    {commitmentOverview.atRiskCount} At risk
-                  </span>
-                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">due &le; 24h</span>
-                </div>
-              </div>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${atRiskOnly
-                    ? "bg-rose-600 text-white"
-                    : "bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300"
-                  }`}
-              >
-                {atRiskOnly ? "Active" : "Action"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold text-rose-600 dark:text-rose-400 pt-1 border-t border-rose-100 dark:border-rose-900/30">
-              <span>{atRiskOnly ? "Clear filter" : "Filter at-risk"}</span>
-              <FiArrowRight size={12} className={atRiskOnly ? "rotate-180" : ""} />
-            </div>
-          </div>
-
-          {/* Card 5: Awaiting Approval Card (Interactive Status Filter Toggle) */}
-          <div
-            onClick={() => {
-              setSelectedStatus((prev) => (prev === "In QC" ? "All" : "In QC"));
-              setCurrentPage(1);
-            }}
-            title={selectedStatus === "In QC" ? "Click to clear In QC filter" : "Click to view In QC tasks"}
-            className={`border p-4 rounded-2xl flex flex-col justify-between transition-all duration-200 space-y-2.5 cursor-pointer select-none ${selectedStatus === "In QC"
-                ? "bg-amber-100/70 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700 ring-2 ring-amber-400/40"
-                : "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/50 hover:border-amber-300 dark:hover:border-amber-800"
-              }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                  <FiClock size={16} />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-base font-black text-amber-600 dark:text-amber-400 leading-none block truncate">
-                    {commitmentOverview.awaitingApprovalCount} In QC
-                  </span>
-                  <span className="text-[10px] text-slate-400 block font-semibold mt-0.5">awaiting approval</span>
-                </div>
-              </div>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${selectedStatus === "In QC"
-                    ? "bg-amber-600 text-white"
-                    : "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
-                  }`}
-              >
-                {selectedStatus === "In QC" ? "Active" : "Review"}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-bold text-amber-600 dark:text-amber-400 pt-1 border-t border-amber-100 dark:border-amber-900/30">
-              <span>{selectedStatus === "In QC" ? "Clear filter" : "Filter In QC"}</span>
-              <FiArrowRight size={12} className={selectedStatus === "In QC" ? "rotate-180" : ""} />
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Commitments Overview Section (Cards) */}
+      <SmTaskCards
+        selectedClient={selectedClient}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        hasActiveFilters={hasActiveFilters}
+        commitmentOverview={commitmentOverview}
+        onOpenPendingCommitment={() => setIsPendingCommitmentOpen(true)}
+        atRiskOnly={atRiskOnly}
+        setAtRiskOnly={setAtRiskOnly}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+        setCurrentPage={setCurrentPage}
+      />
 
       {/* Reference Matching Filter UI Container */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
-        {/* Row 1: Search Input & Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="relative w-full sm:w-80 md:w-96">
-           
-            <input
-              type="text"
-              placeholder="Search tasks, clients, creators..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-xs sm:text-[13px] font-normal focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery("");
-                  setCurrentPage(1);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
-                title="Clear search"
-              >
-                <FiX size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* Action Controls: Export to Excel + At Risk Toggle */}
-          <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
-            {/* Export to Excel */}
-            <button
-              type="button"
-              onClick={handleExportExcel}
-              className="inline-flex items-center gap-2 px-4 h-10 rounded-xl text-xs sm:text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-all cursor-pointer shadow-sm shadow-blue-500/25 shrink-0"
-              title="Export filtered tasks to Excel"
-            >
-              <FiDownload size={14} className="stroke-[2.5]" />
-              <span>Export to Excel</span>
-            </button>
-
-            {/* At Risk Toggle Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setAtRiskOnly(!atRiskOnly);
-                setCurrentPage(1);
-              }}
-              className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-xl text-xs sm:text-[13px] font-semibold transition-all cursor-pointer border shrink-0 shadow-2xs ${
-                atRiskOnly
-                  ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 ring-2 ring-rose-400/20"
-                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300"
-              }`}
-              title="Filter tasks at risk (due in <= 24 hours)"
-            >
-              <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-4 ring-rose-100 dark:ring-rose-900/60 shrink-0"></span>
-              </span>
-              <span>At risk</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Row 2: Filter Pills Row */}
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          {/* FILTERS: Label */}
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 select-none mr-1">
-            <FiFilter size={14} className="text-blue-500" />
-            <span>FILTERS:</span>
-          </div>
-
-          {/* Client Filter - Searchable Dropdown */}
-          <div className="relative" ref={clientDropdownRef}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsClientDropdownOpen(!isClientDropdownOpen);
-                setClientSearchQuery("");
-              }}
-              className={`toolbar-filter-btn ${selectedClient !== "All" ? "is-active" : ""}`}
-              title="Filter by Client"
-            >
-              <span className="truncate max-w-[120px]">
-                {selectedClient === "All" ? "All clients" : selectedClient}
-              </span>
-              <FiChevronDown
-                size={14}
-                className={`text-slate-400 transition-transform duration-150 shrink-0 ${
-                  isClientDropdownOpen ? "rotate-180 text-blue-500" : ""
-                }`}
-              />
-            </button>
-
-            {/* Dropdown Menu with Search Box */}
-            {isClientDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1.5 w-64 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                {/* Search Box */}
-                <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
-                  <div className="relative flex items-center">
-                    <input
-                      type="text"
-                      placeholder="Search clients..."
-                      value={clientSearchQuery}
-                      onChange={(e) => setClientSearchQuery(e.target.value)}
-                      className="client-dropdown-search-input w-full"
-                      autoFocus
-                    />
-                    {clientSearchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setClientSearchQuery("")}
-                        className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                        title="Clear"
-                      >
-                        <FiX size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Clients Options List */}
-                <div className="max-h-56 overflow-y-auto py-1 custom-scrollbar text-xs">
-                  {/* All clients option */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedClient("All");
-                      setCurrentPage(1);
-                      setIsClientDropdownOpen(false);
-                      setClientSearchQuery("");
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors cursor-pointer ${
-                      selectedClient === "All"
-                        ? "bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold"
-                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <span>All clients</span>
-                    {selectedClient === "All" && <FiCheck size={13} className="text-blue-600 shrink-0" />}
-                  </button>
-
-                  {/* Filtered Clients */}
-                  {filteredClientOptions.length === 0 ? (
-                    <div className="px-3 py-4 text-center text-xs text-slate-400 italic">
-                      No clients found
-                    </div>
-                  ) : (
-                    filteredClientOptions.map((client) => {
-                      const isSelected = selectedClient === client;
-                      return (
-                        <button
-                          key={client}
-                          type="button"
-                          onClick={() => {
-                            setSelectedClient(client);
-                            setCurrentPage(1);
-                            setIsClientDropdownOpen(false);
-                            setClientSearchQuery("");
-                          }}
-                          className={`w-full flex items-center justify-between px-3 py-2 text-left transition-colors cursor-pointer ${
-                            isSelected
-                              ? "bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold"
-                              : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                          }`}
-                        >
-                          <span className="truncate pr-2">{client}</span>
-                          {isSelected && <FiCheck size={13} className="text-blue-600 shrink-0" />}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Created by Filter (Admin & Operation Manager only - Social Media Managers) */}
-          {canFilterByCreatedBy ? (
-            <SearchableDropdown
-              value={selectedCreatedBy}
-              onChange={(val) => {
-                setSelectedCreatedBy(val);
-                setCurrentPage(1);
-              }}
-              options={createdByOptions.filter((c) => c !== "All")}
-              allLabel="Created by (SMM)"
-              placeholder="Created by (SMM)"
-              searchPlaceholder="Search creator..."
-              emptyText="No creators found"
-              menuWidth="w-64"
-              buttonClassName="toolbar-filter-btn"
-            />
-          ) : (
-            <div
-              className="toolbar-filter-btn cursor-default select-none opacity-85"
-              title="Viewing tasks created by you"
-            >
-              <span className="truncate max-w-[130px]">{user?.name || "Created by (SMM)"}</span>
-              <FiChevronDown size={14} className="text-slate-400 shrink-0" />
-            </div>
-          )}
-
-    
-
-          {/* Content Type Filter */}
-          <select
-            value={selectedContentType}
-            onChange={(e) => {
-              setSelectedContentType(e.target.value);
-              setCurrentPage(1);
-            }}
-            className={`toolbar-filter-select ${selectedContentType !== "All" ? "is-active" : ""}`}
-          >
-            <option value="All">Content type</option>
-            {CONTENT_TYPES.filter((c) => c !== "All").map((ct) => (
-              <option key={ct} value={ct}>
-                {ct}
-              </option>
-            ))}
-          </select>
-
-          {/* Status Filter */}
-          <select
-            value={selectedStatus}
-            onChange={(e) => {
-              setSelectedStatus(e.target.value);
-              setCurrentPage(1);
-            }}
-            className={`toolbar-filter-select ${selectedStatus !== "All" ? "is-active" : ""}`}
-          >
-            <option value="All">Status</option>
-            {STATUSES.filter((c) => c !== "All").map((st) => (
-              <option key={st} value={st}>
-                {st}
-              </option>
-            ))}
-          </select>
-
-          {/* Priority Filter */}
-          <select
-            value={selectedPriority}
-            onChange={(e) => {
-              setSelectedPriority(e.target.value);
-              setCurrentPage(1);
-            }}
-            className={`toolbar-filter-select ${selectedPriority !== "All" ? "is-active" : ""}`}
-          >
-            <option value="All">Priority</option>
-            {PRIORITIES.filter((c) => c !== "All").map((pr) => (
-              <option key={pr} value={pr}>
-                {pr}
-              </option>
-            ))}
-          </select>
-
-          {/* Commitment Filter */}
-          <select
-            value={selectedCommitment}
-            onChange={(e) => {
-              setSelectedCommitment(e.target.value);
-              setCurrentPage(1);
-            }}
-            className={`toolbar-filter-select ${selectedCommitment !== "All" ? "is-active" : ""}`}
-          >
-            <option value="All">Commitment</option>
-            {COMMITMENTS.filter((c) => c !== "All").map((com) => (
-              <option key={com} value={com}>
-                {com}
-              </option>
-            ))}
-          </select>
-
-          {/* Date Filter Popover */}
-          <div className="relative" ref={dateDropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-              className={`toolbar-filter-btn ${isDateFilterActive ? "is-active" : ""}`}
-              title="Filter by Date"
-            >
-              <div className="flex items-center gap-1.5 truncate max-w-[150px]">
-                <FiCalendar size={13} className={isDateFilterActive ? "text-blue-600 dark:text-blue-400" : "text-slate-400"} />
-                <span className="truncate">{dateFilterLabel}</span>
-              </div>
-              <FiChevronDown
-                size={14}
-                className={`text-slate-400 transition-transform duration-150 shrink-0 ${
-                  isDateDropdownOpen ? "rotate-180 text-blue-500" : ""
-                }`}
-              />
-            </button>
-
-            {/* Date Filter Popover Menu */}
-            {isDateDropdownOpen && (
-              <div className="absolute right-0 sm:left-0 top-full mt-1.5 w-72 sm:w-80 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3.5 space-y-3 animate-in fade-in zoom-in-95 duration-100">
-                {/* Header */}
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-900 dark:text-white">
-                    <FiCalendar size={14} className="text-indigo-500" />
-                    <span>Filter by Date</span>
-                  </div>
-                  {isDateFilterActive && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDateFilterPreset("All");
-                        setCustomStartDate("");
-                        setCustomEndDate("");
-                        setCurrentPage(1);
-                      }}
-                      className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
-                    >
-                      Reset date
-                    </button>
-                  )}
-                </div>
-
-                {/* Target Date Field (Any Date vs Publish Date vs Due Date) */}
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                    Match Date Field
-                  </span>
-                  <div className="grid grid-cols-3 gap-1 p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-[11px] font-bold">
-                    <button
-                      type="button"
-                      onClick={() => { setDateFieldType("any"); setCurrentPage(1); }}
-                      className={`py-1 rounded-lg transition-all cursor-pointer ${
-                        dateFilterField === "any"
-                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-extrabold"
-                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                      }`}
-                    >
-                      Any Date
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setDateFieldType("publish"); setCurrentPage(1); }}
-                      className={`py-1 rounded-lg transition-all cursor-pointer ${
-                        dateFilterField === "publish"
-                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-extrabold"
-                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                      }`}
-                    >
-                      Publish
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setDateFieldType("due"); setCurrentPage(1); }}
-                      className={`py-1 rounded-lg transition-all cursor-pointer ${
-                        dateFilterField === "due"
-                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-extrabold"
-                          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                      }`}
-                    >
-                      Due Date
-                    </button>
-                  </div>
-                </div>
-
-                {/* Quick Presets Grid */}
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                    Quick Presets
-                  </span>
-                  <div className="grid grid-cols-3 gap-1.5 text-xs">
-                    {[
-                      { id: "All", label: "All Dates" },
-                      { id: "Today", label: "Today" },
-                      { id: "Tomorrow", label: "Tomorrow" },
-                      { id: "This Week", label: "This Week" },
-                      { id: "This Month", label: "This Month" },
-                      { id: "Overdue", label: "Overdue" },
-                    ].map((p) => {
-                      const isSelected = dateFilterPreset === p.id && !customStartDate && !customEndDate;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setDateFilterPreset(p.id);
-                            setCustomStartDate("");
-                            setCustomEndDate("");
-                            setCurrentPage(1);
-                            if (p.id !== "Custom") {
-                              setIsDateDropdownOpen(false);
-                            }
-                          }}
-                          className={`py-1.5 px-2 rounded-xl text-center font-semibold transition-all cursor-pointer border shadow-2xs ${
-                            isSelected
-                              ? "bg-blue-50 dark:bg-blue-950/50 border-blue-400 dark:border-blue-500 text-blue-700 dark:text-blue-300 font-extrabold"
-                              : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/60"
-                          }`}
-                        >
-                          {p.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Custom Date Range */}
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      Pick Date or Range
-                    </span>
-                    {(customStartDate || customEndDate) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCustomStartDate("");
-                          setCustomEndDate("");
-                          setDateFilterPreset("All");
-                          setCurrentPage(1);
-                        }}
-                        className="text-[10px] font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                      >
-                        Clear inputs
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
-                        From / Specific
-                      </span>
-                      <input
-                        type="date"
-                        value={customStartDate}
-                        onChange={(e) => {
-                          setCustomStartDate(e.target.value);
-                          setDateFilterPreset("Custom");
-                          setCurrentPage(1);
-                        }}
-                        className="date-filter-picker-input w-full"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
-                        To (Optional)
-                      </span>
-                      <input
-                        type="date"
-                        value={customEndDate}
-                        onChange={(e) => {
-                          setCustomEndDate(e.target.value);
-                          setDateFilterPreset("Custom");
-                          setCurrentPage(1);
-                        }}
-                        className="date-filter-picker-input w-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Done Button */}
-                <div className="pt-1 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setIsDateDropdownOpen(false)}
-                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs cursor-pointer transition-colors"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Row 3: Meta Info (Showing X of Y tasks · Z are calendar commitments) */}
-        <div className="flex items-center justify-between pt-1 text-xs text-slate-500 dark:text-slate-400">
-          <div>
-            Showing <strong className="font-bold text-slate-900 dark:text-white">{filteredTasks.length}</strong> of{" "}
-            <strong className="font-bold text-slate-900 dark:text-white">{uniqueTasks.length}</strong> tasks ·{" "}
-            <strong className="font-bold text-blue-600 dark:text-blue-400">{currentCommitmentsCount}</strong> are calendar commitments
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
-              title="Reset all active filters"
-            >
-              <FiRotateCcw size={12} />
-              <span>Reset filters</span>
-            </button>
-          )}
-        </div>
-      </div>
+      <SmTaskFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        onExportExcel={handleExportExcel}
+        atRiskOnly={atRiskOnly}
+        setAtRiskOnly={setAtRiskOnly}
+        selectedClient={selectedClient}
+        setSelectedClient={setSelectedClient}
+        clientOptions={clientOptions}
+        canFilterByCreatedBy={canFilterByCreatedBy}
+        selectedCreatedBy={selectedCreatedBy}
+        setSelectedCreatedBy={setSelectedCreatedBy}
+        createdByOptions={createdByOptions}
+        user={user}
+        selectedContentType={selectedContentType}
+        setSelectedContentType={setSelectedContentType}
+        contentTypes={CONTENT_TYPES}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+        statuses={STATUSES}
+        selectedPriority={selectedPriority}
+        setSelectedPriority={setSelectedPriority}
+        priorities={PRIORITIES}
+        selectedCommitment={selectedCommitment}
+        setSelectedCommitment={setSelectedCommitment}
+        commitments={COMMITMENTS}
+        dateFilterPreset={dateFilterPreset}
+        setDateFilterPreset={setDateFilterPreset}
+        dateFilterField={dateFilterField}
+        setDateFieldType={setDateFieldType}
+        customStartDate={customStartDate}
+        setCustomStartDate={setCustomStartDate}
+        customEndDate={customEndDate}
+        setCustomEndDate={setCustomEndDate}
+        filteredCount={filteredTasks.length}
+        totalCount={uniqueTasks.length}
+        currentCommitmentsCount={currentCommitmentsCount}
+        hasActiveFilters={hasActiveFilters}
+        onResetFilters={handleResetFilters}
+        setCurrentPage={setCurrentPage}
+      />
 
       {/* Main Table Container */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
