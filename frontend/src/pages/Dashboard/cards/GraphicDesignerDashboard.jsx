@@ -917,6 +917,7 @@ const StatusCellValue = React.memo(
   ({
     todayVal = 0,
     carryVal = 0,
+    showCarry = true,
     activeTextClass = "",
     inactiveTextClass = "text-slate-500 dark:text-slate-400 font-bold",
     badgeClass = "",
@@ -945,18 +946,19 @@ const StatusCellValue = React.memo(
         </div>
 
         {/* Carry Forward Badge */}
-        {hasCarry ? (
-          <span
-            className={`inline-flex items-center px-1.5 py-0.3 rounded-full text-[9px] font-black tracking-wider uppercase border shadow-3xs transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 shrink-0 ${badgeClass}`}
-            title={`${carryVal} Carry Forward`}
-          >
-            {carryVal} CF
-          </span>
-        ) : (
-          <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 select-none w-3 text-center">
-            -
-          </span>
-        )}
+        {showCarry &&
+          (hasCarry ? (
+            <span
+              className={`inline-flex items-center px-1.5 py-0.3 rounded-full text-[9px] font-black tracking-wider uppercase border shadow-3xs transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 shrink-0 ${badgeClass}`}
+              title={`${carryVal} Carry Forward`}
+            >
+              {carryVal} CF
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 select-none w-3 text-center">
+              -
+            </span>
+          ))}
       </div>
     );
   },
@@ -1077,9 +1079,8 @@ const DesignerPerformanceRow = React.memo(
         <td className="py-2 px-2 text-center bg-indigo-500/[0.04] dark:bg-indigo-950/20 border-r border-indigo-200/50 dark:border-indigo-900/30">
           <StatusCellValue
             todayVal={tp.assigned}
-            carryVal={tp.carryForward?.assigned || 0}
+            showCarry={false}
             activeTextClass="text-indigo-600 dark:text-indigo-300 font-black text-sm"
-            badgeClass="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/40"
           />
         </td>
 
@@ -3797,12 +3798,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               (s, tp) => s + tp.assigned,
                               0,
                             )}
-                            carryVal={teamPerformance.reduce(
-                              (s, tp) => s + (tp.carryForward?.assigned || 0),
-                              0,
-                            )}
+                            showCarry={false}
                             activeTextClass="text-indigo-600 dark:text-indigo-300 font-black text-sm"
-                            badgeClass="bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/40"
                           />
                         </td>
 
