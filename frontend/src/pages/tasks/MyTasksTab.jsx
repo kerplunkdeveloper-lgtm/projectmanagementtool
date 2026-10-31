@@ -84,6 +84,42 @@ const isSameDate = (d1, d2) => {
 const isStatusInProgress = (s) =>
   (s || "").trim().toUpperCase().replace(/[-_]/g, " ") === "IN PROGRESS";
 
+const getLocalDateString = (d) => {
+  if (!d) return null;
+  const date = new Date(d);
+  if (isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const isPreviousPendingStatus = (status) => {
+  const s = (status || "Not Started").trim().toLowerCase().replace(/[-_]/g, " ");
+  return (
+    s === "not started" ||
+    s === "pending" ||
+    s === "in progress" ||
+    s === "on hold"
+  );
+};
+
+const isPreviousDateTask = (task) => {
+  if (!task) return false;
+  const now = new Date();
+  const todayStr = getLocalDateString(now);
+  const createdDateStr = getLocalDateString(task.createdAt);
+  const startDateStr = getLocalDateString(task.startDate);
+  const dueDateStr = getLocalDateString(task.dueDate);
+
+  // Consider previous if createdAt, startDate, or dueDate is before today's date
+  if (createdDateStr && createdDateStr < todayStr) return true;
+  if (startDateStr && startDateStr < todayStr) return true;
+  if (dueDateStr && dueDateStr < todayStr) return true;
+
+  return false;
+};
+
 const checkTaskProductivityAndDate = (
   task,
   dateFilter,
@@ -1465,7 +1501,7 @@ const MyTasksTab = ({
     });
   }, [tasks, currentUserId]);
 
-  const filteredTasksWithoutStatus = React.useMemo(() => {
+  const filteredTasksBase = React.useMemo(() => {
     return activeTasksList.filter((task) => {
       const matchesPriority =
         priorityFilter === "All" || task.priority === priorityFilter;
@@ -1501,15 +1537,12 @@ const MyTasksTab = ({
         projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         clientName.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesDate = checkTaskProductivityAndDate(task, dateFilter);
-
       return (
         matchesPriority &&
         matchesProject &&
         matchesClient &&
         matchesAssigner &&
-        matchesSearch &&
-        matchesDate
+        matchesSearch
       );
     });
   }, [
@@ -1517,14 +1550,32 @@ const MyTasksTab = ({
     priorityFilter,
     projectFilter,
     clientFilter,
-    dateFilter,
+    assignerFilter,
     searchTerm,
     projects,
   ]);
 
+  const filteredTasksWithoutStatus = React.useMemo(() => {
+    return filteredTasksBase.filter((task) => {
+      return checkTaskProductivityAndDate(task, dateFilter);
+    });
+  }, [filteredTasksBase, dateFilter]);
+
   const filteredTasks = React.useMemo(() => {
-    const list = filteredTasksWithoutStatus.filter((task) => {
+    const sourceList =
+      statusFilter === "Previous Pending Task"
+        ? filteredTasksBase
+        : filteredTasksWithoutStatus;
+
+    const list = sourceList.filter((task) => {
       if (statusFilter === "All") return true;
+      if (statusFilter === "Previous Pending Task") {
+        return isPreviousDateTask(task) && isPreviousPendingStatus(task.status);
+      }
+      if (statusFilter === "Active Tasks") {
+        const s = (task.status || "Not Started").toUpperCase();
+        return s !== "COMPLETED" && s !== "REJECTED";
+      }
       if (statusFilter === "Overdue") {
         return (
           task.dueDate &&
@@ -1616,11 +1667,12 @@ const MyTasksTab = ({
       const pRankB = getPriorityRank(b);
       return pRankA - pRankB;
     });
-  }, [filteredTasksWithoutStatus, statusFilter]);
+  }, [filteredTasksWithoutStatus, filteredTasksBase, statusFilter]);
 
   const statusCounts = React.useMemo(() => {
     const counts = {
       All: filteredTasksWithoutStatus.length,
+      "Previous Pending Task": 0,
       "Not Started": 0,
       "In Progress": 0,
       "On Hold": 0,
@@ -1636,8 +1688,15 @@ const MyTasksTab = ({
         counts[s]++;
       }
     });
+
+    filteredTasksBase.forEach((task) => {
+      if (isPreviousDateTask(task) && isPreviousPendingStatus(task.status)) {
+        counts["Previous Pending Task"]++;
+      }
+    });
+
     return counts;
-  }, [filteredTasksWithoutStatus]);
+  }, [filteredTasksWithoutStatus, filteredTasksBase]);
 
   const totalItems = filteredTasks.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -2759,6 +2818,11 @@ const MyTasksTab = ({
                         color: "bg-slate-400",
                       },
                       {
+                        name: "Previous Pending Task",
+                        label: "Previous Pending Task",
+                        color: "bg-amber-500",
+                      },
+                      {
                         name: "Active Tasks",
                         label: "⚡ Active Tasks",
                         color: "bg-indigo-500",
@@ -2994,6 +3058,7 @@ const MyTasksTab = ({
         <div className="inline-flex items-center gap-1 p-1 bg-slate-50/80 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-700/60 rounded-full overflow-x-auto custom-scrollbar shadow-sm">
           {[
             { name: "All", label: "All status" },
+            { name: "Previous Pending Task", label: "Previous Pending Task" },
             { name: "Not Started", label: "Not started" },
             { name: "In Progress", label: "In-progress" },
             { name: "On Hold", label: "On-hold" },
