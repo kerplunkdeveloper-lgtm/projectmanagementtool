@@ -431,7 +431,27 @@ exports.getTasks = async (req, res) => {
 
     const andConditions = [];
 
-    if (req.query.project && req.query.project !== "all") {
+    if (req.query.my_tasks === "true" || req.query.myTasks === "true") {
+      andConditions.push({
+        $or: [
+          { assignedTo: req.user._id },
+          { "subtasks.assignedTo": req.user._id }
+        ]
+      });
+      if (req.query.project && req.query.project !== "all") {
+        andConditions.push({ project: req.query.project });
+      }
+    } else if (req.query.assignedTo) {
+      andConditions.push({
+        $or: [
+          { assignedTo: req.query.assignedTo },
+          { "subtasks.assignedTo": req.query.assignedTo }
+        ]
+      });
+      if (req.query.project && req.query.project !== "all") {
+        andConditions.push({ project: req.query.project });
+      }
+    } else if (req.query.project && req.query.project !== "all") {
       andConditions.push({ project: req.query.project });
       if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
         andConditions.push({
@@ -522,7 +542,7 @@ exports.getTasks = async (req, res) => {
 
     if (req.query.active_only === 'true') {
       const isMinimal = req.query.minimal === 'true';
-      const daysBack = isMinimal ? 3 : 14;
+      const daysBack = isMinimal ? 3 : (req.query.daysBack ? Math.max(1, parseInt(req.query.daysBack, 10)) : 7);
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysBack);
 
@@ -619,7 +639,7 @@ exports.getTasks = async (req, res) => {
       } else {
         // Omit massive nested arrays (comments, attachments, feedbacks, histories) for blazing fast speed (<50ms)
         mongooseQuery = mongooseQuery.select(
-          "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory"
+          "-comments -attachments -feedbacks -correctionHistory -rejectionHistory -activities -subtasks.comments -subtasks.attachments -subtasks.feedbacks -subtasks.correctionHistory -subtasks.rejectionHistory -subtasks.reviewCycles -subtasks.activities"
         );
       }
     }

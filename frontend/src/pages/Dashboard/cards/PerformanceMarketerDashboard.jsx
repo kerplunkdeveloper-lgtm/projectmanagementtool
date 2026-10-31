@@ -1,8 +1,8 @@
 import React from 'react';
 import GraphicDesignerDashboard from './GraphicDesignerDashboard';
 
-const PerformanceMarketerDashboard = ({ targetDept = "Performance Marketer" }) => {
-  return <GraphicDesignerDashboard targetDept={targetDept} />;
+const PerformanceMarketerDashboard = ({ targetDept = "Performance Marketer", ...props }) => {
+  return <GraphicDesignerDashboard targetDept={targetDept} {...props} />;
 };
 
 export default PerformanceMarketerDashboard;

@@ -1581,7 +1581,7 @@ const GraphicDesignerDashboardSkeleton = ({ targetDept = "Graphic Designer" }) =
   );
 };
 
-const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
+const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer", parentTasks = null }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const performanceTableRef = useRef(null);
@@ -1623,19 +1623,47 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const { users } = useSelector((state) => state.users);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
+
+  const projectMap = useMemo(() => {
+    const map = new Map();
+    (projects || []).forEach((p) => {
+      if (p?._id) map.set(p._id.toString(), p);
+    });
+    return map;
+  }, [projects]);
+
+  const clientMap = useMemo(() => {
+    const map = new Map();
+    (clients || []).forEach((c) => {
+      if (c?._id) map.set(c._id.toString(), c);
+    });
+    return map;
+  }, [clients]);
+
+  const userMap = useMemo(() => {
+    const map = new Map();
+    (users || []).forEach((u) => {
+      if (u?._id) map.set(u._id.toString(), u);
+    });
+    return map;
+  }, [users]);
   const designerEodState = useSelector((state) => state.designerEodReports);
   const designerEodReports = designerEodState?.designerEodReports || [];
+  const hasParentTasks = Array.isArray(parentTasks) && parentTasks.length > 0;
   const {
-    data: allTasks = [],
-    isLoading,
+    data: queriedTasks = [],
+    isLoading: isTasksQueryLoading,
     refetch: refetchTasks,
   } = useGetTasksQuery(
     { active_only: true, department: targetDept },
     {
+      skip: hasParentTasks,
       pollingInterval: 120000, // BUG-03 FIX: 30s → 120s. Socket task_updated events handle real-time.
       refetchOnReconnect: true,
     },
   );
+  const allTasks = hasParentTasks ? parentTasks : queriedTasks;
+  const isLoading = hasParentTasks ? false : isTasksQueryLoading;
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [trendReady, setTrendReady] = useState(false);
@@ -1691,7 +1719,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     const handleRealtimeTaskSync = () => {
       if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
       syncDebounceTimer = setTimeout(() => {
-        refetchTasks();
+        if (!hasParentTasks) {
+          refetchTasks();
+        }
         const curDate = selectedDateRef.current || new Date();
         const year = curDate.getFullYear();
         const month = String(curDate.getMonth() + 1).padStart(2, "0");
@@ -2769,14 +2799,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       if (!clientId && task.project) {
         const projId =
           typeof task.project === "object" ? task.project._id : task.project;
-        const proj = projects?.find((p) => p._id === projId);
+        const proj = projectMap.get(projId?.toString());
         clientId = proj?.client?._id || proj?.client;
       }
       if (!clientId) return;
+      const cIdStr = clientId.toString();
 
-      if (!cp[clientId]) {
-        cp[clientId] = {
-          id: clientId,
+      if (!cp[cIdStr]) {
+        cp[cIdStr] = {
+          id: cIdStr,
           pending: 0,
           completed: 0,
           dueToday: 0,
@@ -2801,10 +2832,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     });
 
     return Object.values(cp).map((c) => {
-      const cl = clients?.find((cl) => cl._id === c.id);
+      const cl = clientMap.get(c.id);
       return { ...c, name: cl?.name || cl?.companyName || "Unknown Client" };
     });
-  }, [designerTasks, projects, clients, selectedDate]);
+  }, [designerTasks, projectMap, clientMap, selectedDate]);
 
   // 7. Delayed Projects/Tasks (Raw active bottlenecks)
   const rawBottleneckTasks = useMemo(() => {
@@ -2843,7 +2874,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         let projName = "No Project";
         if (t.project) {
           const pId = typeof t.project === "object" ? t.project._id : t.project;
-          const p = projects?.find((x) => x._id === pId);
+          const p = projectMap.get(pId?.toString());
           projName = p?.name || "Unknown";
         }
 
@@ -2856,20 +2887,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         if (!clientId && t.project) {
           const pId = typeof t.project === "object" ? t.project._id : t.project;
           const p =
-            projects?.find((x) => x._id === pId) ||
+            projectMap.get(pId?.toString()) ||
             (typeof t.project === "object" ? t.project : null);
           if (p && p.client) {
             clientId = typeof p.client === "object" ? p.client._id : p.client;
             if (typeof p.client === "object") cObj = p.client;
           }
         }
-        const cl = clients?.find((c) => c._id === clientId) || cObj;
+        const cl = (clientId ? clientMap.get(clientId.toString()) : null) || cObj;
         const clientName = cl?.name || cl?.companyName || "No Client";
 
+        const creatorId = t.createdBy && typeof t.createdBy === "object" ? t.createdBy._id : t.createdBy;
         const creatorObj =
           t.createdBy && typeof t.createdBy === "object"
             ? t.createdBy
-            : users?.find((u) => u._id === t.createdBy);
+            : userMap.get(creatorId?.toString());
         const creatorName = creatorObj?.name || "Unknown";
         const creatorImage =
           (typeof creatorObj?.profile?.profileImage === "object"
@@ -2884,11 +2916,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           creatorObj?.profile?.avatar ||
           null;
 
-        const assigneeObj = t.assignedTo
+        const assigneeId = t.assignedTo
           ? typeof t.assignedTo === "object"
-            ? t.assignedTo
-            : designers.find((d) => d._id === t.assignedTo) ||
-              users?.find((u) => u._id === t.assignedTo)
+            ? t.assignedTo._id
+            : t.assignedTo
+          : null;
+        const assigneeObj = assigneeId
+          ? (typeof t.assignedTo === "object" ? t.assignedTo : null) ||
+            userMap.get(assigneeId?.toString())
           : null;
         const assigneeName = assigneeObj?.name || "Unassigned";
         const assigneeImage =
@@ -2915,7 +2950,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           daysDelayed: delayText,
         };
       });
-  }, [designerTasks, projects, clients, users, designers]);
+  }, [designerTasks, projectMap, clientMap, userMap, designers]);
 
   const bottleneckClients = useMemo(() => {
     return [

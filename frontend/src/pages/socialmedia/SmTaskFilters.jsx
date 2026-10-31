@@ -138,15 +138,12 @@ const SmTaskFilters = ({
   }, [clientOptions, clientSearchQuery]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
       {/* Row 1: Search Input & Action Buttons */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Search Input */}
         <div className="relative w-full sm:w-80 md:w-96">
-          <FiSearch
-            size={14}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-          />
+          
           <input
             type="text"
             placeholder="Search tasks, clients, creators..."

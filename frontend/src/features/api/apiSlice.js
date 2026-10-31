@@ -138,6 +138,8 @@ export const apiSlice = createApi({
         if (params.project && params.project !== "all") queryParams.append('project', params.project);
         if (params.department) queryParams.append('department', params.department);
         if (params.include_unassigned) queryParams.append('include_unassigned', params.include_unassigned);
+        if (params.my_tasks) queryParams.append('my_tasks', params.my_tasks);
+        if (params.assignedTo) queryParams.append('assignedTo', params.assignedTo);
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],
@@ -163,6 +165,7 @@ export const apiSlice = createApi({
         // BUG-09 FIX: Update all cached task query variants (not just undefined key)
         const cacheKeys = [
           undefined,
+          { my_tasks: true },
           { active_only: true, minimal: true },
           { minimal: true },
           { active_only: true },
@@ -208,6 +211,13 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Task"],
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        dispatch(
+          apiSlice.util.updateQueryData("getTasks", { my_tasks: true }, (draft) => {
+            if (!Array.isArray(draft)) return;
+            const index = draft.findIndex((t) => t._id === id);
+            if (index !== -1) draft.splice(index, 1);
+          })
+        );
         const patchResult = dispatch(
           apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {
             const index = draft.findIndex((t) => t._id === id);

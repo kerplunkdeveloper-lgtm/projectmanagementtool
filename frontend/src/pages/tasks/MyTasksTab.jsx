@@ -64,18 +64,29 @@ const MemoizedBlock = React.memo(({ render }) => {
   return true;
 });
 
+const KOLKATA_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+const getFastKolkataDateStr = (dateInput) => {
+  if (!dateInput) return "";
+  try {
+    const ms = typeof dateInput === "number" ? dateInput : new Date(dateInput).getTime();
+    if (isNaN(ms)) return "";
+    return new Date(ms + KOLKATA_OFFSET_MS).toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+};
+
 const isSameDate = (d1, d2) => {
   if (!d1 || !d2) return false;
   try {
-    const s1 =
-      typeof d1 === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d1.trim())
-        ? d1.trim()
-        : new Date(d1).toLocaleDateString("en-CA");
-    const s2 =
-      typeof d2 === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d2.trim())
-        ? d2.trim()
-        : new Date(d2).toLocaleDateString("en-CA");
-    return s1 === s2 && s1 !== "1970-01-01";
+    const date1 = d1 instanceof Date ? d1 : new Date(d1);
+    const date2 = d2 instanceof Date ? d2 : new Date(d2);
+    if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return false;
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
   } catch (e) {
     return false;
   }
@@ -107,15 +118,12 @@ const isPreviousPendingStatus = (status) => {
 const isPreviousDateTask = (task) => {
   if (!task) return false;
   const now = new Date();
-  const todayStr = getLocalDateString(now);
-  const createdDateStr = getLocalDateString(task.createdAt);
-  const startDateStr = getLocalDateString(task.startDate);
-  const dueDateStr = getLocalDateString(task.dueDate);
+  now.setHours(0, 0, 0, 0);
+  const nowTime = now.getTime();
 
-  // Consider previous if createdAt, startDate, or dueDate is before today's date
-  if (createdDateStr && createdDateStr < todayStr) return true;
-  if (startDateStr && startDateStr < todayStr) return true;
-  if (dueDateStr && dueDateStr < todayStr) return true;
+  if (task.createdAt && new Date(task.createdAt).getTime() < nowTime) return true;
+  if (task.startDate && new Date(task.startDate).getTime() < nowTime) return true;
+  if (task.dueDate && new Date(task.dueDate).getTime() < nowTime) return true;
 
   return false;
 };
@@ -126,76 +134,41 @@ const checkTaskProductivityAndDate = (
   officeHours = { startTime: "09:00", endTime: "19:00" },
 ) => {
   if (!dateFilter || dateFilter === "All") return true;
-  if (!task) return false;
+  if (!task || !task.createdAt) return false;
 
-  const now = new Date();
-  const getLocalDateStr = (d) => {
-    if (!d) return null;
-    const date = new Date(d);
-    if (isNaN(date.getTime())) return null;
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+  const createdMs = new Date(task.createdAt).getTime();
+  if (isNaN(createdMs)) return false;
 
-  const createdDateStr = getLocalDateStr(task.createdAt);
-  if (!createdDateStr) return false;
-
-  const createdDate = new Date(task.createdAt);
-  const todayStr = getLocalDateStr(now);
+  const createdDateStr = getFastKolkataDateStr(createdMs);
+  const nowMs = Date.now();
+  const todayStr = getFastKolkataDateStr(nowMs);
 
   if (dateFilter === "Today") {
     return createdDateStr === todayStr;
   }
 
   if (dateFilter === "Yesterday") {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return createdDateStr === getLocalDateStr(yesterday);
+    return createdDateStr === getFastKolkataDateStr(nowMs - 86400000);
   }
 
   if (dateFilter === "This Week") {
+    const now = new Date();
     const dayOfWeek = now.getDay();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
     startOfWeek.setHours(0, 0, 0, 0);
-
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(endOfWeek.getDate() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
-
-    return createdDate >= startOfWeek && createdDate <= endOfWeek;
+    return createdMs >= startOfWeek.getTime() && createdMs <= endOfWeek.getTime();
   }
 
   if (dateFilter === "This Month") {
-    const startOfMonth = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1,
-      0,
-      0,
-      0,
-      0,
-    );
-    const endOfMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-      999,
-    );
-
-    return createdDate >= startOfMonth && createdDate <= endOfMonth;
+    return createdDateStr.slice(0, 7) === todayStr.slice(0, 7);
   }
 
   if (dateFilter && dateFilter !== "All") {
-    const targetDate = new Date(dateFilter);
-    if (!isNaN(targetDate.getTime())) {
-      return createdDateStr === getLocalDateStr(targetDate);
-    }
+    return createdDateStr === getFastKolkataDateStr(dateFilter);
   }
 
   return false;
@@ -590,11 +563,16 @@ const ApprovalDurationBadge = ({
   approvalWaitingMs,
   reviewStartedAt,
   status,
+  nowTick: externalNowTick,
 }) => {
   const [liveElapsed, setLiveElapsed] = useState(0);
   const isInReview = status === "In Review";
 
   useEffect(() => {
+    if (externalNowTick !== undefined) {
+      setLiveElapsed(calculateBusinessMs(reviewStartedAt, externalNowTick));
+      return;
+    }
     if (!reviewStartedAt || !isInReview) {
       setLiveElapsed(0);
       return;
@@ -604,7 +582,7 @@ const ApprovalDurationBadge = ({
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [reviewStartedAt, status]);
+  }, [reviewStartedAt, status, externalNowTick]);
 
   const totalMs = (approvalWaitingMs || 0) + liveElapsed;
   if (!totalMs)
@@ -715,8 +693,9 @@ const formatMsToHMS = (ms) => {
 };
 
 const WorkTimeCell = React.memo(
-  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today" }) => {
-    const [nowTick, setNowTick] = useState(Date.now());
+  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today", nowTick: externalNowTick }) => {
+    const [internalNowTick, setInternalNowTick] = useState(Date.now());
+    const nowTick = externalNowTick !== undefined ? externalNowTick : internalNowTick;
     const statusUpper = (task?.status || "")
       .trim()
       .toUpperCase()
@@ -724,20 +703,20 @@ const WorkTimeCell = React.memo(
     const isActive = statusUpper === "IN PROGRESS" && !task?.autoPaused;
 
     useEffect(() => {
-      if (!isActive) return;
+      if (externalNowTick !== undefined || !isActive) return;
       const interval = setInterval(() => {
-        setNowTick(Date.now());
+        setInternalNowTick(Date.now());
       }, 1000);
       return () => clearInterval(interval);
-    }, [isActive]);
+    }, [isActive, externalNowTick]);
 
     const { workMs: totalWorkMs } = React.useMemo(
-      () => getTaskStatsForDateFilter(task, "All", officeHours, nowTick),
+      () => getTaskStats(task, "All", officeHours, nowTick),
       [task, officeHours, nowTick],
     );
 
     const { workMs: todayWorkMs } = React.useMemo(
-      () => getTaskStatsForDateFilter(task, "Today", officeHours, nowTick),
+      () => getTaskStats(task, "Today", officeHours, nowTick),
       [task, officeHours, nowTick],
     );
 
@@ -777,8 +756,9 @@ const WorkTimeCell = React.memo(
 );
 
 const OnHoldTimeCell = React.memo(
-  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today" }) => {
-    const [nowTick, setNowTick] = useState(Date.now());
+  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today", nowTick: externalNowTick }) => {
+    const [internalNowTick, setInternalNowTick] = useState(Date.now());
+    const nowTick = externalNowTick !== undefined ? externalNowTick : internalNowTick;
     const isHold = task?.status === "On Hold";
 
     let isUnproductiveActive = isHold;
@@ -797,20 +777,20 @@ const OnHoldTimeCell = React.memo(
     }
 
     useEffect(() => {
-      if (!isUnproductiveActive) return;
+      if (externalNowTick !== undefined || !isUnproductiveActive) return;
       const interval = setInterval(() => {
-        setNowTick(Date.now());
+        setInternalNowTick(Date.now());
       }, 1000);
       return () => clearInterval(interval);
-    }, [isUnproductiveActive]);
+    }, [isUnproductiveActive, externalNowTick]);
 
     const { onHoldMs: totalOnHoldMs } = React.useMemo(
-      () => getTaskStatsForDateFilter(task, "All", officeHours, nowTick),
+      () => getTaskStats(task, "All", officeHours, nowTick),
       [task, officeHours, nowTick],
     );
 
     const { onHoldMs: todayOnHoldMs } = React.useMemo(
-      () => getTaskStatsForDateFilter(task, "Today", officeHours, nowTick),
+      () => getTaskStats(task, "Today", officeHours, nowTick),
       [task, officeHours, nowTick],
     );
 
@@ -858,8 +838,9 @@ const OnHoldTimeCell = React.memo(
 );
 
 const BlockedTimeCell = React.memo(
-  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today" }) => {
-    const [nowTick, setNowTick] = useState(Date.now());
+  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today", nowTick: externalNowTick }) => {
+    const [internalNowTick, setInternalNowTick] = useState(Date.now());
+    const nowTick = externalNowTick !== undefined ? externalNowTick : internalNowTick;
 
     let isBlockedActive = task?.status === "Blocked";
     if (
@@ -879,15 +860,15 @@ const BlockedTimeCell = React.memo(
     }
 
     useEffect(() => {
-      if (!isBlockedActive) return;
+      if (externalNowTick !== undefined || !isBlockedActive) return;
       const interval = setInterval(() => {
-        setNowTick(Date.now());
+        setInternalNowTick(Date.now());
       }, 1000);
       return () => clearInterval(interval);
-    }, [isBlockedActive]);
+    }, [isBlockedActive, externalNowTick]);
 
     const { blockedMs } = React.useMemo(
-      () => getTaskStatsForDateFilter(task, dateFilter, officeHours, nowTick),
+      () => getTaskStats(task, dateFilter, officeHours, nowTick),
       [task, dateFilter, officeHours, nowTick],
     );
 
@@ -917,17 +898,18 @@ const BlockedTimeCell = React.memo(
 );
 
 const CorrectionTimeCell = React.memo(
-  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today" }) => {
-    const [nowTick, setNowTick] = useState(Date.now());
+  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today", nowTick: externalNowTick }) => {
+    const [internalNowTick, setInternalNowTick] = useState(Date.now());
+    const nowTick = externalNowTick !== undefined ? externalNowTick : internalNowTick;
     const isCorrection = task?.status === "Correction";
 
     useEffect(() => {
-      if (!isCorrection) return;
+      if (externalNowTick !== undefined || !isCorrection) return;
       const interval = setInterval(() => {
-        setNowTick(Date.now());
+        setInternalNowTick(Date.now());
       }, 1000);
       return () => clearInterval(interval);
-    }, [isCorrection]);
+    }, [isCorrection, externalNowTick]);
 
     const { correctionMs } = React.useMemo(
       () => getTaskStatsForDateFilter(task, dateFilter, officeHours, nowTick),
@@ -960,8 +942,9 @@ const CorrectionTimeCell = React.memo(
 );
 
 const TodayTrackerCell = React.memo(
-  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today" }) => {
-    const [nowTick, setNowTick] = useState(Date.now());
+  ({ task, officeHours = DEFAULT_OFFICE_HOURS, dateFilter = "Today", nowTick: externalNowTick }) => {
+    const [internalNowTick, setInternalNowTick] = useState(Date.now());
+    const nowTick = externalNowTick !== undefined ? externalNowTick : internalNowTick;
     const statusUpper = (task?.status || "")
       .trim()
       .toUpperCase()
@@ -969,12 +952,12 @@ const TodayTrackerCell = React.memo(
     const isActive = statusUpper === "IN PROGRESS" && !task?.autoPaused;
 
     useEffect(() => {
-      if (!isActive) return;
+      if (externalNowTick !== undefined || !isActive) return;
       const interval = setInterval(() => {
-        setNowTick(Date.now());
+        setInternalNowTick(Date.now());
       }, 1000);
       return () => clearInterval(interval);
-    }, [isActive]);
+    }, [isActive, externalNowTick]);
 
     const { workMs, onHoldMs, correctionMs } = React.useMemo(
       () => getTaskStatsForDateFilter(task, dateFilter, officeHours, nowTick),
@@ -1002,29 +985,32 @@ const TodayTrackerCell = React.memo(
   },
 );
 
+const statsCache = new Map();
+
 const getTaskStatsForDateFilter = (task, dateFilter, officeHours, nowTick) => {
   let workMs = 0;
   let onHoldMs = 0;
   let blockedMs = 0;
   let correctionMs = 0;
 
-  const now = new Date(nowTick);
+  if (!task) return { workMs, onHoldMs, blockedMs, correctionMs };
+
+  const currentNowMs = nowTick || Date.now();
+  const now = new Date(currentNowMs);
+  const todayStr = getFastKolkataDateStr(currentNowMs);
+  const yesterdayStr = getFastKolkataDateStr(currentNowMs - 86400000);
 
   if (dateFilter === "All") {
     workMs = task.totalTrackedTime || 0;
 
-    // Check if task is actively productive (In Progress or Productive Hold)
     const currentIsProductiveHold =
       task.status === "On Hold" &&
       task.statusHistory &&
       task.statusHistory.length > 0 &&
-      (task.statusHistory[task.statusHistory.length - 1].reason ===
-        "Client Call" ||
+      (task.statusHistory[task.statusHistory.length - 1].reason === "Client Call" ||
         task.statusHistory[task.statusHistory.length - 1].reason === "Meeting");
 
     let liveStart = 0;
-
-    // 1. Try to find the open entry in status history
     if (task.statusHistory && Array.isArray(task.statusHistory)) {
       const openEntry = [...task.statusHistory]
         .reverse()
@@ -1040,7 +1026,6 @@ const getTaskStatsForDateFilter = (task, dateFilter, officeHours, nowTick) => {
       }
     }
 
-    // 2. Fallback
     if (!liveStart || liveStart <= 0) {
       if (task.status === "In Progress" && task.actualStartTime) {
         liveStart = new Date(task.actualStartTime).getTime();
@@ -1050,7 +1035,7 @@ const getTaskStatsForDateFilter = (task, dateFilter, officeHours, nowTick) => {
     }
 
     if (liveStart > 0 && !task.autoPaused) {
-      workMs += Math.max(0, nowTick - liveStart);
+      workMs += Math.max(0, currentNowMs - liveStart);
     }
   } else {
     let start, end;
@@ -1073,134 +1058,109 @@ const getTaskStatsForDateFilter = (task, dateFilter, officeHours, nowTick) => {
     } else if (dateFilter && dateFilter !== "All") {
       const parsed = new Date(dateFilter);
       if (!isNaN(parsed.getTime())) {
-        start = new Date(
-          parsed.getFullYear(),
-          parsed.getMonth(),
-          parsed.getDate(),
-        );
+        start = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
         end = start;
       }
     }
 
     if (start && end) {
-      let curr = new Date(start);
-      while (curr <= end && curr <= now) {
-        workMs += calculateTaskProductivityForDate(task, curr, officeHours);
-        curr.setDate(curr.getDate() + 1);
+      if (start.getTime() === end.getTime()) {
+        workMs += calculateTaskProductivityForDate(task, start, officeHours, currentNowMs);
+      } else {
+        const activeDays = new Set();
+        if (task.statusHistory && Array.isArray(task.statusHistory)) {
+          task.statusHistory.forEach((h) => {
+            const d = h.startTime || h.date;
+            if (d) activeDays.add(getFastKolkataDateStr(d));
+          });
+        }
+        if (task.actualStartTime) {
+          activeDays.add(getFastKolkataDateStr(task.actualStartTime));
+        }
+        activeDays.forEach((dayStr) => {
+          workMs += calculateTaskProductivityForDate(task, dayStr, officeHours, currentNowMs);
+        });
       }
     }
   }
 
+  let startOfWeekMs = 0;
+  let endOfWeekMs = 0;
+  if (dateFilter === "This Week") {
+    const dayOfWeek = now.getDay();
+    const s = new Date(now);
+    s.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    s.setHours(0, 0, 0, 0);
+    startOfWeekMs = s.getTime();
+    endOfWeekMs = startOfWeekMs + 7 * 86400000 - 1;
+  }
+
   const isDateInFilter = (dateInput) => {
     if (dateFilter === "All") return true;
-    const dStr = new Date(dateInput).toLocaleDateString("en-CA", {
-      timeZone: "Asia/Kolkata",
-    });
-    if (dateFilter === "Today") {
-      return (
-        dStr === now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
-      );
-    }
-    if (dateFilter === "Yesterday") {
-      const y = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      return (
-        dStr === y.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
-      );
-    }
-    const d = new Date(dateInput);
+    const dStr = getFastKolkataDateStr(dateInput);
+    if (!dStr) return false;
+    if (dateFilter === "Today") return dStr === todayStr;
+    if (dateFilter === "Yesterday") return dStr === yesterdayStr;
     if (dateFilter === "This Week") {
-      const dayOfWeek = now.getDay();
-      const start = new Date(now);
-      start.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 6);
-      end.setHours(23, 59, 59, 999);
-      return d >= start && d <= end;
+      const ms = new Date(dateInput).getTime();
+      return ms >= startOfWeekMs && ms <= endOfWeekMs;
     }
     if (dateFilter === "This Month") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-      const end = new Date(
-        now.getFullYear(),
-        now.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999,
-      );
-      return d >= start && d <= end;
+      return dStr.slice(0, 7) === todayStr.slice(0, 7);
     }
-
     if (dateFilter && dateFilter !== "All") {
-      const parsed = new Date(dateFilter);
-      if (!isNaN(parsed.getTime())) {
-        const filterStr = parsed.toLocaleDateString("en-CA", {
-          timeZone: "Asia/Kolkata",
-        });
-        return dStr === filterStr;
-      }
+      return dStr === getFastKolkataDateStr(dateFilter);
     }
     return false;
   };
 
   if (Array.isArray(task.statusHistory)) {
     task.statusHistory.forEach((h, idx) => {
+      const d = h.startTime || h.date;
+      if (!isDateInFilter(d)) return;
+
       if (h.status === "On Hold") {
-        if (isDateInFilter(h.startTime || h.date)) {
-          if (h.reason === "Client Call" || h.reason === "Meeting") {
-            blockedMs += h.duration || 0;
-          } else if (h.reason !== "Another Task") {
-            onHoldMs += h.duration || 0;
-          }
+        if (h.reason === "Client Call" || h.reason === "Meeting") {
+          blockedMs += h.duration || 0;
+        } else if (h.reason !== "Another Task") {
+          onHoldMs += h.duration || 0;
         }
       } else if (h.status === "Blocked") {
-        if (isDateInFilter(h.startTime || h.date)) {
-          blockedMs += h.duration || 0;
-        }
+        blockedMs += h.duration || 0;
       } else if (h.status === "Correction") {
-        const startMs = new Date(h.startTime || h.date).getTime();
-        const isCurrent =
-          idx === task.statusHistory.length - 1 && task.status === "Correction";
-        const duration = isCurrent
-          ? Math.max(0, nowTick - startMs)
-          : h.duration || 0;
-        if (isDateInFilter(h.startTime || h.date)) {
-          correctionMs += duration;
-        }
+        const startMs = new Date(d).getTime();
+        const isCurrent = idx === task.statusHistory.length - 1 && task.status === "Correction";
+        const duration = isCurrent ? Math.max(0, currentNowMs - startMs) : (h.duration || 0);
+        correctionMs += duration;
       }
     });
   }
 
-  if (task.status === "On Hold" && task.holdStartedAt) {
-    const duration = Math.max(
-      0,
-      nowTick - new Date(task.holdStartedAt).getTime(),
-    );
-    if (isDateInFilter(task.holdStartedAt)) {
-      const holdEntry = [...(task.statusHistory || [])]
-        .reverse()
-        .find((h) => h.status === "On Hold");
-      const reason = holdEntry?.reason;
-      if (reason === "Client Call" || reason === "Meeting") {
-        blockedMs += duration;
-      } else if (reason !== "Another Task") {
-        onHoldMs += duration;
-      }
-    }
-  }
-
-  if (task.status === "Blocked" && task.blockedStartedAt) {
-    const duration = Math.max(
-      0,
-      nowTick - new Date(task.blockedStartedAt).getTime(),
-    );
-    if (isDateInFilter(task.blockedStartedAt)) {
+  if (task.status === "On Hold" && task.holdStartedAt && isDateInFilter(task.holdStartedAt)) {
+    const duration = Math.max(0, currentNowMs - new Date(task.holdStartedAt).getTime());
+    const holdEntry = [...(task.statusHistory || [])].reverse().find((h) => h.status === "On Hold");
+    const reason = holdEntry?.reason;
+    if (reason === "Client Call" || reason === "Meeting") {
       blockedMs += duration;
+    } else if (reason !== "Another Task") {
+      onHoldMs += duration;
     }
   }
 
   return { workMs, onHoldMs, blockedMs, correctionMs };
+};
+
+const getTaskStats = (task, dateFilter, officeHours, nowTick) => {
+  if (!task) return { workMs: 0, onHoldMs: 0, blockedMs: 0, correctionMs: 0 };
+  const secTick = Math.floor((nowTick || Date.now()) / 1000);
+  const cacheKey = `${task._id || ""}_${dateFilter || "All"}_${secTick}`;
+  if (statsCache.has(cacheKey)) {
+    return statsCache.get(cacheKey);
+  }
+  const result = getTaskStatsForDateFilter(task, dateFilter, officeHours, nowTick);
+  if (statsCache.size > 300) statsCache.clear();
+  statsCache.set(cacheKey, result);
+  return result;
 };
 
 const PriorityBadge = ({ priority, isTopHigh }) => {
@@ -1251,22 +1211,41 @@ const MyTasksTab = ({
   dateFilter: dateFilterProp,
   setDateFilter: setDateFilterProp,
 }) => {
-  const authUsers = useSelector((state) => state.auth?.users);
-  const users = authUsers || [];
+  const reduxUsers = useSelector((state) => state.users?.users || state.auth?.users);
+  const users = reduxUsers || [];
 
-  const [officeHours, setOfficeHours] = useState({
-    startTime: "09:00",
-    endTime: "19:00",
-    breakStartTime: "",
-    breakEndTime: ""
+  const usersMap = React.useMemo(() => {
+    const map = new Map();
+    (users || []).forEach((u) => {
+      if (u?._id) map.set(String(u._id), u);
+      if (u?.id) map.set(String(u.id), u);
+    });
+    return map;
+  }, [users]);
+
+  const [officeHours, setOfficeHours] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem("app_office_hours");
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+    return {
+      startTime: "09:00",
+      endTime: "19:00",
+      breakStartTime: "",
+      breakEndTime: ""
+    };
   });
 
   useEffect(() => {
+    if (sessionStorage.getItem("app_office_hours")) return;
     const fetchOfficeHours = async () => {
       try {
         const { data } = await axiosInstance.get("/settings/office-hours");
         if (data && data.data) {
           setOfficeHours(data.data);
+          try {
+            sessionStorage.setItem("app_office_hours", JSON.stringify(data.data));
+          } catch (e) {}
         }
       } catch (err) {
         console.error("Failed to fetch office hours:", err);
@@ -1495,9 +1474,13 @@ const MyTasksTab = ({
 
   // Filter tasks based on "My Tasks" (assigned to current user)
   const activeTasksList = React.useMemo(() => {
-    return tasks.filter((task) => {
-      const taskUserId = task.assignedTo?._id || task.assignedTo;
-      return taskUserId === currentUserId;
+    const curId = String(currentUserId || "");
+    return (tasks || []).filter((task) => {
+      const taskUserId = String(task.assignedTo?._id || task.assignedTo || "");
+      const hasSubtask = task.subtasks?.some(
+        (s) => String(s.assignedTo?._id || s.assignedTo || "") === curId
+      );
+      return (taskUserId && taskUserId === curId) || hasSubtask;
     });
   }, [tasks, currentUserId]);
 
@@ -1552,7 +1535,7 @@ const MyTasksTab = ({
     clientFilter,
     assignerFilter,
     searchTerm,
-    projects,
+    projectsMap,
   ]);
 
   const filteredTasksWithoutStatus = React.useMemo(() => {
@@ -1705,6 +1688,23 @@ const MyTasksTab = ({
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredTasks.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTasks, currentPage, itemsPerPage]);
+
+  const hasAnyActiveTask = React.useMemo(() => {
+    return (paginatedTasks || []).some((t) => {
+      const s = (t?.status || "").toUpperCase();
+      return s === "IN PROGRESS" || s === "ON HOLD" || s === "CORRECTION" || s === "IN REVIEW";
+    });
+  }, [paginatedTasks]);
+
+  const [sharedNowTick, setSharedNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!hasAnyActiveTask) return;
+    const interval = setInterval(() => {
+      setSharedNowTick(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [hasAnyActiveTask]);
 
   const sortedTasks = paginatedTasks;
   const selectedTask = tasks.find((t) => t._id === selectedTaskId);
@@ -2235,31 +2235,55 @@ const MyTasksTab = ({
     }
   };
 
+  const taskDisplayIdMap = React.useMemo(() => {
+    const map = new Map();
+    if (!tasks || !Array.isArray(tasks)) return map;
+
+    const projectGroups = new Map();
+    for (let i = 0; i < tasks.length; i++) {
+      const t = tasks[i];
+      if (!t || !t._id) continue;
+      const projId = String(t.project?._id || t.project || "");
+      let group = projectGroups.get(projId);
+      if (!group) {
+        group = [];
+        projectGroups.set(projId, group);
+      }
+      group.push(t);
+    }
+
+    projectGroups.forEach((projTasks, projId) => {
+      const firstTask = projTasks[0];
+      const projectObj = projId ? projectsMap.get(projId) : null;
+      const projChar = (projectObj?.name || firstTask?.project?.name || "P")
+        .charAt(0)
+        .toUpperCase();
+      const client = projectObj?.client || firstTask?.project?.client;
+      const clientName = client?.companyName || "";
+      const clientChars = clientName
+        ? clientName.substring(0, 2).toUpperCase().padEnd(2, "X")
+        : "XX";
+
+      const prefix = `${projChar}${clientChars}T`;
+
+      projTasks.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (timeA !== timeB) return timeA - timeB;
+        return (a._id || "").localeCompare(b._id || "");
+      });
+
+      for (let idx = 0; idx < projTasks.length; idx++) {
+        map.set(String(projTasks[idx]._id), `${prefix}${idx + 1}`);
+      }
+    });
+
+    return map;
+  }, [tasks, projectsMap]);
+
   const getTaskDisplayId = (task) => {
     if (!task || !task._id) return "";
-    const projId = task.project?._id || task.project;
-    const projectObj = projId ? projectsMap.get(String(projId)) : null;
-    const projChar = (projectObj?.name || task.project?.name || "P")
-      .charAt(0)
-      .toUpperCase();
-    const client = projectObj?.client || task.project?.client;
-    const clientName = client?.companyName || "";
-    const clientChars = clientName
-      ? clientName.substring(0, 2).toUpperCase().padEnd(2, "X")
-      : "XX";
-
-    const projectTasks = tasks.filter(
-      (t) => (t.project?._id || t.project) === projId,
-    );
-    const sortedByCreation = [...projectTasks].sort((a, b) => {
-      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (timeA !== timeB) return timeA - timeB;
-      return (a._id || "").localeCompare(b._id || "");
-    });
-    const idx = sortedByCreation.findIndex((t) => t._id === task._id);
-    const num = idx !== -1 ? idx + 1 : 1;
-    return `${projChar}${clientChars}T${num}`;
+    return taskDisplayIdMap.get(String(task._id)) || "";
   };
 
   const formatDate = (dateStr) => {
@@ -2359,7 +2383,7 @@ const MyTasksTab = ({
       }
     });
     return Object.values(clientsMap);
-  }, [activeTasksList, projects]);
+  }, [activeTasksList, projectsMap]);
 
   const uniqueAssigners = React.useMemo(() => {
     const assignersMap = {};
@@ -3703,6 +3727,7 @@ const MyTasksTab = ({
                                       task={task}
                                       dateFilter={dateFilter}
                                       officeHours={officeHours}
+                                      nowTick={sharedNowTick}
                                     />
                                   </td>
                                 )}
@@ -3754,6 +3779,7 @@ const MyTasksTab = ({
                                       task={task}
                                       dateFilter={dateFilter}
                                       officeHours={officeHours}
+                                      nowTick={sharedNowTick}
                                     />
                                   </td>
                                 )}
@@ -3821,6 +3847,7 @@ const MyTasksTab = ({
                                       task={task}
                                       dateFilter={dateFilter}
                                       officeHours={officeHours}
+                                      nowTick={sharedNowTick}
                                     />
                                   </td>
                                 )}
@@ -3859,20 +3886,8 @@ const MyTasksTab = ({
                                           typeof task.createdBy === "object"
                                             ? (task.createdBy?._id || task.createdBy?.id)
                                             : task.createdBy;
-                                        const matchedUser = assignerId
-                                          ? users.find(
-                                              (u) =>
-                                                String(u._id) === String(assignerId) ||
-                                                String(u.id) === String(assignerId)
-                                            )
-                                          : null;
-                                        const createdUser = createdById
-                                          ? users.find(
-                                              (u) =>
-                                                String(u._id) === String(createdById) ||
-                                                String(u.id) === String(createdById)
-                                            )
-                                          : null;
+                                        const matchedUser = assignerId ? usersMap.get(String(assignerId)) : null;
+                                        const createdUser = createdById ? usersMap.get(String(createdById)) : null;
                                         const assignerUser =
                                           matchedUser ||
                                           (typeof task.assignedBy === "object"
@@ -3978,6 +3993,7 @@ const MyTasksTab = ({
                                       approvalWaitingMs={task.approvalWaitingMs}
                                       reviewStartedAt={task.reviewStartedAt}
                                       status={task.status}
+                                      nowTick={sharedNowTick}
                                     />
                                   </td>
                                 )}

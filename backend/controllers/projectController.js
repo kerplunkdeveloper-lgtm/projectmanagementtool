@@ -10,7 +10,7 @@ exports.getProjects = async (req, res) => {
   try {
     let query = {};
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      const userClients = await Client.find({ assignedTo: req.user._id }).select("_id");
+      const userClients = await Client.find({ assignedTo: req.user._id }).select("_id").lean();
       const userClientIds = userClients.map(c => c._id);
 
       query = {
@@ -35,6 +35,22 @@ exports.getProjects = async (req, res) => {
         ]
       };
     }
+    if (req.query.minimal === 'true') {
+      const projects = await Project.find(query)
+        .select("name client status")
+        .populate({
+          path: "client",
+          select: "companyName color icon",
+        })
+        .lean();
+
+      return res.status(200).json({
+        success: true,
+        count: projects.length,
+        data: projects,
+      });
+    }
+
     const projects = await Project.find(query)
       .populate({
         path: "client",

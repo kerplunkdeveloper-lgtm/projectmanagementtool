@@ -2480,22 +2480,22 @@ const Dashboardmain = () => {
               activeDeptTab?.toLowerCase().includes("design") ||
               activeDeptTab?.toLowerCase().includes("cinema") ||
               activeDeptTab?.toLowerCase().includes("video")) && (
-              <GraphicDesignerDashboard targetDept={activeDeptTab} />
+              <GraphicDesignerDashboard targetDept={activeDeptTab} parentTasks={tasks} />
             )}
             {activeDeptTab?.toLowerCase().includes("web") && (
-              <WebDeveloperDashboard targetDept={activeDeptTab} />
+              <WebDeveloperDashboard targetDept={activeDeptTab} parentTasks={tasks} />
             )}
             {activeDeptTab?.toLowerCase().includes("mobile") && (
-              <MobileDeveloperDashboard targetDept={activeDeptTab} />
+              <MobileDeveloperDashboard targetDept={activeDeptTab} parentTasks={tasks} />
             )}
             {activeDeptTab?.toLowerCase().includes("social") && (
               <SocialMediaManagerDashboard targetDept={activeDeptTab} />
             )}
             {activeDeptTab?.toLowerCase().includes("seo") && (
-              <SEOSpecialistDashboard targetDept={activeDeptTab} />
+              <SEOSpecialistDashboard targetDept={activeDeptTab} parentTasks={tasks} />
             )}
             {activeDeptTab?.toLowerCase().includes("performance") && (
-              <PerformanceMarketerDashboard targetDept={activeDeptTab} />
+              <PerformanceMarketerDashboard targetDept={activeDeptTab} parentTasks={tasks} />
             )}
 
             {!activeDeptTab?.toLowerCase().includes("graphic") &&
@@ -2507,7 +2507,7 @@ const Dashboardmain = () => {
               !activeDeptTab?.toLowerCase().includes("social") &&
               !activeDeptTab?.toLowerCase().includes("seo") &&
               !activeDeptTab?.toLowerCase().includes("performance") && (
-                <GraphicDesignerDashboard targetDept={activeDeptTab} />
+                <GraphicDesignerDashboard targetDept={activeDeptTab} parentTasks={tasks} />
               )}
           </React.Suspense>
         </div>
