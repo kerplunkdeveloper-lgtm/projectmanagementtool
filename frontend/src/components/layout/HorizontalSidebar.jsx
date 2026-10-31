@@ -582,8 +582,8 @@ const HorizontalSidebar = ({ role }) => {
                     onClick={() => setActiveDropdown((prev) => (prev === item.name ? null : item.name))}
                     className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all group relative cursor-pointer border ${
                       isAnyChildActive
-                        ? "bg-white/80 dark:bg-slate-800/80 theme-text-accent shadow-sm border-slate-200/50 dark:border-white/10"
-                        : "text-slate-650 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border-transparent"
+                        ? "sidebar-group-active theme-text-accent shadow-sm"
+                        : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border-transparent"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -635,8 +635,8 @@ const HorizontalSidebar = ({ role }) => {
                             }}
                             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-[11px] font-semibold transition-all ${
                               isSubActive
-                                ? "bg-slate-100 dark:bg-white/10 theme-text-accent font-bold"
-                                : "text-slate-650 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
+                                ? "sidebar-subitem-active theme-text-accent font-bold"
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
                             }`}
                           >
                             <SubIcon className="w-3.5 h-3.5 shrink-0" />
@@ -701,8 +701,8 @@ const HorizontalSidebar = ({ role }) => {
                 end={item.path === `/${role}`}
                 className={({ isActive }) =>
                   `flex items-center gap-2 px-3.5 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all group relative ${isActive
-                    ? "bg-white/80 dark:bg-slate-800/80 theme-text-accent shadow-sm border border-slate-200/50 dark:border-white/10"
-                    : "text-slate-650 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border border-transparent"
+                    ? "sidebar-item-active theme-text-accent shadow-sm"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border border-transparent"
                   }`
                 }
               >
@@ -756,7 +756,7 @@ const HorizontalSidebar = ({ role }) => {
                 onClick={() => setShowSwitchDropdown((prev) => !prev)}
                 className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all group relative border cursor-pointer ${showSwitchDropdown
                     ? "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30 shadow-sm"
-                    : "text-slate-650 dark:text-slate-450 hover:bg-white/50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border-transparent"
+                    : "text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border-transparent"
                   }`}
               >
                 <FiUsers className="w-4 h-4 text-indigo-500" />

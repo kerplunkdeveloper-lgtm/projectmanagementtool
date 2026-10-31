@@ -153,6 +153,26 @@ const DesignerTasks = () => {
     return paramProjectId || (saved && saved !== "all" ? saved : "");
   });
 
+  // Filter states (Owner & Assignee)
+  const [ownerFilter, setOwnerFilter] = useState(() => {
+    return localStorage.getItem("designer_tasks_owner_filter") || "All";
+  });
+  const [assigneeFilter, setAssigneeFilter] = useState(() => {
+    return localStorage.getItem("designer_tasks_assignee_filter") || "All";
+  });
+
+  useEffect(() => {
+    if (ownerFilter) {
+      localStorage.setItem("designer_tasks_owner_filter", ownerFilter);
+    }
+  }, [ownerFilter]);
+
+  useEffect(() => {
+    if (assigneeFilter) {
+      localStorage.setItem("designer_tasks_assignee_filter", assigneeFilter);
+    }
+  }, [assigneeFilter]);
+
   // Client dropdown modal / portal state
   const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
   const [clientSearchTerm, setClientSearchTerm] = useState("");
@@ -782,6 +802,12 @@ const DesignerTasks = () => {
         isDesignerTasksMode={true}
         hideTitle={true}
         hideProjectIcon={true}
+        ownerFilter={ownerFilter}
+        setOwnerFilter={setOwnerFilter}
+        assigneeFilter={assigneeFilter}
+        setAssigneeFilter={setAssigneeFilter}
+        showOwnerFilter={true}
+        showAssigneeFilter={true}
         headerBadge={
           <span className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30 shadow-2xs h-7.5">
             <TbPencilHeart

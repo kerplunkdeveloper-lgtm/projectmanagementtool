@@ -39,6 +39,7 @@ import {
   FiEyeOff,
   FiColumns,
   FiFilter,
+  FiUserCheck,
   FiLoader,
   FiLock,
 } from "react-icons/fi";
@@ -1787,6 +1788,12 @@ const ProjectTaskBoard = ({
   isCinematographerTasksMode = false,
   hideProjectIcon = false,
   hideTitle = false,
+  ownerFilter: propOwnerFilter,
+  setOwnerFilter: propSetOwnerFilter,
+  assigneeFilter: propAssigneeFilter,
+  setAssigneeFilter: propSetAssigneeFilter,
+  showOwnerFilter = true,
+  showAssigneeFilter = true,
 }) => {
   const effectiveAssigneeDepartment =
     filterAssigneeDepartment ||
@@ -2060,6 +2067,48 @@ const ProjectTaskBoard = ({
     localStorage.setItem("ptb_date_filter", dateFilter);
   }, [dateFilter]);
 
+  // Owner Filter State
+  const [internalOwnerFilter, setInternalOwnerFilter] = useState(() => {
+    try {
+      return localStorage.getItem("ptb_owner_filter") || "All";
+    } catch (e) {
+      return "All";
+    }
+  });
+  const ownerFilter =
+    propOwnerFilter !== undefined ? propOwnerFilter : internalOwnerFilter;
+  const setOwnerFilter = propSetOwnerFilter || setInternalOwnerFilter;
+  const [isOwnerFilterOpen, setIsOwnerFilterOpen] = useState(false);
+  const [ownerSearchTerm, setOwnerSearchTerm] = useState("");
+  const ownerFilterDropdownRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ptb_owner_filter", ownerFilter);
+    } catch (e) {}
+  }, [ownerFilter]);
+
+  // Assignee Filter State
+  const [internalAssigneeFilter, setInternalAssigneeFilter] = useState(() => {
+    try {
+      return localStorage.getItem("ptb_assignee_filter") || "All";
+    } catch (e) {
+      return "All";
+    }
+  });
+  const assigneeFilter =
+    propAssigneeFilter !== undefined ? propAssigneeFilter : internalAssigneeFilter;
+  const setAssigneeFilter = propSetAssigneeFilter || setInternalAssigneeFilter;
+  const [isAssigneeFilterOpen, setIsAssigneeFilterOpen] = useState(false);
+  const [assigneeSearchTerm, setAssigneeSearchTerm] = useState("");
+  const assigneeFilterDropdownRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ptb_assignee_filter", assigneeFilter);
+    } catch (e) {}
+  }, [assigneeFilter]);
+
   // Hidden Columns State
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     try {
@@ -2118,6 +2167,18 @@ const ProjectTaskBoard = ({
         !statusFilterDropdownRef.current.contains(event.target)
       ) {
         setIsStatusFilterOpen(false);
+      }
+      if (
+        ownerFilterDropdownRef.current &&
+        !ownerFilterDropdownRef.current.contains(event.target)
+      ) {
+        setIsOwnerFilterOpen(false);
+      }
+      if (
+        assigneeFilterDropdownRef.current &&
+        !assigneeFilterDropdownRef.current.contains(event.target)
+      ) {
+        setIsAssigneeFilterOpen(false);
       }
       if (!event.target.closest(".col-header-menu")) {
         setOpenColMenu(null);
@@ -2407,6 +2468,141 @@ const ProjectTaskBoard = ({
     });
   }, [localTasks, activeProjectId, isDedicatedDepartmentMode, accessibleProjIdSet]);
 
+  // Unique Owners (Task Creators)
+  const uniqueOwners = useMemo(() => {
+    const map = new Map();
+    (activeProjectTasks || []).forEach((t) => {
+      const cId =
+        typeof t.createdBy === "object" && t.createdBy
+          ? t.createdBy._id || t.createdBy.id
+          : t.createdBy;
+      if (!cId) return;
+      const cIdStr = String(cId);
+      if (!map.has(cIdStr)) {
+        const fullUser =
+          (users || []).find((u) => String(u._id || u.id) === cIdStr) ||
+          (typeof t.createdBy === "object" ? t.createdBy : null) || {
+            _id: cIdStr,
+            name: "Unknown",
+          };
+        map.set(cIdStr, fullUser);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || ""),
+    );
+  }, [activeProjectTasks, users]);
+
+  // Unique Assignees
+  const uniqueAssignees = useMemo(() => {
+    const map = new Map();
+    (activeProjectTasks || []).forEach((t) => {
+      const aId =
+        typeof t.assignedTo === "object" && t.assignedTo
+          ? t.assignedTo._id || t.assignedTo.id
+          : t.assignedTo;
+      if (aId) {
+        const aIdStr = String(aId);
+        if (!map.has(aIdStr)) {
+          const fullUser =
+            (users || []).find((u) => String(u._id || u.id) === aIdStr) ||
+            (typeof t.assignedTo === "object" ? t.assignedTo : null) || {
+              _id: aIdStr,
+              name: "Unknown",
+            };
+          map.set(aIdStr, fullUser);
+        }
+      }
+
+      (t.subtasks || []).forEach((sub) => {
+        const subAId =
+          typeof sub.assignedTo === "object" && sub.assignedTo
+            ? sub.assignedTo._id || sub.assignedTo.id
+            : sub.assignedTo;
+        if (subAId) {
+          const subAIdStr = String(subAId);
+          if (!map.has(subAIdStr)) {
+            const fullUser =
+              (users || []).find((u) => String(u._id || u.id) === subAIdStr) ||
+              (typeof sub.assignedTo === "object" ? sub.assignedTo : null) || {
+                _id: subAIdStr,
+                name: "Unknown",
+              };
+            map.set(subAIdStr, fullUser);
+          }
+        }
+      });
+    });
+
+    if (
+      isDedicatedDepartmentMode &&
+      effectiveAssigneeDepartment &&
+      users?.length > 0
+    ) {
+      users.forEach((usr) => {
+        if (isTargetDepartmentUser(usr, effectiveAssigneeDepartment)) {
+          const uIdStr = String(usr._id || usr.id);
+          if (!map.has(uIdStr)) {
+            map.set(uIdStr, usr);
+          }
+        }
+      });
+    }
+
+    return Array.from(map.values()).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || ""),
+    );
+  }, [
+    activeProjectTasks,
+    users,
+    isDedicatedDepartmentMode,
+    effectiveAssigneeDepartment,
+    isTargetDepartmentUser,
+  ]);
+
+  const filteredOwners = useMemo(() => {
+    if (!ownerSearchTerm.trim()) return uniqueOwners;
+    const term = ownerSearchTerm.toLowerCase();
+    return uniqueOwners.filter((u) =>
+      (u.name || "").toLowerCase().includes(term),
+    );
+  }, [uniqueOwners, ownerSearchTerm]);
+
+  const filteredAssignees = useMemo(() => {
+    if (!assigneeSearchTerm.trim()) return uniqueAssignees;
+    const term = assigneeSearchTerm.toLowerCase();
+    return uniqueAssignees.filter((u) =>
+      (u.name || "").toLowerCase().includes(term),
+    );
+  }, [uniqueAssignees, assigneeSearchTerm]);
+
+  const selectedOwner = useMemo(() => {
+    if (!ownerFilter || ownerFilter === "All") return null;
+    return (
+      uniqueOwners.find((u) => String(u._id || u.id) === String(ownerFilter)) ||
+      (users || []).find((u) => String(u._id || u.id) === String(ownerFilter)) ||
+      null
+    );
+  }, [ownerFilter, uniqueOwners, users]);
+
+  const selectedAssignee = useMemo(() => {
+    if (
+      !assigneeFilter ||
+      assigneeFilter === "All" ||
+      assigneeFilter === "unassigned"
+    )
+      return null;
+    return (
+      uniqueAssignees.find(
+        (u) => String(u._id || u.id) === String(assigneeFilter),
+      ) ||
+      (users || []).find(
+        (u) => String(u._id || u.id) === String(assigneeFilter),
+      ) ||
+      null
+    );
+  }, [assigneeFilter, uniqueAssignees, users]);
+
   const filteredTasks = useMemo(() => {
     const myId = currentUser?._id || currentUser?.id;
     const myIdStr = myId ? String(myId) : "";
@@ -2577,6 +2773,8 @@ const ProjectTaskBoard = ({
     recentlyCreatedTaskIds,
     statusFilter,
     dateFilter,
+    ownerFilter,
+    assigneeFilter,
     targetDeptUserIdsSet,
   ]);
 
@@ -4152,7 +4350,290 @@ const ProjectTaskBoard = ({
 
         {/* Right Side: Filter & Sort Popover Dropdowns */}
         <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-auto order-3 lg:order-none relative">
-          <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full lg:w-auto justify-end flex-wrap">
+            
+            {/* Owner Filter Dropdown */}
+            {showOwnerFilter && (
+              <div className="relative" ref={ownerFilterDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOwnerFilterOpen(!isOwnerFilterOpen);
+                    setOwnerSearchTerm("");
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
+                    isOwnerFilterOpen || (ownerFilter && ownerFilter !== "All")
+                      ? "bg-indigo-50 dark:bg-indigo-500/15 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 font-bold"
+                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                  title="Filter by Owner (Created By)"
+                >
+                  <FiUser className="shrink-0" size={13} />
+                  <span className="truncate max-w-[120px]">
+                    {ownerFilter === "All" || !ownerFilter
+                      ? "All Owners"
+                      : selectedOwner?.name || "Owner"}
+                  </span>
+                  <FiChevronDown
+                    className={`shrink-0 text-slate-400 transition-transform duration-200 ${
+                      isOwnerFilterOpen ? "rotate-180 text-indigo-500" : ""
+                    }`}
+                    size={13}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {isOwnerFilterOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1.5 backdrop-blur-md"
+                    >
+                      <div className="px-1 pt-1 pb-1 border-b border-slate-100 dark:border-white/5">
+                        <div className="relative flex items-center">
+                         
+                          <input
+                            type="text"
+                            placeholder="Search owner..."
+                            value={ownerSearchTerm}
+                            onChange={(e) => setOwnerSearchTerm(e.target.value)}
+                            className="w-full pl-7 pr-2.5 py-1 text-xs rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-indigo-500"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOwnerFilter("All");
+                            setIsOwnerFilterOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                            ownerFilter === "All" || !ownerFilter
+                              ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold"
+                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <span>All Owners</span>
+                          {(ownerFilter === "All" || !ownerFilter) && (
+                            <FiCheck
+                              size={13}
+                              className="text-indigo-600 dark:text-indigo-400"
+                            />
+                          )}
+                        </button>
+
+                        {filteredOwners.map((u) => {
+                          const uid = String(u._id || u.id);
+                          const isSelected = String(ownerFilter) === uid;
+                          return (
+                            <button
+                              key={uid}
+                              type="button"
+                              onClick={() => {
+                                setOwnerFilter(uid);
+                                setIsOwnerFilterOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold"
+                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 truncate min-w-0">
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                    u.name || "U",
+                                  )}`}
+                                >
+                                  {getInitials(u.name || "U")}
+                                </div>
+                                <span className="truncate">
+                                  {u.name || "Unknown"}
+                                </span>
+                              </div>
+                              {isSelected && (
+                                <FiCheck
+                                  size={13}
+                                  className="text-indigo-600 dark:text-indigo-400 shrink-0 ml-1"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+
+                        {filteredOwners.length === 0 && ownerSearchTerm && (
+                          <div className="py-3 text-center text-xs text-slate-400 italic">
+                            No owners found
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Assignee Filter Dropdown */}
+            {showAssigneeFilter && (
+              <div className="relative" ref={assigneeFilterDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAssigneeFilterOpen(!isAssigneeFilterOpen);
+                    setAssigneeSearchTerm("");
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
+                    isAssigneeFilterOpen || (assigneeFilter && assigneeFilter !== "All")
+                      ? "bg-purple-50 dark:bg-purple-500/15 border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 font-bold"
+                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                  title="Filter by Assignee"
+                >
+                  <FiUserCheck className="shrink-0" size={13} />
+                  <span className="truncate max-w-[120px]">
+                    {assigneeFilter === "All" || !assigneeFilter
+                      ? "All Assignees"
+                      : assigneeFilter === "unassigned"
+                        ? "Unassigned"
+                        : selectedAssignee?.name || "Assignee"}
+                  </span>
+                  <FiChevronDown
+                    className={`shrink-0 text-slate-400 transition-transform duration-200 ${
+                      isAssigneeFilterOpen ? "rotate-180 text-purple-500" : ""
+                    }`}
+                    size={13}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {isAssigneeFilterOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1.5 backdrop-blur-md"
+                    >
+                      <div className="px-1 pt-1 pb-1 border-b border-slate-100 dark:border-white/5">
+                        <div className="relative flex items-center">
+                          
+                          <input
+                            type="text"
+                            placeholder="Search assignee..."
+                            value={assigneeSearchTerm}
+                            onChange={(e) =>
+                              setAssigneeSearchTerm(e.target.value)
+                            }
+                            className="w-full pl-7 pr-2.5 py-1 text-xs rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-purple-500"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAssigneeFilter("All");
+                            setIsAssigneeFilterOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                            assigneeFilter === "All" || !assigneeFilter
+                              ? "bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold"
+                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <span>All Assignees</span>
+                          {(assigneeFilter === "All" || !assigneeFilter) && (
+                            <FiCheck
+                              size={13}
+                              className="text-purple-600 dark:text-purple-400"
+                            />
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAssigneeFilter("unassigned");
+                            setIsAssigneeFilterOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                            assigneeFilter === "unassigned"
+                              ? "bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold"
+                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <span className="italic text-slate-500 dark:text-slate-400">
+                            Unassigned
+                          </span>
+                          {assigneeFilter === "unassigned" && (
+                            <FiCheck
+                              size={13}
+                              className="text-purple-600 dark:text-purple-400"
+                            />
+                          )}
+                        </button>
+
+                        {filteredAssignees.map((u) => {
+                          const uid = String(u._id || u.id);
+                          const isSelected = String(assigneeFilter) === uid;
+                          return (
+                            <button
+                              key={uid}
+                              type="button"
+                              onClick={() => {
+                                setAssigneeFilter(uid);
+                                setIsAssigneeFilterOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold"
+                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 truncate min-w-0">
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                    u.name || "U",
+                                  )}`}
+                                >
+                                  {getInitials(u.name || "U")}
+                                </div>
+                                <span className="truncate">
+                                  {u.name || "Unknown"}
+                                </span>
+                              </div>
+                              {isSelected && (
+                                <FiCheck
+                                  size={13}
+                                  className="text-purple-600 dark:text-purple-400 shrink-0 ml-1"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+
+                        {filteredAssignees.length === 0 &&
+                          assigneeSearchTerm && (
+                            <div className="py-3 text-center text-xs text-slate-400 italic">
+                              No assignees found
+                            </div>
+                          )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
             {/* Status Filter Dropdown */}
             <div className="relative" ref={statusFilterDropdownRef}>
               <button
@@ -4355,6 +4836,27 @@ const ProjectTaskBoard = ({
                 )}
               </AnimatePresence>
             </div>
+            {/* Clear All Filters Button */}
+            {(ownerFilter !== "All" ||
+              assigneeFilter !== "All" ||
+              statusFilter !== "All" ||
+              dateFilter !== "All Time") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOwnerFilter("All");
+                  setAssigneeFilter("All");
+                  setStatusFilter("All");
+                  setDateFilter("All Time");
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold hover:bg-red-100 dark:hover:bg-red-500/20 transition-all cursor-pointer whitespace-nowrap"
+                title="Reset all filters"
+              >
+                <FiX size={12} />
+                <span>Reset</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => handleAddTask(null)}
@@ -8674,7 +9176,7 @@ const ProjectTaskBoard = ({
                 </div>
 
                 {/* Time Log Section - Full Width, Beautifully Aligned */}
-                <div className="bg-white dark:bg-[#161826] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4.5 shadow-2xs space-y-3">
+                <div className="bg-white dark:bg-[#161826]  p-4.5 shadow-2xs space-y-3">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400">
@@ -8700,7 +9202,7 @@ const ProjectTaskBoard = ({
                     <div className="overflow-x-auto custom-scrollbar">
                       <table className="w-full text-[11px] text-left border-collapse">
                         <thead>
-                          <tr className="text-slate-400 dark:text-slate-500 font-bold border-b border-slate-100 dark:border-white/5 text-[10px] uppercase tracking-wider">
+                          <tr className="text-slate-400 dark:text-slate-500 font-bold  text-[10px] uppercase tracking-wider">
                             <th className="py-1.5 px-2">Date</th>
                             <th className="py-1.5 px-2">User</th>
                             <th className="py-1.5 px-2">Status</th>

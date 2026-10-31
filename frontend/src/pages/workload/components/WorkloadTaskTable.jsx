@@ -9,6 +9,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiInfo,
+  FiCalendar,
 } from "react-icons/fi";
 import { LuSparkles } from "react-icons/lu";
 import toast from "react-hot-toast";
@@ -352,7 +353,21 @@ const WorkloadTaskTable = ({
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
   const [showBenchmarkGuide, setShowBenchmarkGuide] = useState(false);
 
-  // Table Filters State
+  // Table Filters State (Default date filter to Today's date)
+  const todayDateStr = useMemo(() => {
+    try {
+      return format(new Date(), "yyyy-MM-dd");
+    } catch {
+      return "";
+    }
+  }, []);
+  const [filterDate, setFilterDate] = useState(() => {
+    try {
+      return format(new Date(), "yyyy-MM-dd");
+    } catch {
+      return "";
+    }
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [filterClient, setFilterClient] = useState("all");
   const [filterWorkType, setFilterWorkType] = useState("all");
@@ -614,14 +629,16 @@ const WorkloadTaskTable = ({
       const clientObj = getTaskClient(t);
       const smmObj = getTaskSmm(t);
       const assigneeObj = getTaskAssignee(t);
+      const rawDate = t.createdAt || t.startDate || t.assignedDate || t.createdDate || t.date;
       const createdDateKey = t.createdAt
         ? getTaskCreatedDateKey(t.createdAt)
-        : (t.createdDate ? getTaskCreatedDateKey(t.createdDate) : (t.date ? getTaskCreatedDateKey(t.date) : ""));
+        : (rawDate ? getTaskCreatedDateKey(rawDate) : "");
+      const startDateKey = t.startDate ? getTaskCreatedDateKey(t.startDate) : "";
 
       let formattedCreatedDate = "";
-      if (t.createdAt) {
+      if (rawDate) {
         try {
-          formattedCreatedDate = format(new Date(t.createdAt), "dd MMM yyyy");
+          formattedCreatedDate = format(new Date(rawDate), "dd MMM yyyy");
         } catch { }
       }
 
@@ -631,6 +648,7 @@ const WorkloadTaskTable = ({
         _smm: smmObj,
         _assignee: assigneeObj,
         _createdDateKey: createdDateKey,
+        _startDateKey: startDateKey,
         _formattedCreatedDate: formattedCreatedDate,
       };
     });
@@ -887,6 +905,23 @@ const WorkloadTaskTable = ({
       list = list.filter((t) => t._smm?._id?.toString() === filterSmm);
     }
 
+    // Filter by Date (Defaults to Today - shows today's tasks first)
+    if (filterDate && filterDate !== "all") {
+      list = list.filter((t) => {
+        return (
+          t._createdDateKey === filterDate ||
+          (t._startDateKey && t._startDateKey === filterDate)
+        );
+      });
+    }
+
+    // Sort tasks: newest first
+    list = [...list].sort((a, b) => {
+      const da = new Date(a.createdAt || a.startDate || 0).getTime();
+      const db = new Date(b.createdAt || b.startDate || 0).getTime();
+      return db - da;
+    });
+
     return list;
   }, [
     enrichedTasks,
@@ -894,6 +929,7 @@ const WorkloadTaskTable = ({
     activeUserId,
     activeUser?.name,
     selectedDepartment,
+    filterDate,
     searchQuery,
     filterClient,
     filterWorkType,
@@ -925,6 +961,22 @@ const WorkloadTaskTable = ({
               <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 shadow-xs">
                 {filteredTasks.length} {filteredTasks.length === 1 ? "Task" : "Tasks"}
               </span>
+              {filterDate === todayDateStr ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 shadow-xs">
+                  <FiCalendar size={11} className="text-indigo-600 dark:text-indigo-400" />
+                  Today
+                </span>
+              ) : filterDate ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-200 dark:border-sky-800/60 shadow-xs">
+                  <FiCalendar size={11} className="text-sky-600 dark:text-sky-400" />
+                  {filterDate}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-xs">
+                  <FiCalendar size={11} />
+                  All Dates
+                </span>
+              )}
               {isAdmin ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-xs">
                   <FiEye size={12} />
@@ -1048,7 +1100,7 @@ const WorkloadTaskTable = ({
       {/* FILTER TOOLBAR FOR THE TABLE */}
       <div className="bg-slate-50 dark:bg-[#151923] p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-2.5">
         {/* ROW 1: Search & Date & Actions Bar */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
           {/* Left: Search Input */}
           <div className="relative flex-1 min-w-[240px] max-w-md">
             <input
@@ -1076,14 +1128,79 @@ const WorkloadTaskTable = ({
             )}
           </div>
 
-          {/* Right: Reset Filters */}
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Right: Date Filter & Actions */}
+          <div className="flex items-center gap-2 flex-wrap justify-start lg:justify-end">
+            {/* Date Picker Input */}
+            <div className="flex items-center gap-1.5 bg-white dark:bg-[#0f172a] px-2.5 h-9 rounded-xl border border-slate-200 dark:border-slate-700/80 shadow-xs">
+              <FiCalendar className="text-indigo-600 dark:text-indigo-400 shrink-0 text-xs sm:text-sm" />
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 shrink-0">Date:</span>
+              <input
+                type="date"
+                value={filterDate}
+                onChange={(e) => {
+                  setFilterDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="text-xs font-bold text-slate-800 dark:text-slate-100 bg-transparent focus:outline-hidden cursor-pointer"
+                title="Filter tasks by date"
+              />
+              {filterDate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterDate("");
+                    setCurrentPage(1);
+                  }}
+                  className="p-0.5 rounded-md text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                  title="Clear Date Filter (Show All Dates)"
+                >
+                  <FiX size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* Quick Button: Today */}
+            <button
+              type="button"
+              onClick={() => {
+                setFilterDate(todayDateStr);
+                setCurrentPage(1);
+              }}
+              className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5 shrink-0 ${
+                filterDate === todayDateStr
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-500/20"
+                  : "bg-white dark:bg-[#0f172a] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400"
+              }`}
+              title="Show Today's Tasks"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${filterDate === todayDateStr ? "bg-emerald-300" : "bg-emerald-500"}`} />
+              <span>Today</span>
+            </button>
+
+            {/* Quick Button: All Dates */}
+            <button
+              type="button"
+              onClick={() => {
+                setFilterDate("");
+                setCurrentPage(1);
+              }}
+              className={`h-9 px-3 text-xs font-bold rounded-xl border transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5 shrink-0 ${
+                !filterDate
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-500/20"
+                  : "bg-white dark:bg-[#0f172a] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400"
+              }`}
+              title="Show tasks from all dates"
+            >
+              <span>All Dates</span>
+            </button>
+
             {/* Reset Filters */}
-            {(searchQuery || filterClient !== "all" || filterWorkType !== "all" || filterPriority !== "all" || filterAssignee !== "all" || filterSmm !== "all") && (
+            {(searchQuery || filterDate !== todayDateStr || filterClient !== "all" || filterWorkType !== "all" || filterPriority !== "all" || filterAssignee !== "all" || filterSmm !== "all") && (
               <button
                 type="button"
                 onClick={() => {
                   setSearchQuery("");
+                  setFilterDate(todayDateStr);
                   setFilterClient("all");
                   setFilterWorkType("all");
                   setFilterPriority("all");
@@ -1092,7 +1209,7 @@ const WorkloadTaskTable = ({
                   setCurrentPage(1);
                 }}
                 className="h-9 px-3 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 rounded-xl border border-rose-200 dark:border-rose-900/60 transition-colors cursor-pointer shadow-xs inline-flex items-center gap-1.5 shrink-0"
-                title="Reset all filters to default"
+                title="Reset all filters to default (Today)"
               >
                 <FiX size={13} />
                 <span>Reset</span>
@@ -1453,27 +1570,63 @@ const WorkloadTaskTable = ({
             )}
 
             {/* EXISTING TASKS */}
-            {paginatedTasks.map((t, idx) => {
-              const rowIndex = (currentPage - 1) * itemsPerPage + idx + 1;
-              return (
-                <WorkloadTaskRow
-                  key={t._id}
-                  task={t}
-                  rowIndex={rowIndex}
-                  isAdmin={isAdmin}
-                  assigneeList={assigneeList}
-                  priorityOptions={PRIORITY_OPTIONS}
-                  isRowUpdating={updatingTaskId === t._id}
-                  isRowJustSaved={savedRowId === t._id}
-                  getUserAvatarUrl={getUserAvatarUrl}
-                  onAssigneeChange={handleAssigneeChange}
-                  onWorkTypeChange={handleWorkTypeChange}
-                  onPriorityChange={handlePriorityChange}
-                  onAutoSaveTitle={handleAutoSaveTaskTitle}
-                  onViewTask={onViewTask}
-                />
-              );
-            })}
+            {paginatedTasks.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="py-12 px-4 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 flex items-center justify-center shadow-xs">
+                      <FiCalendar size={20} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      {filterDate === todayDateStr
+                        ? "No tasks found for Today"
+                        : filterDate
+                        ? `No tasks found for ${filterDate}`
+                        : "No tasks found matching criteria"}
+                    </span>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                      {filterDate
+                        ? "Add a new task using the entry row above, or view tasks from all dates."
+                        : "Try adjusting your search query or dropdown filters."}
+                    </p>
+                    {filterDate && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterDate("");
+                          setCurrentPage(1);
+                        }}
+                        className="mt-1 px-3 py-1.5 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-200 dark:border-indigo-800/60 transition-colors cursor-pointer shadow-xs"
+                      >
+                        Show All Dates
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              paginatedTasks.map((t, idx) => {
+                const rowIndex = (currentPage - 1) * itemsPerPage + idx + 1;
+                return (
+                  <WorkloadTaskRow
+                    key={t._id}
+                    task={t}
+                    rowIndex={rowIndex}
+                    isAdmin={isAdmin}
+                    assigneeList={assigneeList}
+                    priorityOptions={PRIORITY_OPTIONS}
+                    isRowUpdating={updatingTaskId === t._id}
+                    isRowJustSaved={savedRowId === t._id}
+                    getUserAvatarUrl={getUserAvatarUrl}
+                    onAssigneeChange={handleAssigneeChange}
+                    onWorkTypeChange={handleWorkTypeChange}
+                    onPriorityChange={handlePriorityChange}
+                    onAutoSaveTitle={handleAutoSaveTaskTitle}
+                    onViewTask={onViewTask}
+                  />
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

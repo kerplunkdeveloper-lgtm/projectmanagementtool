@@ -1208,8 +1208,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                     );
                                   }}
                                   className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1 px-1.5 rounded-md transition-all duration-150 cursor-pointer ${isProjectActive
-                                      ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
-                                      : "text-slate-500 dark:text-white/80 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
+                                      ? "sidebar-subitem-active theme-text-accent font-bold shadow-xs"
+                                      : "text-slate-500 dark:text-slate-200 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
                                     }`}
                                   title={project.name}
                                 >
@@ -1281,7 +1281,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               [folderId]: !prev[folderId],
                             }));
                           }}
-                          className="w-full flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-bold py-1.5 px-2 rounded-lg hover:bg-slate-100/60 dark:hover:bg-white/5 text-slate-600 dark:text-white/90 group transition-all"
+                          className="w-full flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-bold py-1.5 px-2 rounded-lg hover:bg-slate-100/60 dark:hover:bg-white/5 text-slate-600 dark:text-slate-200 group transition-all"
                         >
                           <div className="w-4 h-4 shrink-0 flex items-center justify-center">
                             <svg
@@ -1333,7 +1333,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                       );
                                     }}
                                     className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${isProjectActive
-                                        ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
+                                        ? "sidebar-subitem-active theme-text-accent font-bold shadow-xs"
                                         : "text-slate-600 dark:text-white hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
                                       }`}
                                     title={project.name}
@@ -1363,7 +1363,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                       )}
                                     </div>
                                     {isProjectActive && (
-                                      <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                                      <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0 shadow-xs ring-2 ring-white/20" />
                                     )}
                                   </button>
                                 );
@@ -1548,7 +1548,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       onClick={() => toggleDropdown(item.name)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 lg:py-1.5 rounded-xl border transition-all duration-200 cursor-pointer group text-left ${
                         isAnyChildActive
-                          ? "bg-slate-900/10 dark:bg-white/20 shadow-sm border-slate-900/5 dark:border-white/10"
+                          ? "sidebar-group-active shadow-sm font-bold"
                           : "hover:bg-slate-900/5 dark:hover:bg-white/10 border-transparent text-slate-700 dark:text-white"
                       }`}
                     >
@@ -1672,26 +1672,26 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   <div
                                     className={`flex items-center gap-2 px-2.5 py-1.5 w-full rounded-lg text-left transition-all duration-150 border ${
                                       isSubActive
-                                        ? "bg-slate-900/10 dark:bg-white/20 shadow-xs border-slate-900/5 dark:border-white/10 font-bold"
-                                        : "hover:bg-slate-900/5 dark:hover:bg-white/10 border-transparent text-slate-600 dark:text-white/80"
+                                        ? "sidebar-subitem-active shadow-sm font-bold"
+                                        : "hover:bg-slate-900/5 dark:hover:bg-white/10 border-transparent text-slate-600 dark:text-slate-200"
                                     }`}
                                   >
                                     {isSubActive && (
-                                      <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                                      <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0 shadow-xs ring-2 ring-white/20" />
                                     )}
                                     <SubIcon
                                       size={13}
                                       className={`shrink-0 transition-colors ${
                                         isSubActive
-                                          ? "text-slate-900 dark:text-white"
+                                          ? "theme-text-accent"
                                           : "text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white"
                                       }`}
                                     />
                                     <span
                                       className={`text-[11px] lg:text-[0.6875rem] truncate flex-1 text-left ${
                                         isSubActive
-                                          ? "text-slate-900 dark:text-white font-bold"
-                                          : "text-slate-650 dark:text-white/80 group-hover:text-slate-900 dark:group-hover:text-white"
+                                          ? "text-slate-950 dark:text-white font-black"
+                                          : "text-slate-600 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white"
                                       }`}
                                     >
                                       {subItem.name}
@@ -1774,7 +1774,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     {({ isActive }) => (
                       <motion.div
                         className={`flex items-center gap-2.5 px-3 py-2 lg:py-1.5 w-full rounded-xl relative overflow-hidden transition-all duration-200 text-left border ${isActive
-                            ? "bg-slate-900/10 dark:bg-white/20 shadow-sm border-slate-900/5 dark:border-white/10"
+                            ? "sidebar-item-active shadow-sm font-bold"
                             : "hover:bg-slate-900/5 dark:hover:bg-white/10 border-transparent"
                           }`}
                         whileHover={{ x: 2 }}
@@ -2427,7 +2427,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                         isSubActive
                           ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
-                          : "text-slate-650 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
                       }`}
                     >
                       <SubIcon
