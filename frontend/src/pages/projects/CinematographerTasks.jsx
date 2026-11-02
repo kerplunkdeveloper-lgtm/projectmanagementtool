@@ -628,7 +628,23 @@ const CinematographerTasks = () => {
         </p>
       </div>
     );
-  }
+  };
+
+  const memoizedClientSwitcherNode = useMemo(() => {
+    return renderClientSwitcherNode();
+  }, [
+    selectedClient,
+    isClientDropdownOpen,
+    clientSearchTerm,
+    filteredClients,
+    currentClientProjects,
+    activeProject,
+    isProjectDropdownOpen,
+    showCreateProjectModal,
+    newProjectName,
+    creatingProject,
+    clientDropdownCoords,
+  ]);
 
   // Empty State: Specific Client has NO projects
   if (
@@ -797,7 +813,7 @@ const CinematographerTasks = () => {
             <span className="text-xl">Cinematographer</span>
           </span>
         }
-        clientSwitcherNode={renderClientSwitcherNode()}
+        clientSwitcherNode={memoizedClientSwitcherNode}
       />
     );
   }
@@ -811,9 +827,9 @@ const CinematographerTasks = () => {
       <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
         No active project selected
       </p>
-      <div className="mt-2">{renderClientSwitcherNode()}</div>
+      <div className="mt-2">{memoizedClientSwitcherNode}</div>
     </div>
   );
 };
 
-export default CinematographerTasks;
+export default React.memo(CinematographerTasks);

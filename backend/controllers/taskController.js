@@ -822,51 +822,6 @@ exports.createTask = async (req, res) => {
         path: "subtasks.assignedTo",
         select: "name email department profile",
         populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "comments.user",
-        select: "name email profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "attachments.uploadedBy",
-        select: "name email profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "feedbacks.addedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "correctionHistory.requestedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "rejectionHistory.rejectedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "subtasks.correctionHistory.requestedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "subtasks.rejectionHistory.rejectedBy",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "statusHistory.user",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
-      })
-      .populate({
-        path: "subtasks.statusHistory.user",
-        select: "name email department profile",
-        populate: { path: "profile", select: "profileImage" }
       });
 
     // Real-time Notification

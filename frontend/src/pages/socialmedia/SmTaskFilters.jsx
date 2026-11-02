@@ -667,4 +667,4 @@ const SmTaskFilters = ({
   );
 };
 
-export default SmTaskFilters;
+export default React.memo(SmTaskFilters);

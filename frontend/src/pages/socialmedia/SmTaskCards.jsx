@@ -375,4 +375,4 @@ const SmTaskCards = ({
   );
 };
 
-export default SmTaskCards;
+export default React.memo(SmTaskCards);

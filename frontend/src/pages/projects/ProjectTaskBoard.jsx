@@ -460,7 +460,7 @@ const ProductivityCell = React.memo(({ task }) => {
 });
 
 // Task Title Input Component for autosaving inline without cursor jump
-const TaskTitleInput = ({
+const TaskTitleInput = React.memo(({
   task,
   canToggle,
   handleTaskFieldChange,
@@ -503,10 +503,10 @@ const TaskTitleInput = ({
       disabled={!canToggle}
     />
   );
-};
+});
 
 // Content Type Input Component for inline editing in the table
-const ContentTypeInput = ({
+const ContentTypeInput = React.memo(({
   value,
   onChange,
   placeholder = "Enter type...",
@@ -541,7 +541,7 @@ const ContentTypeInput = ({
       className="bg-transparent border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 outline-none text-slate-800 dark:text-white w-full max-w-[120px] text-[11px] font-semibold text-center focus:border-blue-500 dark:focus:border-[#3b82f6]"
     />
   );
-};
+});
 
 // Subtask Row Component for the Drawer subtasks list
 const SubtaskRow = ({
@@ -2434,7 +2434,12 @@ const ProjectTaskBoard = ({
       }
       return cleanTask;
     });
-    setLocalTasks(cleanTasks);
+    // Retain any pending optimistic (temp-) tasks so they don't vanish while saving
+    setLocalTasks((prevLocal) => {
+      const pendingTemps = prevLocal.filter((t) => String(t._id).startsWith("temp-"));
+      if (pendingTemps.length === 0) return cleanTasks;
+      return [...cleanTasks, ...pendingTemps];
+    });
   }, [tasks]);
 
   useEffect(() => {
@@ -2893,23 +2898,11 @@ const ProjectTaskBoard = ({
     let targetSection = sectionName === "__root__" ? "General" : sectionName;
     const titleToCreate = inlineTaskTitle.trim();
 
-    try {
-      // If no sections exist yet in the project, create "General" section first
-      const currentSections = activeProject.sections || [];
-      if (
-        currentSections.length === 0 &&
-        activeProjectId &&
-        activeProjectId !== "all"
-      ) {
-        targetSection = "General";
-        await dispatch(
-          updateProject({
-            id: activeProjectId,
-            data: { sections: [targetSection] },
-          }),
-        ).unwrap();
-      }
+    // 1. Immediately reset input and keep focused for ultra-fast typing
+    setInlineTaskTitle("");
+    setInlineAddingTaskSection(targetSection);
 
+    try {
       const targetProjId =
         activeProjectId && activeProjectId !== "all"
           ? activeProjectId
@@ -2922,7 +2915,47 @@ const ProjectTaskBoard = ({
         return;
       }
 
-      // Create task via mutation
+      // Ensure section exists if empty
+      const currentSections = activeProject?.sections || [];
+      if (
+        currentSections.length === 0 &&
+        activeProjectId &&
+        activeProjectId !== "all"
+      ) {
+        targetSection = "General";
+        dispatch(
+          updateProject({
+            id: activeProjectId,
+            data: { sections: [targetSection] },
+          }),
+        );
+      }
+
+      // 2. Optimistic local task - instantly visible on board (0ms)!
+      const tempId = "temp-" + Date.now() + "-" + Math.random().toString(36).substring(2, 6);
+      setRecentlyCreatedTaskIds((prev) => new Set(prev).add(tempId));
+
+      const tempTask = {
+        _id: tempId,
+        title: titleToCreate,
+        project: targetProjId,
+        section: targetSection,
+        assignedTo: null,
+        department: effectiveAssigneeDepartment || undefined,
+        startDate: new Date().toISOString(),
+        dueDate: null,
+        priority: "Medium",
+        status: "Not Started",
+        createdAt: new Date().toISOString(),
+        subtasks: [],
+        comments: [],
+        attachments: [],
+        createdBy: currentUser,
+      };
+
+      setLocalTasks((prev) => [...prev, tempTask]);
+
+      // 3. Background network request
       const response = await createTaskMutation({
         title: titleToCreate,
         project: targetProjId,
@@ -2935,19 +2968,22 @@ const ProjectTaskBoard = ({
       }).unwrap();
 
       if (response && response.data) {
-        if (response.data._id) {
-          setRecentlyCreatedTaskIds((prev) =>
-            new Set(prev).add(response.data._id),
-          );
+        const realTask = response.data;
+        if (realTask._id) {
+          setRecentlyCreatedTaskIds((prev) => {
+            const next = new Set(prev);
+            next.delete(tempId);
+            next.add(realTask._id);
+            return next;
+          });
         }
-        setLocalTasks((prev) => [...prev, response.data]);
+        setLocalTasks((prev) =>
+          prev.map((t) => (t._id === tempId ? realTask : t)),
+        );
       }
-
-      // Reset inline task input but KEEP it active under targetSection and auto-focused!
-      setInlineTaskTitle("");
-      setInlineAddingTaskSection(targetSection);
     } catch (err) {
       console.error("Failed to add task inline:", err);
+      setLocalTasks((prev) => prev.filter((t) => t.title !== titleToCreate || !String(t._id).startsWith("temp-")));
       const serverMsg =
         err?.data?.message ||
         err?.message ||
@@ -4119,10 +4155,15 @@ const ProjectTaskBoard = ({
       if (selectedTaskId === taskId) {
         setSelectedTaskId(null);
       }
+      const prevTasks = localTasks;
+      // Optimistic instant delete (0ms)
+      setLocalTasks((prev) => prev.filter((t) => t._id !== taskId));
       try {
         await deleteTaskMutation(taskId).unwrap();
       } catch (err) {
         console.error("Failed to delete task:", err);
+        setLocalTasks(prevTasks);
+        toast.error("Failed to delete task");
       }
     }
   };
@@ -4140,23 +4181,30 @@ const ProjectTaskBoard = ({
         `Are you sure you want to delete the ${idsToDelete.length} selected task(s)?`,
       )
     ) {
+      const idsSet = new Set(idsToDelete);
+      const prevTasks = localTasks;
+      // Optimistic instant bulk deletion (0ms)
+      setLocalTasks((prev) => prev.filter((t) => !idsSet.has(t._id)));
+      setSelectedTasks((prev) => {
+        const next = { ...prev };
+        idsToDelete.forEach((id) => delete next[id]);
+        return next;
+      });
+      if (sectionName) {
+        setSelectionModeSections((prev) => ({
+          ...prev,
+          [sectionName]: false,
+        }));
+      }
+
       try {
         await Promise.all(
           idsToDelete.map((id) => deleteTaskMutation(id).unwrap()),
         );
-        setSelectedTasks((prev) => {
-          const next = { ...prev };
-          idsToDelete.forEach((id) => delete next[id]);
-          return next;
-        });
-        if (sectionName) {
-          setSelectionModeSections((prev) => ({
-            ...prev,
-            [sectionName]: false,
-          }));
-        }
       } catch (err) {
         console.error("Failed to delete selected tasks:", err);
+        setLocalTasks(prevTasks);
+        toast.error("Failed to delete selected tasks");
       }
     }
   };
@@ -9585,4 +9633,4 @@ const ProjectTaskBoard = ({
   );
 };
 
-export default ProjectTaskBoard;
+export default React.memo(ProjectTaskBoard);

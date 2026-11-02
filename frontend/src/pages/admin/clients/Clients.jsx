@@ -549,6 +549,27 @@ const Clients = () => {
   const { tasks } = useSelector((state) => state.tasks);
   const { theme } = useTheme();
 
+  const deptLower = (
+    user?.department ||
+    user?.profile?.department ||
+    ""
+  ).toLowerCase();
+  const roleLower = (user?.role || "").toLowerCase();
+  const desigLower = (user?.designation || "").toLowerCase();
+
+  const isFinance =
+    deptLower.includes("finance") ||
+    deptLower.includes("account") ||
+    roleLower === "finance" ||
+    roleLower === "accountant" ||
+    desigLower.includes("finance") ||
+    desigLower.includes("account");
+
+  const hasFullAccess =
+    user?.role === "admin" ||
+    user?.role === "operationmanager" ||
+    isFinance;
+
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -1293,7 +1314,7 @@ const Clients = () => {
 
         {/* RIGHT: Add Button */}
         <div>
-          {(user?.role === "admin" || user?.role === "operationmanager") && (
+          {hasFullAccess && (
             <button
               onClick={() => {
                 setFormData(initialForm);
@@ -1346,7 +1367,7 @@ const Clients = () => {
                     Deliverables
                   </th>
 
-                  {user?.role === "team" && (
+                  {user?.role === "team" && !isFinance && (
                     <th className="px-4 py-3 font-extrabold bg-transparent text-center  last:border-r-0">
                       Assigned By
                     </th>
@@ -1444,8 +1465,7 @@ const Clients = () => {
                               <div className="min-w-[110px]">
                                 <h2
                                   className={`font-bold transition-colors text-[12.5px] text-slate-800 dark:text-slate-900 truncate max-w-[200px] ${
-                                    user?.role === "admin" ||
-                                    user?.role === "operationmanager" ||
+                                    hasFullAccess ||
                                     (user?.department || "")
                                       .toLowerCase()
                                       .includes("social media manager")
@@ -1454,8 +1474,7 @@ const Clients = () => {
                                   }`}
                                   onClick={() => {
                                     if (
-                                      user?.role === "admin" ||
-                                      user?.role === "operationmanager" ||
+                                      hasFullAccess ||
                                       (user?.department || "")
                                         .toLowerCase()
                                         .includes("social media manager")
@@ -1491,8 +1510,7 @@ const Clients = () => {
                             className={`${cellClass} text-center w-32 align-middle px-2`}
                           >
                             <div className="flex flex-col items-center gap-1.5 justify-center py-1">
-                              {user?.role === "admin" ||
-                              user?.role === "operationmanager" ? (
+                              {hasFullAccess ? (
                                 <select
                                   value={client.status || "Active"}
                                   onChange={(e) =>
@@ -1767,7 +1785,7 @@ const Clients = () => {
                                 )}
                             </div>
                           </td>
-                          {user?.role === "team" && (
+                          {user?.role === "team" && !isFinance && (
                             <td className={cellClass}>
                               <div className="flex items-center gap-1">
                                 {client.createdBy ? (
@@ -1808,8 +1826,7 @@ const Clients = () => {
                                 >
                                   <FiEye size={11} className="stroke-[2.5]" />
                                 </button>
-                                {(user?.role === "admin" ||
-                                  user?.role === "operationmanager") && (
+                                {hasFullAccess && (
                                   <>
                                     <button
                                       onClick={() => handleEdit(client)}
@@ -1843,7 +1860,7 @@ const Clients = () => {
                           1 + // Status
                           1 + // No. of Projects
                           2 + // Services & Deliverables
-                          (user?.role === "team" ? 1 : 0) +
+                          (user?.role === "team" && !isFinance ? 1 : 0) +
                           1 // Actions
                         }
                         className="px-5 py-24 text-center"
@@ -3231,9 +3248,8 @@ const Clients = () => {
                               </div>
                             </div>
 
-                            {/* Financial Fields (Role-Based for Admin / OM) */}
-                            {(user?.role === "admin" ||
-                              user?.role === "operationmanager") && (
+                            {/* Financial Fields (Role-Based for Admin / OM / Finance) */}
+                            {hasFullAccess && (
                               <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2.5 text-xs">
                                 <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
                                   <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5">

@@ -1714,6 +1714,18 @@ const Dashboardmain = () => {
     user?.profile?.department ||
     ""
   ).toLowerCase();
+  const deptNorm = (
+    user?.department ||
+    user?.profile?.department ||
+    ""
+  ).toLowerCase();
+  const isFinance =
+    roleNorm === "finance" ||
+    roleNorm === "accountant" ||
+    deptNorm.includes("finance") ||
+    deptNorm.includes("account") ||
+    desigNorm.includes("finance") ||
+    desigNorm.includes("account");
   const canSeeProjectsShortcut =
     roleNorm === "admin" ||
     roleNorm === "operationmanager" ||
@@ -2347,20 +2359,22 @@ const Dashboardmain = () => {
       </div>
 
       {/* ─── CALENDAR OVERVIEW SECTION (Left: Shoot Calendar Overview, Right: Content Calendar Overview) ─── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4 mb-4 items-stretch">
-        {canReadShootCalendar && (
-          <div className="w-full flex">
-            <ShootCalendarOverview />
-          </div>
-        )}
+      {!isFinance && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4 mb-4 items-stretch">
+          {canReadShootCalendar && (
+            <div className="w-full flex">
+              <ShootCalendarOverview />
+            </div>
+          )}
 
-        <div className={`w-full flex ${!canReadShootCalendar ? "xl:col-span-2" : ""}`}>
-          <ContentCalendarOverview />
+          <div className={`w-full flex ${!canReadShootCalendar ? "xl:col-span-2" : ""}`}>
+            <ContentCalendarOverview />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* .................................................Dashboard Cards / Assigned Clients.............................. */}
-      {(() => {
+      {!isFinance && (() => {
         const deptLower = (user?.department || "").toLowerCase();
         const roleLower = (user?.role || "").toLowerCase();
         const isHr =
@@ -2518,7 +2532,8 @@ const Dashboardmain = () => {
       {user &&
         user?.role !== "admin" &&
         user?.role !== "operationmanager" &&
-        user?.department?.toLowerCase() !== "social media manager" && (
+        user?.department?.toLowerCase() !== "social media manager" &&
+        !isFinance && (
           <div className="w-full mt-4">
             <GraphicDesignerDeadlines user={user} />
           </div>

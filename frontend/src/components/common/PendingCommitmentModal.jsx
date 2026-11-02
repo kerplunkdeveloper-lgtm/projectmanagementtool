@@ -17,6 +17,8 @@ import {
   FiPlus,
   FiLayers,
   FiUser,
+  FiBriefcase,
+  FiChevronDown,
   FiFilter,
   FiCheck,
 } from "react-icons/fi";
@@ -39,6 +41,7 @@ const isSocialMediaManager = (u) => {
   return (
     dept.includes("social media") ||
     dept.includes("smm") ||
+    dept.includes("social") ||
     role.includes("social media") ||
     role.includes("smm") ||
     role === "socialmediamanager" ||
@@ -104,8 +107,8 @@ const PendingCommitmentModal = ({
         (memberId && usersMap.get(memberId)) ||
         (member?.name && usersMap.get(member.name.trim().toLowerCase())) ||
         (typeof member === "object" ? member : null);
-      if (memberObj && isSocialMediaManager(memberObj)) {
-        return memberObj.name;
+      if (isSocialMediaManager(memberObj) || isSocialMediaManager(member)) {
+        return memberObj?.name || member?.name || "Social Media Manager";
       }
     }
 
@@ -125,32 +128,8 @@ const PendingCommitmentModal = ({
         (t.assigneeName && usersMap.get(t.assigneeName.trim().toLowerCase())) ||
         (typeof t.createdBy === "object" ? t.createdBy : null);
 
-      if (creatorObj && isSocialMediaManager(creatorObj)) {
-        return creatorObj.name;
-      }
-    }
-
-    // 3. Fallback: Any assigned member who is not Admin/Operation Manager
-    for (const member of assignedList) {
-      const memberId = (member?._id || member)?.toString();
-      const memberObj =
-        (memberId && usersMap.get(memberId)) ||
-        (member?.name && usersMap.get(member.name.trim().toLowerCase())) ||
-        (typeof member === "object" ? member : null);
-      const roleClean = (memberObj?.role || "").toLowerCase().replace(/[\s_]/g, "");
-      if (memberObj?.name && roleClean !== "admin" && roleClean !== "operationmanager") {
-        return memberObj.name;
-      }
-    }
-
-    // 4. Fallback: Check task creator/assignee who is not Admin
-    for (const t of relevantTasks) {
-      const creatorName = t.createdBy?.name || t.createdByName || t.assigneeName;
-      if (
-        creatorName &&
-        !["admin", "operation manager", "administrator"].includes(creatorName.toLowerCase().trim())
-      ) {
-        return creatorName;
+      if (isSocialMediaManager(creatorObj) || isSocialMediaManager(t.createdBy)) {
+        return creatorObj?.name || t.createdBy?.name || t.createdByName;
       }
     }
 
@@ -160,12 +139,216 @@ const PendingCommitmentModal = ({
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all"); // "all", "pending", "completed", "live"
+  const [selectedSmm, setSelectedSmm] = useState("all");
+  const [selectedClient, setSelectedClient] = useState("all");
 
   const monthName = MONTH_NAMES[currentMonth - 1] || "Current Month";
 
   // Compute all clients' commitments
+  const { clientSummaries } = useMemo(() => {
+    return computeAllClientsCommitments(clients, tasks, currentMonth, currentYear);
+  }, [clients, tasks, currentMonth, currentYear]);
+
+  // Enriched summaries with SMM names, task breakdown, and live/completed status flags
+  // ONLY clients that belong to the Social Media Manager department are included
+  const enrichedSummaries = useMemo(() => {
+    return (clientSummaries || [])
+      .map((cs) => {
+        const smmName = getClientSmmName(cs.client, cs.clientName);
+
+        // Check if this client belongs to the Social Media Manager department:
+        // 1. Has an assigned member from the Social Media Manager department (smmName)
+        // 2. Or client's own department includes Social Media / SMM
+        const clientDept = (cs.client?.department || "").toLowerCase().trim();
+        const hasSmmDeptOnClient =
+          clientDept.includes("social media") ||
+          clientDept.includes("smm") ||
+          clientDept.includes("social");
+
+        const belongsToSmmDepartment = Boolean(smmName) || hasSmmDeptOnClient;
+
+        // Only show clients belonging to the Social Media Manager department!
+        if (!belongsToSmmDepartment) {
+          return null;
+        }
+
+        const allClientTasks = [
+          ...(cs.posts?.tasks || []),
+          ...(cs.reels?.tasks || []),
+          ...(cs.story?.tasks || []),
+        ];
+
+        // Tasks explicitly marked as Live
+        const liveTasks = allClientTasks.filter(
+          (t) => (t.status || "").trim().toLowerCase() === "live"
+        );
+
+        // Tasks marked as Completed
+        const completedTasks = allClientTasks.filter(
+          (t) => (t.status || "").trim().toLowerCase() === "completed"
+        );
+
+        // Tasks in QC awaiting approval
+        const inQcTasks = allClientTasks.filter(
+          (t) => (t.status || "").trim().toLowerCase() === "in qc"
+        );
+
+        const liveTasksCount = liveTasks.length;
+        const completedTasksCount = completedTasks.length;
+        const inQcTasksCount = inQcTasks.length;
+
+        // Has active Live tasks OR published deliverables
+        const hasLiveTasks = liveTasksCount > 0 || cs.totalPosted > 0;
+
+        // Monthly commitment completely fulfilled
+        const isCommitmentCompleted = cs.totalPendingDelivery === 0 && cs.totalCommitted > 0;
+
+        // Has pending deliverables still to be published
+        const hasPendingDelivery = cs.totalPendingDelivery > 0;
+
+        return {
+          ...cs,
+          smmName,
+          allClientTasks,
+          liveTasksCount,
+          completedTasksCount,
+          inQcTasksCount,
+          hasLiveTasks,
+          isCommitmentCompleted,
+          hasPendingDelivery,
+        };
+      })
+      .filter(Boolean);
+  }, [clientSummaries, tasks, usersMap]);
+
+  // SMM Options for dropdown - extracted from clients in the SMM department
+  const smmOptions = useMemo(() => {
+    const set = new Set();
+    (enrichedSummaries || []).forEach((cs) => {
+      if (cs.smmName && cs.smmName.trim()) {
+        set.add(cs.smmName.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [enrichedSummaries]);
+
+  // Whether any client has no assigned SMM
+  const hasUnassignedSmm = useMemo(() => {
+    return (enrichedSummaries || []).some((cs) => !cs.smmName);
+  }, [enrichedSummaries]);
+
+  // Client Options for dropdown (filtered by selectedSmm if specified)
+  const clientOptions = useMemo(() => {
+    const list =
+      selectedSmm === "all"
+        ? enrichedSummaries
+        : enrichedSummaries.filter((cs) => {
+            if (selectedSmm === "__unassigned__") return !cs.smmName;
+            return (cs.smmName || "").trim().toLowerCase() === selectedSmm.trim().toLowerCase();
+          });
+
+    const names = new Set();
+    list.forEach((cs) => {
+      if (cs.clientName && cs.clientName.trim()) {
+        names.add(cs.clientName.trim());
+      }
+    });
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [enrichedSummaries, selectedSmm]);
+
+  // If selected client is no longer available under the current SMM filter, reset it
+  useEffect(() => {
+    if (selectedClient !== "all" && !clientOptions.includes(selectedClient)) {
+      setSelectedClient("all");
+    }
+  }, [clientOptions, selectedClient]);
+
+  // Check if any non-default filter is active
+  const isFilterActive =
+    searchQuery.trim() !== "" ||
+    selectedSmm !== "all" ||
+    selectedClient !== "all" ||
+    activeTab !== "all";
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setSelectedSmm("all");
+    setSelectedClient("all");
+    setActiveTab("all");
+  };
+
+  // Base filtered summaries: filtered by SMM, Client dropdown, and search query
+  const baseFilteredSummaries = useMemo(() => {
+    return enrichedSummaries.filter((cs) => {
+      // 1. Social Media Manager Filter
+      if (selectedSmm !== "all") {
+        if (selectedSmm === "__unassigned__") {
+          if (cs.smmName) return false;
+        } else {
+          if ((cs.smmName || "").trim().toLowerCase() !== selectedSmm.trim().toLowerCase()) {
+            return false;
+          }
+        }
+      }
+
+      // 2. Client Dropdown Filter
+      if (selectedClient !== "all") {
+        if ((cs.clientName || "").trim().toLowerCase() !== selectedClient.trim().toLowerCase()) {
+          return false;
+        }
+      }
+
+      // 3. Search (by Client name, industry, or SMM name)
+      if (searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        const matchName = (cs.clientName || "").toLowerCase().includes(q);
+        const matchInd = (cs.industry || "").toLowerCase().includes(q);
+        const matchSmm = (cs.smmName || "").toLowerCase().includes(q);
+        if (!matchName && !matchInd && !matchSmm) return false;
+      }
+
+      return true;
+    });
+  }, [enrichedSummaries, selectedSmm, selectedClient, searchQuery]);
+
+  // Counts for status bar tabs (All, Pending, Completed, Live) dynamically matching SMM/Client/Search filters
+  const tabCounts = useMemo(() => {
+    let pending = 0;
+    let completed = 0;
+    let live = 0;
+
+    baseFilteredSummaries.forEach((cs) => {
+      if (cs.hasPendingDelivery) pending++;
+      if (cs.isCommitmentCompleted) completed++;
+      if (cs.hasLiveTasks) live++;
+    });
+
+    return {
+      all: baseFilteredSummaries.length,
+      pending,
+      completed,
+      live,
+    };
+  }, [baseFilteredSummaries]);
+
+  // Final filtered & sorted summaries taking activeTab into account
+  const filteredSummaries = useMemo(() => {
+    const result = baseFilteredSummaries.filter((cs) => {
+      if (activeTab === "pending" && !cs.hasPendingDelivery) return false;
+      if (activeTab === "completed" && !cs.isCommitmentCompleted) return false;
+      if (activeTab === "live" && !cs.hasLiveTasks) return false;
+      return true;
+    });
+
+    // Default sorting: most pending deliverables first
+    return [...result].sort((a, b) => {
+      return (b.totalPendingDelivery || 0) - (a.totalPendingDelivery || 0);
+    });
+  }, [baseFilteredSummaries, activeTab]);
+
+  // Dynamic metrics for the top cards (Posts, Reels, Stories, Total Deliverables, Awaiting Approval)
+  // Reflects the filtered clients and active status tab
   const {
-    clientSummaries,
     totalPostsCommitted,
     totalPostsPublished,
     postsProgressPct,
@@ -180,115 +363,55 @@ const PendingCommitmentModal = ({
     deliverablesProgressPct,
     awaitingApprovalCount,
   } = useMemo(() => {
-    return computeAllClientsCommitments(clients, tasks, currentMonth, currentYear);
-  }, [clients, tasks, currentMonth, currentYear]);
+    let postsCommitted = 0;
+    let postsPublished = 0;
+    let reelsCommitted = 0;
+    let reelsPublished = 0;
+    let storiesCommitted = 0;
+    let storiesPublished = 0;
+    let deliverablesCommitted = 0;
+    let deliverablesPublished = 0;
+    let awaitingApproval = 0;
 
-  // Enriched summaries with SMM names, task breakdown, and live/completed status flags
-  const enrichedSummaries = useMemo(() => {
-    return (clientSummaries || []).map((cs) => {
-      const smmName = getClientSmmName(cs.client, cs.clientName);
-
-      const allClientTasks = [
-        ...(cs.posts?.tasks || []),
-        ...(cs.reels?.tasks || []),
-        ...(cs.story?.tasks || []),
-      ];
-
-      // Tasks explicitly marked as Live
-      const liveTasks = allClientTasks.filter(
-        (t) => (t.status || "").trim().toLowerCase() === "live"
-      );
-
-      // Tasks marked as Completed
-      const completedTasks = allClientTasks.filter(
-        (t) => (t.status || "").trim().toLowerCase() === "completed"
-      );
-
-      // Tasks in QC awaiting approval
-      const inQcTasks = allClientTasks.filter(
-        (t) => (t.status || "").trim().toLowerCase() === "in qc"
-      );
-
-      const liveTasksCount = liveTasks.length;
-      const completedTasksCount = completedTasks.length;
-      const inQcTasksCount = inQcTasks.length;
-
-      // Has active Live tasks OR published deliverables
-      const hasLiveTasks = liveTasksCount > 0 || cs.totalPosted > 0;
-
-      // Monthly commitment completely fulfilled
-      const isCommitmentCompleted = cs.totalPendingDelivery === 0 && cs.totalCommitted > 0;
-
-      // Has pending deliverables still to be published
-      const hasPendingDelivery = cs.totalPendingDelivery > 0;
-
-      return {
-        ...cs,
-        smmName,
-        allClientTasks,
-        liveTasksCount,
-        completedTasksCount,
-        inQcTasksCount,
-        hasLiveTasks,
-        isCommitmentCompleted,
-        hasPendingDelivery,
-      };
+    filteredSummaries.forEach((cs) => {
+      postsCommitted += cs.posts?.committed || 0;
+      postsPublished += cs.posts?.posted || 0;
+      reelsCommitted += cs.reels?.committed || 0;
+      reelsPublished += cs.reels?.posted || 0;
+      storiesCommitted += cs.story?.committed || 0;
+      storiesPublished += cs.story?.posted || 0;
+      deliverablesCommitted += cs.totalCommitted || 0;
+      deliverablesPublished += cs.totalPosted || 0;
+      awaitingApproval += cs.inQcTasksCount || 0;
     });
-  }, [clientSummaries, tasks, usersMap]);
 
-  // Counts for top tabs
-  const tabCounts = useMemo(() => {
-    let pending = 0;
-    let completed = 0;
-    let live = 0;
-
-    enrichedSummaries.forEach((cs) => {
-      if (cs.hasPendingDelivery) pending++;
-      if (cs.isCommitmentCompleted) completed++;
-      if (cs.hasLiveTasks) live++;
-    });
+    const pPct =
+      postsCommitted > 0 ? Math.min(100, Math.round((postsPublished / postsCommitted) * 100)) : 0;
+    const rPct =
+      reelsCommitted > 0 ? Math.min(100, Math.round((reelsPublished / reelsCommitted) * 100)) : 0;
+    const sPct =
+      storiesCommitted > 0 ? Math.min(100, Math.round((storiesPublished / storiesCommitted) * 100)) : 0;
+    const dPct =
+      deliverablesCommitted > 0
+        ? Math.min(100, Math.round((deliverablesPublished / deliverablesCommitted) * 100))
+        : 0;
 
     return {
-      all: enrichedSummaries.length,
-      pending,
-      completed,
-      live,
+      totalPostsCommitted: postsCommitted,
+      totalPostsPublished: postsPublished,
+      postsProgressPct: pPct,
+      totalReelsCommitted: reelsCommitted,
+      totalReelsPublished: reelsPublished,
+      reelsProgressPct: rPct,
+      totalStoriesCommitted: storiesCommitted,
+      totalStoriesPublished: storiesPublished,
+      storiesProgressPct: sPct,
+      totalDeliverablesCommitted: deliverablesCommitted,
+      totalDeliverablesPublished: deliverablesPublished,
+      deliverablesProgressPct: dPct,
+      awaitingApprovalCount: awaitingApproval,
     };
-  }, [enrichedSummaries]);
-
-  // Check if any non-default filter is active
-  const isFilterActive = searchQuery.trim() !== "" || activeTab !== "all";
-
-  const handleResetFilters = () => {
-    setSearchQuery("");
-    setActiveTab("all");
-  };
-
-  // Filtered & Sorted summaries
-  const filteredSummaries = useMemo(() => {
-    const result = enrichedSummaries.filter((cs) => {
-      // 1. Search (by Client name, industry, or SMM name)
-      if (searchQuery.trim()) {
-        const q = searchQuery.trim().toLowerCase();
-        const matchName = (cs.clientName || "").toLowerCase().includes(q);
-        const matchInd = (cs.industry || "").toLowerCase().includes(q);
-        const matchSmm = (cs.smmName || "").toLowerCase().includes(q);
-        if (!matchName && !matchInd && !matchSmm) return false;
-      }
-
-      // 2. Primary Tab filter: All, Pending, Completed, Live
-      if (activeTab === "pending" && !cs.hasPendingDelivery) return false;
-      if (activeTab === "completed" && !cs.isCommitmentCompleted) return false;
-      if (activeTab === "live" && !cs.hasLiveTasks) return false;
-
-      return true;
-    });
-
-    // Default sorting: most pending deliverables first
-    return [...result].sort((a, b) => {
-      return (b.totalPendingDelivery || 0) - (a.totalPendingDelivery || 0);
-    });
-  }, [enrichedSummaries, searchQuery, activeTab]);
+  }, [filteredSummaries]);
 
   // Lock body scroll and handle Escape key when modal is open
   useEffect(() => {
@@ -319,12 +442,12 @@ const PendingCommitmentModal = ({
       }}
     >
       <div
-        className="relative w-[96vw] max-w-6xl max-h-[90vh] my-auto bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5 dark:ring-white/10"
+        className="relative w-[96vw] max-w-6xl max-h-[90vh] my-auto bg-white dark:bg-[#0b101d] border border-slate-200/90 dark:border-[#1e2a40] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5 dark:ring-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         
         {/* Top Header */}
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50/70 dark:bg-slate-800/40">
+        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50 dark:bg-[#0c1222]">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse" />
@@ -342,7 +465,7 @@ const PendingCommitmentModal = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-[#1a253a] transition-colors cursor-pointer"
             title="Close"
           >
             <FiX size={20} />
@@ -350,10 +473,10 @@ const PendingCommitmentModal = ({
         </div>
 
         {/* Global Metric Strips (5 cards: Posts, Reels, Stories, Total, In QC) */}
-        <div className="px-6 py-3.5 bg-slate-100/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
+        <div className="px-6 py-3.5 bg-slate-100/50 dark:bg-[#090e1a] border-b border-slate-100 dark:border-[#1e2a40] grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
           
           {/* 1. Posts Progress */}
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="bg-white dark:bg-[#0e1626] p-3 rounded-2xl border border-slate-200/80 dark:border-[#1f2c42] shadow-2xs hover:shadow-xs transition-shadow">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Posts Progress
@@ -370,7 +493,7 @@ const PendingCommitmentModal = ({
                 {postsProgressPct}%
               </span>
             </div>
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+            <div className="w-full h-1.5 bg-slate-200/80 dark:bg-[#1a2333] border border-slate-200/60 dark:border-slate-700/40 rounded-full mt-2 overflow-hidden">
               <div
                 className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                 style={{ width: `${postsProgressPct}%` }}
@@ -379,7 +502,7 @@ const PendingCommitmentModal = ({
           </div>
 
           {/* 2. Reels Progress */}
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="bg-white dark:bg-[#0e1626] p-3 rounded-2xl border border-slate-200/80 dark:border-[#1f2c42] shadow-2xs hover:shadow-xs transition-shadow">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Reels Progress
@@ -396,7 +519,7 @@ const PendingCommitmentModal = ({
                 {reelsProgressPct}%
               </span>
             </div>
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+            <div className="w-full h-1.5 bg-slate-200/80 dark:bg-[#1a2333] border border-slate-200/60 dark:border-slate-700/40 rounded-full mt-2 overflow-hidden">
               <div
                 className="h-full bg-purple-500 rounded-full transition-all duration-500"
                 style={{ width: `${reelsProgressPct}%` }}
@@ -405,7 +528,7 @@ const PendingCommitmentModal = ({
           </div>
 
           {/* 3. Stories Progress (Added next to Reels card!) */}
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-amber-200/60 dark:border-amber-900/40 shadow-2xs hover:shadow-xs transition-shadow relative overflow-hidden">
+          <div className="bg-white dark:bg-[#0e1626] p-3 rounded-2xl border border-amber-200/60 dark:border-[#2f2818] shadow-2xs hover:shadow-xs transition-shadow relative overflow-hidden">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
                 Stories Progress
@@ -422,7 +545,7 @@ const PendingCommitmentModal = ({
                 {storiesProgressPct}%
               </span>
             </div>
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+            <div className="w-full h-1.5 bg-slate-200/80 dark:bg-[#1a2333] border border-slate-200/60 dark:border-slate-700/40 rounded-full mt-2 overflow-hidden">
               <div
                 className="h-full bg-amber-500 rounded-full transition-all duration-500"
                 style={{ width: `${storiesProgressPct}%` }}
@@ -431,7 +554,7 @@ const PendingCommitmentModal = ({
           </div>
 
           {/* 4. Total Deliverables */}
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="bg-white dark:bg-[#0e1626] p-3 rounded-2xl border border-slate-200/80 dark:border-[#1f2c42] shadow-2xs hover:shadow-xs transition-shadow">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Total Deliverables
@@ -448,7 +571,7 @@ const PendingCommitmentModal = ({
                 {deliverablesProgressPct}%
               </span>
             </div>
-            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mt-2 overflow-hidden">
+            <div className="w-full h-1.5 bg-slate-200/80 dark:bg-[#1a2333] border border-slate-200/60 dark:border-slate-700/40 rounded-full mt-2 overflow-hidden">
               <div
                 className="h-full bg-blue-500 rounded-full transition-all duration-500"
                 style={{ width: `${deliverablesProgressPct}%` }}
@@ -457,7 +580,7 @@ const PendingCommitmentModal = ({
           </div>
 
           {/* 5. Awaiting Approval / QC */}
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-xs transition-shadow">
+          <div className="bg-white dark:bg-[#0e1626] p-3 rounded-2xl border border-slate-200/80 dark:border-[#1f2c42] shadow-2xs hover:shadow-xs transition-shadow">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Awaiting Approval
@@ -478,26 +601,26 @@ const PendingCommitmentModal = ({
           </div>
         </div>
 
-        {/* Toolbar: Tabs & Search */}
-        <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900">
+        {/* Toolbar: Status Tabs, SMM Dropdown, Client Dropdown & Search */}
+        <div className="px-6 py-3 border-b border-slate-100 dark:border-[#1e2a40] flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-white dark:bg-[#0b101d]">
           
           {/* Primary Status Tabs: All Clients, Pending, Completed, Live */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs font-bold w-full sm:w-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs font-bold w-full xl:w-auto scrollbar-none shrink-0">
             {/* All Clients */}
             <button
               type="button"
               onClick={() => setActiveTab("all")}
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === "all"
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-750"
+                  ? "bg-indigo-600 text-white shadow-xs"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-[#151d2e] dark:hover:bg-[#1c273e] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#22314d]"
               }`}
             >
               <span>All Clients</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-extrabold ${
                 activeTab === "all"
-                  ? "bg-white/20 dark:bg-slate-900/20 text-white dark:text-slate-900"
-                  : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
+                  ? "bg-white/20 text-white"
+                  : "bg-slate-200 dark:bg-[#1f2b42] text-slate-700 dark:text-slate-300"
               }`}>
                 {tabCounts.all}
               </span>
@@ -510,14 +633,14 @@ const PendingCommitmentModal = ({
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === "pending"
                   ? "bg-amber-500 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-750"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-[#151d2e] dark:hover:bg-[#1c273e] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#22314d]"
               }`}
             >
               <span>Pending</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-extrabold ${
                 activeTab === "pending"
                   ? "bg-black/20 text-white"
-                  : "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400"
+                  : "bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-400"
               }`}>
                 {tabCounts.pending}
               </span>
@@ -530,14 +653,14 @@ const PendingCommitmentModal = ({
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === "completed"
                   ? "bg-emerald-600 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-750"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-[#151d2e] dark:hover:bg-[#1c273e] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#22314d]"
               }`}
             >
               <span>Completed</span>
               <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-extrabold ${
                 activeTab === "completed"
                   ? "bg-white/20 text-white"
-                  : "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400"
+                  : "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400"
               }`}>
                 {tabCounts.completed}
               </span>
@@ -550,7 +673,7 @@ const PendingCommitmentModal = ({
               className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                 activeTab === "live"
                   ? "bg-teal-600 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-750"
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-[#151d2e] dark:hover:bg-[#1c273e] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-[#22314d]"
               }`}
             >
               <span className="relative flex h-2 w-2">
@@ -565,31 +688,101 @@ const PendingCommitmentModal = ({
               <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-extrabold ${
                 activeTab === "live"
                   ? "bg-white/20 text-white"
-                  : "bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-400"
+                  : "bg-teal-100 dark:bg-teal-950/70 text-teal-700 dark:text-teal-400"
               }`}>
                 {tabCounts.live}
               </span>
             </button>
           </div>
 
-          {/* Search Input */}
-          <div className="relative w-full sm:w-72 shrink-0">
-           
-            <input
-              type="text"
-              placeholder="Search client, industry, or SMM..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
-            />
-            {searchQuery && (
+          {/* Filters: SMM Dropdown, Client Dropdown, Search Input */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full xl:w-auto">
+            
+            {/* Social Media Manager Dropdown Filter */}
+            <div className="relative shrink-0 flex-1 sm:flex-initial">
+              <select
+                value={selectedSmm}
+                onChange={(e) => setSelectedSmm(e.target.value)}
+                className={`toolbar-filter-select w-full sm:w-auto min-w-[135px] max-w-[190px] !pl-7 !pr-7 !py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer truncate ${
+                  selectedSmm !== "all" ? "is-active" : ""
+                }`}
+                title="Filter by Social Media Manager"
+              >
+                <option value="all">All SMMs</option>
+                {hasUnassignedSmm && <option value="__unassigned__">Unassigned SMM</option>}
+                {smmOptions.map((smm) => (
+                  <option key={smm} value={smm}>
+                    {smm}
+                  </option>
+                ))}
+              </select>
+             
+              <FiChevronDown
+                size={12}
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  selectedSmm !== "all" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"
+                }`}
+              />
+            </div>
+
+            {/* Client Dropdown Filter */}
+            <div className="relative shrink-0 flex-1 sm:flex-initial">
+              <select
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                className={`toolbar-filter-select w-full sm:w-auto min-w-[145px] max-w-[200px] !pl-7 !pr-7 !py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer truncate ${
+                  selectedClient !== "all" ? "is-active" : ""
+                }`}
+                title="Filter by Client"
+              >
+                <option value="all">All Clients</option>
+                {clientOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+             
+              <FiChevronDown
+                size={12}
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${
+                  selectedClient !== "all" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"
+                }`}
+              />
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full sm:w-56 shrink-0">
+              <input
+                type="text"
+                placeholder="Search client, SMM..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="toolbar-search-input w-full !pl-8 !pr-7 !py-1.5 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
+              />
+              
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
+                  title="Clear search"
+                >
+                  <FiX size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Reset Filter Button */}
+            {isFilterActive && (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
-                title="Clear search"
+                onClick={handleResetFilters}
+                className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 font-bold text-xs hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1"
+                title="Reset all filters"
               >
-                <FiX size={13} />
+                <FiX size={12} />
+                <span className="hidden sm:inline">Reset</span>
               </button>
             )}
           </div>
@@ -599,7 +792,7 @@ const PendingCommitmentModal = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
           {filteredSummaries.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-[#151d2e] border border-slate-200 dark:border-[#22314d] flex items-center justify-center mx-auto mb-3 text-slate-400">
                 <FiFilter size={20} />
               </div>
               <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
@@ -638,11 +831,11 @@ const PendingCommitmentModal = ({
               return (
                 <div
                   key={item.clientId || clientName}
-                  className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all relative overflow-hidden"
+                  className="bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-[#1e2a40] rounded-2xl p-5 shadow-xs hover:shadow-md transition-all relative overflow-hidden"
                   style={{ borderLeftWidth: "4.5px", borderLeftColor: color }}
                 >
                   {/* Client Card Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#182338]">
                     <div className="flex items-center gap-3">
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-2xs shrink-0"
@@ -656,7 +849,7 @@ const PendingCommitmentModal = ({
                           <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
                             {clientName}
                           </h3>
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-[#162033] text-slate-600 dark:text-slate-300 border border-transparent dark:border-[#202e48]">
                             {industry}
                           </span>
 
@@ -676,7 +869,7 @@ const PendingCommitmentModal = ({
                             </span>
                           ) : (
                             <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-semibold bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 border border-slate-200/60 dark:border-slate-700/60 whitespace-nowrap"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-semibold bg-slate-100 dark:bg-[#151d2e] text-slate-400 dark:text-slate-400 border border-slate-200/60 dark:border-[#22314d] whitespace-nowrap"
                               title="No Social Media Manager assigned"
                             >
                               <FiUser size={11} className="text-slate-400 shrink-0" />
@@ -750,7 +943,7 @@ const PendingCommitmentModal = ({
                             onClose();
                             onSelectClient(clientName);
                           }}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#151d2f] dark:hover:bg-[#1c273e] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-[#22314d] transition-colors text-xs font-bold inline-flex items-center gap-1 cursor-pointer shadow-2xs"
                           title="Filter tasks for this client"
                         >
                           <span>View Tasks</span>
@@ -764,46 +957,46 @@ const PendingCommitmentModal = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 text-xs">
                     
                     {/* 1. POSTS COMMITMENT */}
-                    <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 rounded-2xl p-4 space-y-2.5 transition-all hover:border-emerald-300 dark:hover:border-emerald-800/60">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                    <div className="bg-slate-50/70 dark:bg-[#0f1728] border border-slate-200/70 dark:border-[#1a2942] rounded-2xl p-4 space-y-2.5 transition-all hover:border-emerald-400/60 dark:hover:border-emerald-600/50 shadow-2xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-[#18253b]">
                         <div className="flex items-center gap-1.5 font-extrabold text-emerald-700 dark:text-emerald-400">
                           <span className="w-5 h-5 rounded-lg bg-emerald-100/70 dark:bg-emerald-950/70 flex items-center justify-center text-xs">
                             <FiImage size={12} />
                           </span>
                           <span>Posts Commitment</span>
                         </div>
-                        <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                        <span className="text-[11px] font-black font-mono px-2 py-0.5 rounded-md bg-white dark:bg-[#152033] border border-slate-200/80 dark:border-[#243554] text-slate-700 dark:text-slate-200">
                           {posts.posted} / {posts.committed}
                         </span>
                       </div>
 
                       <div className="space-y-1.5 text-[11px]">
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Committed:</span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{posts.committed}</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Committed:</span>
+                          <span className="font-bold font-mono text-slate-800 dark:text-slate-200">{posts.committed}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Published / Live:</span>
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{posts.posted}</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Published / Live:</span>
+                          <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">{posts.posted}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">In hand:</span>
-                          <span className="font-bold text-amber-600 dark:text-amber-400">
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">In hand:</span>
+                          <span className="font-bold font-mono text-amber-600 dark:text-amber-400">
                             {posts.inHandNote}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Pending:</span>
-                          <span className={`font-bold px-1.5 py-0.2 rounded text-[10.5px] ${
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Pending:</span>
+                          <span className={`font-bold font-mono px-2 py-0.5 rounded-md text-[10.5px] border ${
                             posts.pending > 0
-                              ? "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400"
-                              : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+                              ? "bg-rose-500/15 dark:bg-rose-950/70 text-rose-600 dark:text-rose-300 border-rose-300/80 dark:border-rose-800/60"
+                              : "bg-emerald-500/15 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-800/60"
                           }`}>
                             {posts.pending} {posts.pending === 0 ? "✓ Met" : "left"}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-slate-200/40 dark:border-slate-700/40">
-                          <span className="text-slate-400 text-[10px]">Last post date:</span>
+                        <div className="flex justify-between items-center pt-1 border-t border-slate-200/40 dark:border-[#18253b]">
+                          <span className="text-slate-400 dark:text-slate-500 text-[10px]">Last post date:</span>
                           <span className="font-mono text-[10.5px] font-semibold text-slate-700 dark:text-slate-300">
                             {posts.lastPostDate}
                           </span>
@@ -812,11 +1005,11 @@ const PendingCommitmentModal = ({
 
                       {/* Mini Progress */}
                       <div className="pt-1">
-                        <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                        <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-400 mb-1">
                           <span>Progress</span>
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{posts.progressPct}%</span>
+                          <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">{posts.progressPct}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-slate-200/80 dark:bg-[#162033] border border-slate-200/60 dark:border-[#23334d] rounded-full overflow-hidden">
                           <div
                             className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                             style={{ width: `${posts.progressPct}%` }}
@@ -826,46 +1019,46 @@ const PendingCommitmentModal = ({
                     </div>
 
                     {/* 2. REELS COMMITMENT */}
-                    <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 rounded-2xl p-4 space-y-2.5 transition-all hover:border-purple-300 dark:hover:border-purple-800/60">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                    <div className="bg-slate-50/70 dark:bg-[#0f1728] border border-slate-200/70 dark:border-[#1a2942] rounded-2xl p-4 space-y-2.5 transition-all hover:border-purple-400/60 dark:hover:border-purple-600/50 shadow-2xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-[#18253b]">
                         <div className="flex items-center gap-1.5 font-extrabold text-purple-700 dark:text-purple-400">
                           <span className="w-5 h-5 rounded-lg bg-purple-100/70 dark:bg-purple-950/70 flex items-center justify-center text-xs">
                             <FiPlay size={12} />
                           </span>
                           <span>Reels Commitment</span>
                         </div>
-                        <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                        <span className="text-[11px] font-black font-mono px-2 py-0.5 rounded-md bg-white dark:bg-[#152033] border border-slate-200/80 dark:border-[#243554] text-slate-700 dark:text-slate-200">
                           {reels.posted} / {reels.committed}
                         </span>
                       </div>
 
                       <div className="space-y-1.5 text-[11px]">
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Committed:</span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{reels.committed}</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Committed:</span>
+                          <span className="font-bold font-mono text-slate-800 dark:text-slate-200">{reels.committed}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Published / Live:</span>
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{reels.posted}</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Published / Live:</span>
+                          <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">{reels.posted}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">In hand:</span>
-                          <span className="font-bold text-amber-600 dark:text-amber-400">
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">In hand:</span>
+                          <span className="font-bold font-mono text-amber-600 dark:text-amber-400">
                             {reels.inHandNote}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Pending:</span>
-                          <span className={`font-bold px-1.5 py-0.2 rounded text-[10.5px] ${
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Pending:</span>
+                          <span className={`font-bold font-mono px-2 py-0.5 rounded-md text-[10.5px] border ${
                             reels.pending > 0
-                              ? "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400"
-                              : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+                              ? "bg-rose-500/15 dark:bg-rose-950/70 text-rose-600 dark:text-rose-300 border-rose-300/80 dark:border-rose-800/60"
+                              : "bg-emerald-500/15 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-800/60"
                           }`}>
                             {reels.pending} {reels.pending === 0 ? "✓ Met" : "left"}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-slate-200/40 dark:border-slate-700/40">
-                          <span className="text-slate-400 text-[10px]">Last post date:</span>
+                        <div className="flex justify-between items-center pt-1 border-t border-slate-200/40 dark:border-[#18253b]">
+                          <span className="text-slate-400 dark:text-slate-500 text-[10px]">Last post date:</span>
                           <span className="font-mono text-[10.5px] font-semibold text-slate-700 dark:text-slate-300">
                             {reels.lastPostDate}
                           </span>
@@ -874,11 +1067,11 @@ const PendingCommitmentModal = ({
 
                       {/* Mini Progress */}
                       <div className="pt-1">
-                        <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                        <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-400 mb-1">
                           <span>Progress</span>
-                          <span className="font-bold text-purple-600 dark:text-purple-400">{reels.progressPct}%</span>
+                          <span className="font-bold font-mono text-purple-600 dark:text-purple-400">{reels.progressPct}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-slate-200/80 dark:bg-[#162033] border border-slate-200/60 dark:border-[#23334d] rounded-full overflow-hidden">
                           <div
                             className="h-full bg-purple-500 rounded-full transition-all duration-300"
                             style={{ width: `${reels.progressPct}%` }}
@@ -888,46 +1081,46 @@ const PendingCommitmentModal = ({
                     </div>
 
                     {/* 3. STORIES COMMITMENT (Enhanced UI/UX right next to Reels card!) */}
-                    <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 rounded-2xl p-4 space-y-2.5 transition-all hover:border-amber-300 dark:hover:border-amber-800/60">
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                    <div className="bg-slate-50/70 dark:bg-[#0f1728] border border-slate-200/70 dark:border-[#1a2942] rounded-2xl p-4 space-y-2.5 transition-all hover:border-amber-400/60 dark:hover:border-amber-600/50 shadow-2xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-[#18253b]">
                         <div className="flex items-center gap-1.5 font-extrabold text-amber-700 dark:text-amber-400">
                           <span className="w-5 h-5 rounded-lg bg-amber-100/70 dark:bg-amber-950/70 flex items-center justify-center text-xs">
                             <FiZap size={12} />
                           </span>
                           <span>Stories Commitment</span>
                         </div>
-                        <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                        <span className="text-[11px] font-black font-mono px-2 py-0.5 rounded-md bg-white dark:bg-[#152033] border border-slate-200/80 dark:border-[#243554] text-slate-700 dark:text-slate-200">
                           {story.posted} / {story.committed}
                         </span>
                       </div>
 
                       <div className="space-y-1.5 text-[11px]">
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Committed:</span>
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{story.committed}</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Committed:</span>
+                          <span className="font-bold font-mono text-slate-800 dark:text-slate-200">{story.committed}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Published / Live:</span>
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400">{story.posted}</span>
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Published / Live:</span>
+                          <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">{story.posted}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">In hand:</span>
-                          <span className="font-bold text-amber-600 dark:text-amber-400">
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">In hand:</span>
+                          <span className="font-bold font-mono text-amber-600 dark:text-amber-400">
                             {story.inHandNote}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Pending:</span>
-                          <span className={`font-bold px-1.5 py-0.2 rounded text-[10.5px] ${
+                          <span className="text-slate-500 dark:text-slate-400 font-medium">Pending:</span>
+                          <span className={`font-bold font-mono px-2 py-0.5 rounded-md text-[10.5px] border ${
                             story.pending > 0
-                              ? "bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400"
-                              : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+                              ? "bg-rose-500/15 dark:bg-rose-950/70 text-rose-600 dark:text-rose-300 border-rose-300/80 dark:border-rose-800/60"
+                              : "bg-emerald-500/15 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-800/60"
                           }`}>
                             {story.pending} {story.pending === 0 ? "✓ Met" : "left"}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-slate-200/40 dark:border-slate-700/40">
-                          <span className="text-slate-400 text-[10px]">Last story date:</span>
+                        <div className="flex justify-between items-center pt-1 border-t border-slate-200/40 dark:border-[#18253b]">
+                          <span className="text-slate-400 dark:text-slate-500 text-[10px]">Last story date:</span>
                           <span className="font-mono text-[10.5px] font-semibold text-slate-700 dark:text-slate-300">
                             {story.lastPostDate}
                           </span>
@@ -936,11 +1129,11 @@ const PendingCommitmentModal = ({
 
                       {/* Mini Progress */}
                       <div className="pt-1">
-                        <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                        <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-400 mb-1">
                           <span>Progress</span>
-                          <span className="font-bold text-amber-600 dark:text-amber-400">{story.progressPct}%</span>
+                          <span className="font-bold font-mono text-amber-600 dark:text-amber-400">{story.progressPct}%</span>
                         </div>
-                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-slate-200/80 dark:bg-[#162033] border border-slate-200/60 dark:border-[#23334d] rounded-full overflow-hidden">
                           <div
                             className="h-full bg-amber-500 rounded-full transition-all duration-300"
                             style={{ width: `${story.progressPct}%` }}
@@ -957,13 +1150,13 @@ const PendingCommitmentModal = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <div className="px-6 py-3.5 bg-slate-50 dark:bg-[#0c1220] border-t border-slate-100 dark:border-[#1e2a40] flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span>
             Deliverables are synchronized in real-time with the Client database and Content Calendar tasks.
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold hover:opacity-90 transition-opacity cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-[#182338] dark:hover:bg-[#202e48] text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-[#283955] font-bold text-xs transition-colors cursor-pointer shadow-xs"
           >
             Close
           </button>

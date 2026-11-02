@@ -537,6 +537,47 @@ const SmTasks = () => {
     if (!users || users.length === 0) dispatch(getUsers());
   }, [dispatch]);
 
+  // Dynamic month options for top month dropdown selector
+  const monthOptions = useMemo(() => {
+    const map = new Map();
+    for (let offset = -12; offset <= 6; offset++) {
+      const d = new Date(currentNow.getFullYear(), currentNow.getMonth() + offset, 1);
+      const m = d.getMonth() + 1;
+      const y = d.getFullYear();
+      const key = `${y}-${m}`;
+      map.set(key, { year: y, month: m, label: `${MONTH_NAMES[m - 1]} ${y}` });
+    }
+    (tasks || []).forEach((t) => {
+      const primary = (dateFilterField === "publish" && t.publishDate)
+        ? t.publishDate
+        : (t.dueDate || t.publishDate || t.createdAt);
+      if (primary) {
+        const d = new Date(primary);
+        if (!isNaN(d.getTime())) {
+          const m = d.getMonth() + 1;
+          const y = d.getFullYear();
+          const key = `${y}-${m}`;
+          if (!map.has(key)) {
+            map.set(key, { year: y, month: m, label: `${MONTH_NAMES[m - 1]} ${y}` });
+          }
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return a.month - b.month;
+    });
+  }, [tasks]);
+
+  // Sync monthly stats when month changes
+  useEffect(() => {
+    if (selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
+      dispatch(getSocialmediaStats({ year: selectedYear, month: selectedMonth }));
+    } else {
+      dispatch(getSocialmediaStats());
+    }
+  }, [dispatch, selectedMonth, selectedYear]);
+
   // Dynamic unique client list from real DB clients & tasks
   const clientOptions = useMemo(() => {
     const set = new Set();
@@ -590,6 +631,22 @@ const SmTasks = () => {
   // Client-side filtering
   const filteredTasks = useMemo(() => {
     return uniqueTasks.filter((task) => {
+      // Top Month Filter: Strictly filter table tasks by selected month & year
+      if (selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
+        if (dateFilterPreset === "All" && !customStartDate && !customEndDate) {
+          const primaryDate =
+            dateFilterField === "publish" && task.publishDate
+              ? task.publishDate
+              : (task.dueDate || task.publishDate || task.createdAt);
+
+          if (!primaryDate) return false;
+          const d = new Date(primaryDate);
+          if (isNaN(d.getTime())) return false;
+          if (d.getFullYear() !== selectedYear || (d.getMonth() + 1) !== selectedMonth) {
+            return false;
+          }
+        }
+      }
       // Search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -780,6 +837,8 @@ const SmTasks = () => {
     customStartDate,
     customEndDate,
     usersMap,
+    selectedMonth,
+    selectedYear,
   ]);
 
   // Paginated tasks
@@ -1098,36 +1157,38 @@ const SmTasks = () => {
         </div>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-          {/* Month Selector Dropdown (Image 1) */}
-          <div className="relative">
-            <select
-              value={`${selectedYear}-${selectedMonth}`}
-              onChange={(e) => {
-                const [y, m] = e.target.value.split("-").map(Number);
-                setSelectedYear(y);
-                setSelectedMonth(m);
-                setCurrentPage(1);
-              }}
-              className="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-            >
-              {[-2, -1, 0, 1, 2].map((offset) => {
-                const d = new Date(currentNow.getFullYear(), currentNow.getMonth() + offset, 1);
-                const m = d.getMonth() + 1;
-                const y = d.getFullYear();
-                return (
-                  <option key={`${y}-${m}`} value={`${y}-${m}`}>
-                    {MONTH_NAMES[m - 1]} {y}
-                  </option>
-                );
-              })}
-            </select>
+          {/* Month Selector Dropdown */}
+          <div className="relative inline-flex items-center">
             <FiCalendar
               size={13}
-              className="absolute left-[-1]  top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
             />
+            <select
+              value={selectedMonth === "all" ? "all" : `${selectedYear}-${selectedMonth}`}
+              onChange={(e) => {
+                if (e.target.value === "all") {
+                  setSelectedYear("all");
+                  setSelectedMonth("all");
+                } else {
+                  const [y, m] = e.target.value.split("-").map(Number);
+                  setSelectedYear(y);
+                  setSelectedMonth(m);
+                }
+                setCurrentPage(1);
+              }}
+              style={{ paddingLeft: "2.15rem" }}
+              className="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              <option value="all">All Months</option>
+              {monthOptions.map((opt) => (
+                <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
             <FiChevronDown
               size={13}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
             />
           </div>
 
@@ -1560,4 +1621,4 @@ const SmTasks = () => {
       );
 };
 
-      export default SmTasks;
+      export default React.memo(SmTasks);

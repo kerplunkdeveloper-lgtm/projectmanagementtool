@@ -23,7 +23,7 @@ import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
 import { getClients } from "../../features/clients/clientslice";
-import { apiSlice, useGetTasksQuery } from "../../features/api/apiSlice";
+import { apiSlice } from "../../features/api/apiSlice";
 import { getEodReports } from "../../features/eodReports/eodReportSlice";
 import { getDesignerEodReports } from "../../features/eodReports/designerEodReportSlice";
 import {
@@ -108,6 +108,30 @@ const itemVariants = {
   },
 };
 
+const OPERATION_MANAGER_TOP_CARDS = new Set([
+  "Home",
+  "Sticky Notes",
+  "Chat",
+  "Users",
+  "Reports",
+  "Client Calls",
+  "MOM Points",
+  "MOM / Client Calls",
+  "SM Credentials",
+]);
+
+const DEFAULT_TOP_CARDS = new Set([
+  "Home",
+  "Sticky Notes",
+  "Chat",
+  "Users",
+  "SM Credentials",
+  "Client Calls",
+  "MOM Points",
+  "MOM / Client Calls",
+  "Reports",
+]);
+
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
   const activeProjectId = location.pathname.includes("/projects")
@@ -126,32 +150,75 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const { notifications } = useSelector((state) => state.notifications);
-  const unreadCount = notifications
-    ? notifications.filter((n) => !n.isRead).length
-    : 0;
+  const { unreadCounts = {}, totalUnreadCount: reduxTotalUnread = 0 } = useSelector((state) => state.chat);
 
-  const unreadMomCount = notifications
-    ? notifications.filter(
-        (n) =>
-          !n.isRead &&
-          ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type),
-      ).length
-    : 0;
+  // Single-pass computation for all badge counts (avoids 6+ full array iterations on each render)
+  const {
+    unreadCount,
+    unreadMomCount,
+    unreadHrTasksCount,
+    unreadClientCallsCount,
+    totalUnreadChatCount,
+  } = React.useMemo(() => {
+    let unread = 0;
+    let unreadMom = 0;
+    let unreadHr = 0;
+    let clientCalls = 0;
+    let dbChat = 0;
 
-  const unreadHrTasksCount = notifications
-    ? notifications.filter(
-        (n) =>
-          !n.isRead &&
-          (n.type?.startsWith("hr_task_") ||
-            n.hrTask ||
-            n.message?.toLowerCase().includes("hr task") ||
-            n.message?.toLowerCase().includes("hr department") ||
-            (n.sender?.department &&
-              (n.sender.department.toLowerCase() === "hr" ||
-                n.sender.department.toLowerCase().includes("human resource")) &&
-              n.message?.toLowerCase().includes("task"))),
-      ).length
-    : 0;
+    if (Array.isArray(notifications)) {
+      for (let i = 0; i < notifications.length; i++) {
+        const n = notifications[i];
+        if (n.isRead) continue;
+        unread++;
+
+        const type = n.type || "";
+        if (type === "client_call_created") {
+          clientCalls++;
+        } else if (
+          type === "mom_created" ||
+          type === "mom_assigned" ||
+          type === "mom_updated" ||
+          type === "mom_overdue"
+        ) {
+          unreadMom++;
+        } else if (type === "message_received" || type === "mention_received") {
+          dbChat++;
+        }
+
+        if (
+          type.startsWith("hr_task_") ||
+          n.hrTask ||
+          n.message?.toLowerCase().includes("hr task") ||
+          n.message?.toLowerCase().includes("hr department") ||
+          ((n.sender?.department &&
+            (n.sender.department.toLowerCase() === "hr" ||
+              n.sender.department.toLowerCase().includes("human resource"))) &&
+            n.message?.toLowerCase().includes("task"))
+        ) {
+          unreadHr++;
+        }
+      }
+    }
+
+    let localChat = 0;
+    if (unreadCounts && typeof unreadCounts === "object") {
+      const vals = Object.values(unreadCounts);
+      for (let i = 0; i < vals.length; i++) {
+        localChat += vals[i] || 0;
+      }
+    }
+
+    const totalChat = Math.max(localChat, dbChat, reduxTotalUnread || 0);
+
+    return {
+      unreadCount: unread,
+      unreadMomCount: unreadMom,
+      unreadHrTasksCount: unreadHr,
+      unreadClientCallsCount: clientCalls,
+      totalUnreadChatCount: totalChat,
+    };
+  }, [notifications, unreadCounts, reduxTotalUnread]);
 
   const { projects } = useSelector((state) => state.projects);
   const portfoliosState = useSelector((state) => state.portfolios);
@@ -159,26 +226,24 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { users } = useSelector((state) => state.users);
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || [];
+
+  // O(1) Client lookup map
+  const clientsMap = React.useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(clients)) {
+      for (let i = 0; i < clients.length; i++) {
+        const c = clients[i];
+        if (c?._id) map.set(c._id.toString(), c);
+      }
+    }
+    return map;
+  }, [clients]);
+
   const { user: currentUser, originalAdminUser } = useSelector(
     (state) => state.auth,
   );
   const { profile } = useSelector((state) => state.profile);
-  const { unreadCounts = {}, totalUnreadCount: reduxTotalUnread = 0 } = useSelector((state) => state.chat);
-  const localUnreadChatCount = Object.values(unreadCounts).reduce(
-    (sum, val) => sum + (val || 0),
-    0,
-  );
-  const dbUnreadChatCount = notifications
-    ? notifications.filter((n) => !n.isRead && (n.type === "message_received" || n.type === "mention_received"))
-      .length
-    : 0;
 
-  // Real-time unread chat count (server persisted + local session sync)
-  const totalUnreadChatCount = Math.max(
-    localUnreadChatCount,
-    dbUnreadChatCount,
-    reduxTotalUnread || 0,
-  );
   // EOD Reports for Admin / Operation Manager count
   const { eodReports } = useSelector((state) => state.eodReports || {});
   const { designerEodReports } = useSelector(
@@ -785,53 +850,115 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const [hoveredPortalItem, setHoveredPortalItem] = useState(null);
   const hoverTimeoutRef = useRef(null);
 
-  const isChildActive = (childPath) => {
-    if (!childPath) return false;
-    const current = (location.pathname || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
-    const target = childPath.toLowerCase().split("?")[0].replace(/\/+$/, "");
-    if (current === target) return true;
-    if (target.includes("sm-tasks") && current.includes("sm-tasks")) return true;
-    if (target.includes("designer-tasks") && current.includes("designer-tasks")) return true;
-    if (target.includes("cinematographer-tasks") && current.includes("cinematographer-tasks")) return true;
-    if (target.includes("hr-tasks") && current.includes("hr-tasks")) return true;
-    if (target.endsWith("/tasks") && current.endsWith("/tasks")) return true;
-    if (target.includes("shootcalendor") && current.includes("shootcalendor")) return true;
-    if (target.includes("content-calendar") && current.includes("content-calendar")) return true;
-    if (target.includes("event-calendar") && current.includes("event-calendar")) return true;
-    return false;
-  };
+  const currentPath = React.useMemo(() => {
+    return (location.pathname || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
+  }, [location.pathname]);
 
-  const isItemActive = (item) => {
-    if (!item) return false;
-    if (item.children && item.children.length > 0) {
-      return item.children.some((child) => isChildActive(child.path));
-    }
-    const current = (location.pathname || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
-    const target = (item.path || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
-    if (
-      target === "/admin" ||
-      target === "/operationmanager" ||
-      target === "/humanresource" ||
-      target === "/team"
-    ) {
-      return current === target;
-    }
-    return current === target || current.startsWith(target + "/");
-  };
+  const isChildActive = React.useCallback(
+    (childPath) => {
+      if (!childPath) return false;
+      const target = childPath.toLowerCase().split("?")[0].replace(/\/+$/, "");
+      if (currentPath === target) return true;
+      if (target.includes("sm-tasks") && currentPath.includes("sm-tasks")) return true;
+      if (target.includes("designer-tasks") && currentPath.includes("designer-tasks")) return true;
+      if (target.includes("cinematographer-tasks") && currentPath.includes("cinematographer-tasks")) return true;
+      if (target.includes("hr-tasks") && currentPath.includes("hr-tasks")) return true;
+      if (target.endsWith("/tasks") && currentPath.endsWith("/tasks")) return true;
+      if (target.includes("shootcalendor") && currentPath.includes("shootcalendor")) return true;
+      if (target.includes("content-calendar") && currentPath.includes("content-calendar")) return true;
+      if (target.includes("event-calendar") && currentPath.includes("event-calendar")) return true;
+      return false;
+    },
+    [currentPath]
+  );
 
-  const getItemBadgeCount = (itemName) => {
-    if (itemName === "Notifications") return unreadCount;
-    if (itemName === "Chat") return totalUnreadChatCount;
-    if (itemName === "Client Calls") {
-      return (notifications || []).filter((n) => !n.isRead && n.type === "client_call_created").length;
+  const isItemActive = React.useCallback(
+    (item) => {
+      if (!item) return false;
+      if (item.children && item.children.length > 0) {
+        return item.children.some((child) => isChildActive(child.path));
+      }
+      const target = (item.path || "").toLowerCase().split("?")[0].replace(/\/+$/, "");
+      if (
+        target === "/admin" ||
+        target === "/operationmanager" ||
+        target === "/humanresource" ||
+        target === "/team"
+      ) {
+        return currentPath === target;
+      }
+      return currentPath === target || currentPath.startsWith(target + "/");
+    },
+    [currentPath, isChildActive]
+  );
+
+  const getItemBadgeCount = React.useCallback(
+    (itemName) => {
+      if (itemName === "Notifications") return unreadCount;
+      if (itemName === "Chat") return totalUnreadChatCount;
+      if (itemName === "Client Calls") return unreadClientCallsCount;
+      if (itemName === "MOM Points" || itemName === "MOM / Client Calls") return unreadMomCount;
+      if (itemName === "HR Tasks" || itemName === "Tasks") return unreadHrTasksCount;
+      if (itemName === "Reports" && (role === "admin" || role === "operationmanager")) {
+        return newReportsCount;
+      }
+      return 0;
+    },
+    [
+      unreadCount,
+      totalUnreadChatCount,
+      unreadClientCallsCount,
+      unreadMomCount,
+      unreadHrTasksCount,
+      role,
+      newReportsCount,
+    ]
+  );
+
+  const { topMenuItems, secondaryMenuItems } = React.useMemo(() => {
+    const topSet = role === "operationmanager" ? OPERATION_MANAGER_TOP_CARDS : DEFAULT_TOP_CARDS;
+    const top = [];
+    const secondary = [];
+    for (let i = 0; i < menuItems.length; i++) {
+      const item = menuItems[i];
+      if (topSet.has(item.name)) {
+        top.push(item);
+      } else {
+        secondary.push(item);
+      }
     }
-    if (itemName === "MOM Points" || itemName === "MOM / Client Calls") return unreadMomCount;
-    if (itemName === "HR Tasks" || itemName === "Tasks") return unreadHrTasksCount;
-    if (itemName === "Reports" && (role === "admin" || role === "operationmanager")) {
-      return newReportsCount;
+    return { topMenuItems: top, secondaryMenuItems: secondary };
+  }, [menuItems, role]);
+
+  const { filteredUsers, groupedUsers } = React.useMemo(() => {
+    if (!users || users.length === 0) return { filteredUsers: [], groupedUsers: {} };
+    const searchStr = userSearchQuery.toLowerCase().trim();
+    if (!searchStr) {
+      const grouped = {};
+      for (let i = 0; i < users.length; i++) {
+        const u = users[i];
+        const dept = u.department || displayRole(u.role);
+        if (!grouped[dept]) grouped[dept] = [];
+        grouped[dept].push(u);
+      }
+      return { filteredUsers: users, groupedUsers: grouped };
     }
-    return 0;
-  };
+
+    const searchTerms = searchStr.split(/\s+/);
+    const filtered = users.filter((u) => {
+      const searchableText = `${u.name || ""} ${u.department || ""} ${displayRole(u.role)}`.toLowerCase();
+      return searchTerms.every((term) => searchableText.includes(term));
+    });
+
+    const grouped = {};
+    for (let i = 0; i < filtered.length; i++) {
+      const u = filtered[i];
+      const dept = u.department || displayRole(u.role);
+      if (!grouped[dept]) grouped[dept] = [];
+      grouped[dept].push(u);
+    }
+    return { filteredUsers: filtered, groupedUsers: grouped };
+  }, [users, userSearchQuery]);
 
   const handleItemMouseEnter = (e, item, isDropdown = false, badgeCount = 0) => {
     if (sidebarOpen || window.innerWidth < 1024) return;
@@ -1194,8 +1321,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               const _clientId1 =
                                 project.client?._id || project.client;
                               const _clientObj1 =
-                                clients.find((c) => c._id === _clientId1) ||
-                                null;
+                                clientsMap.get(String(_clientId1)) || null;
                               return (
                                 <button
                                   key={project._id}
@@ -1319,8 +1445,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 const _clientId2 =
                                   project.client?._id || project.client;
                                 const _clientObj2 =
-                                  clients.find((c) => c._id === _clientId2) ||
-                                  null;
+                                  clientsMap.get(String(_clientId2)) || null;
                                 return (
                                   <button
                                     key={project._id}
@@ -1416,7 +1541,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           const _clientId3 =
                             project.client?._id || project.client;
                           const _clientObj3 =
-                            clients.find((c) => c._id === _clientId3) || null;
+                            clientsMap.get(String(_clientId3)) || null;
                           return (
                             <button
                               key={project._id}
@@ -1981,9 +2106,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   <div className="flex flex-col items-center space-y-1 py-1">
                     {/* Core Group */}
                     <div className="flex flex-col items-center space-y-0.5 w-full">
-                      {menuItems
-                        .filter((item) => topCardNames.includes(item.name))
-                        .map((item) => renderCollapsedMenuItem(item))}
+                      {topMenuItems.map((item) => renderCollapsedMenuItem(item))}
                     </div>
 
                     {/* Subtle divider */}
@@ -1991,9 +2114,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                     {/* Secondary Group */}
                     <div className="flex flex-col items-center space-y-0.5 w-full">
-                      {menuItems
-                        .filter((item) => !topCardNames.includes(item.name))
-                        .map((item) => renderCollapsedMenuItem(item))}
+                      {secondaryMenuItems.map((item) => renderCollapsedMenuItem(item))}
                     </div>
                   </div>
                 ) : isGroupedRole ? (
@@ -2001,18 +2122,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     {/* General / Core Group */}
                     <div className="space-y-1">
                       <div className="border border-slate-200/60 dark:border-white/5 bg-slate-50/30 dark:bg-slate-50 shadow-xl rounded-2xl p-1.5 space-y-0.5 shadow-sm">
-                        {menuItems
-                          .filter((item) => topCardNames.includes(item.name))
-                          .map((item) => renderMenuItem(item))}
+                        {topMenuItems.map((item) => renderMenuItem(item))}
                       </div>
                     </div>
 
                     {/* normal group*/}
                     <div className="space-y-1">
                       <div className="space-y-0.5">
-                        {menuItems
-                          .filter((item) => !topCardNames.includes(item.name))
-                          .map((item) => renderMenuItem(item))}
+                        {secondaryMenuItems.map((item) => renderMenuItem(item))}
                       </div>
                     </div>
                   </div>
@@ -2235,26 +2352,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                       <div className="p-2 max-h-[22rem] overflow-y-auto sidebar-scrollbar flex flex-col gap-1">
                         {(() => {
-                          const filteredUsers = users.filter((u) => {
-                            const searchStr = userSearchQuery
-                              .toLowerCase()
-                              .trim();
-                            if (!searchStr) return true;
-
-                            const searchTerms = searchStr.split(/\s+/);
-                            const searchableText = [
-                              u.name,
-                              u.department || "",
-                              displayRole(u.role),
-                            ]
-                              .join(" ")
-                              .toLowerCase();
-
-                            return searchTerms.every((term) =>
-                              searchableText.includes(term),
-                            );
-                          });
-
                           if (filteredUsers.length === 0) {
                             return (
                               <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
@@ -2262,18 +2359,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               </div>
                             );
                           }
-
-                          // Group by department
-                          const groupedUsers = filteredUsers.reduce(
-                            (acc, u) => {
-                              const dept = u.department || displayRole(u.role);
-                              if (!acc[dept]) acc[dept] = [];
-                              acc[dept].push(u);
-                              return acc;
-                            },
-                            {},
-                          );
-
                           return Object.entries(groupedUsers).map(
                             ([dept, deptUsers]) => (
                               <div
@@ -2496,38 +2581,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             <div className="p-2 max-h-[20rem] overflow-y-auto sidebar-scrollbar flex flex-col gap-1">
               {(() => {
-                const filteredUsers = users.filter((u) => {
-                  const searchStr = userSearchQuery.toLowerCase().trim();
-                  if (!searchStr) return true;
-                  const searchTerms = searchStr.split(/\s+/);
-                  const searchableText = [
-                    u.name,
-                    u.department || "",
-                    displayRole(u.role),
-                  ]
-                    .join(" ")
-                    .toLowerCase();
-                  return searchTerms.every((term) =>
-                    searchableText.includes(term),
-                  );
-                });
-
-                if (filteredUsers.length === 0) {
-                  return (
-                    <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
-                      No users found matching "{userSearchQuery}"
-                    </div>
-                  );
-                }
-
-                const groupedUsers = filteredUsers.reduce((acc, u) => {
-                  const dept = u.department || displayRole(u.role);
-                  if (!acc[dept]) acc[dept] = [];
-                  acc[dept].push(u);
-                  return acc;
-                }, {});
-
-                return Object.entries(groupedUsers).map(([dept, deptUsers]) => (
+                          if (filteredUsers.length === 0) {
+                            return (
+                              <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                                No users found matching "{userSearchQuery}"
+                              </div>
+                            );
+                          }
+                          return Object.entries(groupedUsers).map(([dept, deptUsers]) => (
                   <div key={dept} className="space-y-0.5 mb-1 last:mb-0">
                     {deptUsers.map((u) => {
                       const isCurrent =
@@ -2596,4 +2657,4 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

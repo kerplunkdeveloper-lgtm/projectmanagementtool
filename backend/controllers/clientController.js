@@ -1,6 +1,25 @@
 const Client = require("../models/Client");
 const Notification = require("../models/Notification");
 
+const isPrivilegedClientUser = (user) => {
+  if (!user) return false;
+  if (
+    user.role === "admin" ||
+    user.role === "operationmanager" ||
+    user.role === "operation manager"
+  ) {
+    return true;
+  }
+  const dept = (user.department || "").toLowerCase();
+  const role = (user.role || "").toLowerCase();
+  return (
+    dept.includes("finance") ||
+    dept.includes("account") ||
+    role === "finance" ||
+    role === "accountant"
+  );
+};
+
 
 // @desc    Create Client
 // @route   POST /api/clients
@@ -56,14 +75,14 @@ exports.createClient = async (req, res) => {
       color,
       icon,
       createdBy: req.user._id,
-      assignedTo: (req.user.role !== "admin" && req.user.role !== "operationmanager")
+      assignedTo: !isPrivilegedClientUser(req.user)
         ? [req.user._id]
         : (Array.isArray(assignedTo) ? assignedTo.map(id => id._id || id) : (assignedTo ? [assignedTo._id || assignedTo] : [])),
     });
 
     const populatedClient = await Client.findById(client._id)
       .populate("createdBy", "name email role")
-      .populate("assignedTo", "name email role");
+      .populate("assignedTo", "name email role department");
 
     // Real-time Notification to assigned users
     if (populatedClient.assignedTo && populatedClient.assignedTo.length > 0) {
@@ -107,7 +126,7 @@ exports.getClients = async (req, res) => {
   try {
     let query = {};
     if (
-      (req.user.role !== "admin" && req.user.role !== "operationmanager") ||
+      !isPrivilegedClientUser(req.user) ||
       req.query.assignedOnly === "true"
     ) {
       query.assignedTo = req.user._id;
@@ -120,7 +139,7 @@ exports.getClients = async (req, res) => {
       )
       .populate(
         "assignedTo",
-        "name email role"
+        "name email role department"
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -148,7 +167,7 @@ exports.getClient = async (req, res) => {
       req.params.id
     )
       .populate("createdBy", "name email role")
-      .populate("assignedTo", "name email role")
+      .populate("assignedTo", "name email role department")
       .lean();
 
     if (!client) {
@@ -164,7 +183,7 @@ exports.getClient = async (req, res) => {
         : (client.assignedTo._id ? client.assignedTo._id.toString() : client.assignedTo.toString()) === req.user._id.toString()
     );
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isAssigned) {
+    if (!isPrivilegedClientUser(req.user) && !isAssigned) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to view this client",
@@ -203,7 +222,7 @@ exports.updateClient = async (req, res) => {
         : clientToCheck.assignedTo.toString() === req.user._id.toString()
     );
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isAssigned) {
+    if (!isPrivilegedClientUser(req.user) && !isAssigned) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to perform CRUD operations on this client",
@@ -234,7 +253,7 @@ exports.updateClient = async (req, res) => {
         }
       )
         .populate("createdBy", "name email role")
-        .populate("assignedTo", "name email role");
+        .populate("assignedTo", "name email role department");
 
     if (!client) {
       return res.status(404).json({
@@ -300,7 +319,7 @@ exports.deleteClient = async (req, res) => {
         : client.assignedTo.toString() === req.user._id.toString()
     );
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isAssigned) {
+    if (!isPrivilegedClientUser(req.user) && !isAssigned) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to perform CRUD operations on this client",

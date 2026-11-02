@@ -152,7 +152,48 @@ export const apiSlice = createApi({
         method: "POST",
         body: taskData,
       }),
-      invalidatesTags: ["Task"],
+      async onQueryStarted(taskData, { dispatch, queryFulfilled, getState }) {
+        try {
+          const { data: createdResponse } = await queryFulfilled;
+          const createdTask = createdResponse?.data;
+          if (createdTask) {
+            const queries = getState()?.api?.queries || {};
+            const seenArgs = new Set();
+
+            const appendToDraft = (args) => {
+              const keyStr = JSON.stringify(args ?? null);
+              if (seenArgs.has(keyStr)) return;
+              seenArgs.add(keyStr);
+
+              // Check project match if filter is present
+              if (args?.project && args.project !== "all") {
+                const taskProjId = createdTask.project?._id || createdTask.project;
+                if (String(taskProjId) !== String(args.project)) return;
+              }
+
+              dispatch(
+                apiSlice.util.updateQueryData("getTasks", args, (draft) => {
+                  if (!Array.isArray(draft)) return;
+                  if (!draft.some((t) => t._id === createdTask._id)) {
+                    draft.push(createdTask);
+                  }
+                })
+              );
+            };
+
+            Object.keys(queries).forEach((k) => {
+              const q = queries[k];
+              if (q && q.endpointName === "getTasks" && q.status === "fulfilled") {
+                appendToDraft(q.originalArgs);
+              }
+            });
+
+            [undefined, { my_tasks: true }, { active_only: true, minimal: true }, { minimal: true }, { active_only: true }].forEach(appendToDraft);
+          }
+        } catch {
+          // creation error, handled by caller
+        }
+      },
     }),
     updateTask: builder.mutation({
       query: ({ id, taskData }) => ({
@@ -160,20 +201,18 @@ export const apiSlice = createApi({
         method: "PUT",
         body: taskData,
       }),
-      invalidatesTags: ["Task"],
-      async onQueryStarted({ id, taskData }, { dispatch, queryFulfilled }) {
-        // BUG-09 FIX: Update all cached task query variants (not just undefined key)
-        const cacheKeys = [
-          undefined,
-          { my_tasks: true },
-          { active_only: true, minimal: true },
-          { minimal: true },
-          { active_only: true },
-        ];
+      async onQueryStarted({ id, taskData }, { dispatch, queryFulfilled, getState }) {
+        const queries = getState()?.api?.queries || {};
+        const patchResults = [];
+        const seenArgs = new Set();
 
-        const patchResults = cacheKeys.map((cacheKey) =>
-          dispatch(
-            apiSlice.util.updateQueryData("getTasks", cacheKey, (draft) => {
+        const updateDraft = (args) => {
+          const keyStr = JSON.stringify(args ?? null);
+          if (seenArgs.has(keyStr)) return;
+          seenArgs.add(keyStr);
+
+          const patch = dispatch(
+            apiSlice.util.updateQueryData("getTasks", args, (draft) => {
               if (!Array.isArray(draft)) return;
               const task = draft.find((t) => t._id === id);
               if (task) {
@@ -183,22 +222,38 @@ export const apiSlice = createApi({
                 }
               }
             })
-          )
-        );
+          );
+          patchResults.push(patch);
+        };
+
+        // Scan all cached getTasks queries in memory (covers { project: id }, department, my_tasks, etc.)
+        Object.keys(queries).forEach((k) => {
+          const q = queries[k];
+          if (q && q.endpointName === "getTasks" && q.status === "fulfilled") {
+            updateDraft(q.originalArgs);
+          }
+        });
+
+        // Fallback standard keys
+        [undefined, { my_tasks: true }, { active_only: true, minimal: true }, { minimal: true }, { active_only: true }].forEach(updateDraft);
 
         try {
           const { data: updatedTaskResponse } = await queryFulfilled;
-          cacheKeys.forEach((cacheKey) => {
-            dispatch(
-              apiSlice.util.updateQueryData("getTasks", cacheKey, (draft) => {
-                if (!Array.isArray(draft)) return;
-                const index = draft.findIndex((t) => t._id === id);
-                if (index !== -1 && updatedTaskResponse?.data) {
-                  draft[index] = updatedTaskResponse.data;
-                }
-              })
-            );
-          });
+          const updatedTask = updatedTaskResponse?.data;
+          if (updatedTask) {
+            seenArgs.forEach((keyStr) => {
+              const args = keyStr === "null" ? undefined : JSON.parse(keyStr);
+              dispatch(
+                apiSlice.util.updateQueryData("getTasks", args, (draft) => {
+                  if (!Array.isArray(draft)) return;
+                  const index = draft.findIndex((t) => t._id === id);
+                  if (index !== -1) {
+                    draft[index] = { ...draft[index], ...updatedTask };
+                  }
+                })
+              );
+            });
+          }
         } catch {
           patchResults.forEach((p) => p.undo());
         }
@@ -209,27 +264,43 @@ export const apiSlice = createApi({
         url: `/tasks/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Task"],
-      async onQueryStarted(id, { dispatch, queryFulfilled }) {
-        dispatch(
-          apiSlice.util.updateQueryData("getTasks", { my_tasks: true }, (draft) => {
-            if (!Array.isArray(draft)) return;
-            const index = draft.findIndex((t) => t._id === id);
-            if (index !== -1) draft.splice(index, 1);
-          })
-        );
-        const patchResult = dispatch(
-          apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {
-            const index = draft.findIndex((t) => t._id === id);
-            if (index !== -1) {
-              draft.splice(index, 1);
-            }
-          })
-        );
+      async onQueryStarted(id, { dispatch, queryFulfilled, getState }) {
+        const queries = getState()?.api?.queries || {};
+        const patchResults = [];
+        const seenArgs = new Set();
+
+        const deleteFromDraft = (args) => {
+          const keyStr = JSON.stringify(args ?? null);
+          if (seenArgs.has(keyStr)) return;
+          seenArgs.add(keyStr);
+
+          const patch = dispatch(
+            apiSlice.util.updateQueryData("getTasks", args, (draft) => {
+              if (!Array.isArray(draft)) return;
+              const index = draft.findIndex((t) => t._id === id);
+              if (index !== -1) {
+                draft.splice(index, 1);
+              }
+            })
+          );
+          patchResults.push(patch);
+        };
+
+        // Scan all cached getTasks queries in memory
+        Object.keys(queries).forEach((k) => {
+          const q = queries[k];
+          if (q && q.endpointName === "getTasks" && q.status === "fulfilled") {
+            deleteFromDraft(q.originalArgs);
+          }
+        });
+
+        // Fallback standard keys
+        [undefined, { my_tasks: true }, { active_only: true, minimal: true }, { minimal: true }, { active_only: true }].forEach(deleteFromDraft);
+
         try {
           await queryFulfilled;
         } catch {
-          patchResult.undo();
+          patchResults.forEach((p) => p.undo());
         }
       },
     }),

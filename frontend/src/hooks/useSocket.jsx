@@ -139,8 +139,12 @@ const useSocket = (externalSocket) => {
       socket.current = socketInstance;
       if (!socketInstance) return;
 
+      let taskDebounceTimer = null;
       const handleTaskUpdated = () => {
-        dispatch(apiSlice.util.invalidateTags(["Task"]));
+        if (taskDebounceTimer) clearTimeout(taskDebounceTimer);
+        taskDebounceTimer = setTimeout(() => {
+          dispatch(apiSlice.util.invalidateTags(["Task"]));
+        }, 1200);
       };
 
       const handleAccountDeactivated = (data) => {

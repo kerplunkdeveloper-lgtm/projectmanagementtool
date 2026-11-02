@@ -63,4 +63,4 @@ export const ProjectIcon = ({ name, client, size = "sm", className = "" }) => {
   );
 };
 
-export default ProjectIcon;
+export default React.memo(ProjectIcon);

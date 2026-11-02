@@ -6,6 +6,7 @@ import {
   FiChevronRight,
   FiPlus,
   FiFilter,
+  FiGrid,
   FiList,
   FiCalendar,
   FiClock,
@@ -35,6 +36,7 @@ import {
   getSocialmediaStats,
   rescheduleSocialmediaTask,
   deleteSocialmediaTask,
+  updateSocialmediaTask,
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
@@ -105,7 +107,7 @@ const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.25 } }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#f8fafc]/85 dark:bg-[#090d16]/85 backdrop-blur-md overflow-hidden select-none pointer-events-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-[#060a14]/90 backdrop-blur-md overflow-hidden select-none pointer-events-auto"
     >
       {/* Ambient Floating Glow Spheres */}
       <div className="absolute top-1/4 left-1/4 w-80 sm:w-96 h-80 sm:h-96 bg-indigo-500/15 dark:bg-indigo-600/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
@@ -117,17 +119,15 @@ const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.94, opacity: 0, y: -10 }}
         transition={{ type: "spring", damping: 25, stiffness: 320 }}
-        className="relative z-10 w-full max-w-sm sm:max-w-md p-7 sm:p-9 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-indigo-500/15 backdrop-blur-xl flex flex-col items-center text-center overflow-hidden"
+        className="relative z-10 w-full max-w-sm sm:max-w-md p-7 sm:p-9 rounded-3xl bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-[#1e2a40] shadow-2xl shadow-indigo-500/20 backdrop-blur-xl flex flex-col items-center text-center overflow-hidden"
       >
         {/* Subtle decorative top neon bar */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
         {/* 3D Mascot Character Hero with Floating Animation and Glowing Aura */}
-        <div className="relative mb-4.5 flex items-center justify-center">
+        <div className="relative mb-5 flex items-center justify-center">
           {/* Ambient Outer Aura Glow */}
           <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-indigo-500/30 via-purple-500/30 to-pink-500/20 blur-2xl animate-pulse pointer-events-none" />
-
-         
 
           {/* Mascot Image with Gentle Bobbing / Floating Motion */}
           <motion.div
@@ -140,7 +140,7 @@ const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
               duration: 3,
               ease: "easeInOut",
             }}
-            className="relative z-10 w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden ring-4 ring-indigo-500/25 shadow-2xl shadow-indigo-500/30 bg-slate-950 flex items-center justify-center border border-indigo-400/40"
+            className="relative z-10 w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden ring-4 ring-indigo-500/25 shadow-2xl shadow-indigo-500/30 bg-[#0f172a] flex items-center justify-center border border-indigo-500/30"
           >
             <img
               src={calendarMascotImg}
@@ -152,14 +152,12 @@ const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
 
         {/* Title & Status Chip */}
         <div className="space-y-1.5 mb-5">
-          
-
           <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
             <span>Loading Calendar</span>
             <span className="flex gap-0.5 ml-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.3s]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.15s]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:-0.3s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:-0.15s]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" />
             </span>
           </h3>
 
@@ -172,7 +170,7 @@ const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
         </div>
 
         {/* Smooth Gradient Progress Bar */}
-        <div className="w-full max-w-xs h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative mb-5 shadow-inner">
+        <div className="w-full max-w-xs h-2 bg-slate-200/80 dark:bg-[#162033] border border-slate-200/80 dark:border-[#23334d] rounded-full overflow-hidden relative mb-5 shadow-inner">
           <motion.div
             className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full"
             initial={{ x: "-100%", width: "45%" }}
@@ -185,17 +183,17 @@ const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
         <div className="flex items-center justify-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Posts & Reels</span>
+            <span className="text-slate-600 dark:text-slate-300">Posts & Reels</span>
           </div>
-          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-slate-300 dark:text-slate-600">•</span>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse [animation-delay:0.2s]" />
-            <span>Deliverables</span>
+            <span className="text-slate-600 dark:text-slate-300">Deliverables</span>
           </div>
-          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="text-slate-300 dark:text-slate-600">•</span>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse [animation-delay:0.4s]" />
-            <span>QC Status</span>
+            <span className="text-slate-600 dark:text-slate-300">QC Status</span>
           </div>
         </div>
       </motion.div>
@@ -210,6 +208,7 @@ const ContentCalendar = () => {
   const role = user?.role || "admin";
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
   const isPrivileged = userRoleClean === "admin" || userRoleClean === "operationmanager";
+  const canFilterBySMM = isPrivileged || userRoleClean === "socialmediamanager";
   const isReadOnly = isPrivileged;
 
   const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
@@ -347,6 +346,86 @@ const ContentCalendar = () => {
   // Drag and Drop
   const [draggedTaskId, setDraggedTaskId] = useState(null);
 
+  // Table View State
+  const [tableSearch, setTableSearch] = useState("");
+  const [tablePage, setTablePage] = useState(1);
+  const itemsPerPage = 15;
+
+  const formatPublishDateTime = (dateVal) => {
+    if (!dateVal) return "-";
+    try {
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return "-";
+      const day = d.getDate();
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const month = months[d.getMonth()];
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      return `${day} ${month} ${hh}:${mm}`;
+    } catch {
+      return "-";
+    }
+  };
+
+  const renderDueDateBadge = (dueDate, status) => {
+    if (!dueDate) return <span className="text-slate-400 font-medium">-</span>;
+    const due = new Date(dueDate);
+    if (isNaN(due.getTime())) return <span className="text-slate-400 font-medium">-</span>;
+
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dateStr = `${due.getDate()} ${months[due.getMonth()]}`;
+    const isLive = status === "Live" || status === "Completed";
+    if (isLive) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs whitespace-nowrap">
+          {dateStr}
+        </span>
+      );
+    }
+
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startDue = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+    const diffDays = Math.round((startDue - startToday) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      const overdueDays = Math.abs(diffDays);
+      const dayLabel = overdueDays === 1 ? "1d overdue" : `${overdueDays}d overdue`;
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+          <span>{dateStr}</span>
+          <span className="font-extrabold text-[10px] uppercase tracking-wider opacity-90">• {dayLabel}</span>
+        </span>
+      );
+    }
+    if (diffDays === 0) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+          <span>{dateStr}</span>
+          <span className="font-extrabold text-[10px] uppercase tracking-wider opacity-90">• Due today</span>
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
+        {dateStr}
+      </span>
+    );
+  };
+
+  const handleQuickStatusChange = async (task, newStatus) => {
+    if (!task || !task._id || isReadOnly) return;
+    try {
+      await dispatch(updateSocialmediaTask({ id: task._id, data: { status: newStatus } })).unwrap();
+      toast.success(`Status updated to "${newStatus}"`);
+      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+    } catch (err) {
+      toast.error(err?.message || "Failed to update status");
+    }
+  };
+
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth(); // 0-indexed
   const realTodayStr = formatLocalDateKey(new Date());
@@ -357,10 +436,7 @@ const ContentCalendar = () => {
   const [isPendingCommitmentOpen, setIsPendingCommitmentOpen] = useState(false);
   const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState(realTodayStr);
 
-  // Compute live commitments across all clients (posts, reels, deliverables)
-  const commitmentOverview = useMemo(() => {
-    return computeAllClientsCommitments(clients, tasks, currentMonth + 1, currentYear);
-  }, [clients, tasks, currentMonth, currentYear]);
+  // (commitmentOverview moved after calendarTasks for dynamic filter reactivity)
 
   // Fetch dynamic tasks and stats
   useEffect(() => {
@@ -397,21 +473,61 @@ const ContentCalendar = () => {
     return ["All", ...sorted];
   }, [clients, uniqueTasks]);
 
-  // Dynamic creator / assignee options (alphabetically sorted)
+  // Helper to identify Social Media Managers
+  const isSocialMediaManager = useCallback((u) => {
+    if (!u) return false;
+    if (u.employmentStatus === "relieved") return false;
+    const dept = (u.department || "").toLowerCase().trim();
+    const role = (u.role || "").toLowerCase().trim();
+    const desig = (u.designation || "").toLowerCase().trim();
+    return (
+      dept.includes("social media") ||
+      dept.includes("social manager") ||
+      dept.includes("smm") ||
+      role.includes("social media") ||
+      role.includes("smm") ||
+      role === "socialmediamanager" ||
+      desig.includes("social media") ||
+      desig.includes("smm")
+    );
+  }, []);
+
+  // Dynamic creator / assignee options - ONLY Social Media Managers
   const assigneeOptions = useMemo(() => {
-    const set = new Set();
-    users.forEach((u) => {
-      if (u.name) set.add(u.name.trim());
+    const nameMap = new Map();
+
+    // 1. All active Social Media Managers in users list
+    (users || []).forEach((u) => {
+      if (u.name && u.name.trim() && isSocialMediaManager(u)) {
+        nameMap.set(u.name.trim().toLowerCase(), u.name.trim());
+      }
     });
+
+    // 2. Also check uniqueTasks: if creator or assignee is matched to an SMM user
     uniqueTasks.forEach((t) => {
-      const creator = (t.createdBy?.name || t.createdByName)?.trim();
-      const assignee = (t.assignee?.name || t.assigneeName)?.trim();
-      if (creator) set.add(creator);
-      if (assignee) set.add(assignee);
+      const cId = (t.createdBy?._id || t.createdBy)?.toString();
+      const aId = (t.assignee?._id || t.assignee)?.toString();
+      const matched =
+        (cId && usersMap.get(cId)) ||
+        (aId && usersMap.get(aId)) ||
+        (t.createdBy?.name && usersMap.get(t.createdBy.name.trim().toLowerCase())) ||
+        (t.createdByName && usersMap.get(t.createdByName.trim().toLowerCase())) ||
+        (t.assignee?.name && usersMap.get(t.assignee.name.trim().toLowerCase())) ||
+        (t.assigneeName && usersMap.get(t.assigneeName.trim().toLowerCase()));
+
+      if (matched && isSocialMediaManager(matched)) {
+        nameMap.set(matched.name.trim().toLowerCase(), matched.name.trim());
+      }
     });
-    const sorted = Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
+
+    // 3. Current user if SMM
+    if (user && isSocialMediaManager(user) && user.name && user.name.trim()) {
+      nameMap.set(user.name.trim().toLowerCase(), user.name.trim());
+    }
+
+    const sorted = Array.from(nameMap.values()).sort((a, b) => a.localeCompare(b));
     return ["All", ...sorted];
-  }, [users, uniqueTasks]);
+  }, [users, uniqueTasks, usersMap, user, isSocialMediaManager]);
 
   // Filtered tasks for calendar (only tasks with publishDate)
   const calendarTasks = useMemo(() => {
@@ -456,7 +572,14 @@ const ContentCalendar = () => {
       if (isPrivileged && selectedAssignee !== "All") {
         const creator = task.createdBy?.name || task.createdByName;
         const assignee = task.assignee?.name || task.assigneeName;
-        if (creator !== selectedAssignee && assignee !== selectedAssignee) return false;
+        const creatorInfo = getCreatorInfo(task);
+        const selectedLower = selectedAssignee.trim().toLowerCase();
+
+        const matchesCreator = creator && creator.trim().toLowerCase() === selectedLower;
+        const matchesAssignee = assignee && assignee.trim().toLowerCase() === selectedLower;
+        const matchesResolved = creatorInfo?.name && creatorInfo.name.trim().toLowerCase() === selectedLower;
+
+        if (!matchesCreator && !matchesAssignee && !matchesResolved) return false;
       }
       if (selectedPriority !== "All" && task.priority !== selectedPriority) return false;
 
@@ -490,6 +613,143 @@ const ContentCalendar = () => {
     selectedCommitment,
     atRiskOnly,
   ]);
+
+  // Compute live commitments across all clients (posts, reels, deliverables) - dynamically adapts to active filters
+  const commitmentOverview = useMemo(() => {
+    const isFiltered = (isPrivileged && selectedAssignee !== "All") || selectedClient !== "All";
+    const tasksToUse = isFiltered ? calendarTasks : (tasks || []);
+    return computeAllClientsCommitments(
+      clients,
+      tasksToUse,
+      currentMonth + 1,
+      currentYear,
+      selectedClient !== "All"
+    );
+  }, [clients, tasks, calendarTasks, currentMonth, currentYear, isPrivileged, selectedAssignee, selectedClient]);
+
+  // 5 KPI Metric Cards - dynamically calculated when Admin/Operation Manager filters by Created By  or Client
+  const displayStats = useMemo(() => {
+    const isFilteredByUser = isPrivileged && selectedAssignee !== "All";
+    const isFilteredByClient = selectedClient !== "All";
+
+    if (isFilteredByUser || isFilteredByClient) {
+      const selectedLower = selectedAssignee.trim().toLowerCase();
+      const now = new Date();
+      const nowTime = now.getTime();
+
+      const userMonthlyCommitments = uniqueTasks.filter((t) => {
+        if (!t.commitment) return false;
+        if (!t.publishDate) return false;
+
+        const pDate = new Date(t.publishDate);
+        if (isNaN(pDate.getTime())) return false;
+        if (pDate.getFullYear() !== currentYear || pDate.getMonth() !== currentMonth) {
+          return false;
+        }
+
+        if (isFilteredByClient && t.clientName !== selectedClient) {
+          return false;
+        }
+
+        if (isFilteredByUser) {
+          const creator = t.createdBy?.name || t.createdByName;
+          const assignee = t.assignee?.name || t.assigneeName;
+          const creatorInfo = getCreatorInfo(t);
+
+          const matchesCreator = creator && creator.trim().toLowerCase() === selectedLower;
+          const matchesAssignee = assignee && assignee.trim().toLowerCase() === selectedLower;
+          const matchesResolved = creatorInfo?.name && creatorInfo.name.trim().toLowerCase() === selectedLower;
+
+          if (!matchesCreator && !matchesAssignee && !matchesResolved) return false;
+        }
+
+        return true;
+      });
+
+      const totalCommitments = userMonthlyCommitments.length;
+
+      const completedCount = userMonthlyCommitments.filter((t) =>
+        ["Completed", "Live"].includes(t.status)
+      ).length;
+
+      const overdueCount = userMonthlyCommitments.filter((t) => {
+        if (["Completed", "Live"].includes(t.status)) return false;
+        const pub = new Date(t.publishDate);
+        return pub.getTime() < nowTime || t.status === "Overdue";
+      }).length;
+
+      const pendingCount = userMonthlyCommitments.filter((t) => {
+        if (!["In QC", "Scheduled", "In progress", "Not started"].includes(t.status)) return false;
+        const pub = new Date(t.publishDate);
+        return pub.getTime() >= nowTime;
+      }).length;
+
+      const atRiskCount = userMonthlyCommitments.filter((t) => {
+        if (["Completed", "Live"].includes(t.status)) return false;
+        const targetDate = t.publishDate || t.dueDate;
+        if (!targetDate) return false;
+        const diffHours = (new Date(targetDate).getTime() - nowTime) / (1000 * 60 * 60);
+        return diffHours >= 0 && diffHours <= 24;
+      }).length;
+
+      const achievement = totalCommitments > 0
+        ? parseFloat(((completedCount / totalCommitments) * 100).toFixed(1))
+        : 0;
+
+      return {
+        commitments: totalCommitments,
+        completed: completedCount,
+        pending: pendingCount,
+        overdue: overdueCount,
+        atRisk: atRiskCount,
+        achievement,
+      };
+    }
+
+    return {
+      commitments: stats?.commitments ?? 0,
+      completed: stats?.completed ?? 0,
+      pending: stats?.pending ?? 0,
+      overdue: stats?.overdue ?? 0,
+      atRisk: stats?.atRisk ?? 0,
+      achievement: stats?.achievement ?? 0,
+    };
+  }, [
+    isPrivileged,
+    selectedAssignee,
+    selectedClient,
+    uniqueTasks,
+    currentYear,
+    currentMonth,
+    stats,
+    getCreatorInfo,
+  ]);
+
+  // Filtered tasks for Table View (with dedicated search)
+  const tableFilteredTasks = useMemo(() => {
+    let list = calendarTasks;
+    if (tableSearch.trim()) {
+      const q = tableSearch.toLowerCase().trim();
+      list = list.filter((t) => {
+        const creator = getCreatorInfo(t);
+        return (
+          t.taskTitle?.toLowerCase().includes(q) ||
+          t.clientName?.toLowerCase().includes(q) ||
+          t.category?.toLowerCase().includes(q) ||
+          t.contentType?.toLowerCase().includes(q) ||
+          t.status?.toLowerCase().includes(q) ||
+          creator?.name?.toLowerCase().includes(q)
+        );
+      });
+    }
+    return list;
+  }, [calendarTasks, tableSearch, getCreatorInfo]);
+
+  const tableTotalPages = Math.ceil(tableFilteredTasks.length / itemsPerPage) || 1;
+  const tablePaginatedTasks = useMemo(() => {
+    const start = (tablePage - 1) * itemsPerPage;
+    return tableFilteredTasks.slice(start, start + itemsPerPage);
+  }, [tableFilteredTasks, tablePage]);
 
   // Calendar month grid calculation (Sunday start matching Image 2)
   const calendarDays = useMemo(() => {
@@ -775,10 +1035,10 @@ const ContentCalendar = () => {
   const getStatusCardStyles = (status = "", isAtRisk = false) => {
     if (isAtRisk) {
       return {
-        card: "bg-[#feebee] dark:bg-rose-950/35 border-rose-200/90 dark:border-rose-800/70 hover:bg-[#fed9de] dark:hover:bg-rose-950/55 hover:border-rose-300 dark:hover:border-rose-600 shadow-2xs hover:shadow-xs",
-        badge: "bg-rose-100 dark:bg-rose-900/70 text-rose-800 dark:text-rose-200 border-rose-300/80 dark:border-rose-700",
+        card: "bg-[#feebee] dark:bg-[#280d13] border-rose-200 dark:border-rose-900/60 hover:bg-[#fed9de] dark:hover:bg-[#35121a] hover:border-rose-300 dark:hover:border-rose-700/70 shadow-2xs hover:shadow-xs",
+        badge: "bg-rose-100 dark:bg-rose-950/90 text-rose-800 dark:text-rose-300 border-rose-300/80 dark:border-rose-800/70",
         dot: "bg-rose-500 animate-pulse",
-        divider: "border-rose-200/80 dark:border-rose-900/50",
+        divider: "border-rose-200/80 dark:border-rose-900/40",
         label: "Risk",
       };
     }
@@ -789,51 +1049,51 @@ const ContentCalendar = () => {
       case "live":
       case "completed":
         return {
-          card: "bg-[#e6f9ee] dark:bg-emerald-950/35 border-emerald-200/90 dark:border-emerald-800/70 hover:bg-[#d5f5e2] dark:hover:bg-emerald-950/55 hover:border-emerald-300 dark:hover:border-emerald-600 shadow-2xs hover:shadow-xs",
-          badge: "bg-emerald-100 dark:bg-emerald-900/70 text-emerald-800 dark:text-emerald-200 border-emerald-300/80 dark:border-emerald-700",
-          dot: "bg-emerald-500",
-          divider: "border-emerald-200/80 dark:border-emerald-900/50",
+          card: "bg-[#e6f9ee] dark:bg-[#072418] border-emerald-200 dark:border-emerald-900/60 hover:bg-[#d5f5e2] dark:hover:bg-[#0c3323] hover:border-emerald-300 dark:hover:border-emerald-700/70 shadow-2xs hover:shadow-xs",
+          badge: "bg-emerald-100 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-800/70",
+          dot: "bg-emerald-400",
+          divider: "border-emerald-200/80 dark:border-emerald-900/40",
           label: "Live",
         };
       case "scheduled":
         return {
-          card: "bg-[#e8f4fd] dark:bg-sky-950/35 border-sky-200/90 dark:border-sky-800/70 hover:bg-[#d8edfd] dark:hover:bg-sky-950/55 hover:border-sky-300 dark:hover:border-sky-600 shadow-2xs hover:shadow-xs",
-          badge: "bg-sky-100 dark:bg-sky-900/70 text-sky-800 dark:text-sky-200 border-sky-300/80 dark:border-sky-700",
-          dot: "bg-sky-500",
-          divider: "border-sky-200/80 dark:border-sky-900/50",
+          card: "bg-[#e8f4fd] dark:bg-[#0a2139] border-sky-200 dark:border-sky-900/60 hover:bg-[#d8edfd] dark:hover:bg-[#0e2e4e] hover:border-sky-300 dark:hover:border-sky-700/70 shadow-2xs hover:shadow-xs",
+          badge: "bg-sky-100 dark:bg-sky-950/90 text-sky-800 dark:text-sky-300 border-sky-300/80 dark:border-sky-800/70",
+          dot: "bg-sky-400",
+          divider: "border-sky-200/80 dark:border-sky-900/40",
           label: "Sched",
         };
       case "in qc":
         return {
-          card: "bg-[#fef7e3] dark:bg-amber-950/35 border-amber-200/90 dark:border-amber-800/70 hover:bg-[#fdeec4] dark:hover:bg-amber-950/55 hover:border-amber-300 dark:hover:border-amber-600 shadow-2xs hover:shadow-xs",
-          badge: "bg-amber-100 dark:bg-amber-900/70 text-amber-800 dark:text-amber-200 border-amber-300/80 dark:border-amber-700",
-          dot: "bg-amber-500",
-          divider: "border-amber-200/80 dark:border-amber-900/50",
+          card: "bg-[#fef7e3] dark:bg-[#261c0a] border-amber-200 dark:border-amber-900/60 hover:bg-[#fdeec4] dark:hover:bg-[#34260f] hover:border-amber-300 dark:hover:border-amber-700/70 shadow-2xs hover:shadow-xs",
+          badge: "bg-amber-100 dark:bg-amber-950/90 text-amber-800 dark:text-amber-300 border-amber-300/80 dark:border-amber-800/70",
+          dot: "bg-amber-400",
+          divider: "border-amber-200/80 dark:border-amber-900/40",
           label: "QC",
         };
       case "in progress":
         return {
-          card: "bg-[#eef0fe] dark:bg-indigo-950/35 border-indigo-200/90 dark:border-indigo-800/70 hover:bg-[#e0e4fe] dark:hover:bg-indigo-950/55 hover:border-indigo-300 dark:hover:border-indigo-600 shadow-2xs hover:shadow-xs",
-          badge: "bg-indigo-100 dark:bg-indigo-900/70 text-indigo-800 dark:text-indigo-200 border-indigo-300/80 dark:border-indigo-700",
-          dot: "bg-indigo-500",
-          divider: "border-indigo-200/80 dark:border-indigo-900/50",
+          card: "bg-[#eef0fe] dark:bg-[#151936] border-indigo-200 dark:border-indigo-900/60 hover:bg-[#e0e4fe] dark:hover:bg-[#1e234a] hover:border-indigo-300 dark:hover:border-indigo-700/70 shadow-2xs hover:shadow-xs",
+          badge: "bg-indigo-100 dark:bg-indigo-950/90 text-indigo-800 dark:text-indigo-300 border-indigo-300/80 dark:border-indigo-800/70",
+          dot: "bg-indigo-400",
+          divider: "border-indigo-200/80 dark:border-indigo-900/40",
           label: "In Prog",
         };
       case "overdue":
         return {
-          card: "bg-[#feebee] dark:bg-rose-950/35 border-rose-200/90 dark:border-rose-800/70 hover:bg-[#fed9de] dark:hover:bg-rose-950/55 hover:border-rose-300 dark:hover:border-rose-600 shadow-2xs hover:shadow-xs",
-          badge: "bg-rose-100 dark:bg-rose-900/70 text-rose-800 dark:text-rose-200 border-rose-300/80 dark:border-rose-700",
+          card: "bg-[#feebee] dark:bg-[#280d13] border-rose-200 dark:border-rose-900/60 hover:bg-[#fed9de] dark:hover:bg-[#35121a] hover:border-rose-300 dark:hover:border-rose-700/70 shadow-2xs hover:shadow-xs",
+          badge: "bg-rose-100 dark:bg-rose-950/90 text-rose-800 dark:text-rose-300 border-rose-300/80 dark:border-rose-800/70",
           dot: "bg-rose-500 animate-pulse",
-          divider: "border-rose-200/80 dark:border-rose-900/50",
+          divider: "border-rose-200/80 dark:border-rose-900/40",
           label: "Risk",
         };
       default:
         // Not started / Draft / default
         return {
-          card: "bg-[#f4f6f8] dark:bg-slate-800/60 border-slate-200/90 dark:border-slate-700/80 hover:bg-[#e9ecef] dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs hover:shadow-xs",
-          badge: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-slate-600",
+          card: "bg-[#f8fafc] dark:bg-[#131b2e] border-slate-200 dark:border-[#202d44] hover:bg-slate-100 dark:hover:bg-[#18233a] hover:border-slate-300 dark:hover:border-[#2b3c5a] shadow-2xs hover:shadow-xs",
+          badge: "bg-slate-100 dark:bg-[#1e2a40] text-slate-700 dark:text-[#cbd5e1] border-slate-200 dark:border-[#2c3d5b]",
           dot: "bg-slate-400",
-          divider: "border-slate-200/70 dark:border-slate-700/60",
+          divider: "border-slate-200/80 dark:border-[#1e2a40]",
           label: "Draft",
         };
     }
@@ -867,37 +1127,37 @@ const ContentCalendar = () => {
     switch (type) {
       case "reel":
         return {
-          bg: "bg-fuchsia-50 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-800/80",
+          bg: "bg-fuchsia-50 dark:bg-[#290d2e] text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-900/70",
           label: "REEL",
         };
       case "post":
         return {
-          bg: "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/80",
+          bg: "bg-blue-50 dark:bg-[#0c223d] text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900/70",
           label: "POST",
         };
       case "carousel":
         return {
-          bg: "bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/80",
+          bg: "bg-violet-50 dark:bg-[#1f1238] text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-900/70",
           label: "CAROUSEL",
         };
       case "story":
         return {
-          bg: "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80",
+          bg: "bg-amber-50 dark:bg-[#2d1b06] text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900/70",
           label: "STORY",
         };
       case "youtube":
         return {
-          bg: "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/80",
+          bg: "bg-rose-50 dark:bg-[#2b0c14] text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900/70",
           label: "YT",
         };
       case "gmb":
         return {
-          bg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/80",
+          bg: "bg-emerald-50 dark:bg-[#09261a] text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900/70",
           label: "GMB",
         };
       default:
         return {
-          bg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+          bg: "bg-slate-100 dark:bg-[#1a2333] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#2b3c5a]",
           label: (contentType || "POST").toUpperCase(),
         };
     }
@@ -948,11 +1208,11 @@ const ContentCalendar = () => {
         {/* Navigation & View switcher */}
         <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
           {/* Month/Week selector navigation */}
-          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-0.5 shadow-xs">
+          <div className="flex items-center bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-[#1e2a40] rounded-xl p-0.5 shadow-xs">
             <button
               onClick={handlePrev}
               disabled={isCalendarLoading}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer disabled:opacity-40"
               title={viewMode === "Week" ? "Previous Week" : "Previous Month"}
             >
               <FiChevronLeft size={16} />
@@ -960,14 +1220,14 @@ const ContentCalendar = () => {
             <button
               onClick={handleToday}
               disabled={isCalendarLoading}
-              className="px-3 py-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              className="px-3 py-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#182338] rounded-lg transition-colors cursor-pointer disabled:opacity-40"
             >
               Today
             </button>
             <button
               onClick={handleNext}
               disabled={isCalendarLoading}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-40"
+              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer disabled:opacity-40"
               title={viewMode === "Week" ? "Next Week" : "Next Month"}
             >
               <FiChevronRight size={16} />
@@ -982,21 +1242,21 @@ const ContentCalendar = () => {
               dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
             }}
             disabled={isCalendarLoading}
-            className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+            className="p-2 rounded-xl border border-slate-200 dark:border-[#1e2a40] bg-white dark:bg-[#0c1220] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#182338] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
             title="Refresh Calendar"
           >
             <FiRefreshCw size={14} className={isCalendarLoading ? "animate-spin text-indigo-500" : ""} />
           </button>
 
-          {/* View Mode Switcher */}
-          <div className="flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 shadow-xs">
+          {/* View Mode Switcher (Matching 2nd Reference Image) */}
+          <div className="flex items-center bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-[#1e2a40] rounded-xl p-1 shadow-xs">
             {["Month", "Week", "List"].map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                   viewMode === mode
-                    ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                    ? "bg-slate-100 dark:bg-[#182338] text-slate-900 dark:text-white shadow-xs"
                     : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -1022,7 +1282,7 @@ const ContentCalendar = () => {
 
           <button
             onClick={() => navigate(`/${userRoleClean || "admin"}/sm-tasks`)}
-            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer"
+            className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#1e2a40] bg-white dark:bg-[#0c1220] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#182338] transition-colors shadow-xs cursor-pointer"
           >
             <FiList size={14} />
             <span>Task Table</span>
@@ -1031,12 +1291,12 @@ const ContentCalendar = () => {
       </div>
 
       {/* Top Deliverables Progress Tracker (Image 2) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#0b101d] border border-slate-200/90 dark:border-[#1e2a40] rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="w-full max-w-2xl mx-auto space-y-2 text-center md:text-left">
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="text-slate-900 dark:text-white flex items-center gap-2">
               <span className="font-extrabold text-sm">{MONTH_NAMES[currentMonth]}</span>
-              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="text-slate-300 dark:text-slate-600">•</span>
               <span className="font-semibold text-slate-700 dark:text-slate-300">
                 {commitmentOverview.totalDeliverablesPublished}/{commitmentOverview.totalDeliverablesCommitted} deliverables published
               </span>
@@ -1046,7 +1306,7 @@ const ContentCalendar = () => {
             </span>
           </div>
 
-          <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+          <div className="w-full h-2.5 bg-slate-200/80 dark:bg-[#151d2e] rounded-full overflow-hidden shadow-inner border border-slate-200 dark:border-[#22314d]">
             <div
               className="h-full bg-emerald-500 rounded-full transition-all duration-500 shadow-sm"
               style={{ width: `${commitmentOverview.deliverablesProgressPct}%` }}
@@ -1057,9 +1317,9 @@ const ContentCalendar = () => {
         <button
           type="button"
           onClick={() => setIsPendingCommitmentOpen(true)}
-          className="shrink-0 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 bg-slate-50 dark:bg-slate-800/80 hover:bg-indigo-50/40 text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          className="shrink-0 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-[#24334f] hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50 dark:bg-[#131b2e] hover:bg-indigo-50/40 dark:hover:bg-[#1a253d] text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
         >
-          <FiBarChart2 size={15} className="text-indigo-500" />
+          <FiBarChart2 size={15} className="text-indigo-500 dark:text-indigo-400" />
           <span>Pending Commitments</span>
         </button>
       </div>
@@ -1067,25 +1327,25 @@ const ContentCalendar = () => {
       {/* 5 KPI Metric Cards - 100% Dynamic from MongoDB */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         {/* COMMITMENTS */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs">
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
             Commitments
           </span>
           <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {stats.commitments ?? 0}
+            {displayStats.commitments ?? 0}
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 block">
-            planned this month
+            {isPrivileged && selectedAssignee !== "All" ? `planned (${selectedAssignee})` : "planned this month"}
           </span>
         </div>
 
         {/* COMPLETED */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs">
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
             Completed
           </span>
           <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight">
-            {stats.completed ?? 0}
+            {displayStats.completed ?? 0}
           </div>
           <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium mt-1 block">
             published on time
@@ -1093,12 +1353,12 @@ const ContentCalendar = () => {
         </div>
 
         {/* PENDING */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs">
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
             Pending
           </span>
           <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {stats.pending ?? 0}
+            {displayStats.pending ?? 0}
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 block">
             in production or QC
@@ -1106,12 +1366,12 @@ const ContentCalendar = () => {
         </div>
 
         {/* OVERDUE */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs">
+        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs">
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
             Overdue
           </span>
           <div className="text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight">
-            {stats.overdue ?? 0}
+            {displayStats.overdue ?? 0}
           </div>
           <span className="text-[11px] text-rose-700 dark:text-rose-300 font-medium mt-1 block">
             past publish date
@@ -1119,12 +1379,12 @@ const ContentCalendar = () => {
         </div>
 
         {/* ACHIEVEMENT */}
-        <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs col-span-2 sm:col-span-1">
+        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs col-span-2 sm:col-span-1">
           <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
             Achievement
           </span>
           <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {stats.achievement ?? 0}%
+            {displayStats.achievement ?? 0}%
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 block">
             vs 90% target
@@ -1133,7 +1393,7 @@ const ContentCalendar = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 relative z-30">
+      <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 relative z-30">
         <div className="flex flex-wrap items-center gap-2">
           {/* All Clients (Dynamic DB Clients with Search Box) */}
           <SearchableDropdown
@@ -1141,17 +1401,18 @@ const ContentCalendar = () => {
             onChange={(val) => setSelectedClient(val)}
             options={clientOptions.filter((c) => c !== "All")}
             allLabel="All clients"
-            placeholder="All clients"
+            placeholder="Client"
             searchPlaceholder="Search clients..."
             emptyText="No clients found"
             menuWidth="w-64 sm:w-72"
+            buttonClassName="toolbar-filter-btn"
           />
 
           {/* Category */}
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            className={`toolbar-filter-select ${selectedCategory !== "All" ? "is-active" : ""}`}
           >
             <option value="All">Category</option>
             {CATEGORIES.filter((c) => c !== "All").map((c) => (
@@ -1165,7 +1426,7 @@ const ContentCalendar = () => {
           <select
             value={selectedContentType}
             onChange={(e) => setSelectedContentType(e.target.value)}
-            className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            className={`toolbar-filter-select ${selectedContentType !== "All" ? "is-active" : ""}`}
           >
             <option value="All">Content type</option>
             {CONTENT_TYPES.filter((c) => c !== "All").map((ct) => (
@@ -1179,7 +1440,7 @@ const ContentCalendar = () => {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            className={`toolbar-filter-select ${selectedStatus !== "All" ? "is-active" : ""}`}
           >
             <option value="All">Status</option>
             {STATUSES.filter((c) => c !== "All").map((st) => (
@@ -1189,17 +1450,18 @@ const ContentCalendar = () => {
             ))}
           </select>
 
-          {/* Assignee / Created By with Search Box - Admin & Operation Manager only */}
-          {isPrivileged && (
+          {/* SMM / Created By Filter with Search Box */}
+          {canFilterBySMM && (
             <SearchableDropdown
               value={selectedAssignee}
               onChange={(val) => setSelectedAssignee(val)}
               options={assigneeOptions.filter((a) => a !== "All")}
-              allLabel="Created By / Assignee"
-              placeholder="Created By / Assignee"
-              searchPlaceholder="Search creator..."
-              emptyText="No creators found"
+              allLabel="Created By "
+              placeholder="Created By "
+              searchPlaceholder="Search creator / SMM..."
+              emptyText="No user found"
               menuWidth="w-64 sm:w-72"
+              buttonClassName="toolbar-filter-btn"
             />
           )}
 
@@ -1207,7 +1469,7 @@ const ContentCalendar = () => {
           <select
             value={selectedPriority}
             onChange={(e) => setSelectedPriority(e.target.value)}
-            className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            className={`toolbar-filter-select ${selectedPriority !== "All" ? "is-active" : ""}`}
           >
             <option value="All">Priority</option>
             {PRIORITIES.filter((p) => p !== "All").map((pr) => (
@@ -1221,7 +1483,7 @@ const ContentCalendar = () => {
           <select
             value={selectedCommitment}
             onChange={(e) => setSelectedCommitment(e.target.value)}
-            className="bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            className={`toolbar-filter-select ${selectedCommitment !== "All" ? "is-active" : ""}`}
           >
             <option value="All">Commitment</option>
             {COMMITMENTS.filter((c) => c !== "All").map((co) => (
@@ -1235,16 +1497,16 @@ const ContentCalendar = () => {
           <button
             type="button"
             onClick={() => setAtRiskOnly(!atRiskOnly)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            className={`toolbar-filter-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
               atRiskOnly
-                ? "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-700 shadow-xs"
-                : "bg-slate-100/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200/60"
+                ? "!bg-rose-500/15 dark:!bg-rose-950/60 !text-rose-600 dark:!text-rose-300 !border-rose-400 dark:!border-rose-700/80 shadow-xs"
+                : ""
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-rose-500" />
             <span>At risk</span>
             <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-rose-200/70 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200 font-extrabold">
-              {stats.atRisk ?? 0}
+              {displayStats.atRisk ?? 0}
             </span>
           </button>
 
@@ -1252,7 +1514,7 @@ const ContentCalendar = () => {
           <button
             type="button"
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors cursor-pointer shadow-2xs"
+            className="toolbar-filter-btn !bg-emerald-600 hover:!bg-emerald-700 !text-white !border-emerald-600 shadow-sm inline-flex items-center gap-1.5 font-bold cursor-pointer transition-colors"
             title="Export filtered content calendar to Excel"
           >
             <FiDownload size={13} />
@@ -1280,18 +1542,18 @@ const ContentCalendar = () => {
       <div className="space-y-4">
         {/* 1. MONTH VIEW (Full Width View) */}
         {viewMode === "Month" && (
-          <div className="w-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+          <div className="w-full bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-3xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto scrollbar-thin">
               <div className="min-w-[1050px] 2xl:min-w-full">
                 {/* Days of Week Header (Sun to Sat matching Image 2) */}
-                <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center py-2.5">
+                <div className="grid grid-cols-7 border-b border-slate-200 dark:border-[#1e2a40] bg-slate-50 dark:bg-[#0c1222] text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center py-2.5">
                   {WEEK_DAYS.map((day) => (
                     <div key={day} className="px-1 truncate">{day}</div>
                   ))}
                 </div>
 
                 {/* Days Grid Cells */}
-                <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-slate-800/80 border-b border-slate-200 dark:border-slate-800">
+                <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-[#1a2438] border-b border-slate-200 dark:border-[#1e2a40]">
                   {calendarDays.map((dayItem, index) => {
                     const dateKey = dayItem.dateKey;
                     const postsForDay = tasksByDate[dateKey] || [];
@@ -1315,11 +1577,11 @@ const ContentCalendar = () => {
                           isReadOnly ? "cursor-default" : "cursor-pointer"
                         } ${
                           isSelectedDay
-                            ? "ring-2 ring-emerald-500 rounded-2xl bg-emerald-50/15 dark:bg-emerald-950/20 z-10 shadow-xs"
+                            ? "ring-2 ring-emerald-500/80 rounded-2xl bg-emerald-50/20 dark:bg-emerald-950/25 z-10 shadow-xs"
                             : dayItem.isCurrentMonth
-                            ? "bg-white dark:bg-slate-900"
-                            : "bg-slate-50/50 dark:bg-slate-950/40 text-slate-400"
-                        } hover:bg-slate-50/80 dark:hover:bg-slate-800/30 group`}
+                            ? "bg-white dark:bg-[#0b101d]"
+                            : "bg-slate-50/50 dark:bg-[#060a12] text-slate-400"
+                        } hover:bg-slate-50/80 dark:hover:bg-[#121a2c] group`}
                       >
                         {/* Cell Top Bar */}
                         <div
@@ -1502,9 +1764,277 @@ const ContentCalendar = () => {
           </div>
         )}
 
-      {/* 2. WEEK VIEW */}
+      {/* 2. TABLE VIEW (All Data Easy to View & Manage) */}
+      {viewMode === "Table" && (
+        <div className="bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl shadow-sm p-4 space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#182338]">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="relative">
+                <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={tableSearch}
+                  onChange={(e) => {
+                    setTableSearch(e.target.value);
+                    setTablePage(1);
+                  }}
+                  placeholder="Search tasks, clients, SMM..."
+                  className="pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-[#151d2e] border border-slate-200 dark:border-[#22314d] rounded-xl text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-56 sm:w-72"
+                />
+                {tableSearch && (
+                  <button
+                    onClick={() => setTableSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <FiX size={12} />
+                  </button>
+                )}
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Showing <strong className="text-slate-800 dark:text-slate-100">{tableFilteredTasks.length}</strong> posts for {MONTH_NAMES[currentMonth]} {currentYear}
+              </span>
+            </div>
+
+            {!isReadOnly && (
+              <button
+                type="button"
+                onClick={() => handleAddPostOnDate(new Date())}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer self-start sm:self-auto"
+              >
+                <FiPlus size={14} />
+                <span>Create Post</span>
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-[#1e2a40]">
+            <table className="w-full text-left text-xs whitespace-nowrap">
+              <thead>
+                <tr className="border-b border-slate-200/80 dark:border-[#1e2a40] bg-slate-50 dark:bg-[#0c1220] text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <th className="py-3 px-4">Task</th>
+                  <th className="py-3 px-4">Client</th>
+                  <th className="py-3 px-3">Category</th>
+                  <th className="py-3 px-3">Content Type</th>
+                  <th className="py-3 px-4">SMM / Assignee</th>
+                  <th className="py-3 px-3">Due Date</th>
+                  <th className="py-3 px-4 bg-slate-100/50 dark:bg-[#101726] font-bold">Publish Date</th>
+                  <th className="py-3 px-3">Status</th>
+                  <th className="py-3 px-3">Priority</th>
+                  <th className="py-3 px-3">QC</th>
+                  <th className="py-3 px-3">Commitment</th>
+                  <th className="py-3 px-3 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-[#182338] font-medium">
+                {tablePaginatedTasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={12} className="py-12 text-center text-slate-400 italic">
+                      No posts found matching the criteria.
+                    </td>
+                  </tr>
+                ) : (
+                  tablePaginatedTasks.map((t) => {
+                    const creator = getCreatorInfo(t);
+                    const typeStyle = getContentTypeStyle(t.contentType);
+
+                    return (
+                      <tr
+                        key={t._id}
+                        onClick={() => handleCardClick(t)}
+                        className="hover:bg-slate-50/80 dark:hover:bg-[#101726] transition-colors cursor-pointer group"
+                      >
+                        {/* Task Title */}
+                        <td className="py-3 px-4 max-w-[200px]">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-1.5 h-6 rounded-full shrink-0"
+                              style={{ backgroundColor: t.clientColor || "#6366f1" }}
+                            />
+                            <div className="truncate font-bold text-slate-900 dark:text-slate-100 text-xs" title={t.taskTitle}>
+                              {t.taskTitle || "Untitled Post"}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Client */}
+                        <td className="py-3 px-4 font-semibold">
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border truncate max-w-[140px]"
+                            style={{
+                              color: t.clientColor || "#6366f1",
+                              borderColor: `${t.clientColor || "#6366f1"}40`,
+                              backgroundColor: `${t.clientColor || "#6366f1"}12`,
+                            }}
+                            title={t.clientName}
+                          >
+                            {t.clientName || "Unknown"}
+                          </span>
+                        </td>
+
+                        {/* Category */}
+                        <td className="py-3 px-3">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60">
+                            {t.category || "Content"}
+                          </span>
+                        </td>
+
+                        {/* Content Type */}
+                        <td className="py-3 px-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide border ${typeStyle.bg}`}>
+                            {typeStyle.label}
+                          </span>
+                        </td>
+
+                        {/* SMM / Assignee */}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-600">
+                              {creator.avatarUrl ? (
+                                <img src={creator.avatarUrl} alt={creator.name} className="w-full h-full object-cover" />
+                              ) : (
+                                creator.initials
+                              )}
+                            </div>
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[120px]">
+                              {creator.name}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Due Date */}
+                        <td className="py-3 px-3">
+                          {renderDueDateBadge(t.dueDate, t.status)}
+                        </td>
+
+                        {/* Publish Date */}
+                        <td className="py-3 px-4 bg-slate-50/60 dark:bg-[#0e1524] font-mono text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
+                          {formatPublishDateTime(t.publishDate)}
+                        </td>
+
+                        {/* Status Dropdown */}
+                        <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={t.status || "Not started"}
+                            disabled={isReadOnly}
+                            onChange={(e) => handleQuickStatusChange(t, e.target.value)}
+                            className={`text-[11px] font-bold rounded-lg px-2 py-1 border transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-2xs ${
+                              t.status === "Live" || t.status === "Completed"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                                : t.status === "In QC"
+                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                                : t.status === "Scheduled"
+                                ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                                : t.status === "Overdue"
+                                ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                                : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                            }`}
+                          >
+                            {STATUSES.filter((s) => s !== "All").map((st) => (
+                              <option key={st} value={st}>
+                                {st}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+
+                        {/* Priority */}
+                        <td className="py-3 px-3">
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                              t.priority === "High"
+                                ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
+                                : t.priority === "Medium"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                            }`}
+                          >
+                            {t.priority || "Medium"}
+                          </span>
+                        </td>
+
+                        {/* QC */}
+                        <td className="py-3 px-3">
+                          <span className="font-semibold text-slate-500 dark:text-slate-400">
+                            {t.qc || "-"}
+                          </span>
+                        </td>
+
+                        {/* Commitment */}
+                        <td className="py-3 px-3">
+                          {t.commitment ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-medium">No</span>
+                          )}
+                        </td>
+
+                        {/* Action */}
+                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCardClick(t);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                              title="Edit post"
+                            >
+                              <FiEdit2 size={13} />
+                            </button>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteTask(t, e)}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                title="Delete post"
+                              >
+                                <FiTrash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Table Pagination */}
+          {tableTotalPages > 1 && (
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
+              <span>
+                Page {tablePage} of {tableTotalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={tablePage === 1}
+                  onClick={() => setTablePage((p) => Math.max(1, p - 1))}
+                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold hover:bg-slate-50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Prev
+                </button>
+                <button
+                  disabled={tablePage === tableTotalPages}
+                  onClick={() => setTablePage((p) => Math.min(tableTotalPages, p + 1))}
+                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold hover:bg-slate-50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 3. WEEK VIEW */}
       {viewMode === "Week" && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm p-4 space-y-4">
+        <div className="bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl shadow-sm p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200">
               Weekly Content Schedule
@@ -1523,10 +2053,10 @@ const ContentCalendar = () => {
                   onDragOver={!isReadOnly ? handleDragOver : undefined}
                   onDrop={!isReadOnly ? (e) => handleDrop(e, dayItem.date) : undefined}
                   onClick={!isReadOnly ? () => handleAddPostOnDate(dayItem.date) : undefined}
-                  className={`bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border ${
+                  className={`bg-slate-50 dark:bg-[#0b101d] p-3 rounded-xl border ${
                     dayItem.isToday
-                      ? "border-blue-500/80 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/20"
-                      : "border-slate-200 dark:border-slate-700/60"
+                      ? "border-blue-500/80 ring-2 ring-blue-500/20 bg-blue-50/20 dark:bg-blue-950/25"
+                      : "border-slate-200 dark:border-[#1e2a40]"
                   } min-h-[220px] flex flex-col justify-between ${
                     isReadOnly ? "cursor-default" : "cursor-pointer"
                   } hover:border-blue-400 transition-colors`}
@@ -1638,9 +2168,9 @@ const ContentCalendar = () => {
         </div>
       )}
 
-      {/* 3. LIST VIEW */}
+      {/* 4. LIST VIEW */}
       {viewMode === "List" && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-sm p-4 space-y-3">
+        <div className="bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl shadow-sm p-4 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white">
               All Planned Social Media Posts ({calendarTasks.length})
@@ -1766,8 +2296,8 @@ const ContentCalendar = () => {
 
       {/* Day Overview Popover / Modal when clicking "+X more" */}
       {selectedDayPosts && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-[#0b101d] border border-slate-200 dark:border-[#1e2a40] rounded-2xl w-full max-w-md shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
