@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 
 import {
   FiPlus,
@@ -287,7 +287,8 @@ const getDeptShortName = (d) => {
   return str.substring(0, 3).toUpperCase();
 };
 
-const MultiSelect = ({
+const MultiSelect = React.memo(({
+
   label,
   options,
   selectedValues,
@@ -420,7 +421,7 @@ const MultiSelect = ({
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto p-1.5 space-y-1">
+          <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto p-1.5 space-y-1">
             {/* Search Input Box */}
             <div className="sticky top-0 bg-white dark:bg-slate-900 pb-1.5 pt-0.5 px-1 z-10 border-b border-slate-100 dark:border-slate-800 mb-1 flex items-center gap-2">
               <FiSearch className="text-slate-400 shrink-0" size={13} />
@@ -430,7 +431,7 @@ const MultiSelect = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
-                className="w-full bg-slate-50 dark:bg-black text-xs px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 outline-none focus:border-blue-500 text-slate-700 dark:text-white transition-colors"
+                className="w-full bg-slate-50 dark:bg-[#0f172a] text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-[#334155] outline-none focus:border-emerald-500 text-slate-800 dark:text-white transition-colors"
               />
               {searchQuery && (
                 <button
@@ -522,7 +523,262 @@ const MultiSelect = ({
       )}
     </div>
   );
-};
+});
+
+const IndustryCombobox = React.memo(({ value, onChange, existingIndustries = [] }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState(value || "");
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const containerRef = React.useRef(null);
+  const inputRef = React.useRef(null);
+
+  const defaultIndustries = useMemo(
+    () => [
+      "Technology",
+      "Software & IT Services",
+      "E-Commerce & Retail",
+      "Healthcare & Medical",
+      "Finance & Banking",
+      "Real Estate & Property",
+      "Education & EdTech",
+      "Hospitality & Tourism",
+      "Food & Beverages",
+      "Manufacturing & Industrial",
+      "Media & Entertainment",
+      "Fashion & Lifestyle",
+      "Automotive",
+      "Digital Marketing & Agency",
+      "Logistics & Supply Chain",
+      "Construction & Architecture",
+      "Fitness & Wellness",
+      "Legal & Professional Services",
+      "Agriculture",
+      "Other",
+    ],
+    []
+  );
+
+  const allIndustryOptions = useMemo(() => {
+    const list = [...(existingIndustries || []), ...defaultIndustries];
+    const unique = [];
+    list.forEach((item) => {
+      if (item && !unique.some((u) => u.toLowerCase() === item.toLowerCase())) {
+        unique.push(item);
+      }
+    });
+    return unique;
+  }, [existingIndustries, defaultIndustries]);
+
+  useEffect(() => {
+    setSearch(value || "");
+  }, [value]);
+
+  const filteredOptions = useMemo(() => {
+    if (!search || !search.trim()) return allIndustryOptions;
+    const q = search.toLowerCase().trim();
+    return allIndustryOptions.filter((item) =>
+      item.toLowerCase().includes(q)
+    );
+  }, [allIndustryOptions, search]);
+
+  const exactMatchExists = useMemo(() => {
+    if (!search || !search.trim()) return true;
+    const q = search.toLowerCase().trim();
+    return allIndustryOptions.some((item) => item.toLowerCase() === q);
+  }, [allIndustryOptions, search]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        if (isOpen) {
+          if (search.trim() && search.trim() !== (value || "").trim()) {
+            onChange(search.trim());
+          }
+          setIsOpen(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, search, value, onChange]);
+
+  const selectIndustry = (val) => {
+    const cleanVal = (val || "").trim();
+    setSearch(cleanVal);
+    onChange(cleanVal);
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (highlightedIndex >= 0 && filteredOptions[highlightedIndex]) {
+        selectIndustry(filteredOptions[highlightedIndex]);
+        return;
+      }
+
+      if (search.trim()) {
+        selectIndustry(search.trim());
+      }
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+        setHighlightedIndex(0);
+      } else {
+        setHighlightedIndex((prev) =>
+          prev < filteredOptions.length - 1 ? prev + 1 : 0
+        );
+      }
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (isOpen) {
+        setHighlightedIndex((prev) =>
+          prev > 0 ? prev - 1 : filteredOptions.length - 1
+        );
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      setIsOpen(false);
+      setHighlightedIndex(-1);
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <div
+        className={`client-modal-input-wrap flex items-center w-full h-10 px-3.5 border rounded-xl transition-all duration-200 shadow-2xs group ${
+          isOpen
+            ? "bg-white dark:bg-[#1e293b] ring-2 ring-emerald-500/20 border-emerald-500 dark:border-emerald-400"
+            : "border-slate-200 dark:border-[#334155] bg-slate-50/80 dark:bg-[#1e293b]/70 hover:border-slate-300 dark:hover:border-[#475569] focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:focus-within:border-emerald-400"
+        }`}
+      >
+        <FiLayers
+          size={14}
+          className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
+        />
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={search}
+          placeholder="Select from list or type & press Enter..."
+          onChange={(e) => {
+            setSearch(e.target.value);
+            if (!isOpen) setIsOpen(true);
+            setHighlightedIndex(-1);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
+          className="w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
+        />
+
+        {search && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSearch("");
+              onChange("");
+              inputRef.current?.focus();
+            }}
+            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors mr-1 cursor-pointer"
+            title="Clear"
+          >
+            <FiX size={13} />
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-transform cursor-pointer"
+        >
+          <FiChevronDown
+            size={15}
+            className={`transition-transform duration-200 ${isOpen ? "rotate-180 text-[var(--accent-color)]" : ""}`}
+          />
+        </button>
+      </div>
+
+      {/* DROPDOWN MENU */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-[#334155] rounded-xl shadow-2xl p-1.5 max-h-60 overflow-y-auto custom-scrollbar space-y-1"
+          >
+            {/* Custom option when typing something not strictly in the list */}
+            {search.trim() && !exactMatchExists && (
+              <div
+                onClick={() => selectIndustry(search.trim())}
+                className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[var(--accent-color)]/10 text-[var(--accent-color)] dark:text-[var(--accent-color-dark)] hover:bg-[var(--accent-color)]/20 cursor-pointer border border-[var(--accent-color)]/25 transition-all mb-1 font-bold text-xs group"
+              >
+                <div className="flex items-center gap-2 truncate">
+                  <FiPlusCircle size={14} className="shrink-0 group-hover:scale-110 transition-transform" />
+                  <span className="truncate">Add custom &ldquo;{search.trim()}&rdquo;</span>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider bg-[var(--accent-color)]/20 dark:bg-[var(--accent-color)]/30 px-2 py-0.5 rounded-md shrink-0 ml-2">
+                  Enter ↵
+                </span>
+              </div>
+            )}
+
+            {filteredOptions.length === 0 && exactMatchExists ? (
+              <div className="py-4 text-center text-xs text-slate-400 font-medium">
+                No matching industries
+              </div>
+            ) : (
+              filteredOptions.map((item, idx) => {
+                const isSelected = (value || "").toLowerCase() === item.toLowerCase();
+                const isHighlighted = idx === highlightedIndex;
+                return (
+                  <div
+                    key={item}
+                    onClick={() => selectIndustry(item)}
+                    onMouseEnter={() => setHighlightedIndex(idx)}
+                    className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                      isSelected
+                        ? "bg-[var(--accent-color)]/15 text-[var(--accent-color)] dark:text-[var(--accent-color-dark)] font-bold"
+                        : isHighlighted
+                          ? "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                    }`}
+                  >
+                    <span className="truncate">{item}</span>
+                    {isSelected && (
+                      <FiCheck
+                        size={14}
+                        className="text-[var(--accent-color)] dark:text-[var(--accent-color-dark)] shrink-0 ml-2"
+                      />
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+});
 
 const formatDept = (d) => {
   if (!d) return "";
@@ -537,6 +793,32 @@ const formatDept = (d) => {
       .substring(0, 3);
   }
   return str.substring(0, 3).toUpperCase();
+};
+
+
+const INITIAL_CLIENT_FORM = {
+  companyName: "",
+  industry: "",
+  onboardingDate: new Date().toISOString().split("T")[0],
+  phoneNumber: "",
+  spoc: "",
+  designation: "",
+  budget: "",
+  gst: "",
+  totalBudget: "",
+  service: [],
+  reels: "",
+  posts: "",
+  story: "",
+  needDslr: "",
+  pages: "",
+  onpage: false,
+  offpage: false,
+  assignedTo: [],
+  color: "#3b82f6",
+  icon: "FaRegBuilding",
+  status: "Active",
+  authMethods: [],
 };
 
 const Clients = () => {
@@ -554,7 +836,7 @@ const Clients = () => {
     user?.profile?.department ||
     ""
   ).toLowerCase();
-  const roleLower = (user?.role || "").toLowerCase();
+  const roleLower = (user?.role || "").toLowerCase().replace(/[\s_-]+/g, "");
   const desigLower = (user?.designation || "").toLowerCase();
 
   const isFinance =
@@ -566,8 +848,8 @@ const Clients = () => {
     desigLower.includes("account");
 
   const hasFullAccess =
-    user?.role === "admin" ||
-    user?.role === "operationmanager" ||
+    roleLower === "admin" ||
+    roleLower === "operationmanager" ||
     isFinance;
 
   const [showModal, setShowModal] = useState(false);
@@ -634,116 +916,37 @@ const Clients = () => {
   const [itemsPerPage, setItemsPerPage] = useState(7);
 
 
-  const initialForm = {
-    companyName: "",
-    industry: "",
-    onboardingDate: new Date().toISOString().split("T")[0],
-    phoneNumber: "",
-    spoc: "",
-    designation: "",
-    budget: "",
-    gst: "",
-    totalBudget: "",
-    service: [],
-    reels: "",
-    posts: "",
-    story: "",
-    needDslr: "",
-    pages: "",
-    onpage: false,
-    offpage: false,
-    assignedTo: [],
-    color: "#3b82f6",
-    icon: "FaRegBuilding",
-    status: "Active",
-    authMethods: [],
-  };
+  const initialForm = INITIAL_CLIENT_FORM;
 
   const [formData, setFormData] = useState(initialForm);
 
-  const handleServiceChange = (services) => {
+  const handleServiceChange = useCallback((services) => {
     setFormData((prev) => ({
       ...prev,
       service: services,
     }));
-  };
+  }, []);
 
-  const handleAssignedChange = (assigned) => {
+  const handleAssignedChange = useCallback((assigned) => {
     setFormData((prev) => ({
       ...prev,
       assignedTo: assigned,
     }));
-  };
+  }, []);
 
-  const handleEditRow = (index, currentData) => {
-    setEditingRowIndex(index);
-    setEditRowData({
-      config: currentData.config || "",
-      status: currentData.status || currentData.defaultStatus,
-      method: currentData.method,
-    });
-  };
-
-  const handleCancelEditRow = () => {
-    setEditingRowIndex(null);
-    setEditRowData(null);
-  };
-
-  const handleSaveRow = async () => {
-    if (!viewClient || !editRowData) return;
-
-    const existingMethods = [...(viewClient.authMethods || [])];
-    const existingIndex = existingMethods.findIndex(
-      (m) => m.method === editRowData.method,
-    );
-
-    if (existingIndex >= 0) {
-      existingMethods[existingIndex] = {
-        ...existingMethods[existingIndex],
-        config: editRowData.config,
-        status: editRowData.status,
-      };
-    } else {
-      existingMethods.push({
-        method: editRowData.method,
-        config: editRowData.config,
-        status: editRowData.status,
-      });
-    }
-
-    const payload = { ...viewClient, authMethods: existingMethods };
-    payload.assignedTo = Array.isArray(viewClient.assignedTo)
-      ? viewClient.assignedTo.map((u) => u._id || u)
-      : viewClient.assignedTo
-        ? [viewClient.assignedTo._id || viewClient.assignedTo]
-        : [];
-
-    await dispatch(updateClient({ id: viewClient._id, data: payload }));
-    setViewClient(payload);
-    setEditingRowIndex(null);
-    setEditRowData(null);
-  };
-
-  useEffect(() => {
-    dispatch(getClients());
-    dispatch(getUsers());
-    dispatch(getProjects());
-    dispatch(getTasks());
-  }, [dispatch]);
-
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };
+  }, []);
 
-  const calculateTotal = () => {
+  const calculateTotal = useCallback(() => {
     const budget = Number(formData.budget || 0);
     const gst = Number(formData.gst || 0);
     return budget + (budget * gst) / 100;
-  };
+  }, [formData.budget, formData.gst]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -758,10 +961,7 @@ const Clients = () => {
       return;
     }
     
-    if (!formData.phoneNumber || formData.phoneNumber.trim() === "") {
-      toast.error("Phone Number is required");
-      return;
-    }
+    // Phone number is optional
 
     if (!formData.service || formData.service.length === 0) {
       toast.error("Please select at least one service");
@@ -800,6 +1000,29 @@ const Clients = () => {
     }
   };
 
+  
+  const handleNextStep = () => {
+    if (activeTab === "profile") {
+      if (!formData.companyName || formData.companyName.trim() === "") {
+        toast.error("Company Name is required");
+        return;
+      }
+      if (!formData.industry || formData.industry.trim() === "") {
+        toast.error("Industry Sector is required");
+        return;
+      }
+      setActiveTab("branding");
+    } else if (activeTab === "branding") {
+      setActiveTab("service");
+    } else if (activeTab === "service") {
+      if (!formData.service || formData.service.length === 0) {
+        toast.error("Please select at least one service");
+        return;
+      }
+      setActiveTab("finance");
+    }
+  };
+
   const handleEdit = (client) => {
     setFormData({
       ...client,
@@ -828,6 +1051,18 @@ const Clients = () => {
     setShowModal(true);
   };
 
+  
+  // Escape modal listener
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape" && showModal) {
+        setShowModal(false);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [showModal]);
+
   const handleStatusChange = async (client, newStatus) => {
     if (client.status === newStatus) return;
 
@@ -855,6 +1090,33 @@ const Clients = () => {
   const allUsers = useMemo(() => {
     return users || [];
   }, [users]);
+
+  // Instant O(1) Lookups for User details and Project counts (Performance Optimization)
+  const userMap = useMemo(() => {
+    const map = new Map();
+    if (users && Array.isArray(users)) {
+      for (let i = 0; i < users.length; i++) {
+        const u = users[i];
+        if (u._id) map.set(String(u._id), u);
+        if (u.id) map.set(String(u.id), u);
+      }
+    }
+    return map;
+  }, [users]);
+
+  const projectCounts = useMemo(() => {
+    const map = {};
+    if (projects && Array.isArray(projects)) {
+      for (let i = 0; i < projects.length; i++) {
+        const p = projects[i];
+        const cId = p.client?._id || p.client;
+        if (cId) {
+          map[String(cId)] = (map[String(cId)] || 0) + 1;
+        }
+      }
+    }
+    return map;
+  }, [projects]);
 
   const uniqueClientNames = useMemo(() => {
     if (!clients) return [];
@@ -1367,6 +1629,15 @@ const Clients = () => {
                     Deliverables
                   </th>
 
+                  {hasFullAccess && (
+                    <th className="px-4 py-3 font-extrabold bg-transparent text-left w-36">
+                      <div className="flex items-center gap-1.5">
+                        <FiDollarSign size={12} className="opacity-70" />
+                        Budget Details
+                      </div>
+                    </th>
+                  )}
+
                   {user?.role === "team" && !isFinance && (
                     <th className="px-4 py-3 font-extrabold bg-transparent text-center  last:border-r-0">
                       Assigned By
@@ -1598,9 +1869,7 @@ const Clients = () => {
                                   : true) ? (
                                   Array.isArray(client.assignedTo) ? (
                                     client.assignedTo.map((member) => {
-                                      const fullUser = allUsers.find(
-                                        (u) => u._id === (member._id || member),
-                                      );
+                                      const fullUser = userMap.get(String(member._id || member));
                                       const dept = fullUser?.department || "";
                                       const memberName =
                                         member.name || member.email || "Member";
@@ -1637,11 +1906,7 @@ const Clients = () => {
                                   ) : (
                                     (() => {
                                       const singleMember = client.assignedTo;
-                                      const fullUser = allUsers.find(
-                                        (u) =>
-                                          u._id ===
-                                          (singleMember._id || singleMember),
-                                      );
+                                      const fullUser = userMap.get(String(singleMember._id || singleMember));
                                       const dept = fullUser?.department || "";
                                       const memberName =
                                         singleMember.name ||
@@ -1785,6 +2050,28 @@ const Clients = () => {
                                 )}
                             </div>
                           </td>
+                          {hasFullAccess && (
+                            <td className={`${cellClass} text-left w-36`}>
+                              <div className="flex flex-col gap-0.5 py-1">
+                                <div className="flex items-baseline gap-1 font-extrabold text-[12px] text-slate-800 dark:text-slate-100">
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">₹</span>
+                                  <span>
+                                    {Number(
+                                      client.totalBudget || client.budget || 0
+                                    ).toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1 text-[9.5px] text-slate-500 dark:text-slate-400">
+                                  <span>Base: ₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
+                                  {client.gst ? (
+                                    <span className="px-1 py-0.2 rounded text-[8.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                      +{client.gst}% GST
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </td>
+                          )}
                           {user?.role === "team" && !isFinance && (
                             <td className={cellClass}>
                               <div className="flex items-center gap-1">
@@ -1960,320 +2247,353 @@ const Clients = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-5 bg-black/30 backdrop-blur-sm flex items-center justify-center p-3"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowModal(false);
+            }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              initial={{ scale: 0.96, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ type: "spring", stiffness: 350, damping: 28 }}
-              className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-slate-800 h-[85vh] sm:h-auto min-h-[500px] sm:min-h-[560px] md:min-h-[600px] max-h-[90vh] flex flex-col"
+              exit={{ scale: 0.96, opacity: 0, y: 12 }}
+              transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              className="client-modal bg-white dark:bg-[#0f172a] w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-[#1e293b] flex flex-col"
             >
               {/* MODAL HEADER */}
-              <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-black/25">
-                <div>
-                  <h2 className="text-[13px] md:text-[14px] font-bold theme-text-accent  flex items-center gap-2">
-                    <FiUsers size={16} className="theme-text-accent" />
-                    {editId ? "Update Client details" : "Register New Client"}
-                  </h2>
+              <div className="client-modal-header px-6 py-3.5 border-b border-slate-100 dark:border-[#1e293b] flex items-center justify-between bg-slate-50/80 dark:bg-[#0b1120] shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-xs">
+                    <FiUsers size={17} />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-800 dark:text-white leading-tight">
+                      {editId ? "Update Client Details" : "Register New Client"}
+                    </h2>
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                      {editId
+                        ? "Modify client profile, deliverables & commercial agreement"
+                        : "Complete client onboarding details and contract scope"}
+                    </p>
+                  </div>
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-5 h-5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent flex items-center justify-center text-slate-400 dark:text-slate-350 hover:text-rose-500 dark:hover:text-rose-400 hover:border-rose-100 transition-all cursor-pointer shadow-sm"
+                  className="client-modal-btn-secondary w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 dark:bg-[#1e293b] dark:border-[#334155] flex items-center justify-center text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Close (Esc)"
                 >
-                  <FiX size={14} className="stroke-[3]" />
+                  <FiX size={15} />
                 </button>
               </div>
 
-              {/* MODERN TAB NAVIGATION */}
-              <div className="flex border-b border-slate-100 dark:border-slate-800 px-5 bg-[var(--accent-color)]/20 dark:bg-[var(--accent-color-dark)]/20 relative">
-                {["profile", "branding", "service", "finance"].map((tab) => {
-                  const isActive = activeTab === tab;
-                  return (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setActiveTab(tab)}
-                      className={`relative px-4 py-3.5 text-[10px] md:text-[10.5px] font-extrabold capitalize transition-all cursor-pointer ${
-                        isActive
-                          ? "theme-text-accent font-black"
-                          : "text-slate-400 dark:text-slate-500 hover:theme-text-accent"
-                      }`}
-                    >
-                      <span className="relative z-10">
-                        {tab === "profile"
-                          ? "1. Company Details"
-                          : tab === "branding"
-                            ? "2. Brand Identity"
-                            : tab === "service"
-                              ? "3. Service Plan"
-                              : "4. Budget Settings"}
-                      </span>
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeModalTabIndicator"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent-color)] dark:bg-[var(--accent-color-dark)]"
-                          transition={{
-                            type: "spring",
-                            stiffness: 380,
-                            damping: 30,
-                          }}
+              {/* COMPACT ELEGANT STEPPER TABS (NO HORIZONTAL OVERFLOW) */}
+              <div className="client-modal-stepper-wrap px-6 py-2.5 border-b border-slate-100 dark:border-[#1e293b] bg-slate-50/50 dark:bg-[#0b1120] shrink-0">
+                <div className="client-modal-stepper-inner grid grid-cols-4 gap-1.5 p-1 bg-slate-100/80 dark:bg-[#131c31] rounded-xl border border-slate-200/50 dark:border-[#1e293b]">
+                  {[
+                    { id: "profile", label: "Company", step: 1, icon: FaRegBuilding },
+                    { id: "branding", label: "Identity", step: 2, icon: FiTool },
+                    { id: "service", label: "Services", step: 3, icon: FiLayers },
+                    { id: "finance", label: "Budget", step: 4, icon: FiDollarSign },
+                  ].map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    const TabIcon = tab.icon;
+                    const isCompleted =
+                      (tab.id === "profile" && formData.companyName && formData.industry) ||
+                      (tab.id === "branding" && formData.icon && formData.color) ||
+                      (tab.id === "service" && Array.isArray(formData.service) && formData.service.length > 0) ||
+                      (tab.id === "finance" && formData.budget);
+
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer relative ${
+                          isActive
+                            ? "client-modal-tab-active bg-white dark:bg-[#1e293b] text-emerald-600 dark:text-emerald-400 shadow-xs font-bold border border-slate-200/70 dark:border-[#334155]"
+                            : "client-modal-tab-inactive text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/40 dark:hover:bg-[#1e293b]/50"
+                        }`}
+                      >
+                        <span
+                          className={`w-4.5 h-4.5 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0 ${
+                            isActive
+                              ? "bg-emerald-500 text-white shadow-2xs"
+                              : isCompleted
+                                ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                                : "bg-slate-200/80 dark:bg-[#334155] text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          {isCompleted && !isActive ? (
+                            <FiCheck size={10} className="stroke-[3]" />
+                          ) : (
+                            tab.step
+                          )}
+                        </span>
+                        <TabIcon
+                          size={12}
+                          className={isActive ? "text-emerald-500 dark:text-emerald-400" : "opacity-60"}
                         />
-                      )}
-                    </button>
-                  );
-                })}
+                        <span className="truncate">{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* MODAL FORM */}
+              {/* MODAL FORM CONTAINER - FIXED UNIFORM HEIGHT ACROSS ALL TABS */}
               <form
                 onSubmit={handleSubmit}
-                className="flex-1 overflow-y-auto p-5 space-y-4"
+                className="flex-1 flex flex-col min-h-0 overflow-hidden"
               >
-                <AnimatePresence mode="wait">
-                  {/* TAB 1: BASIC INFORMATION */}
-                  {activeTab === "profile" && (
-                    <motion.div
-                      key="profile"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 28,
-                      }}
-                      className="space-y-4 min-h-[280px] sm:min-h-[340px]"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {/* Company Name */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Company Name{" "}
-                            <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
-                            <FaRegBuilding
-                              size={14}
-                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
-                            />
-                            <input
-                              type="text"
-                              name="companyName"
-                              value={formData.companyName}
-                              onChange={handleChange}
-                              placeholder="Enter Client or Company Name"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                              required
-                            />
+                <div className="client-modal-body h-[430px] max-h-[60vh] overflow-y-auto p-5 md:p-6 custom-scrollbar space-y-4 bg-white dark:bg-[#0f172a]">
+                  <AnimatePresence mode="wait">
+                    {/* TAB 1: COMPANY DETAILS */}
+                    {activeTab === "profile" && (
+                      <motion.div
+                        key="profile"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                        className="space-y-3.5"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                          {/* Company Name */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1 ml-1">
+                              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Company Name <span className="text-rose-500">*</span>
+                              </label>
+                              <span className="text-[10px] font-semibold text-rose-500">
+                                Required
+                              </span>
+                            </div>
+                            <div className="client-modal-input-wrap flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-[#334155] bg-slate-50/80 dark:bg-[#1e293b]/70 rounded-xl focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 hover:border-slate-300 dark:hover:border-[#475569] transition-all duration-200 shadow-2xs group">
+                              <FaRegBuilding
+                                size={13}
+                                className="text-slate-400 dark:text-slate-400 mr-2.5 shrink-0 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors"
+                              />
+                              <input
+                                type="text"
+                                name="companyName"
+                                value={formData.companyName}
+                                onChange={handleChange}
+                                placeholder="Enter Client or Company Name"
+                                className="w-full bg-transparent border-0 outline-none p-0 text-xs font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                                required
+                              />
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Industry Sector */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Industry Sector{" "}
-                            <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group relative">
-                            <FiLayers
-                              size={14}
-                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
-                            />
-                            <select
-                              name="industry"
+                          {/* Industry Sector (Combobox) */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1 ml-1">
+                              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Industry Sector <span className="text-rose-500">*</span>
+                              </label>
+                              <span className="text-[10px] font-semibold text-rose-500">
+                                Required
+                              </span>
+                            </div>
+                            <IndustryCombobox
                               value={formData.industry}
-                              onChange={handleChange}
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold cursor-pointer appearance-none"
-                              required
-                            >
-                              <option
-                                value=""
-                                disabled
-                                className="text-slate-400"
+                              onChange={(val) =>
+                                setFormData((prev) => ({ ...prev, industry: val }))
+                              }
+                              existingIndustries={uniqueIndustries}
+                            />
+                          </div>
+
+                          {/* Onboarding Date */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1 ml-1">
+                              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Onboarding Date <span className="text-rose-500">*</span>
+                              </label>
+                              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400">
+                                Start Date
+                              </span>
+                            </div>
+                            <div className="client-modal-input-wrap flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-[#334155] bg-slate-50/80 dark:bg-[#1e293b]/70 rounded-xl focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 hover:border-slate-300 dark:hover:border-[#475569] transition-all duration-200 shadow-2xs group">
+                              <FiCalendar
+                                size={13}
+                                className="text-slate-400 dark:text-slate-400 mr-2.5 shrink-0 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors"
+                              />
+                              <input
+                                type="date"
+                                name="onboardingDate"
+                                value={formData.onboardingDate}
+                                onChange={handleChange}
+                                className="w-full bg-transparent border-0 outline-none p-0 text-xs font-semibold text-slate-800 dark:text-white cursor-pointer [color-scheme:dark]"
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          {/* Status */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1 ml-1">
+                              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Status
+                              </label>
+                              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400">
+                                Account State
+                              </span>
+                            </div>
+                            <div className="client-modal-input-wrap flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-[#334155] bg-slate-50/80 dark:bg-[#1e293b]/70 rounded-xl focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 hover:border-slate-300 dark:hover:border-[#475569] transition-all duration-200 shadow-2xs group relative">
+                              <FiCheckCircle
+                                size={13}
+                                className="text-slate-400 dark:text-slate-400 mr-2.5 shrink-0 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors"
+                              />
+                              <select
+                                name="status"
+                                value={formData.status}
+                                onChange={handleChange}
+                                className="w-full bg-transparent border-0 outline-none p-0 text-xs font-semibold text-slate-800 dark:text-white cursor-pointer appearance-none [color-scheme:dark]"
                               >
-                                Select Industry...
-                              </option>
-                              {uniqueIndustries.map((ind, idx) => (
-                                <option key={idx} value={ind}>
-                                  {ind}
-                                </option>
-                              ))}
-                              {/* Add some standard fallbacks just in case uniqueIndustries is empty initially */}
-                              {!uniqueIndustries.includes("Technology") && (
-                                <option value="Technology">Technology</option>
-                              )}
-                              {!uniqueIndustries.includes("Healthcare") && (
-                                <option value="Healthcare">Healthcare</option>
-                              )}
-                              {!uniqueIndustries.includes("Retail") && (
-                                <option value="Retail">Retail</option>
-                              )}
-                              {!uniqueIndustries.includes("Finance") && (
-                                <option value="Finance">Finance</option>
-                              )}
-                              {!uniqueIndustries.includes("Education") && (
-                                <option value="Education">Education</option>
-                              )}
-                              {!uniqueIndustries.includes("Real Estate") && (
-                                <option value="Real Estate">Real Estate</option>
-                              )}
-                              {!uniqueIndustries.includes("Hospitality") && (
-                                <option value="Hospitality">Hospitality</option>
-                              )}
-                              {!uniqueIndustries.includes("Other") && (
-                                <option value="Other">Other</option>
-                              )}
-                            </select>
-                            <div className="pointer-events-none text-slate-400 absolute right-4">
-                              <FiChevronDown size={16} />
+                                <option value="Active" className="bg-[#1e293b] text-emerald-400 font-bold py-1">Active</option>
+                                <option value="Inactive" className="bg-[#1e293b] text-rose-400 font-bold py-1">Inactive</option>
+                              </select>
+                              <div className="pointer-events-none text-slate-400 dark:text-slate-400 absolute right-3">
+                                <FiChevronDown size={14} />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Account Manager / SPOC */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1 ml-1">
+                              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Account Manager / SPOC
+                              </label>
+                              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400">
+                                Optional
+                              </span>
+                            </div>
+                            <div className="client-modal-input-wrap flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-[#334155] bg-slate-50/80 dark:bg-[#1e293b]/70 rounded-xl focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 hover:border-slate-300 dark:hover:border-[#475569] transition-all duration-200 shadow-2xs group">
+                              <FiUser
+                                size={13}
+                                className="text-slate-400 dark:text-slate-400 mr-2.5 shrink-0 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors"
+                              />
+                              <input
+                                type="text"
+                                name="spoc"
+                                value={formData.spoc}
+                                onChange={handleChange}
+                                placeholder="Representative Name (optional)"
+                                className="w-full bg-transparent border-0 outline-none p-0 text-xs font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Designation */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1 ml-1">
+                              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Designation
+                              </label>
+                              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400">
+                                Optional
+                              </span>
+                            </div>
+                            <div className="client-modal-input-wrap flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-[#334155] bg-slate-50/80 dark:bg-[#1e293b]/70 rounded-xl focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 hover:border-slate-300 dark:hover:border-[#475569] transition-all duration-200 shadow-2xs group">
+                              <FiBriefcase
+                                size={13}
+                                className="text-slate-400 dark:text-slate-400 mr-2.5 shrink-0 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors"
+                              />
+                              <input
+                                type="text"
+                                name="designation"
+                                value={formData.designation}
+                                onChange={handleChange}
+                                placeholder="e.g. Marketing Manager (optional)"
+                                className="w-full bg-transparent border-0 outline-none p-0 text-xs font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Phone Number */}
+                          <div className="md:col-span-2">
+                            <div className="flex items-center justify-between mb-1 ml-1">
+                              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Phone Number
+                              </label>
+                              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-400">
+                                Optional
+                              </span>
+                            </div>
+                            <div className="client-modal-input-wrap flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-[#334155] bg-slate-50/80 dark:bg-[#1e293b]/70 rounded-xl focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 hover:border-slate-300 dark:hover:border-[#475569] transition-all duration-200 shadow-2xs group">
+                              <FiPhone
+                                size={13}
+                                className="text-slate-400 dark:text-slate-400 mr-2.5 shrink-0 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors"
+                              />
+                              <input
+                                type="tel"
+                                maxLength={15}
+                                name="phoneNumber"
+                                value={formData.phoneNumber}
+                                onChange={handleChange}
+                                placeholder="Enter Phone Number (optional)"
+                                className="w-full bg-transparent border-0 outline-none p-0 text-xs font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                              />
                             </div>
                           </div>
                         </div>
+                      </motion.div>
+                    )}
 
-                        {/* Onboarding Date */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Onboarding Date{" "}
-                            <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
-                            <FiCalendar
-                              size={14}
-                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
-                            />
-                            <input
-                              type="date"
-                              name="onboardingDate"
-                              value={formData.onboardingDate}
-                              onChange={handleChange}
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold cursor-pointer"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        {/* SPOC Name */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Account Manager / SPOC
-                          </label>
-                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
-                            <FiUser
-                              size={14}
-                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
-                            />
-                            <input
-                              type="text"
-                              name="spoc"
-                              value={formData.spoc}
-                              onChange={handleChange}
-                              placeholder="Representative Name"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Designation */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Designation
-                          </label>
-                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
-                            <FiBriefcase
-                              size={14}
-                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
-                            />
-                            <input
-                              type="text"
-                              name="designation"
-                              value={formData.designation}
-                              onChange={handleChange}
-                              placeholder="e.g. Marketing Manager"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Status */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Status
-                          </label>
-                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group relative">
-                            <FiCheckCircle
-                              size={14}
-                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
-                            />
-                            <select
-                              name="status"
-                              value={formData.status}
-                              onChange={handleChange}
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold cursor-pointer appearance-none"
+                    {/* TAB 2: BRAND IDENTITY */}
+                    {activeTab === "branding" && (
+                      <motion.div
+                        key="branding"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                        className="space-y-4"
+                      >
+                        {/* Live Brand Preview Card */}
+                        <div className="client-modal-card bg-slate-50/80 dark:bg-[#131c31] p-3.5 rounded-xl border border-slate-200/80 dark:border-[#1e293b] flex items-center justify-between shadow-2xs">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-all duration-300 shrink-0"
+                              style={{ backgroundColor: formData.color }}
                             >
-                              <option value="Active">Active</option>
-                              <option value="Inactive">Inactive</option>
-                            </select>
-                            <div className="pointer-events-none text-slate-400 absolute right-4">
-                              <FiChevronDown size={16} />
+                              {React.createElement(
+                                CLIENT_ICONS[formData.icon] || FaRegBuilding,
+                                { size: 18, className: "drop-shadow-sm" }
+                              )}
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-slate-800 dark:text-white leading-tight">
+                                {formData.companyName || "Client Brand Name"}
+                              </div>
+                              <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-400">
+                                {formData.industry || "Industry Sector"}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {/* Phone Number */}
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Phone Number{" "}
-                            <span className="text-rose-500">*</span>
-                          </label>
-                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
-                            <FiPhone
-                              size={14}
-                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
-                            />
-                            <input
-                              type="tel"
-                              maxLength={15}
-                              name="phoneNumber"
-                              value={formData.phoneNumber}
-                              onChange={handleChange}
-                              placeholder="Enter Phone Number"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                              required
-                            />
+                          <div
+                            className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full border shadow-2xs tracking-wider"
+                            style={{
+                              backgroundColor: `${formData.color}15`,
+                              borderColor: `${formData.color}40`,
+                              color: formData.color,
+                            }}
+                          >
+                            Live Preview
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
 
-                  {/* TAB 2: BRAND IDENTITY */}
-                  {activeTab === "branding" && (
-                    <motion.div
-                      key="branding"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 28,
-                      }}
-                      className="space-y-6 min-h-[280px] sm:min-h-[340px]"
-                    >
-                      <div className="space-y-6">
                         {/* Icon Selection */}
                         <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                              <span className="w-5 h-5 rounded flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-500">
-                                <FiBriefcase size={12} />
-                              </span>
-                              Brand Identity Icon
-                            </label>
-                          </div>
-                          <div className="grid grid-cols-5 sm:grid-cols-10 gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <FiBriefcase size={11} className="text-slate-400" />
+                            Brand Identity Icon
+                          </label>
+                          <div className="client-modal-card grid grid-cols-5 sm:grid-cols-10 gap-2 bg-slate-50/80 dark:bg-[#131c31] p-3 rounded-xl border border-slate-200/60 dark:border-[#1e293b] shadow-2xs">
                             {Object.entries(CLIENT_ICONS).map(
                               ([key, IconComponent]) => {
                                 const isSelected = formData.icon === key;
@@ -2287,10 +2607,10 @@ const Clients = () => {
                                         icon: key,
                                       }))
                                     }
-                                    className={`w-12 h-12 rounded-[1.25rem] flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${
+                                    className={`w-9 h-9 rounded-lg flex flex-col items-center justify-center transition-all duration-150 cursor-pointer ${
                                       isSelected
-                                        ? "shadow-md scale-110 ring-2 ring-offset-2 dark:ring-offset-slate-900 bg-white dark:bg-slate-800"
-                                        : "hover:scale-105 hover:bg-white dark:hover:bg-slate-700/50 hover:shadow-sm"
+                                        ? "shadow-sm scale-105 ring-2 ring-offset-2 dark:ring-offset-[#0f172a] bg-white dark:bg-[#1e293b]"
+                                        : "hover:scale-105 hover:bg-white dark:hover:bg-[#1e293b]/70"
                                     }`}
                                     style={{
                                       color: isSelected
@@ -2304,32 +2624,23 @@ const Clients = () => {
                                       .replace("Fa", "")
                                       .replace("Fi", "")}
                                   >
-                                    <IconComponent
-                                      size={22}
-                                      className={
-                                        isSelected ? "drop-shadow-sm" : ""
-                                      }
-                                    />
+                                    <IconComponent size={16} />
                                   </button>
                                 );
-                              },
+                              }
                             )}
                           </div>
                         </div>
 
                         {/* Color Selection */}
                         <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <label className="text-[11px] font-black text-slate-705 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                              <span className="w-5 h-5 rounded flex items-center justify-center bg-purple-50 dark:bg-purple-500/10 text-purple-500">
-                                <div className="w-2.5 h-2.5 rounded-full bg-current" />
-                              </span>
-                              Brand Theme Color
-                            </label>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                            Brand Theme Color
+                          </label>
+                          <div className="client-modal-card flex flex-wrap items-center gap-2 bg-slate-50/80 dark:bg-[#131c31] p-3 rounded-xl border border-slate-200/60 dark:border-[#1e293b] shadow-2xs">
                             {CLIENT_COLORS.map((colorItem) => {
-                              const c = colorItem.value || colorItem; // Handle both object and string formats
+                              const c = colorItem.value || colorItem;
                               const isSelected = formData.color === c;
                               return (
                                 <button
@@ -2341,10 +2652,10 @@ const Clients = () => {
                                       color: c,
                                     }))
                                   }
-                                  className={`w-8 h-8 rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center ${
+                                  className={`w-7 h-7 rounded-full transition-all duration-150 cursor-pointer flex items-center justify-center ${
                                     isSelected
-                                      ? "scale-110 shadow-lg ring-2 ring-offset-2 dark:ring-offset-slate-900"
-                                      : "hover:scale-110 hover:shadow-md"
+                                      ? "scale-110 shadow-sm ring-2 ring-offset-2 dark:ring-offset-[#0f172a]"
+                                      : "hover:scale-110"
                                   }`}
                                   style={{
                                     backgroundColor: c,
@@ -2353,49 +2664,42 @@ const Clients = () => {
                                 >
                                   {isSelected && (
                                     <FiCheck
-                                      size={14}
-                                      className="text-white drop-shadow-md"
+                                      size={12}
+                                      className="text-white drop-shadow-sm stroke-[3]"
                                     />
                                   )}
                                 </button>
                               );
                             })}
 
-                            <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-2" />
+                            <div className="w-px h-6 bg-slate-200 dark:bg-[#334155] mx-1" />
 
                             <label
-                              className={`relative h-10 px-4 rounded-xl border-2 border-dashed bg-white dark:bg-slate-800 cursor-pointer flex items-center justify-center shadow-sm transition-all duration-300 hover:border-slate-400 dark:hover:border-slate-500 ${
+                              className={`relative h-7 px-2.5 rounded-lg border bg-white dark:bg-[#1e293b] cursor-pointer flex items-center justify-center shadow-2xs transition-all ${
                                 !CLIENT_COLORS.some(
                                   (colorItem) =>
                                     (colorItem.value || colorItem) ===
-                                    formData.color,
+                                    formData.color
                                 )
-                                  ? "border-solid shadow-md ring-2 ring-offset-2 dark:ring-offset-slate-900 scale-105"
-                                  : "border-slate-300 dark:border-slate-600 hover:scale-105"
+                                  ? "border-solid shadow-sm ring-2 ring-offset-2 dark:ring-offset-[#0f172a] scale-105 border-emerald-500"
+                                  : "border-slate-300 dark:border-[#334155] hover:scale-105"
                               }`}
                               style={{
                                 borderColor: !CLIENT_COLORS.some(
                                   (colorItem) =>
                                     (colorItem.value || colorItem) ===
-                                    formData.color,
+                                    formData.color
                                 )
                                   ? formData.color
                                   : undefined,
-                                ringColor: !CLIENT_COLORS.some(
-                                  (colorItem) =>
-                                    (colorItem.value || colorItem) ===
-                                    formData.color,
-                                )
-                                  ? formData.color
-                                  : "transparent",
                               }}
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1.5">
                                 <div
-                                  className="w-4 h-4 rounded-full shadow-inner border border-black/10 dark:border-white/10"
+                                  className="w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
                                   style={{ backgroundColor: formData.color }}
                                 />
-                                <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                                <span className="text-[9.5px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                                   Custom
                                 </span>
                               </div>
@@ -2409,542 +2713,444 @@ const Clients = () => {
                             </label>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
+                      </motion.div>
+                    )}
 
-                  {/* TAB 3: SERVICE CATEGORIES & COMMITMENTS */}
-                  {activeTab === "service" && (
-                    <motion.div
-                      key="service"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 28,
-                      }}
-                      className="space-y-4 min-h-[280px] sm:min-h-[340px] pb-32"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <MultiSelect
-                          label="Core Contract Service"
-                          placeholder="Select Service Areas"
-                          options={[
-                            {
-                              value: "Digital Marketing",
-                              label: "Digital Marketing",
-                            },
-                            { value: "Website", label: "Website Development" },
-                            { value: "SEO", label: "SEO Strategy" },
-                            {
-                              value: "Additional work",
-                              label: "Additional work",
-                            },
-                            {
-                              value: "Video Production",
-                              label: "Video Production",
-                            },
-                            { value: "Others", label: "Others" },
-                          ]}
-                          selectedValues={formData.service || []}
-                          onChange={handleServiceChange}
-                          icon={FiLayers}
-                        />
+                    {/* TAB 3: SERVICE CATEGORIES & COMMITMENTS */}
+                    {activeTab === "service" && (
+                      <motion.div
+                        key="service"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                        className="space-y-3.5"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                          <MultiSelect
+                            label="Core Contract Service"
+                            placeholder="Select Service Areas"
+                            options={[
+                              {
+                                value: "Digital Marketing",
+                                label: "Digital Marketing",
+                              },
+                              { value: "Website", label: "Website Development" },
+                              { value: "SEO", label: "SEO Strategy" },
+                              {
+                                value: "Additional work",
+                                label: "Additional work",
+                              },
+                              {
+                                value: "Video Production",
+                                label: "Video Production",
+                              },
+                              { value: "Others", label: "Others" },
+                            ]}
+                            selectedValues={formData.service || []}
+                            onChange={handleServiceChange}
+                            icon={FiLayers}
+                          />
 
-                        <MultiSelect
-                          label="Assign to members"
-                          placeholder="Select members"
-                          options={allUsers.map((u) => ({
-                            value: u._id,
-                            label: u.name,
-                            subLabel: u.email,
-                            avatarUrl:
-                              u.profile?.profileImage?.url ||
-                              u.profileImage?.url ||
-                              u.profile?.avatar ||
-                              u.avatar ||
-                              "",
-                            group: u.department
-                              ? u.department.toUpperCase()
-                              : "UNASSIGNED",
-                          }))}
-                          selectedValues={formData.assignedTo || []}
-                          onChange={handleAssignedChange}
-                          icon={FiUsers}
-                        />
-                      </div>
-
-                      {/* Commitments Dynamic Blocks */}
-                      {formData.service &&
-                        (Array.isArray(formData.service)
-                          ? formData.service.length > 0
-                          : formData.service) && (
-                          <div className="pt-2 space-y-4">
-                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-bold">
-                              <FiBookOpen size={11} />
-                              Deliverables Setup
-                            </label>
-
-                            {/* Digital Marketing commitments */}
-                            {((Array.isArray(formData.service) &&
-                              formData.service.includes("Digital Marketing")) ||
-                              formData.service === "Digital Marketing") && (
-                              <div className="bg-blue-50/30 dark:bg-black/40 border border-blue-100/50 dark:border-blue-900/20 rounded-2xl p-4 space-y-3.5">
-                                <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                                  <FiLayers size={12} /> Digital Marketing
-                                  Deliverables
-                                </h4>
-                                <div className="grid grid-cols-3 gap-3">
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                      Reels
-                                    </label>
-                                    <input
-                                      type="number"
-                                      name="reels"
-                                      value={formData.reels}
-                                      onChange={handleChange}
-                                      placeholder="Count"
-                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                    />
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                      Posts
-                                    </label>
-                                    <input
-                                      type="number"
-                                      name="posts"
-                                      value={formData.posts}
-                                      onChange={handleChange}
-                                      placeholder="Count"
-                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                    />
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                      story
-                                    </label>
-                                    <input
-                                      type="number"
-                                      name="story"
-                                      value={formData.story}
-                                      onChange={handleChange}
-                                      placeholder="Count"
-                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
-                                    DSLR requirement
-                                  </label>
-                                  <select
-                                    name="needDslr"
-                                    value={formData.needDslr}
-                                    onChange={handleChange}
-                                    className="h-10 px-3.5 py-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold cursor-pointer w-full md:w-52 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
-                                  >
-                                    <option value="">Select Option</option>
-                                    <option value="Need DSLR">Need DSLR</option>
-                                    <option value="No DSLR">No DSLR</option>
-                                  </select>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Website commitments */}
-                            {((Array.isArray(formData.service) &&
-                              formData.service.includes("Website")) ||
-                              formData.service === "Website") && (
-                              <div className="bg-emerald-50/30 dark:bg-black/40 border border-emerald-100/50 dark:border-emerald-900/20 rounded-2xl p-4">
-                                <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-2.5">
-                                  <FiGlobe size={12} /> Website Deliverables
-                                </h4>
-                                <div className="w-full md:w-1/2">
-                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                    Estimated Web Pages
-                                  </label>
-                                  <input
-                                    type="number"
-                                    name="pages"
-                                    value={formData.pages}
-                                    onChange={handleChange}
-                                    placeholder="e.g. 5 Pages"
-                                    className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/25 dark:focus:ring-[#3b82f6]/25 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            {/* SEO commitments */}
-                            {((Array.isArray(formData.service) &&
-                              formData.service.includes("SEO")) ||
-                              formData.service === "SEO") && (
-                              <div className="bg-purple-50/30 dark:bg-black/40 border border-purple-100/50 dark:border-purple-900/20 rounded-2xl p-4">
-                                <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5 mb-2.5">
-                                  <FiSearch size={12} /> SEO Deliverables
-                                </h4>
-                                <label className="block text-[10px] font-bold text-slate-550 dark:text-slate-350 mb-2">
-                                  Select Deliverables
-                                </label>
-                                <div className="flex flex-wrap gap-3">
-                                  <label className="flex items-center gap-2.5 bg-white dark:bg-black px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 transition-all font-semibold">
-                                    <input
-                                      type="checkbox"
-                                      name="onpage"
-                                      checked={formData.onpage}
-                                      onChange={handleChange}
-                                      className="rounded text-purple-650 focus:ring-purple-500"
-                                    />
-                                    On-Page SEO
-                                  </label>
-
-                                  <label className="flex items-center gap-2.5 bg-white dark:bg-black px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 transition-all font-semibold">
-                                    <input
-                                      type="checkbox"
-                                      name="offpage"
-                                      checked={formData.offpage}
-                                      onChange={handleChange}
-                                      className="rounded text-purple-650 focus:ring-purple-500"
-                                    />
-                                    Off-Page Link Building
-                                  </label>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Video Production commitments */}
-                            {((Array.isArray(formData.service) &&
-                              formData.service.includes("Video Production")) ||
-                              formData.service === "Video Production") && (
-                              <div className="bg-rose-50/30 dark:bg-black/40 border border-rose-100/50 dark:border-rose-900/20 rounded-2xl p-4 space-y-3.5">
-                                <h4 className="text-xs font-bold text-rose-600 dark:text-rose-405 flex items-center gap-1.5">
-                                  <FiVideo size={12} /> Video Production
-                                  Deliverables
-                                </h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                      story Count
-                                    </label>
-                                    <input
-                                      type="number"
-                                      name="story"
-                                      value={formData.story}
-                                      onChange={handleChange}
-                                      placeholder="Count"
-                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                    />
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                      Reels Count
-                                    </label>
-                                    <input
-                                      type="number"
-                                      name="reels"
-                                      value={formData.reels}
-                                      onChange={handleChange}
-                                      placeholder="Count"
-                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
-                                    DSLR requirement
-                                  </label>
-                                  <select
-                                    name="needDslr"
-                                    value={formData.needDslr}
-                                    onChange={handleChange}
-                                    className="h-10 px-3.5 py-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold cursor-pointer w-full md:w-52 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
-                                  >
-                                    <option value="">Select Option</option>
-                                    <option value="Need DSLR">Need DSLR</option>
-                                    <option value="No DSLR">No DSLR</option>
-                                  </select>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Additional work commitments */}
-                            {((Array.isArray(formData.service) &&
-                              formData.service.includes("Additional work")) ||
-                              formData.service === "Additional work") && (
-                              <div className="bg-amber-50/30 dark:bg-black/40 border border-amber-100/50 dark:border-amber-900/20 rounded-2xl p-4">
-                                <h4 className="text-xs font-bold text-amber-600 dark:text-amber-455 flex items-center gap-1.5 mb-2.5">
-                                  <FiPlusCircle size={12} /> Additional Work
-                                  Details
-                                </h4>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                                  Additional deliverables and project-specific
-                                  tasks can be added directly via the project
-                                  boards or EOD notes.
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Others commitments */}
-                            {((Array.isArray(formData.service) &&
-                              formData.service.includes("Others")) ||
-                              formData.service === "Others") && (
-                              <div className="bg-teal-50/30 dark:bg-black/40 border border-teal-100/50 dark:border-teal-900/20 rounded-2xl p-4">
-                                <h4 className="text-xs font-bold text-teal-605 dark:text-teal-400 flex items-center gap-1.5 mb-2.5">
-                                  <FiHelpCircle size={12} /> Custom Service
-                                  Deliverables
-                                </h4>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                                  Configure specific milestones and guidelines
-                                  directly with the assigned team members.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                    </motion.div>
-                  )}
-
-                  {/* TAB 4: FINANCIALS & GST SETUP */}
-                  {activeTab === "finance" && (
-                    <motion.div
-                      key="finance"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 350,
-                        damping: 28,
-                      }}
-                      className="space-y-4 min-h-[280px] sm:min-h-[340px]"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1">
-                            <FiDollarSign
-                              size={10}
-                              className="text-slate-450"
-                            />
-                            Base Budget (INR)
-                          </label>
-                          <input
-                            type="number"
-                            name="budget"
-                            value={formData.budget}
-                            onChange={handleChange}
-                            placeholder="e.g. 50000"
-                            className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                            required
+                          <MultiSelect
+                            label="Assign to members"
+                            placeholder="Select members"
+                            options={allUsers.map((u) => ({
+                              value: u._id,
+                              label: u.name,
+                              subLabel: u.email,
+                              avatarUrl:
+                                u.profile?.profileImage?.url ||
+                                u.profileImage?.url ||
+                                u.profile?.avatar ||
+                                u.avatar ||
+                                "",
+                              group: u.department
+                                ? u.department.toUpperCase()
+                                : "UNASSIGNED",
+                            }))}
+                            selectedValues={formData.assignedTo || []}
+                            onChange={handleAssignedChange}
+                            icon={FiUsers}
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1">
-                            <FiPercent size={10} className="text-slate-450" />
-                            GST Slab (%)
-                          </label>
-                          <input
-                            type="number"
-                            name="gst"
-                            value={formData.gst}
-                            onChange={handleChange}
-                            placeholder="e.g. 18"
-                            className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                          />
-                        </div>
+                        {/* Commitments Dynamic Blocks */}
+                        {formData.service &&
+                          (Array.isArray(formData.service)
+                            ? formData.service.length > 0
+                            : formData.service) && (
+                            <div className="pt-1 space-y-3">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                                <FiBookOpen size={11} />
+                                Deliverables Setup
+                              </label>
 
-                        <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
-                            Grand Total (Inc. GST)
-                          </label>
-                          <div className="w-full h-10 rounded-xl bg-emerald-555/5 dark:bg-emerald-950/20 border border-emerald-500/10 dark:border-emerald-900/30 px-3.5 flex items-center text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
-                            ₹{Number(calculateTotal()).toLocaleString("en-IN")}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                              {/* Digital Marketing commitments */}
+                              {((Array.isArray(formData.service) &&
+                                formData.service.includes("Digital Marketing")) ||
+                                formData.service === "Digital Marketing") && (
+                                <div className="client-modal-card bg-slate-50/80 dark:bg-[#131c31] border border-slate-200/80 dark:border-[#1e293b] rounded-xl p-3.5 space-y-3 shadow-2xs">
+                                  <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                                    <FiLayers size={13} /> Digital Marketing Deliverables
+                                  </h4>
+                                  <div className="grid grid-cols-3 gap-2.5">
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                        Reels
+                                      </label>
+                                      <input
+                                        type="number"
+                                        name="reels"
+                                        value={formData.reels}
+                                        onChange={handleChange}
+                                        placeholder="Count"
+                                        className="w-full h-9 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] px-3 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 [color-scheme:dark]"
+                                      />
+                                    </div>
 
-                {/* ACTION FOOTER */}
-                <div className="border-t border-slate-100 dark:border-white/5 pt-5 mt-3">
-                  {/* Step Progress Indicator */}
-                  <div className="flex items-center justify-center gap-2 mb-5">
-                    {["profile", "branding", "service", "finance"].map(
-                      (step, i) => {
-                        const stepIndex = [
-                          "profile",
-                          "branding",
-                          "service",
-                          "finance",
-                        ].indexOf(activeTab);
-                        const isCurrent = step === activeTab;
-                        const isDone = i < stepIndex;
-                        return (
-                          <div key={step} className="flex items-center gap-2">
-                            <div
-                              className={`flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-black transition-all duration-300 ${
-                                isCurrent
-                                  ? "theme-bg-accent text-white dark:text-black shadow-lg scale-110"
-                                  : isDone
-                                    ? "bg-emerald-500 text-white shadow-sm"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600"
-                              }`}
-                            >
-                              {isDone ? "✓" : i + 1}
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                        Posts
+                                      </label>
+                                      <input
+                                        type="number"
+                                        name="posts"
+                                        value={formData.posts}
+                                        onChange={handleChange}
+                                        placeholder="Count"
+                                        className="w-full h-9 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] px-3 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 [color-scheme:dark]"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                        Story
+                                      </label>
+                                      <input
+                                        type="number"
+                                        name="story"
+                                        value={formData.story}
+                                        onChange={handleChange}
+                                        placeholder="Count"
+                                        className="w-full h-9 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] px-3 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 [color-scheme:dark]"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                      DSLR requirement
+                                    </label>
+                                    <select
+                                      name="needDslr"
+                                      value={formData.needDslr}
+                                      onChange={handleChange}
+                                      className="h-9 px-3 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold cursor-pointer w-full md:w-52 appearance-none [color-scheme:dark]"
+                                    >
+                                      <option value="" className="bg-[#1e293b] text-slate-200">Select Option</option>
+                                      <option value="Need DSLR" className="bg-[#1e293b] text-slate-200">Need DSLR</option>
+                                      <option value="No DSLR" className="bg-[#1e293b] text-slate-200">No DSLR</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Website commitments */}
+                              {((Array.isArray(formData.service) &&
+                                formData.service.includes("Website")) ||
+                                formData.service === "Website") && (
+                                <div className="client-modal-card bg-slate-50/80 dark:bg-[#131c31] border border-slate-200/80 dark:border-[#1e293b] rounded-xl p-3.5 shadow-2xs">
+                                  <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-2">
+                                    <FiGlobe size={13} /> Website Deliverables
+                                  </h4>
+                                  <div className="w-full md:w-1/2">
+                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                      Estimated Web Pages
+                                    </label>
+                                    <input
+                                      type="number"
+                                      name="pages"
+                                      value={formData.pages}
+                                      onChange={handleChange}
+                                      placeholder="e.g. 5 Pages"
+                                      className="w-full h-9 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] px-3 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 [color-scheme:dark]"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* SEO commitments */}
+                              {((Array.isArray(formData.service) &&
+                                formData.service.includes("SEO")) ||
+                                formData.service === "SEO") && (
+                                <div className="client-modal-card bg-slate-50/80 dark:bg-[#131c31] border border-slate-200/80 dark:border-[#1e293b] rounded-xl p-3.5 shadow-2xs">
+                                  <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5 mb-2">
+                                    <FiSearch size={13} /> SEO Deliverables
+                                  </h4>
+                                  <div className="flex flex-wrap gap-2.5">
+                                    <label className="flex items-center gap-2 bg-white dark:bg-[#1e293b] px-3 py-2 rounded-lg border border-slate-200 dark:border-[#334155] text-xs text-slate-700 dark:text-slate-200 cursor-pointer font-semibold">
+                                      <input
+                                        type="checkbox"
+                                        name="onpage"
+                                        checked={formData.onpage}
+                                        onChange={handleChange}
+                                        className="rounded text-purple-600 focus:ring-purple-500"
+                                      />
+                                      On-Page SEO
+                                    </label>
+
+                                    <label className="flex items-center gap-2 bg-white dark:bg-[#1e293b] px-3 py-2 rounded-lg border border-slate-200 dark:border-[#334155] text-xs text-slate-700 dark:text-slate-200 cursor-pointer font-semibold">
+                                      <input
+                                        type="checkbox"
+                                        name="offpage"
+                                        checked={formData.offpage}
+                                        onChange={handleChange}
+                                        className="rounded text-purple-600 focus:ring-purple-500"
+                                      />
+                                      Off-Page Link Building
+                                    </label>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Video Production commitments */}
+                              {((Array.isArray(formData.service) &&
+                                formData.service.includes("Video Production")) ||
+                                formData.service === "Video Production") && (
+                                <div className="client-modal-card bg-slate-50/80 dark:bg-[#131c31] border border-slate-200/80 dark:border-[#1e293b] rounded-xl p-3.5 space-y-3 shadow-2xs">
+                                  <h4 className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                                    <FiVideo size={13} /> Video Production Deliverables
+                                  </h4>
+                                  <div className="grid grid-cols-2 gap-2.5">
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                        Story Count
+                                      </label>
+                                      <input
+                                        type="number"
+                                        name="story"
+                                        value={formData.story}
+                                        onChange={handleChange}
+                                        placeholder="Count"
+                                        className="w-full h-9 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] px-3 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/20 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 [color-scheme:dark]"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                        Reels Count
+                                      </label>
+                                      <input
+                                        type="number"
+                                        name="reels"
+                                        value={formData.reels}
+                                        onChange={handleChange}
+                                        placeholder="Count"
+                                        className="w-full h-9 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] px-3 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/20 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 [color-scheme:dark]"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                      DSLR requirement
+                                    </label>
+                                    <select
+                                      name="needDslr"
+                                      value={formData.needDslr}
+                                      onChange={handleChange}
+                                      className="h-9 px-3 rounded-lg border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/20 font-semibold cursor-pointer w-full md:w-52 appearance-none [color-scheme:dark]"
+                                    >
+                                      <option value="" className="bg-[#1e293b] text-slate-200">Select Option</option>
+                                      <option value="Need DSLR" className="bg-[#1e293b] text-slate-200">Need DSLR</option>
+                                      <option value="No DSLR" className="bg-[#1e293b] text-slate-200">No DSLR</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Additional work commitments */}
+                              {((Array.isArray(formData.service) &&
+                                formData.service.includes("Additional work")) ||
+                                formData.service === "Additional work") && (
+                                <div className="client-modal-card bg-slate-50/80 dark:bg-[#131c31] border border-slate-200/80 dark:border-[#1e293b] rounded-xl p-3 shadow-2xs">
+                                  <h4 className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mb-1">
+                                    <FiPlusCircle size={13} /> Additional Work Details
+                                  </h4>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                                    Additional deliverables and project-specific tasks can be
+                                    added directly via project boards or milestone notes.
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Others commitments */}
+                              {((Array.isArray(formData.service) &&
+                                formData.service.includes("Others")) ||
+                                formData.service === "Others") && (
+                                <div className="client-modal-card bg-slate-50/80 dark:bg-[#131c31] border border-slate-200/80 dark:border-[#1e293b] rounded-xl p-3 shadow-2xs">
+                                  <h4 className="text-xs font-bold text-teal-600 dark:text-teal-400 flex items-center gap-1.5 mb-1">
+                                    <FiHelpCircle size={13} /> Custom Service Deliverables
+                                  </h4>
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                                    Configure specific milestones and guidelines directly with
+                                    the assigned team members.
+                                  </p>
+                                </div>
+                              )}
                             </div>
-                            <span
-                              className={`text-[9px] font-bold hidden sm:block ${
-                                isCurrent
-                                  ? "theme-text-accent"
-                                  : isDone
-                                    ? "text-emerald-500"
-                                    : "text-slate-400 dark:text-slate-600"
-                              }`}
-                            >
-                              {step === "profile"
-                                ? "Company"
-                                : step === "branding"
-                                  ? "Brand"
-                                  : step === "service"
-                                    ? "Service"
-                                    : "Finance"}
-                            </span>
-                            {i < 3 && (
-                              <div
-                                className={`w-8 h-[2px] rounded-full ${isDone ? "bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"}`}
-                              />
-                            )}
+                          )}
+                      </motion.div>
+                    )}
+
+                    {/* TAB 4: FINANCIALS & GST SETUP */}
+                    {activeTab === "finance" && (
+                      <motion.div
+                        key="finance"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                        className="space-y-3.5"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <FiDollarSign size={11} className="text-slate-400" />
+                              Base Budget (INR)
+                            </label>
+                            <input
+                              type="number"
+                              name="budget"
+                              value={formData.budget}
+                              onChange={handleChange}
+                              placeholder="e.g. 50000"
+                              className="w-full h-10 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] px-3 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 [color-scheme:dark]"
+                              required
+                            />
                           </div>
-                        );
-                      },
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <FiPercent size={11} className="text-slate-400" />
+                              GST Slab (%)
+                            </label>
+                            <input
+                              type="number"
+                              name="gst"
+                              value={formData.gst}
+                              onChange={handleChange}
+                              placeholder="e.g. 18"
+                              className="w-full h-10 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] px-3 text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 dark:focus:border-emerald-400 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500 [color-scheme:dark]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                              Grand Total (Inc. GST)
+                            </label>
+                            <div className="w-full h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/50 px-3 flex items-center text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
+                              ₹{Number(calculateTotal()).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Summary Card Before Submission */}
+                        <div className="client-modal-card bg-slate-50/80 dark:bg-[#131c31] rounded-xl p-3.5 border border-slate-200/80 dark:border-[#1e293b] mt-2 space-y-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+                            Summary Confirmation
+                          </span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                            <div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-400 font-medium">Client</div>
+                              <div className="font-bold text-slate-800 dark:text-white truncate">
+                                {formData.companyName || "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-400 font-medium">Industry</div>
+                              <div className="font-bold text-slate-800 dark:text-white truncate">
+                                {formData.industry || "—"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-400 font-medium">Services</div>
+                              <div className="font-bold text-slate-800 dark:text-white truncate">
+                                {Array.isArray(formData.service) && formData.service.length > 0
+                                  ? formData.service.join(", ")
+                                  : "None"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-slate-400 dark:text-slate-400 font-medium">Status</div>
+                              <div className="font-bold text-slate-800 dark:text-white">
+                                {formData.status || "Active"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* STICKY ACTION FOOTER */}
+                <div className="client-modal-footer px-6 py-3.5 border-t border-slate-100 dark:border-[#1e293b] bg-slate-50/80 dark:bg-[#0b1120] backdrop-blur-sm flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    {activeTab !== "profile" ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activeTab === "finance") setActiveTab("service");
+                          else if (activeTab === "service") setActiveTab("branding");
+                          else if (activeTab === "branding") setActiveTab("profile");
+                        }}
+                        className="client-modal-btn-secondary flex items-center gap-1 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#334155] font-semibold transition-all text-xs cursor-pointer shadow-2xs active:scale-95"
+                      >
+                        <FiChevronLeft size={13} />
+                        Back
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-400 px-1">
+                        Step 1 of 4: Company Profile
+                      </span>
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center gap-3">
-                    {/* Back Button */}
-                    <div>
-                      {activeTab !== "profile" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (activeTab === "finance")
-                              setActiveTab("service");
-                            else if (activeTab === "service")
-                              setActiveTab("branding");
-                            else if (activeTab === "branding")
-                              setActiveTab("profile");
-                          }}
-                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold transition-all text-xs cursor-pointer shadow-sm group"
-                        >
-                          <svg
-                            className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M15 19l-7-7 7-7"
-                            />
-                          </svg>
-                          Back
-                        </button>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowModal(false)}
+                      className="client-modal-btn-secondary px-4 py-2 rounded-xl border border-slate-200 dark:border-[#334155] bg-white dark:bg-[#1e293b] text-slate-600 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#334155] font-semibold transition-all text-xs cursor-pointer shadow-2xs active:scale-95"
+                    >
+                      Cancel
+                    </button>
 
-                    {/* Right Action Buttons */}
-                    <div className="flex items-center gap-2.5">
-                      {/* Cancel */}
+                    {activeTab !== "finance" ? (
                       <button
                         type="button"
-                        onClick={() => setShowModal(false)}
-                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold transition-all text-xs cursor-pointer shadow-sm group"
+                        onClick={handleNextStep}
+                        className="flex items-center gap-1.5 px-5 py-2 rounded-xl font-bold text-xs cursor-pointer shadow-md hover:shadow-lg transition-all active:scale-95 text-white bg-emerald-600 hover:bg-emerald-500"
                       >
-                        <svg
-                          className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-200"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
-                        Cancel
+                        <span>
+                          {activeTab === "profile"
+                            ? "Next: Brand Identity"
+                            : activeTab === "branding"
+                              ? "Next: Service Plan"
+                              : "Next: Budget"}
+                        </span>
+                        <FiChevronRight size={13} />
                       </button>
-
-                      {/* Next Step / Submit */}
-                      {activeTab !== "finance" ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (activeTab === "profile")
-                              setActiveTab("branding");
-                            else if (activeTab === "branding")
-                              setActiveTab("service");
-                            else if (activeTab === "service")
-                              setActiveTab("finance");
-                          }}
-                          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-xs cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 group text-white dark:text-black"
-                          style={{ background: "var(--accent-gradient)" }}
-                        >
-                          Next Step
-                          <svg
-                            className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </button>
-                      ) : (
-                        <button
-                          type="submit"
-                          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-xs cursor-pointer shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group text-white dark:text-black"
-                          style={{ background: "var(--accent-gradient)" }}
-                        >
-                          <svg
-                            className="w-3.5 h-3.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d={
-                                editId
-                                  ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                                  : "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-                              }
-                            />
-                          </svg>
-                          {editId ? "Update Record" : "Register Client"}
-                        </button>
-                      )}
-                    </div>
+                    ) : (
+                      <button
+                        type="submit"
+                        className="flex items-center gap-1.5 px-5 py-2 rounded-xl font-bold text-xs cursor-pointer shadow-md hover:shadow-xl transition-all hover:scale-[1.02] active:scale-95 text-white bg-emerald-600 hover:bg-emerald-500"
+                      >
+                        <FiCheck size={14} />
+                        <span>{editId ? "Update Client" : "Register Client"}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </form>

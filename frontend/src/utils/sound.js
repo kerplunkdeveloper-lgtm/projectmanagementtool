@@ -27,20 +27,25 @@ let isWaterAudioPending = false;
 
 // Global interaction unlocker
 const unlockAudio = () => {
+  if (typeof navigator !== "undefined" && navigator.userActivation && !navigator.userActivation.hasBeenActive) {
+    return;
+  }
   userHasInteracted = true;
-  if (!sharedAudioCtx && typeof window !== "undefined") {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass) {
-      sharedAudioCtx = new AudioContextClass();
+  try {
+    if (!sharedAudioCtx && typeof window !== "undefined") {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        sharedAudioCtx = new AudioContextClass();
+      }
     }
-  }
-  if (sharedAudioCtx && sharedAudioCtx.state === "suspended") {
-    sharedAudioCtx.resume().then(() => {
+    if (sharedAudioCtx && sharedAudioCtx.state === "suspended") {
+      sharedAudioCtx.resume().then(() => {
+        cleanupListeners();
+      }).catch(() => {});
+    } else if (sharedAudioCtx && sharedAudioCtx.state === "running") {
       cleanupListeners();
-    }).catch(() => {});
-  } else if (sharedAudioCtx && sharedAudioCtx.state === "running") {
-    cleanupListeners();
-  }
+    }
+  } catch (_) {}
 
   // If water audio was blocked by autoplay policy, start it immediately on first interaction
   if (isWaterAudioPending && waterAudio) {
@@ -54,16 +59,14 @@ const cleanupListeners = () => {
   if (typeof window !== "undefined") {
     window.removeEventListener("click", unlockAudio);
     window.removeEventListener("keydown", unlockAudio);
-    window.removeEventListener("touchstart", unlockAudio);
-    window.removeEventListener("pointerdown", unlockAudio);
+    window.removeEventListener("touchend", unlockAudio);
   }
 };
 
 if (typeof window !== "undefined") {
   window.addEventListener("click", unlockAudio, { passive: true });
   window.addEventListener("keydown", unlockAudio, { passive: true });
-  window.addEventListener("touchstart", unlockAudio, { passive: true });
-  window.addEventListener("pointerdown", unlockAudio, { passive: true });
+  window.addEventListener("touchend", unlockAudio, { passive: true });
 }
 
 const isSoundEnabled = () => {

@@ -742,6 +742,99 @@ textarea:focus {
    custom SVG dropdown arrows, and crisp border/background
    =================================================== */
 
+/* ===================================================
+   CLIENT MODAL CLEAN INPUTS & WORLD-CLASS DARK MODE
+   Locks in explicit slate hex colors to prevent Tailwind v4
+   inverted slate variable clashes and deliver an ultra-clean UI.
+   =================================================== */
+.client-modal input,
+.client-modal select,
+.client-modal textarea {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.client-modal select option {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+.dark .client-modal {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+.dark .client-modal-header,
+.dark .client-modal-footer,
+.dark .client-modal-stepper-wrap {
+  background-color: #0b1120 !important;
+  border-color: #1e293b !important;
+}
+
+.dark .client-modal-body {
+  background-color: #0f172a !important;
+}
+
+.dark .client-modal-stepper-inner {
+  background-color: #131c31 !important;
+  border-color: #1e293b !important;
+}
+
+.dark .client-modal-tab-active {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #34d399 !important;
+}
+
+.dark .client-modal-input-wrap {
+  background-color: rgba(30, 41, 59, 0.7) !important;
+  border-color: #334155 !important;
+}
+
+.dark .client-modal-input-wrap:hover {
+  border-color: #475569 !important;
+}
+
+.dark .client-modal-input-wrap:focus-within {
+  background-color: #1e293b !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+}
+
+.dark .client-modal input,
+.dark .client-modal select,
+.dark .client-modal textarea {
+  color: #ffffff !important;
+}
+
+.dark .client-modal input::placeholder {
+  color: #64748b !important;
+}
+
+.dark .client-modal input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.9) brightness(1.2);
+  cursor: pointer;
+}
+
+.dark .client-modal-card {
+  background-color: #131c31 !important;
+  border-color: #1e293b !important;
+}
+
+.dark .client-modal-btn-secondary {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark .client-modal-btn-secondary:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+
 select.toolbar-filter-select {
   background-color: #ffffff !important;
   color: #334155 !important;

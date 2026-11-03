@@ -153,6 +153,7 @@ const rawOrigins = [
   "https://tasks.kerplunkmedia.com",
   "http://tasks.kerplunkmedia.com",
   "https://www.tasks.kerplunkmedia.com",
+  "https://gosorted.app/",
   "http://www.tasks.kerplunkmedia.com",
   process.env.FRONTEND_URL,
   process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/+$/, "") : null,
