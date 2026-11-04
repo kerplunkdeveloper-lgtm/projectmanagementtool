@@ -57,18 +57,43 @@ exports.protect = async (req, res, next) => {
 // Grant access to specific roles or users with appropriate permissions
 exports.authorize = (...roles) => {
   return (req, res, next) => {
+    const roleLower = (req.user?.role || '').toLowerCase();
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      roleLower === 'socialmediamanager' ||
+      roleLower === 'socialmediahead' ||
+      deptLower.includes('social media head');
+
     // Admin & Operation Manager always have full access
     if (req.user.role === 'admin' || req.user.role === 'operationmanager' || req.user.role === 'operation manager') {
       return next();
     }
 
+    // Social Media Manager has full managerial access for tasks, shoots, calendar-events, projects, clients, and social media
+    const url = req.originalUrl || '';
+    if (isSocialMediaManager) {
+      if (
+        url.includes('/tasks') ||
+        url.includes('/shoots') ||
+        url.includes('/calendar-events') ||
+        url.includes('/projects') ||
+        url.includes('/clients') ||
+        url.includes('/socialmedia')
+      ) {
+        return next();
+      }
+    }
+
     // Check if user has explicit role access
-    if (roles.includes(req.user.role) || (roles.includes('team') && req.user.role === 'humanresource')) {
+    if (
+      roles.includes(req.user.role) ||
+      (roles.includes('team') &&
+        (req.user.role === 'humanresource' || req.user.role === 'socialmediamanager' || isSocialMediaManager))
+    ) {
       return next();
     }
 
     // Check permission based on the endpoint
-    const url = req.originalUrl || '';
     const permissions = req.user.permissions || {};
 
     let hasPermission = false;

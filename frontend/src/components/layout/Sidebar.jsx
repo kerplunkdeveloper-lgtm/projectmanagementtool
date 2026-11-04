@@ -4,6 +4,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   FiX,
+  FiSearch,
   FiLogOut,
   FiFolder,
   FiList,
@@ -33,6 +34,7 @@ import {
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import ProjectIcon from "../common/ProjectIcon";
 import { preloadRoute } from "../../routes/AppRoutes";
+import { useSocketContext } from "../../context/SocketContext";
 import sortedLogo from "../../assets/sorted.png";
 import darkSortedLogo from "../../assets/darksorted.png";
 
@@ -133,6 +135,13 @@ const DEFAULT_TOP_CARDS = new Set([
 ]);
 
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
+  const { onlineUserIds, isOnline } = useSocketContext() || {
+    onlineUserIds: [],
+    isOnline: () => false,
+  };
+  const onlineSet = React.useMemo(() => {
+    return new Set((onlineUserIds || []).map((id) => id?.toString()));
+  }, [onlineUserIds]);
   const location = useLocation();
   const activeProjectId = location.pathname.includes("/projects")
     ? new URLSearchParams(location.search).get("id")
@@ -342,6 +351,17 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               );
             }
 
+            // Hide "Assigned Tasks" for Social Media Executive, Admin, and Operation Manager
+            if (
+              subItem.name === "Assigned Tasks" ||
+              subItem.name === "Assigned Task" ||
+              (subItem.path?.endsWith("/tasks") && (item.name === "Tasks" || item.path?.includes("/tasks")))
+            ) {
+              if (isSocialMedia || isAdmin || isOperationManager) {
+                return false;
+              }
+            }
+
             if (
               subItem.name === "Content Calendar" ||
               subItem.path?.includes("content-calendar")
@@ -356,7 +376,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               subItem.path?.includes("event-calendar") ||
               subItem.path?.includes("all-calendar")
             ) {
-              const isSocialMediaManager = deptLower.includes("social media manager");
+              const isSocialMediaManager = deptLower.includes("social media");
               if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
                 return false;
               }
@@ -371,12 +391,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               }
             }
 
+            const isSocialMediaHeadOrManager =
+              role === "socialmediamanager" ||
+              role === "socialmediahead" ||
+              deptLower.includes("social media head") ||
+              roleLower.includes("social media manager") ||
+              roleLower.includes("social media head");
+
             if (
               subItem.name === "Designer Tasks" ||
               subItem.path?.includes("designer-tasks")
             ) {
               const isDesigner = deptLower.includes("design") || roleLower.includes("design");
-              if (isDesigner) return true;
+              if (isDesigner || isSocialMediaHeadOrManager) return true;
             }
 
             if (
@@ -388,11 +415,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 deptLower.includes("video") ||
                 deptLower.includes("edit") ||
                 roleLower.includes("cinema");
-              if (isCinema) return true;
+              if (isCinema || isSocialMediaHeadOrManager) return true;
             }
 
             if (subItem.permissionKey) {
-              if (role === "admin" || role === "operationmanager" || role === "operation manager") return true;
+              if (role === "admin" || role === "operationmanager" || role === "operation manager" || isSocialMediaHeadOrManager) return true;
               if (subItem.permissionKey === "manage_clients") return true;
               const perm = currentUser?.permissions?.[subItem.permissionKey];
               if (perm === true) return true;
@@ -411,19 +438,21 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           return item.children.length > 0;
         }
 
-        // Hide Projects Overview for Social Media Manager department
+        // Hide Projects Overview for Social Media Executive department
         if (
           item.name === "Projects Overview" &&
           (currentUser?.department === "Social Media Manager" ||
+            currentUser?.department === "Social Media Executive" ||
             currentUser?.department === "Social Media Executive")
         ) {
           return false;
         }
 
-        // Hide My Reports for Social Media Manager department and HR department/role
+        // Hide My Reports for Social Media Executive department and HR department/role
         if (
           item.name === "My Reports" &&
           (currentUser?.department === "Social Media Manager" ||
+            currentUser?.department === "Social Media Executive" ||
             currentUser?.department?.toLowerCase() === "hr" ||
             currentUser?.department?.toLowerCase()?.includes("human resource") ||
             currentUser?.role === "humanresource" ||
@@ -445,7 +474,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           return false;
         }
 
-        // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
+        // Show SM Creditionals ONLY for Social Media Executive department, Managing Partner / Admin, and Operation Manager
         if (
           item.name === "SM Creditionals" ||
           item.name === "SM Credentials" ||
@@ -471,7 +500,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           }
         }
 
-        // Show SM Tasks and Content Calendar ONLY for Social Media Manager department, Admin, and Operation Manager
+        // Show SM Tasks and Content Calendar ONLY for Social Media Executive department, Admin, and Operation Manager
         if (
           item.name === "SM Tasks" ||
           item.name === "Content Calendar" ||
@@ -499,18 +528,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           }
         }
 
-        // Show Client Calls ONLY for Social Media Manager department
+        // Show Client Calls ONLY for Social Media Executive department
         if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
           const deptLower = (currentUser?.department || "").toLowerCase();
 
-          const isSocialMediaManager = deptLower.includes("social media manager");
+          const isSocialMediaManager = deptLower.includes("social media");
 
           if (!isSocialMediaManager) {
             return false;
           }
         }
 
-        // Show MOM Points ONLY for Admin, Operation Manager, and Social Media Manager
+        // Show MOM Points ONLY for Admin, Operation Manager, and Social Media Executive
         if (
           item.name === "MOM Points" ||
           item.name === "MOM / Client Calls" ||
@@ -531,14 +560,15 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             deptLower.includes("social media manager") ||
             deptLower.includes("social manager") ||
             deptLower.includes("social media") ||
-            roleLower === "socialmediamanager";
+            roleLower === "socialmediamanager" ||
+            roleLower === "socialmediaexecutive";
 
           if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
             return false;
           }
         }
 
-        // Show Status Overview ONLY for Social Media Manager/Executive, Admin, Operation Manager, Managing Partner
+        // Show Status Overview ONLY for Social Media Executive, Admin, Operation Manager, Managing Partner
         if (
           item.name === "Task Overview" ||
           item.name === "Status Overview" ||
@@ -562,7 +592,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
 
 
-        // Show Calendar ONLY for Admin, Operation Manager, and Social Media Manager department
+        // Show Calendar ONLY for Admin, Operation Manager, and Social Media Executive department
         if (item.name === "Calendar" || item.path?.includes("all-calendar")) {
           const deptLower = (currentUser?.department || "").toLowerCase();
           const roleLower = (currentUser?.role || role || "").toLowerCase();
@@ -575,14 +605,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             roleLower === "operationmanager" ||
             deptLower.includes("operation manager") ||
             roleLower.includes("operation manager");
-          const isSocialMediaManager = deptLower.includes("social media manager");
+          const isSocialMediaManager = deptLower.includes("social media");
 
           if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
             return false;
           }
         }
 
-        // Show Workload ONLY for Admin, Operation Manager, and Social Media Manager department
+        // Show Workload ONLY for Admin, Operation Manager, and Social Media Executive department
         if (item.name === "Workload" || item.path?.includes("workload")) {
           const deptLower = (currentUser?.department || "").toLowerCase();
           const roleLower = (currentUser?.role || role || "").toLowerCase();
@@ -600,7 +630,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             deptLower.includes("social manager") ||
             deptLower.includes("smm") ||
             roleLower.includes("social media") ||
-            roleLower === "socialmediamanager";
+            roleLower === "socialmediamanager" ||
+            roleLower === "socialmediaexecutive";
 
           if (!isAdmin && !isOperationManager && !isSocialMedia) {
             return false;
@@ -612,7 +643,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           return false;
         }
 
-        if (role === "admin" || role === "operationmanager" || role === "operation manager") return true;
+        const isSocialMediaHeadOrManager =
+          role === "socialmediamanager" ||
+          role === "socialmediahead" ||
+          (currentUser?.department || "").toLowerCase().includes("social media head") ||
+          (currentUser?.role || "").toLowerCase().includes("social media manager");
+        if (role === "admin" || role === "operationmanager" || role === "operation manager" || isSocialMediaHeadOrManager) return true;
         if (item.permissionKey === "manage_clients") return true;
         if (!item.permissionKey) return true;
         const perm = currentUser?.permissions?.[item.permissionKey];
@@ -818,12 +854,15 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         setSidebarOpen(false);
       }
       const targetRole = result.data.user.role;
+      const targetDept = (result.data?.user?.department || "").toLowerCase();
       if (targetRole === "admin") {
         window.location.href = "/admin";
       } else if (targetRole === "operationmanager") {
         window.location.href = "/operationmanager";
       } else if (targetRole === "humanresource" || targetRole === "hr") {
         window.location.href = "/humanresource";
+      } else if (targetRole === "socialmediamanager" || targetRole === "socialmediahead" || targetDept.includes("social media head")) {
+        window.location.href = "/socialmediamanager";
       } else {
         window.location.href = "/team";
       }
@@ -932,20 +971,34 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
   const { filteredUsers, groupedUsers } = React.useMemo(() => {
     if (!users || users.length === 0) return { filteredUsers: [], groupedUsers: {} };
+
+    // Exclude relieved and inactive users from switch user
+    const activeUsers = users.filter((u) => {
+      if (!u) return false;
+      const empStatus = (u.employmentStatus || "").toLowerCase();
+      const accStatus = (u.accountStatus || "").toLowerCase();
+      const status = (u.status || "").toLowerCase();
+      return (
+        empStatus !== "relieved" &&
+        accStatus !== "inactive" &&
+        status !== "relieved"
+      );
+    });
+
     const searchStr = userSearchQuery.toLowerCase().trim();
     if (!searchStr) {
       const grouped = {};
-      for (let i = 0; i < users.length; i++) {
-        const u = users[i];
+      for (let i = 0; i < activeUsers.length; i++) {
+        const u = activeUsers[i];
         const dept = u.department || displayRole(u.role);
         if (!grouped[dept]) grouped[dept] = [];
         grouped[dept].push(u);
       }
-      return { filteredUsers: users, groupedUsers: grouped };
+      return { filteredUsers: activeUsers, groupedUsers: grouped };
     }
 
     const searchTerms = searchStr.split(/\s+/);
-    const filtered = users.filter((u) => {
+    const filtered = activeUsers.filter((u) => {
       const searchableText = `${u.name || ""} ${u.department || ""} ${displayRole(u.role)}`.toLowerCase();
       return searchTerms.every((term) => searchableText.includes(term));
     });
@@ -2335,18 +2388,31 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       initial="hidden"
                       animate="visible"
                       exit="hidden"
-                      className="absolute bottom-full left-0 right-0 mb-2.5 z-[100] w-full bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col origin-bottom"
+                      className="absolute bottom-full left-0 mb-2.5 z-[100] w-[310px] sm:w-[330px] bg-white/98 dark:bg-[#0b1324]/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/70 overflow-hidden flex flex-col origin-bottom ring-1 ring-slate-900/5 dark:ring-white/5"
                     >
-                      <div className="p-2  border-b border-slate-100 dark:border-white/5 shrink-0 bg-slate-50/50 dark:bg-white/5 backdrop-blur-md">
+                      <div className="p-2.5 border-b border-slate-100 dark:border-slate-800/80 shrink-0 bg-slate-50/70 dark:bg-slate-900/50 backdrop-blur-md">
                         <div className="relative flex items-center">
+                         
                           <input
                             type="text"
                             placeholder="Search users..."
                             value={userSearchQuery}
                             onChange={(e) => setUserSearchQuery(e.target.value)}
-                            className="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
+                            className="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700/80 rounded-xl pl-8.5 pr-8 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-800 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all font-medium"
                             onClick={(e) => e.stopPropagation()}
                           />
+                          {userSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setUserSearchQuery("");
+                              }}
+                              className="absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            >
+                              <FiX size={12} />
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -2363,17 +2429,22 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             ([dept, deptUsers]) => (
                               <div
                                 key={dept}
-                                className="space-y-0.5 mb-1 last:mb-0"
+                                className="space-y-1 mb-1 last:mb-0"
                               >
                                 {deptUsers.map((u) => {
                                   const isCurrent =
                                     u._id ===
                                     (currentUser?._id || currentUser?.id);
+                                  const uid = (u._id || u.id)?.toString();
+                                  const userIsOnline =
+                                    onlineSet.has(uid) ||
+                                    (isOnline && isOnline(uid)) ||
+                                    u.presenceStatus === "online";
                                   return (
                                     <motion.button
                                       key={u._id}
                                       variants={itemVariants}
-                                      whileHover={{ scale: 1.02, x: 2 }}
+                                      whileHover={{ scale: 1.01, x: 2 }}
                                       whileTap={{ scale: 0.98 }}
                                       type="button"
                                       onClick={() => {
@@ -2382,51 +2453,84 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                           handleSwitchUser(u._id);
                                         }
                                       }}
-                                      className={`w-full flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${isCurrent
-                                          ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
-                                          : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
+                                      className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-left transition-all duration-200 cursor-pointer group mb-1 last:mb-0 ${isCurrent
+                                          ? "bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200/90 dark:border-indigo-500/30 shadow-xs"
+                                          : "border border-transparent hover:bg-slate-100/70 dark:hover:bg-slate-800/40 hover:border-slate-200/60 dark:hover:border-slate-700/40 hover:shadow-xs"
                                         }`}
                                     >
-                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                        {/* Avatar */}
-                                        <div
-                                          className={`w-7 h-7 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${isCurrent
-                                              ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
-                                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
-                                            }`}
-                                        >
-                                          {u.profile?.profileImage?.url ? (
-                                            <img
-                                              src={u.profile.profileImage.url}
-                                              alt={u.name}
-                                              className="w-full h-full object-cover"
-                                            />
-                                          ) : (
-                                            <span className="text-xs lg:text-[0.625rem] font-black">
-                                              {getInitials(u.name)}
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                          <p
-                                            className={`text-[11px] lg:text-[0.625rem] font-bold truncate leading-tight transition-colors ${isCurrent
-                                                ? "text-indigo-700 dark:text-indigo-300"
-                                                : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        {/* Avatar with Live Online Dot */}
+                                        <div className="relative shrink-0">
+                                          <div
+                                            className={`w-8 h-8 rounded-full overflow-hidden shadow-xs flex items-center justify-center transition-transform duration-200 group-hover:scale-105 ${isCurrent
+                                                ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/40"
+                                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                                               }`}
                                           >
-                                            {u.name}
-                                          </p>
-                                          <p className="text-[9px] lg:text-[0.5rem] font-black opacity-70 uppercase tracking-widest mt-[1px] theme-text-secondary truncate">
+                                            {u.profile?.profileImage?.url ? (
+                                              <img
+                                                src={u.profile.profileImage.url}
+                                                alt={u.name}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            ) : (
+                                              <span className="text-xs font-black">
+                                                {getInitials(u.name)}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {/* Online / Offline dot on avatar */}
+                                          <span
+                                            className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-[#0b1324] transition-colors ${
+                                              userIsOnline
+                                                ? "bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.7)]"
+                                                : "bg-slate-400 dark:bg-slate-500"
+                                            }`}
+                                          />
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <div className="flex items-center gap-1.5 min-w-0">
+                                            <p
+                                              className={`text-xs font-bold truncate leading-tight transition-colors ${isCurrent
+                                                  ? "text-indigo-600 dark:text-indigo-300"
+                                                  : "text-slate-800 dark:text-[#f8fafc] group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                                                }`}
+                                            >
+                                              {u.name}
+                                            </p>
+                                            {isCurrent && (
+                                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/20 dark:border-indigo-400/30 shrink-0 uppercase tracking-wide">
+                                                YOU
+                                              </span>
+                                            )}
+                                          </div>
+                                          <p className="text-[11px] font-medium capitalize mt-0.5 text-slate-500 dark:text-[#94a3b8] truncate">
                                             {u.role === "team"
                                               ? u.department || "Team"
                                               : displayRole(u.role)}
                                           </p>
                                         </div>
                                       </div>
-                                      {/* Active Indicator */}
-                                      {isCurrent && (
-                                        <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
-                                      )}
+                                      {/* Status Badge */}
+                                      <div className="shrink-0 flex items-center">
+                                        {userIsOnline ? (
+                                          <span
+                                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"
+                                            title="Online"
+                                          >
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+                                            <span>Online</span>
+                                          </span>
+                                        ) : (
+                                          <span
+                                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 dark:bg-[#1a2333] dark:text-[#94a3b8] border border-slate-200/80 dark:border-slate-700/60"
+                                            title="Offline"
+                                          >
+                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                            <span>Offline</span>
+                                          </span>
+                                        )}
+                                      </div>
                                     </motion.button>
                                   );
                                 })}
@@ -2565,34 +2669,57 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               left: "72px",
               zIndex: 999999,
             }}
-            className="w-72 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/60 overflow-hidden flex flex-col origin-bottom-left animate-in fade-in zoom-in-95 duration-150"
+            className="w-80 bg-white/98 dark:bg-[#0b1324]/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/70 overflow-hidden flex flex-col origin-bottom-left ring-1 ring-slate-900/5 dark:ring-white/5 animate-in fade-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-2 border-b border-slate-100 dark:border-white/5 shrink-0 bg-slate-50/50 dark:bg-white/5 backdrop-blur-md">
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={userSearchQuery}
-                onChange={(e) => setUserSearchQuery(e.target.value)}
-                className="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
-                autoFocus
-              />
+            <div className="p-2.5 border-b border-slate-100 dark:border-slate-800/80 shrink-0 bg-slate-50/70 dark:bg-slate-900/50 backdrop-blur-md">
+              <div className="relative flex items-center">
+                <FiSearch
+                  size={14}
+                  className="absolute left-3 text-slate-400 dark:text-slate-400 pointer-events-none"
+                />
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  className="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700/80 rounded-xl pl-8.5 pr-8 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-800 dark:text-[#f8fafc] placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all font-medium"
+                  autoFocus
+                />
+                {userSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setUserSearchQuery("");
+                    }}
+                    className="absolute right-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <FiX size={12} />
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="p-2 max-h-[20rem] overflow-y-auto sidebar-scrollbar flex flex-col gap-1">
+            <div className="p-2 max-h-[22rem] overflow-y-auto sidebar-scrollbar flex flex-col gap-1">
               {(() => {
-                          if (filteredUsers.length === 0) {
-                            return (
-                              <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
-                                No users found matching "{userSearchQuery}"
-                              </div>
-                            );
-                          }
-                          return Object.entries(groupedUsers).map(([dept, deptUsers]) => (
-                  <div key={dept} className="space-y-0.5 mb-1 last:mb-0">
+                if (filteredUsers.length === 0) {
+                  return (
+                    <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                      No users found matching "{userSearchQuery}"
+                    </div>
+                  );
+                }
+                return Object.entries(groupedUsers).map(([dept, deptUsers]) => (
+                  <div key={dept} className="space-y-1 mb-1 last:mb-0">
                     {deptUsers.map((u) => {
                       const isCurrent =
                         u._id === (currentUser?._id || currentUser?.id);
+                      const uid = (u._id || u.id)?.toString();
+                      const userIsOnline =
+                        onlineSet.has(uid) ||
+                        (isOnline && isOnline(uid)) ||
+                        u.presenceStatus === "online";
                       return (
                         <button
                           key={u._id}
@@ -2603,46 +2730,84 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               handleSwitchUser(u._id);
                             }
                           }}
-                          className={`w-full flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${
+                          className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-xl text-left transition-all duration-200 cursor-pointer group mb-1 last:mb-0 ${
                             isCurrent
-                              ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
-                              : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
+                              ? "bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200/90 dark:border-indigo-500/30 shadow-xs"
+                              : "border border-transparent hover:bg-slate-100/70 dark:hover:bg-slate-800/40 hover:border-slate-200/60 dark:hover:border-slate-700/40 hover:shadow-xs"
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <div
-                              className={`w-7 h-7 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center ${
-                                isCurrent
-                                  ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
-                              }`}
-                            >
-                              {u.profile?.profileImage?.url ? (
-                                <img
-                                  src={u.profile.profileImage.url}
-                                  alt={u.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-xs font-black">
-                                  {getInitials(u.name)}
-                                </span>
-                              )}
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="relative shrink-0">
+                              <div
+                                className={`w-8 h-8 rounded-full overflow-hidden shadow-xs flex items-center justify-center transition-transform duration-200 group-hover:scale-105 ${
+                                  isCurrent
+                                    ? "bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/40"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                {u.profile?.profileImage?.url ? (
+                                  <img
+                                    src={u.profile.profileImage.url}
+                                    alt={u.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-xs font-black">
+                                    {getInitials(u.name)}
+                                  </span>
+                                )}
+                              </div>
+                              <span
+                                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-[#0b1324] transition-colors ${
+                                  userIsOnline
+                                    ? "bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.7)]"
+                                    : "bg-slate-400 dark:bg-slate-500"
+                                }`}
+                              />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="text-[11px] font-bold truncate leading-tight text-slate-700 dark:text-slate-200">
-                                {u.name}
-                              </p>
-                              <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mt-[1px] theme-text-secondary truncate">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <p
+                                  className={`text-xs font-bold truncate leading-tight transition-colors ${
+                                    isCurrent
+                                      ? "text-indigo-600 dark:text-indigo-300"
+                                      : "text-slate-800 dark:text-[#f8fafc] group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                                  }`}
+                                >
+                                  {u.name}
+                                </p>
+                                {isCurrent && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-500/20 dark:border-indigo-400/30 shrink-0 uppercase tracking-wide">
+                                    YOU
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] font-medium capitalize mt-0.5 text-slate-500 dark:text-[#94a3b8] truncate">
                                 {u.role === "team"
                                   ? u.department || "Team"
                                   : displayRole(u.role)}
                               </p>
                             </div>
                           </div>
-                          {isCurrent && (
-                            <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
-                          )}
+                          <div className="shrink-0 flex items-center">
+                            {userIsOnline ? (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"
+                                title="Online"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+                                <span>Online</span>
+                              </span>
+                            ) : (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 dark:bg-[#1a2333] dark:text-[#94a3b8] border border-slate-200/80 dark:border-slate-700/60"
+                                title="Offline"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
+                                <span>Offline</span>
+                              </span>
+                            )}
+                          </div>
                         </button>
                       );
                     })}

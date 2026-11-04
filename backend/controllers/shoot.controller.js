@@ -89,11 +89,19 @@ const sendShootAssignmentNotifications = async (io, shoot, recipientsWithRole, s
 // @access  Private
 exports.createShoot = async (req, res) => {
   try {
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user &&
+      (req.user.role === 'socialmediamanager' ||
+        req.user.role === 'socialmediahead' ||
+        deptLower.includes('social media head'));
+
     const isSuperOrAdmin =
       req.user &&
       (req.user.role === 'admin' ||
         req.user.role === 'operationmanager' ||
-        req.user.role === 'operation manager');
+        req.user.role === 'operation manager' ||
+        isSocialMediaManager);
 
     const hasWritePerm =
       isSuperOrAdmin ||
@@ -185,11 +193,19 @@ exports.getShoots = async (req, res) => {
     if (shootType) query.shootType = shootType;
     if (client) query.client = client;
 
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user &&
+      (req.user.role === 'socialmediamanager' ||
+        req.user.role === 'socialmediahead' ||
+        deptLower.includes('social media head'));
+
     const isSuperOrAdmin =
       req.user &&
       (req.user.role === 'admin' ||
         req.user.role === 'operationmanager' ||
-        req.user.role === 'operation manager');
+        req.user.role === 'operation manager' ||
+        isSocialMediaManager);
 
     const hasReadPerm =
       isSuperOrAdmin ||
@@ -269,11 +285,19 @@ exports.getShoot = async (req, res) => {
       });
     }
 
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user &&
+      (req.user.role === 'socialmediamanager' ||
+        req.user.role === 'socialmediahead' ||
+        deptLower.includes('social media head'));
+
     const isSuperOrAdmin =
       req.user &&
       (req.user.role === 'admin' ||
         req.user.role === 'operationmanager' ||
-        req.user.role === 'operation manager');
+        req.user.role === 'operation manager' ||
+        isSocialMediaManager);
 
     const hasReadPerm =
       isSuperOrAdmin ||
@@ -334,11 +358,19 @@ exports.updateShoot = async (req, res) => {
     // - Admin & Operation Manager can update all shoots.
     // - Users with update permission can update all shoots.
     // - Otherwise, team members can only update if they are Assigned Lead or Creator.
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user &&
+      (req.user.role === 'socialmediamanager' ||
+        req.user.role === 'socialmediahead' ||
+        deptLower.includes('social media head'));
+
     const isSuperOrAdmin =
       req.user &&
       (req.user.role === 'admin' ||
         req.user.role === 'operationmanager' ||
-        req.user.role === 'operation manager');
+        req.user.role === 'operation manager' ||
+        isSocialMediaManager);
 
     const hasUpdatePerm =
       isSuperOrAdmin ||
@@ -487,11 +519,19 @@ exports.updateShootStatus = async (req, res) => {
       });
     }
 
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user &&
+      (req.user.role === 'socialmediamanager' ||
+        req.user.role === 'socialmediahead' ||
+        deptLower.includes('social media head'));
+
     const isSuperOrAdmin =
       req.user &&
       (req.user.role === 'admin' ||
         req.user.role === 'operationmanager' ||
-        req.user.role === 'operation manager');
+        req.user.role === 'operation manager' ||
+        isSocialMediaManager);
 
     const hasUpdatePerm =
       isSuperOrAdmin ||
@@ -544,11 +584,19 @@ exports.updateShootStatus = async (req, res) => {
 // @access  Private
 exports.deleteShoot = async (req, res) => {
   try {
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user &&
+      (req.user.role === 'socialmediamanager' ||
+        req.user.role === 'socialmediahead' ||
+        deptLower.includes('social media head'));
+
     const isSuperOrAdmin =
       req.user &&
       (req.user.role === 'admin' ||
         req.user.role === 'operationmanager' ||
-        req.user.role === 'operation manager');
+        req.user.role === 'operation manager' ||
+        isSocialMediaManager);
 
     const hasDeletePerm =
       isSuperOrAdmin ||

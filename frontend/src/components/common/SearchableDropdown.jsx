@@ -16,6 +16,7 @@ const SearchableDropdown = ({
   disabled = false,
   groupBy = false,
   maxHeight = "max-h-60",
+  icon: Icon = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -131,9 +132,21 @@ const SearchableDropdown = ({
         }
         title={typeof displayLabel === "string" ? displayLabel : undefined}
       >
-        <span className="truncate max-w-[130px] sm:max-w-[170px] text-left">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {Icon && (
+            <Icon
+              size={15}
+              className={`shrink-0 transition-colors ${
+                isFiltered
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-slate-400 dark:text-slate-300"
+              }`}
+            />
+          )}
+          <span className="truncate text-left">
           {displayLabel}
-        </span>
+          </span>
+        </div>
         <FiChevronDown
           size={13}
           className={`shrink-0 text-slate-400 transition-transform duration-200 ${

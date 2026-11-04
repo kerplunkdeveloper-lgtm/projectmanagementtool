@@ -9,31 +9,58 @@ const Client = require("../models/Client");
 exports.getProjects = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      const userClients = await Client.find({ assignedTo: req.user._id }).select("_id").lean();
-      const userClientIds = userClients.map(c => c._id);
+    const deptLower = (req.user?.department || "").toLowerCase();
+    const isSocialMediaManager =
+      req.user?.role === "socialmediamanager" ||
+      req.user?.role === "socialmediahead" ||
+      deptLower.includes("social media head");
 
-      query = {
-        $or: [
-          { 
-            access: "Public",
-            $or: [
-              { client: { $in: userClientIds } },
-              { client: null },
-              { client: { $exists: false } }
-            ]
-          },
-          { 
-            access: { $exists: false },
-            $or: [
-              { client: { $in: userClientIds } },
-              { client: null },
-              { client: { $exists: false } }
-            ]
-          },
-          { createdBy: req.user._id }
-        ]
-      };
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+      if (isSocialMediaManager) {
+        // Find all Social Media Executive users
+        const smUsers = await User.find({
+          $or: [
+            { department: { $regex: /social media/i } },
+            { role: { $regex: /social/i } },
+            { designation: { $regex: /social media/i } },
+          ],
+        }).select("_id").lean();
+        const smUserIds = smUsers.map((u) => u._id);
+
+        query = {
+          $or: [
+            { createdBy: { $in: smUserIds } },
+            { createdBy: req.user._id },
+            { access: "Public" },
+            { access: { $exists: false } },
+          ],
+        };
+      } else {
+        const userClients = await Client.find({ assignedTo: req.user._id }).select("_id").lean();
+        const userClientIds = userClients.map(c => c._id);
+
+        query = {
+          $or: [
+            { 
+              access: "Public",
+              $or: [
+                { client: { $in: userClientIds } },
+                { client: null },
+                { client: { $exists: false } }
+              ]
+            },
+            { 
+              access: { $exists: false },
+              $or: [
+                { client: { $in: userClientIds } },
+                { client: null },
+                { client: { $exists: false } }
+              ]
+            },
+            { createdBy: req.user._id }
+          ]
+        };
+      }
     }
     if (req.query.minimal === 'true') {
       const projects = await Project.find(query)
@@ -134,7 +161,8 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
+    const isSM = req.user?.role === "socialmediamanager" || req.user?.role === "socialmediahead" || (req.user?.department || "").toLowerCase().includes("social media head");
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isSM && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: "You are not authorized to edit this private project" });
     }
 
@@ -168,7 +196,8 @@ exports.deleteProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
+    const isSM = req.user?.role === "socialmediamanager" || req.user?.role === "socialmediahead" || (req.user?.department || "").toLowerCase().includes("social media head");
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isSM && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: "You are not authorized to delete this private project" });
     }
 

@@ -1025,7 +1025,10 @@ const ShootCalendor = () => {
 
     const currentUserId = currentUser?._id || currentUser?.id;
     if (currentUserId) {
-      socket.emit("join", currentUserId.toString());
+      const isImpersonating = Boolean(
+        typeof window !== "undefined" && localStorage.getItem("originalAdminUser")
+      );
+      socket.emit("join", { userId: currentUserId.toString(), isImpersonating });
     }
 
     socket.on("shoot_created", fetchShoots);
@@ -1059,10 +1062,16 @@ const ShootCalendor = () => {
   //   - Write/Create: Restricted to Admin and Operations Manager
   //   - Update/Edit: Assigned Lead or Creator can update shoot details
   //   - Delete: Restricted to Admin and Operations Manager
+  const isSocialMediaManager =
+    userRole === "socialmediamanager" ||
+    userRole === "socialmediahead" ||
+    (currentUser?.department || "").toString().toLowerCase().includes("social media head");
+
   const isSuperOrAdmin =
     userRole === "admin" ||
     userRole === "operationmanager" ||
-    userRole === "operation manager";
+    userRole === "operation manager" ||
+    isSocialMediaManager;
 
   // Granular permissions from User Permissions modal
   const shootPerms =

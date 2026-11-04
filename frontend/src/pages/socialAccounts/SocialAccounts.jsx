@@ -651,6 +651,15 @@ const SocialAccounts = () => {
     dispatch(getUsers());
   }, [dispatch]);
 
+  // Helper to check if a user is relieved or inactive
+  const isUserRelieved = (u) => {
+    if (!u) return false;
+    const empStatus = (u.employmentStatus || "").toLowerCase().trim();
+    const accStatus = (u.accountStatus || "").toLowerCase().trim();
+    const status = (u.status || "").toLowerCase().trim();
+    return empStatus === "relieved" || accStatus === "inactive" || status === "relieved";
+  };
+
   // Helper to get assigned Social Media / Account Manager(s) for a client/account
   const getAssignedManagers = (acc) => {
     // 1. Priority: The user who created the social account (createdBy)
@@ -667,14 +676,23 @@ const SocialAccounts = () => {
         userObj = { _id: createdUser, name: "Created User" };
       }
 
-      if (userObj && userObj.name) {
+      // STRICT CHECK: Exclude relieved / inactive persons from Social Media Executive field
+      if (userObj && userObj.name && !isUserRelieved(userObj)) {
         return [userObj];
       }
     }
 
     let assigned = [];
     if (acc.accountManager) {
-      assigned = [acc.accountManager];
+      const mgrId = acc.accountManager._id || acc.accountManager;
+      const foundMgr = users?.find((u) => (u._id || u.id) === mgrId);
+      const mgrObj =
+        typeof acc.accountManager === "object"
+          ? { ...acc.accountManager, ...(foundMgr || {}) }
+          : foundMgr;
+      if (mgrObj && !isUserRelieved(mgrObj)) {
+        assigned = [mgrObj];
+      }
     } else if (
       acc.client?.assignedTo &&
       (Array.isArray(acc.client.assignedTo)
@@ -700,7 +718,7 @@ const SocialAccounts = () => {
       return [];
     const assignedArr = Array.isArray(assigned) ? assigned : [assigned];
 
-    // 1. Resolve full user object (from populate or Redux users state)
+    // 1. Resolve full user object (from populate or Redux users state) and EXCLUDE relieved
     const resolvedUsers = assignedArr
       .map((item) => {
         let userObj = item;
@@ -719,7 +737,7 @@ const SocialAccounts = () => {
         }
         return userObj;
       })
-      .filter(Boolean);
+      .filter((u) => u && !isUserRelieved(u));
 
     // 2. Filter for users whose department or role is Social Media / SMM / Account Manager, or if explicitly assigned
     const smmUsers = resolvedUsers.filter((u) => {
@@ -732,6 +750,7 @@ const SocialAccounts = () => {
         dept.includes("smm") ||
         role.includes("social media") ||
         role === "socialmediamanager" ||
+        role === "socialmediaexecutive" ||
         desig.includes("social media") ||
         desig.includes("smm")
       );
@@ -752,7 +771,7 @@ const SocialAccounts = () => {
     return Array.from(names).sort((a, b) => a.localeCompare(b));
   }, [socialAccounts, clients]);
 
-  // Unique Social Media Manager options list
+  // Unique Social Media Executive options list
   const managerOptions = useMemo(() => {
     const managerMap = new Map();
     (socialAccounts || []).forEach((acc) => {
@@ -767,6 +786,7 @@ const SocialAccounts = () => {
       });
     });
     (users || []).forEach((u) => {
+      if (isUserRelieved(u)) return;
       const dept = (u.department || "").toLowerCase();
       const role = (u.role || "").toLowerCase();
       const desig = (u.designation || "").toLowerCase();
@@ -775,12 +795,13 @@ const SocialAccounts = () => {
         dept.includes("smm") ||
         role.includes("social media") ||
         role === "socialmediamanager" ||
+        role === "socialmediaexecutive" ||
         desig.includes("social media") ||
         desig.includes("smm")
       ) {
         const id = u._id || u.id;
         if (id && !managerMap.has(id)) {
-          managerMap.set(id, u.name || "Social Media Manager");
+          managerMap.set(id, u.name || "Social Media Executive");
         }
       }
     });
@@ -1016,11 +1037,11 @@ const SocialAccounts = () => {
     if (found) {
       let managerId = "";
       if (found.assignedTo && found.assignedTo.length > 0) {
-        const smm = found.assignedTo.find((u) => {
-          const userObj =
-            typeof u === "object"
-              ? u
-              : users?.find((usr) => (usr._id || usr.id) === u);
+        const activeAssigned = found.assignedTo
+          .map((u) => (typeof u === "object" ? u : users?.find((usr) => (usr._id || usr.id) === u)))
+          .filter((u) => u && !isUserRelieved(u));
+
+        const smm = activeAssigned.find((userObj) => {
           const dept = (userObj?.department || "").toLowerCase();
           const role = (userObj?.role || "").toLowerCase();
           return (
@@ -1029,7 +1050,7 @@ const SocialAccounts = () => {
             role.includes("social media")
           );
         });
-        const chosen = smm || found.assignedTo[0];
+        const chosen = smm || activeAssigned[0];
         managerId = chosen?._id || chosen || "";
       }
 
@@ -1125,7 +1146,7 @@ const SocialAccounts = () => {
     }
 
     const headers = [
-      "Social Media Manager",
+      "Social Media Executive",
       "Client Name",
       "Status",
       "Registered Email / Gmail",
@@ -1424,14 +1445,14 @@ const SocialAccounts = () => {
             ))}
           </select>
 
-          {/* Social Media Manager Filter */}
+          {/* Social Media Executive Filter */}
           <select
             value={managerFilter}
             onChange={(e) => setManagerFilter(e.target.value)}
             className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200 focus:outline-none max-w-[160px] truncate cursor-pointer"
-            title="Filter by Social Media Manager"
+            title="Filter by Social Media Executive"
           >
-            <option value="All">All Managers</option>
+            <option value="All">All Executives</option>
             {managerOptions.map((mgr) => (
               <option key={`mgr-opt-${mgr.id}`} value={mgr.id}>
                 {mgr.name}
@@ -1954,12 +1975,6 @@ const SocialAccounts = () => {
             <table className="w-full min-w-[1150px] text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-100/90 dark:!bg-[#111b2f] border-b border-slate-200 dark:border-white/10 text-slate-700 dark:!text-slate-200 font-bold uppercase tracking-wider text-[11px]">
-                  <th className="py-4 px-5 whitespace-nowrap min-w-[190px]">
-                    <div className="flex items-center gap-2">
-                      <FiUser className="w-4 h-4 text-indigo-500 shrink-0" />
-                      <span>Social Media Manager</span>
-                    </div>
-                  </th>
                   <th className="py-4 px-5 whitespace-nowrap min-w-[210px]">
                     <div className="flex items-center gap-2">
                       <FiBriefcase className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -2040,40 +2055,6 @@ const SocialAccounts = () => {
                       key={acc._id || `acc-row-${idx}`}
                       className="hover:bg-slate-50/80 dark:hover:bg-[#131d33]/80 transition-colors group"
                     >
-                      {/* Social Media Manager (Avatar + Name Card) */}
-                      <td className="py-4 px-5 align-top whitespace-nowrap">
-                        {managers && managers.length > 0 ? (
-                          <div className="space-y-2">
-                            {managers.map((m, mIdx) => (
-                              <div
-                                key={m._id || mIdx}
-                                className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] hover:border-indigo-500/30 transition-all min-w-[170px]"
-                              >
-                                {renderUserAvatarSmall(m, "w-8 h-8 text-[10px] ring-2 ring-indigo-500/20")}
-                                <div className="flex flex-col min-w-0">
-                                  <span
-                                    className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[140px]"
-                                    title={m.name}
-                                  >
-                                    {m.name || "Manager"}
-                                  </span>
-                                  <span className="text-[9.5px] font-semibold text-indigo-600 dark:text-indigo-400 capitalize truncate max-w-[140px]">
-                                    {m.department ||
-                                      (m.role === "socialmediamanager"
-                                        ? "Social Media Manager"
-                                        : "Social Media")}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-dashed border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 text-xs italic">
-                            <FiUser className="w-3.5 h-3.5" />
-                            <span>Unassigned</span>
-                          </div>
-                        )}
-                      </td>
 
                       {/* Client Name & Contact */}
                       <td className="py-4 px-5 align-top">

@@ -1,3 +1,13 @@
+const normalizeUserRole = (user) => {
+  if (!user) return user;
+  const copy = { ...user };
+  const dept = (copy.department || "").toString().toLowerCase().trim();
+  const role = (copy.role?.name || copy.role || "").toString().toLowerCase().replace(/[\s_]+/g, "");
+  if (dept.includes("social media head") || role === "socialmediahead" || role === "socialmediamanager") {
+    copy.role = "socialmediamanager";
+  }
+  return copy;
+};
 import {
   createSlice,
   createAsyncThunk,

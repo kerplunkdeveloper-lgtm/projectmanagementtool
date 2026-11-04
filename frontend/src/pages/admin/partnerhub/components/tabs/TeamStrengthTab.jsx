@@ -61,7 +61,7 @@ const TeamStrengthTab = () => {
       let dept = user.department.replace(" Team", "");
 
       if (dept.includes("Social Media")) {
-        return "Social Media Manager";
+        return "Social Media Executive";
       }
 
       if (dept.includes("Designer")) {

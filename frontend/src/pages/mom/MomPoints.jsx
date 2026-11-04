@@ -1,3 +1,11 @@
+const formatDeptName = (dept) => {
+  if (!dept) return "";
+  const d = dept.toString().trim();
+  if (d.toLowerCase() === "social media manager" || d.toLowerCase() === "socialmediamanager") {
+    return "Social Media Executive";
+  }
+  return d;
+};
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { LuStickyNote, LuPhoneCall } from "react-icons/lu";
@@ -238,17 +246,25 @@ const MomPoints = () => {
 
   const deptLower = user?.department?.toLowerCase() || "";
   const roleLower = user?.role?.toLowerCase() || "";
+
+  const isCurrentUserSocialMediaManager =
+    roleLower === "socialmediamanager" ||
+    roleLower === "socialmediahead" ||
+    deptLower.includes("social media head");
+
   const isCurrentUserSocialMedia =
     deptLower.includes("social manager") ||
     deptLower.includes("social media manager") ||
     deptLower.includes("social media executive") ||
     deptLower.includes("social media") ||
-    roleLower === "socialmediamanager";
+    roleLower === "socialmediamanager" ||
+    roleLower === "socialmediaexecutive";
   const isCurrentUserAdminOrOp =
     roleLower === "admin" ||
     roleLower === "operationmanager" ||
     deptLower.includes("managing partner") ||
-    deptLower.includes("operation manager");
+    deptLower.includes("operation manager") ||
+    isCurrentUserSocialMediaManager;
 
   const isAuthorized = isCurrentUserAdminOrOp || isCurrentUserSocialMedia;
 
@@ -318,7 +334,7 @@ const MomPoints = () => {
       status: "Not Started",
     };
 
-    if (isCurrentUserSocialMedia) {
+    if (isCurrentUserSocialMedia && !isCurrentUserSocialMediaManager) {
       payload.assignedTo = user?._id || user?.id;
     }
 
@@ -454,8 +470,8 @@ const MomPoints = () => {
       ) : (
         <>
 
-      {/* FILTERS FOR ADMIN */}
-      {user?.role === "admin" && (
+      {/* FILTERS FOR ADMIN & SOCIAL MEDIA MANAGER */}
+      {(user?.role === "admin" || isCurrentUserAdminOrOp || isCurrentUserSocialMediaManager) && (
         <div className="flex flex-wrap items-center gap-3 mb-4 p-3 theme-bg-card border theme-border rounded-xl shadow-sm">
           <div className="flex items-center gap-2">
             <FiFilter className="text-slate-400" />
@@ -624,7 +640,7 @@ const MomPoints = () => {
                   const isUnread = Boolean(
                     mom.isRead === false && (
                       (mom.assignedTo?._id === user?._id || mom.assignedTo === user?._id) ||
-                      ((user?.role === "admin" || user?.role === "operationmanager") && (mom.createdBy?._id !== user?._id && mom.createdBy !== user?._id))
+                      ((user?.role === "admin" || user?.role === "operationmanager" || isCurrentUserSocialMediaManager) && (mom.createdBy?._id !== user?._id && mom.createdBy !== user?._id))
                     )
                   );
                   const isNearBottom = index >= arr.length - 3 && arr.length > 3;
@@ -778,7 +794,7 @@ const MomPoints = () => {
                               </span>
                               {mom.createdBy.department && (
                                 <span className="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate max-w-[90px] leading-tight">
-                                  {mom.createdBy.department}
+                                  {formatDeptName(mom.createdBy.department)}
                                 </span>
                               )}
                             </div>
@@ -817,7 +833,7 @@ const MomPoints = () => {
                                 </span>
                                 {mom.assignedTo.department && (
                                   <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[100px] leading-tight">
-                                    {mom.assignedTo.department}
+                                    {formatDeptName(mom.assignedTo.department)}
                                   </span>
                                 )}
                               </div>
@@ -875,7 +891,7 @@ const MomPoints = () => {
                                         {(u._id === user?._id || u.id === user?.id) && " (You)"}
                                       </span>
                                       <span className="text-[9.5px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                                        {u.department || u.role}
+                                        {formatDeptName(u.department) || (u.role === 'socialmediamanager' ? 'Social Media Executive' : u.role)}
                                       </span>
                                     </div>
                                     {mom.assignedTo?._id === u._id && (

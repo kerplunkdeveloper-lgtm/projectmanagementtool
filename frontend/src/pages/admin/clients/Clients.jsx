@@ -847,10 +847,23 @@ const Clients = () => {
     desigLower.includes("finance") ||
     desigLower.includes("account");
 
-  const hasFullAccess =
+  const isSocialMediaManager =
+    roleLower === "socialmediamanager" ||
+    roleLower === "socialmediahead" ||
+    deptLower.includes("social media head") ||
+    location.pathname.includes("/socialmediamanager");
+
+  const canManageClients =
     roleLower === "admin" ||
     roleLower === "operationmanager" ||
-    isFinance;
+    isFinance ||
+    isSocialMediaManager;
+
+  const canViewBudget =
+    (roleLower === "admin" || roleLower === "operationmanager" || isFinance) &&
+    !isSocialMediaManager;
+
+  const hasFullAccess = canManageClients;
 
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -979,6 +992,12 @@ const Clients = () => {
       totalBudget: calculateTotal(),
     };
 
+    if (!canViewBudget) {
+      delete payload.budget;
+      delete payload.gst;
+      delete payload.totalBudget;
+    }
+
     if (!payload.assignedTo) {
       delete payload.assignedTo;
     }
@@ -1019,7 +1038,9 @@ const Clients = () => {
         toast.error("Please select at least one service");
         return;
       }
-      setActiveTab("finance");
+      if (canViewBudget) {
+        setActiveTab("finance");
+      }
     }
   };
 
@@ -1629,7 +1650,7 @@ const Clients = () => {
                     Deliverables
                   </th>
 
-                  {hasFullAccess && (
+                  {canViewBudget && (
                     <th className="px-4 py-3 font-extrabold bg-transparent text-left w-36">
                       <div className="flex items-center gap-1.5">
                         <FiDollarSign size={12} className="opacity-70" />
@@ -1739,7 +1760,7 @@ const Clients = () => {
                                     hasFullAccess ||
                                     (user?.department || "")
                                       .toLowerCase()
-                                      .includes("social media manager")
+                                      .includes("social media")
                                       ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                                       : ""
                                   }`}
@@ -1748,7 +1769,7 @@ const Clients = () => {
                                       hasFullAccess ||
                                       (user?.department || "")
                                         .toLowerCase()
-                                        .includes("social media manager")
+                                        .includes("social media")
                                     ) {
                                       setViewClient(client);
                                       setShowViewOffcanvas(true);
@@ -2050,7 +2071,7 @@ const Clients = () => {
                                 )}
                             </div>
                           </td>
-                          {hasFullAccess && (
+                          {canViewBudget && (
                             <td className={`${cellClass} text-left w-36`}>
                               <div className="flex flex-col gap-0.5 py-1">
                                 <div className="flex items-baseline gap-1 font-extrabold text-[12px] text-slate-800 dark:text-slate-100">
@@ -2147,7 +2168,8 @@ const Clients = () => {
                           1 + // Status
                           1 + // No. of Projects
                           2 + // Services & Deliverables
-                          (user?.role === "team" && !isFinance ? 1 : 0) +
+                          (canViewBudget ? 1 : 0) +
+                          (user?.role === "team" && !isFinance && !isSocialMediaManager ? 1 : 0) +
                           1 // Actions
                         }
                         className="px-5 py-24 text-center"
@@ -2289,13 +2311,13 @@ const Clients = () => {
 
               {/* COMPACT ELEGANT STEPPER TABS (NO HORIZONTAL OVERFLOW) */}
               <div className="client-modal-stepper-wrap px-6 py-2.5 border-b border-slate-100 dark:border-[#1e293b] bg-slate-50/50 dark:bg-[#0b1120] shrink-0">
-                <div className="client-modal-stepper-inner grid grid-cols-4 gap-1.5 p-1 bg-slate-100/80 dark:bg-[#131c31] rounded-xl border border-slate-200/50 dark:border-[#1e293b]">
+                <div className={`client-modal-stepper-inner grid ${canViewBudget ? "grid-cols-4" : "grid-cols-3"} gap-1.5 p-1 bg-slate-100/80 dark:bg-[#131c31] rounded-xl border border-slate-200/50 dark:border-[#1e293b]`}>
                   {[
                     { id: "profile", label: "Company", step: 1, icon: FaRegBuilding },
                     { id: "branding", label: "Identity", step: 2, icon: FiTool },
                     { id: "service", label: "Services", step: 3, icon: FiLayers },
-                    { id: "finance", label: "Budget", step: 4, icon: FiDollarSign },
-                  ].map((tab) => {
+                    canViewBudget && { id: "finance", label: "Budget", step: 4, icon: FiDollarSign },
+                  ].filter(Boolean).map((tab, idx) => {
                     const isActive = activeTab === tab.id;
                     const TabIcon = tab.icon;
                     const isCompleted =
@@ -2327,7 +2349,7 @@ const Clients = () => {
                           {isCompleted && !isActive ? (
                             <FiCheck size={10} className="stroke-[3]" />
                           ) : (
-                            tab.step
+                            idx + 1
                           )}
                         </span>
                         <TabIcon
@@ -3005,7 +3027,7 @@ const Clients = () => {
                     )}
 
                     {/* TAB 4: FINANCIALS & GST SETUP */}
-                    {activeTab === "finance" && (
+                    {canViewBudget && activeTab === "finance" && (
                       <motion.div
                         key="finance"
                         initial={{ opacity: 0, y: 6 }}
@@ -3113,7 +3135,7 @@ const Clients = () => {
                       </button>
                     ) : (
                       <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-400 px-1">
-                        Step 1 of 4: Company Profile
+                        {`Step 1 of ${canViewBudget ? "4" : "3"}: Company Profile`}
                       </span>
                     )}
                   </div>
@@ -3127,7 +3149,7 @@ const Clients = () => {
                       Cancel
                     </button>
 
-                    {activeTab !== "finance" ? (
+                    {activeTab !== (canViewBudget ? "finance" : "service") ? (
                       <button
                         type="button"
                         onClick={handleNextStep}
@@ -3455,7 +3477,7 @@ const Clients = () => {
                             </div>
 
                             {/* Financial Fields (Role-Based for Admin / OM / Finance) */}
-                            {hasFullAccess && (
+                            {canViewBudget && (
                               <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2.5 text-xs">
                                 <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
                                   <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5">

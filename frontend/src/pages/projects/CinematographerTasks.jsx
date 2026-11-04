@@ -46,8 +46,12 @@ const CinematographerTasks = () => {
   const { user: currentUser } = useSelector((state) => state.auth);
 
   const role = currentUser?.role || "team";
+  const isSocialMediaManager =
+    role === "socialmediamanager" ||
+    role === "socialmediahead" ||
+    (currentUser?.department || "").toLowerCase().includes("social media head");
   const isExecutive =
-    role === "admin" || role === "operationmanager";
+    role === "admin" || role === "operationmanager" || isSocialMediaManager;
   // Full task management permissions (Create, Read, Update, Delete) like in ProjectTaskBoard
   const isAdminOrManager = true;
 

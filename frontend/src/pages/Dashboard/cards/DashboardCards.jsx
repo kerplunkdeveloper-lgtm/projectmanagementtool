@@ -64,6 +64,7 @@ const DashboardCards = () => {
 
   const getDeptStyles = (deptName) => {
     const lower = deptName.toLowerCase();
+    if (lower.includes("social media head") || lower.includes("smm head")) return { icon: <FiMessageCircle />, bg: "bg-orange-500", color: "text-orange-500", lightBg: "bg-orange-50" };
     if (lower.includes("cinema") || lower.includes("video")) return { icon: <FiVideo />, bg: "bg-indigo-500", color: "text-indigo-500", lightBg: "bg-indigo-50" };
     if (lower.includes("creative")) return { icon: <FiZap />, bg: "bg-purple-500", color: "text-purple-500", lightBg: "bg-purple-50" };
     if (lower.includes("finance")) return { icon: <FiDollarSign />, bg: "bg-rose-500", color: "text-rose-500", lightBg: "bg-rose-50" };

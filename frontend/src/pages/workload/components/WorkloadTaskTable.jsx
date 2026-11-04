@@ -334,10 +334,17 @@ const WorkloadTaskTable = ({
     })();
   const activeUserId = (activeUser?._id || activeUser?.id)?.toString();
   const userRole = (activeUser?.role || "").toLowerCase().trim();
+  const deptLower = (activeUser?.department || "").toLowerCase().trim();
+  const isSocialMediaManager =
+    userRole === "socialmediamanager" ||
+    userRole === "socialmediahead" ||
+    deptLower.includes("social media head");
+
   const isAdmin =
     userRole === "admin" ||
     userRole === "operationmanager" ||
-    userRole === "operation manager";
+    userRole === "operation manager" ||
+    isSocialMediaManager;
 
   // Inline New Task Entry State
   const [newTitle, setNewTitle] = useState("");
@@ -441,7 +448,7 @@ const WorkloadTaskTable = ({
     return map;
   }, [clients]);
 
-  // Social Media Managers list
+  // Social Media Executives list
   const smmList = useMemo(() => {
     const smms = (users || []).filter((u) => {
       if (u.employmentStatus === "relieved") return false;
@@ -454,6 +461,7 @@ const WorkloadTaskTable = ({
         role.includes("social media") ||
         role.includes("smm") ||
         role === "socialmediamanager" ||
+        role === "socialmediaexecutive" ||
         desig.includes("social media") ||
         desig.includes("smm")
       );
@@ -980,7 +988,7 @@ const WorkloadTaskTable = ({
               {isAdmin ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shadow-xs">
                   <FiEye size={12} />
-                  Read-Only Mode ({userRole === "admin" ? "Admin" : "Operation Manager"})
+                  Read-Only Mode ({userRole === "admin" ? "Admin" : userRole === "operationmanager" ? "Operation Manager" : "Social Media Manager"})
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-xs">
@@ -991,7 +999,7 @@ const WorkloadTaskTable = ({
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {isAdmin
-                ? `${userRole === "admin" ? "Admin" : "Operation Manager"} monitoring mode: View all tasks, clients, creators, assignees, and progress.`
+                ? `${userRole === "admin" ? "Admin" : userRole === "operationmanager" ? "Operation Manager" : "Social Media Manager"} monitoring mode: View all tasks, clients, creators, assignees, and progress.`
                 : `Showing only tasks created by you (${activeUser?.name || "You"}). Enter new tasks in the first row or edit cells to autosave.`}
             </p>
           </div>

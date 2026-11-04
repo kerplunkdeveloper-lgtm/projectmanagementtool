@@ -7,8 +7,18 @@ exports.getCalendarEvents = async (req, res) => {
   try {
     let query;
 
-    // Admin & operation manager can see all events, others only their own
-    if (req.user.role === 'admin' || req.user.role === 'operationmanager') {
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user?.role === 'socialmediamanager' ||
+      req.user?.role === 'socialmediahead' ||
+      deptLower.includes('social media head');
+    const isPrivileged =
+      req.user?.role === 'admin' ||
+      req.user?.role === 'operationmanager' ||
+      isSocialMediaManager;
+
+    // Admin, operation manager, & social media manager can see all events, others only their own
+    if (isPrivileged) {
       query = CalendarEvent.find()
         .populate('client', 'companyName email color icon')
         .populate('createdBy', 'name role');
@@ -82,11 +92,20 @@ exports.updateCalendarEvent = async (req, res) => {
       });
     }
 
-    // Make sure user is event owner or admin/operationmanager
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user?.role === 'socialmediamanager' ||
+      req.user?.role === 'socialmediahead' ||
+      deptLower.includes('social media head');
+    const isPrivileged =
+      req.user?.role === 'admin' ||
+      req.user?.role === 'operationmanager' ||
+      isSocialMediaManager;
+
+    // Make sure user is event owner or admin/operationmanager/social media manager
     if (
       event.createdBy.toString() !== req.user.id &&
-      req.user.role !== 'admin' &&
-      req.user.role !== 'operationmanager'
+      !isPrivileged
     ) {
       return res.status(401).json({
         success: false,
@@ -128,11 +147,20 @@ exports.deleteCalendarEvent = async (req, res) => {
       });
     }
 
-    // Make sure user is event owner or admin/operationmanager
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user?.role === 'socialmediamanager' ||
+      req.user?.role === 'socialmediahead' ||
+      deptLower.includes('social media head');
+    const isPrivileged =
+      req.user?.role === 'admin' ||
+      req.user?.role === 'operationmanager' ||
+      isSocialMediaManager;
+
+    // Make sure user is event owner or admin/operationmanager/social media manager
     if (
       event.createdBy.toString() !== req.user.id &&
-      req.user.role !== 'admin' &&
-      req.user.role !== 'operationmanager'
+      !isPrivileged
     ) {
       return res.status(401).json({
         success: false,

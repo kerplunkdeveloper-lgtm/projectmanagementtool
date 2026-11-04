@@ -9,18 +9,50 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   const [isCustomDept, setIsCustomDept] = useState(false);
   const [isCustomLoc, setIsCustomLoc] = useState(false);
 
-  const defaultDepts = ["HR"];
+  const getDeptPriority = (deptStr) => {
+    const d = (deptStr || "").toLowerCase().trim();
+    if (d === "hr" || d.includes("human resource")) return 1;
+    if (d === "admin" || d.includes("managing partner")) return 2;
+    if (
+      d.includes("operation manager") ||
+      d === "operations manager" ||
+      d === "operationmanager"
+    )
+      return 3;
+    if (d.includes("social media head") || d.includes("smm head")) return 4;
+    if (
+      d.includes("social media executive") ||
+      d.includes("social media manager") ||
+      d.includes("social media")
+    )
+      return 5;
+    return 100;
+  };
+
+  const defaultDepts = [
+    "HR",
+    "Admin",
+    "Operation manager",
+    "Social media Head",
+    "Social Media Executive",
+  ];
   const defaultLocs = [];
 
   const uniqueDepts = Array.from(
     new Set([
       ...defaultDepts,
-      "HR",
       ...(users || [])
-        .map((u) => u.department)
+        .map((u) => (u.department === "Social Media Manager" ? "Social Media Executive" : u.department))
         .filter((dept) => typeof dept === "string" && dept.trim() !== ""),
     ]),
-  ).sort();
+  )
+    .filter((d) => d !== "Social Media Manager")
+    .sort((a, b) => {
+      const pA = getDeptPriority(a);
+      const pB = getDeptPriority(b);
+      if (pA !== pB) return pA - pB;
+      return a.localeCompare(b);
+    });
 
   const uniqueLocs = Array.from(
     new Set([
@@ -40,7 +72,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
           location: editUser.location || "",
           password: editUser.plainPassword || "",
           role: editUser.role || "team",
-          department: editUser.department || "",
+          department: editUser.department === "Social Media Manager" ? "Social Media Executive" : (editUser.department || ""),
         });
         setIsCustomDept(false);
         setIsCustomLoc(false);
@@ -61,6 +93,24 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
     }
   }, [openModal, editUser]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === "department") {
+        const valNorm = (value || "").trim().toLowerCase();
+        if (valNorm.includes("social media head")) {
+          next.role = "socialmediamanager";
+        }
+      } else if (name === "role") {
+        if (value === "socialmediamanager" && (!prev.department || prev.department === "Social Media Executive")) {
+          next.department = "Social media Head";
+        }
+      }
+      return next;
+    });
+  };
+
   const handleCopyPassword = () => {
     if (!formData.password) return;
     navigator.clipboard.writeText(formData.password);
@@ -69,23 +119,22 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   };
 
   const handleGeneratePassword = () => {
-    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
-    let gen = "";
-    for (let i = 0; i < 10; i++) {
-      gen += chars.charAt(Math.floor(Math.random() * chars.length));
+    const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const lower = "abcdefghjkmnpqrstuvwxyz";
+    const digits = "23456789";
+    const special = "!@#$%^&*";
+    const all = upper + lower + digits + special;
+    let pwd = "";
+    pwd += upper[Math.floor(Math.random() * upper.length)];
+    pwd += lower[Math.floor(Math.random() * lower.length)];
+    pwd += digits[Math.floor(Math.random() * digits.length)];
+    pwd += special[Math.floor(Math.random() * special.length)];
+    for (let i = pwd.length; i < 10; i++) {
+      pwd += all[Math.floor(Math.random() * all.length)];
     }
-    setFormData((p) => ({ ...p, password: gen }));
+    pwd = pwd.split("").sort(() => Math.random() - 0.5).join("");
+    setFormData((prev) => ({ ...prev, password: pwd }));
     setShowPassword(true);
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "role" && value === "humanresource") {
-      setFormData((p) => ({ ...p, role: value, department: "HR" }));
-      setIsCustomDept(false);
-    } else {
-      setFormData((p) => ({ ...p, [name]: value }));
-    }
   };
 
   const handleSubmit = (e) => {
@@ -118,10 +167,10 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3">
-      <div className="bg-white w-full max-w-3xl rounded-xl shadow-2xl overflow-hidden">
+      <div className="bg-white w-full max-w-2xl max-h-[92vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden">
 
         {/* HEADER */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg dashboard-btn-primary flex items-center justify-center">
               <FiUsers size={13} className="text-white" />
@@ -132,14 +181,14 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
           </div>
           <button
             onClick={handleClose}
-            className="w-7 h-7 rounded-lg  flex items-center justify-center text-white font-semibold text-xs bg-red-500 transition-all"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-semibold text-xs bg-red-500 hover:bg-red-600 transition-all cursor-pointer"
           >
             <FiX size={14} />
           </button>
         </div>
 
         {/* FORM */}
-        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3" autoComplete="off">
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3.5 overflow-y-auto" autoComplete="off">
           {/* Hidden dummy inputs to divert aggressive browser credential autofill */}
           <input
             type="text"
@@ -172,7 +221,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={LABEL}>Email <span className="normal-case text-red-600">*</span></label>
               <input
@@ -239,32 +288,32 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
               <label className={LABEL + " mb-0"}>
                 Password {!editUser && <span className="normal-case text-red-600">*</span>}{" "}
                 {editUser && (
-                  <span className="normal-case text-slate-400 font-normal">
-                    {editUser.plainPassword ? "(view or edit to change)" : "(leave blank to keep)"}
+                  <span className="normal-case font-normal text-slate-400">
+                    (leave blank to keep current)
                   </span>
                 )}
               </label>
               <div className="flex items-center gap-2">
-                {!editUser && (
-                  <button
-                    type="button"
-                    onClick={handleGeneratePassword}
-                    className="text-[10px] text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                  >
-                    <FiKey size={11} /> Generate
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer"
+                  title="Generate a secure random password"
+                >
+                  <FiKey size={11} />
+                  <span>Generate</span>
+                </button>
                 {formData.password && (
                   <button
                     type="button"
                     onClick={handleCopyPassword}
-                    className="text-[10px] text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                    title="Copy Password"
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-700 cursor-pointer"
+                    title="Copy password to clipboard"
                   >
                     {copiedPassword ? (
                       <>
                         <FiCheck size={11} className="text-emerald-500" />
-                        <span className="text-emerald-600 dark:text-emerald-400">Copied!</span>
+                        <span className="text-emerald-600 font-bold">Copied!</span>
                       </>
                     ) : (
                       <>
@@ -303,7 +352,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={LABEL}>Role <span className="normal-case text-red-600">*</span></label>
               <select name="role" value={formData.role} onChange={handleChange} className={SELECT_INPUT}>
@@ -311,11 +360,12 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
                 <option value="admin">Admin</option>
                 <option value="operationmanager">Op. Manager</option>
                 <option value="humanresource">Human Resource</option>
+                <option value="socialmediamanager">Social Media Manager</option>
               </select>
             </div>
 
             <div>
-              <label className={LABEL}>Department <span className="normal-case text-red-650">*</span></label>
+              <label className={LABEL}>Department <span className="normal-case text-red-600">*</span></label>
               {isCustomDept ? (
                 <div className="space-y-1">
                   <input 
@@ -363,11 +413,11 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-            <button type="button" onClick={handleClose} className="px-4 py-2 rounded-xl  text-white font-semibold text-xs bg-red-500 transition-all">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+            <button type="button" onClick={handleClose} className="px-4 py-2 rounded-xl text-white font-semibold text-xs bg-red-500 hover:bg-red-600 transition-all cursor-pointer">
               Cancel
             </button>
-            <button type="submit" className="px-5 py-2 rounded-xl dashboard-btn-primary text-white font-bold text-xs shadow-sm  transition-all active:scale-95">
+            <button type="submit" className="px-5 py-2 rounded-xl dashboard-btn-primary text-white font-bold text-xs shadow-sm transition-all active:scale-95 cursor-pointer">
               {editUser ? "Update User" : "Create User"}
             </button>
           </div>

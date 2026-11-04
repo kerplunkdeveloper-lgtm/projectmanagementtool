@@ -323,7 +323,7 @@ const SmTaskFilters = ({
           )}
         </div>
 
-        {/* Created by Filter (Admin & Operation Manager only - Social Media Managers) */}
+        {/* Created by Filter (Admin & Operation Manager only - Social Media Executives) */}
         {canFilterByCreatedBy ? (
           <SearchableDropdown
             value={selectedCreatedBy}

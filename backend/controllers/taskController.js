@@ -453,7 +453,17 @@ exports.getTasks = async (req, res) => {
       }
     } else if (req.query.project && req.query.project !== "all") {
       andConditions.push({ project: req.query.project });
-      if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+      const deptLower = (req.user?.department || '').toLowerCase();
+      const isSocialMediaManager =
+        req.user?.role === 'socialmediamanager' ||
+        req.user?.role === 'socialmediahead' ||
+        deptLower.includes('social media head');
+      const isPrivileged =
+        req.user?.role === 'admin' ||
+        req.user?.role === 'operationmanager' ||
+        isSocialMediaManager;
+
+      if (!isPrivileged) {
         andConditions.push({
           $or: [
             { createdBy: req.user._id },
@@ -463,7 +473,18 @@ exports.getTasks = async (req, res) => {
           ]
         });
       }
-    } else if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+    } else {
+      const deptLower = (req.user?.department || '').toLowerCase();
+      const isSocialMediaManager =
+        req.user?.role === 'socialmediamanager' ||
+        req.user?.role === 'socialmediahead' ||
+        deptLower.includes('social media head');
+      const isPrivileged =
+        req.user?.role === 'admin' ||
+        req.user?.role === 'operationmanager' ||
+        isSocialMediaManager;
+
+      if (!isPrivileged) {
       const Client = require("../models/Client");
       const [assignedClients, usersInSameDept] = await Promise.all([
         Client.find({ assignedTo: req.user._id }).select("_id").lean(),
@@ -497,6 +518,7 @@ exports.getTasks = async (req, res) => {
           { project: { $in: projectIds } }
         ]
       });
+      }
     }
 
     if (req.query.department) {

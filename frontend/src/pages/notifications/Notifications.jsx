@@ -192,6 +192,9 @@ const Notifications = () => {
 
   const getDepartmentBadgeStyle = (dept) => {
     const d = (dept || "").toLowerCase().trim();
+    if (d.includes("social media head") || d.includes("smm head")) {
+      return "text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/50 border-orange-400 dark:border-orange-600";
+    }
     if (d.includes("graphic") || d.includes("design")) {
       return "text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border-purple-400 dark:border-purple-600";
     }

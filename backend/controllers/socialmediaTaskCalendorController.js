@@ -80,7 +80,15 @@ exports.getSocialmediaTasks = async (req, res) => {
     } = req.query;
 
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      userRole === 'socialmediamanager' ||
+      userRole === 'socialmediahead' ||
+      deptLower.includes('social media head');
+    const isPrivileged =
+      userRole === 'admin' ||
+      userRole === 'operationmanager' ||
+      isSocialMediaManager;
 
     const query = {};
 
@@ -273,7 +281,15 @@ exports.getSocialmediaStats = async (req, res) => {
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    const isPrivileged = userRole === 'admin' || userRole === 'operationmanager';
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      userRole === 'socialmediamanager' ||
+      userRole === 'socialmediahead' ||
+      deptLower.includes('social media head');
+    const isPrivileged =
+      userRole === 'admin' ||
+      userRole === 'operationmanager' ||
+      isSocialMediaManager;
 
     const commitmentsQuery = {
       commitment: true,

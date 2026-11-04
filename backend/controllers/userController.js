@@ -31,12 +31,17 @@ exports.getUsers = async (req, res) => {
       userPerm?.update === true;
 
     const sanitizedUsers = users.map((u) => {
+      let dept = u.department;
+      if (typeof dept === 'string' && dept.toLowerCase() === 'social media manager') {
+        dept = 'Social Media Executive';
+      }
       if (!canViewPasswords) {
         const { plainPassword, ...rest } = u;
-        return rest;
+        return { ...rest, department: dept };
       }
-      return u;
+      return { ...u, department: dept };
     });
+
 
     res.status(200).json({
       success: true,
@@ -87,6 +92,10 @@ exports.getUser = async (req, res) => {
     if (!canViewPasswords && req.user?._id?.toString() !== user._id?.toString()) {
       delete user.plainPassword;
     }
+    if (user && typeof user.department === 'string' && user.department.toLowerCase() === 'social media manager') {
+      user.department = 'Social Media Executive';
+    }
+
 
     res.status(200).json({
       success: true,
@@ -157,6 +166,12 @@ exports.createUser = async (req, res) => {
       plainPassword: password,
     };
 
+    if (userData.department && userData.department.trim().toLowerCase() === 'social media head') {
+      userData.role = 'socialmediamanager';
+    }
+    if (userData.role === 'socialmediamanager' && (!userData.department || userData.department.trim() === '')) {
+      userData.department = 'Social media Head';
+    }
     if (userData.role === 'humanresource' && (!userData.department || userData.department.trim() === '')) {
       userData.department = 'HR';
     }
@@ -188,6 +203,12 @@ exports.updateUser = async (req, res) => {
       ...req.body,
     };
 
+    if (updateData.department && updateData.department.trim().toLowerCase() === 'social media head') {
+      updateData.role = 'socialmediamanager';
+    }
+    if (updateData.role === 'socialmediamanager' && (!updateData.department || updateData.department.trim() === '')) {
+      updateData.department = 'Social media Head';
+    }
     if (updateData.role === 'humanresource' && (!updateData.department || updateData.department.trim() === '')) {
       updateData.department = 'HR';
     }
@@ -246,7 +267,7 @@ exports.updateUser = async (req, res) => {
         returnDocument: 'after',
         runValidators: true,
       }
-    );
+    ).populate('profile');
 
     if (!user) {
       return res.status(404).json({
@@ -254,6 +275,7 @@ exports.updateUser = async (req, res) => {
         message: 'User not found',
       });
     }
+
 
     res.status(200).json({
       success: true,
@@ -311,6 +333,7 @@ exports.deleteUser = async (req, res) => {
 
     const user = await User.findByIdAndDelete(req.params.id);
 
+
     res.status(200).json({
       success: true,
       message: 'User deleted successfully',
@@ -365,6 +388,7 @@ exports.relieveUser = async (req, res) => {
     user.relievedBy = req.user._id;
     user.relievedReason = req.body.reason || '';
     await user.save();
+    await user.populate('profile');
 
     // Force logout active session via Socket.IO
     const io = req.app.get('io');
@@ -374,6 +398,7 @@ exports.relieveUser = async (req, res) => {
         message: 'Your account has been deactivated. Please contact your administrator.',
       });
     }
+
 
     res.status(200).json({
       success: true,
@@ -422,6 +447,8 @@ exports.reactivateUser = async (req, res) => {
     user.relievedBy = null;
     user.relievedReason = '';
     await user.save();
+    await user.populate('profile');
+
 
     res.status(200).json({
       success: true,
@@ -470,11 +497,11 @@ const classifyUserDepartment = (u) => {
     };
   }
 
-  // 3. Social Media Manager
+  // 3. Social Media Executive
   if (dept.includes('social') || dept.includes('media') || dept.includes('smm')) {
     return {
       categoryId: 'social_media_manager',
-      categoryName: 'Social Media Manager',
+      categoryName: 'Social Media Executive',
       order: 3,
       badgeColor: 'pink',
     };
@@ -598,7 +625,7 @@ exports.getTeamActivity = async (req, res) => {
         name: u.name,
         email: u.email,
         role: u.role,
-        department: u.department || classification.categoryName,
+        department: (u.department && u.department.toLowerCase() === 'social media manager' ? 'Social Media Executive' : u.department) || classification.categoryName,
         profileImage: u.profile?.profileImage?.url || null,
         employmentStatus: u.employmentStatus,
         accountStatus: u.accountStatus,
@@ -631,7 +658,7 @@ exports.getTeamActivity = async (req, res) => {
     const categoryDefinitions = [
       { id: 'admin', label: 'Admin', order: 1, icon: 'shield', color: 'purple' },
       { id: 'operation_manager', label: 'Operation Manager', order: 2, icon: 'briefcase', color: 'blue' },
-      { id: 'social_media_manager', label: 'Social Media Manager', order: 3, icon: 'share', color: 'pink' },
+      { id: 'social_media_manager', label: 'Social Media Executive', order: 3, icon: 'share', color: 'pink' },
       { id: 'graphic_designer', label: 'Graphic Designer', order: 4, icon: 'palette', color: 'amber' },
       { id: 'cinematographer', label: 'Cinematographer', order: 5, icon: 'video', color: 'emerald' },
       { id: 'other_departments', label: 'Other Departments', order: 6, icon: 'layers', color: 'indigo' },
@@ -648,6 +675,7 @@ exports.getTeamActivity = async (req, res) => {
         users: catUsers,
       };
     });
+
 
     res.status(200).json({
       success: true,
@@ -707,6 +735,7 @@ exports.logWaterBreak = async (req, res) => {
     await user.save();
 
     const todayLogs = user.waterReminder.logs.filter((l) => l.date === todayStr);
+
 
     res.status(200).json({
       success: true,

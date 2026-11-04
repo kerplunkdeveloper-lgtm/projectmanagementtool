@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { FiUsers, FiX, FiSearch, FiArrowLeft, FiChevronDown } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { sidebarConfig } from "../../config/sidebarConfig";
+import { useSocketContext } from "../../context/SocketContext";
 import { markAllChatAsRead } from "../../features/notifications/notificationSlice";
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import {
@@ -16,6 +17,13 @@ import { apiSlice } from "../../features/api/apiSlice";
 import { preloadRoute } from "../../routes/AppRoutes";
 
 const HorizontalSidebar = ({ role }) => {
+  const { onlineUserIds, isOnline } = useSocketContext() || {
+    onlineUserIds: [],
+    isOnline: () => false,
+  };
+  const onlineSet = React.useMemo(() => {
+    return new Set((onlineUserIds || []).map((id) => id?.toString()));
+  }, [onlineUserIds]);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,12 +119,15 @@ const HorizontalSidebar = ({ role }) => {
       toast.success("Successfully logged in as user");
       setShowSwitchDropdown(false);
       const targetRole = result.data.user.role;
+      const targetDept = (result.data?.user?.department || "").toLowerCase();
       if (targetRole === "admin") {
         window.location.href = "/admin";
       } else if (targetRole === "operationmanager") {
         window.location.href = "/operationmanager";
       } else if (targetRole === "humanresource" || targetRole === "hr") {
         window.location.href = "/humanresource";
+      } else if (targetRole === "socialmediamanager" || targetRole === "socialmediahead" || targetDept.includes("social media head")) {
+        window.location.href = "/socialmediamanager";
       } else {
         window.location.href = "/team";
       }
@@ -244,7 +255,7 @@ const HorizontalSidebar = ({ role }) => {
             subItem.path?.includes("event-calendar") ||
             subItem.path?.includes("all-calendar")
           ) {
-            const isSocialMediaManager = deptLower.includes("social media manager");
+            const isSocialMediaManager = deptLower.includes("social media");
             if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
               return false;
             }
@@ -259,12 +270,19 @@ const HorizontalSidebar = ({ role }) => {
             }
           }
 
+          const isSocialMediaHeadOrManager =
+            role === "socialmediamanager" ||
+            role === "socialmediahead" ||
+            deptLower.includes("social media head") ||
+            roleLower.includes("social media manager") ||
+            roleLower.includes("social media head");
+
           if (
             subItem.name === "Designer Tasks" ||
             subItem.path?.includes("designer-tasks")
           ) {
             const isDesigner = deptLower.includes("design") || roleLower.includes("design");
-            if (isDesigner) return true;
+            if (isDesigner || isSocialMediaHeadOrManager) return true;
           }
 
           if (
@@ -276,11 +294,11 @@ const HorizontalSidebar = ({ role }) => {
               deptLower.includes("video") ||
               deptLower.includes("edit") ||
               roleLower.includes("cinema");
-            if (isCinema) return true;
+            if (isCinema || isSocialMediaHeadOrManager) return true;
           }
 
           if (subItem.permissionKey) {
-            if (role === "admin" || role === "operationmanager" || role === "operation manager") return true;
+            if (role === "admin" || role === "operationmanager" || role === "operation manager" || isSocialMediaHeadOrManager) return true;
             if (subItem.permissionKey === "manage_clients") return true;
             const perm = currentUser?.permissions?.[subItem.permissionKey];
             if (perm === true) return true;
@@ -299,19 +317,21 @@ const HorizontalSidebar = ({ role }) => {
         return item.children.length > 0;
       }
 
-      // Hide Projects Overview for Social Media Manager department
+      // Hide Projects Overview for Social Media Executive department
       if (
         item.name === "Projects Overview" &&
         (currentUser?.department === "Social Media Manager" ||
+          currentUser?.department === "Social Media Executive" ||
           currentUser?.department === "Social Media Executive")
       ) {
         return false;
       }
 
-      // Hide My Reports for Social Media Manager department and HR department/role
+      // Hide My Reports for Social Media Executive department and HR department/role
       if (
         item.name === "My Reports" &&
         (currentUser?.department === "Social Media Manager" ||
+          currentUser?.department === "Social Media Executive" ||
           currentUser?.department?.toLowerCase() === "hr" ||
           currentUser?.department?.toLowerCase()?.includes("human resource") ||
           currentUser?.role === "humanresource" ||
@@ -333,7 +353,7 @@ const HorizontalSidebar = ({ role }) => {
         return false;
       }
 
-      // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
+      // Show SM Creditionals ONLY for Social Media Executive department, Managing Partner / Admin, and Operation Manager
       if (
         item.name === "SM Creditionals" ||
         item.name === "SM Credentials" ||
@@ -359,7 +379,7 @@ const HorizontalSidebar = ({ role }) => {
         }
       }
 
-      // Show SM Tasks and Content Calendar ONLY for Social Media Manager department, Admin, and Operation Manager
+      // Show SM Tasks and Content Calendar ONLY for Social Media Executive department, Admin, and Operation Manager
       if (
         item.name === "SM Tasks" ||
         item.name === "Content Calendar" ||
@@ -387,17 +407,17 @@ const HorizontalSidebar = ({ role }) => {
         }
       }
 
-      // Show Client Calls ONLY for Social Media Manager department
+      // Show Client Calls ONLY for Social Media Executive department
       if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
         const deptLower = (currentUser?.department || "").toLowerCase();
-        const isSocialMediaManager = deptLower.includes("social media manager");
+        const isSocialMediaManager = deptLower.includes("social media");
 
         if (!isSocialMediaManager) {
           return false;
         }
       }
 
-      // Show MOM Points / MOM / Client Calls ONLY for Admin, Operation Manager, and Social Media Manager
+      // Show MOM Points / MOM / Client Calls ONLY for Admin, Operation Manager, and Social Media Executive
       if (
         item.name === "MOM Points" ||
         item.name === "MOM / Client Calls" ||
@@ -418,6 +438,8 @@ const HorizontalSidebar = ({ role }) => {
           deptLower.includes("social media manager") ||
           deptLower.includes("social manager") ||
           deptLower.includes("social media") ||
+          deptLower.includes("social media executive") ||
+          roleLower === "socialmediaexecutive" ||
           roleLower === "socialmediamanager";
 
         if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
@@ -425,7 +447,7 @@ const HorizontalSidebar = ({ role }) => {
         }
       }
 
-      // Show Status Overview ONLY for Social Media Manager/Executive, Admin, Operation Manager, Managing Partner
+      // Show Status Overview ONLY for Social Media Executive, Admin, Operation Manager, Managing Partner
       if (
         item.name === "Task Overview" ||
         item.name === "Status Overview" ||
@@ -449,7 +471,7 @@ const HorizontalSidebar = ({ role }) => {
 
 
 
-      // Show Calendar ONLY for Admin, Operation Manager, and Social Media Manager department
+      // Show Calendar ONLY for Admin, Operation Manager, and Social Media Executive department
       if (item.name === "Calendar" || item.path?.includes("all-calendar")) {
         const deptLower = (currentUser?.department || "").toLowerCase();
         const roleLower = (currentUser?.role || role || "").toLowerCase();
@@ -462,14 +484,14 @@ const HorizontalSidebar = ({ role }) => {
           roleLower === "operationmanager" ||
           deptLower.includes("operation manager") ||
           roleLower.includes("operation manager");
-        const isSocialMediaManager = deptLower.includes("social media manager");
+        const isSocialMediaManager = deptLower.includes("social media");
 
         if (!isAdmin && !isOperationManager && !isSocialMediaManager) {
           return false;
         }
       }
 
-      // Show Workload ONLY for Admin, Operation Manager, and Social Media Manager department
+      // Show Workload ONLY for Admin, Operation Manager, and Social Media Executive department
       if (item.name === "Workload" || item.path?.includes("workload")) {
         const deptLower = (currentUser?.department || "").toLowerCase();
         const roleLower = (currentUser?.role || role || "").toLowerCase();
@@ -487,6 +509,8 @@ const HorizontalSidebar = ({ role }) => {
           deptLower.includes("social manager") ||
           deptLower.includes("smm") ||
           roleLower.includes("social media") ||
+          deptLower.includes("social media executive") ||
+          roleLower === "socialmediaexecutive" ||
           roleLower === "socialmediamanager";
 
         if (!isAdmin && !isOperationManager && !isSocialMedia) {
@@ -494,7 +518,12 @@ const HorizontalSidebar = ({ role }) => {
         }
       }
 
-      if (role === "admin" || role === "operationmanager" || role === "operation manager") return true;
+      const isSocialMediaHeadOrManager =
+        role === "socialmediamanager" ||
+        role === "socialmediahead" ||
+        (currentUser?.department || "").toLowerCase().includes("social media head") ||
+        (currentUser?.role || "").toLowerCase().includes("social media manager");
+      if (role === "admin" || role === "operationmanager" || role === "operation manager" || isSocialMediaHeadOrManager) return true;
       if (item.permissionKey === "manage_clients") return true;
       if (!item.permissionKey) return true;
       const perm = currentUser?.permissions?.[item.permissionKey];
@@ -502,9 +531,19 @@ const HorizontalSidebar = ({ role }) => {
       return perm?.read;
     });
 
-  // filter users (exclude yourself if not impersonating, or allow switching back)
+  // filter users (exclude relieved & inactive users)
   const filteredUsers = (users || []).filter((u) => {
     if (!u || !u.name) return false;
+    const empStatus = (u.employmentStatus || "").toLowerCase();
+    const accStatus = (u.accountStatus || "").toLowerCase();
+    const status = (u.status || "").toLowerCase();
+    if (
+      empStatus === "relieved" ||
+      accStatus === "inactive" ||
+      status === "relieved"
+    ) {
+      return false;
+    }
     return u.name.toLowerCase().includes(switchSearch.toLowerCase());
   });
 
@@ -779,7 +818,7 @@ const HorizontalSidebar = ({ role }) => {
               left: `${switchCoords.left}px`,
               zIndex: 999999,
             }}
-            className="switch-user-portal w-64 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl p-3 flex flex-col max-h-[350px] overflow-hidden"
+            className="switch-user-portal w-80 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl rounded-2xl p-3 flex flex-col max-h-[350px] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Title / Switch back button */}
@@ -820,6 +859,11 @@ const HorizontalSidebar = ({ role }) => {
               {filteredUsers.map((u) => {
                 const isCurrent =
                   u._id === (currentUser?._id || currentUser?.id);
+                const uid = (u._id || u.id)?.toString();
+                const userIsOnline =
+                  onlineSet.has(uid) ||
+                  (isOnline && isOnline(uid)) ||
+                  u.presenceStatus === "online";
                 const avatarUrl = getAvatarUrl(u);
                 const dept = u.department || displayRole(u.role);
                 return (
@@ -832,33 +876,68 @@ const HorizontalSidebar = ({ role }) => {
                       }
                     }}
                     disabled={isCurrent}
-                    className={`w-full flex items-center gap-2.5 p-2 rounded-xl transition-all text-xs text-left border ${isCurrent
+                    className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all text-xs text-left border ${isCurrent
                         ? "bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-200/50 dark:border-indigo-500/25 text-indigo-650 dark:text-indigo-400 font-bold"
                         : "hover:bg-slate-50 dark:hover:bg-white/5 border-transparent text-slate-750 dark:text-slate-300 cursor-pointer"
                       }`}
                   >
-                    <div className="shrink-0">
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={u.name}
-                          className="w-7 h-7 rounded-full object-cover border border-slate-200/80 dark:border-white/10"
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="relative shrink-0">
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt={u.name}
+                            className="w-8 h-8 rounded-full object-cover border border-slate-200/80 dark:border-white/10"
+                          />
+                        ) : (
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-xs bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
+                              u.name || "U",
+                            )}`}
+                          >
+                            {getInitials(u.name)}
+                          </div>
+                        )}
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-[#0b1120] transition-colors ${
+                            userIsOnline
+                              ? "bg-emerald-500 animate-pulse"
+                              : "bg-slate-400 dark:bg-slate-600"
+                          }`}
                         />
-                      ) : (
-                        <div
-                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-[9px] bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
-                            u.name || "U",
-                          )}`}
-                        >
-                          {getInitials(u.name)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-extrabold truncate">{u.name}</div>
-                      <div className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider mt-0.5">
-                        {dept}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-bold text-xs truncate text-slate-800 dark:text-white">{u.name}</span>
+                          {isCurrent && (
+                            <span className="text-[8.5px] font-black px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
+                              YOU
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10.5px] text-slate-500 dark:text-slate-400 font-medium capitalize truncate mt-0.5">
+                          {dept}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex items-center">
+                      {userIsOnline ? (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"
+                          title="Online"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>Online</span>
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800/80 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/60"
+                          title="Offline"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
+                          <span>Offline</span>
+                        </span>
+                      )}
                     </div>
                   </button>
                 );

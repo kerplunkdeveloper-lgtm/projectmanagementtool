@@ -31,7 +31,7 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-// Helper to identify Social Media Managers
+// Helper to identify Social Media Executives
 const isSocialMediaManager = (u) => {
   if (!u) return false;
   if (u.employmentStatus === "relieved") return false;
@@ -45,6 +45,7 @@ const isSocialMediaManager = (u) => {
     role.includes("social media") ||
     role.includes("smm") ||
     role === "socialmediamanager" ||
+    role === "socialmediaexecutive" ||
     desig.includes("social media") ||
     desig.includes("smm")
   );
@@ -88,7 +89,7 @@ const PendingCommitmentModal = ({
     return map;
   }, [users]);
 
-  // Helper to resolve Social Media Manager name for a given client
+  // Helper to resolve Social Media Executive name for a given client
   const getClientSmmName = (client, clientName) => {
     if (!client && !clientName) return null;
     const clientId = client?._id?.toString();
@@ -108,7 +109,7 @@ const PendingCommitmentModal = ({
         (member?.name && usersMap.get(member.name.trim().toLowerCase())) ||
         (typeof member === "object" ? member : null);
       if (isSocialMediaManager(memberObj) || isSocialMediaManager(member)) {
-        return memberObj?.name || member?.name || "Social Media Manager";
+        return memberObj?.name || member?.name || "Social Media Executive";
       }
     }
 
@@ -150,14 +151,14 @@ const PendingCommitmentModal = ({
   }, [clients, tasks, currentMonth, currentYear]);
 
   // Enriched summaries with SMM names, task breakdown, and live/completed status flags
-  // ONLY clients that belong to the Social Media Manager department are included
+  // ONLY clients that belong to the Social Media Executive department are included
   const enrichedSummaries = useMemo(() => {
     return (clientSummaries || [])
       .map((cs) => {
         const smmName = getClientSmmName(cs.client, cs.clientName);
 
-        // Check if this client belongs to the Social Media Manager department:
-        // 1. Has an assigned member from the Social Media Manager department (smmName)
+        // Check if this client belongs to the Social Media Executive department:
+        // 1. Has an assigned member from the Social Media Executive department (smmName)
         // 2. Or client's own department includes Social Media / SMM
         const clientDept = (cs.client?.department || "").toLowerCase().trim();
         const hasSmmDeptOnClient =
@@ -167,7 +168,7 @@ const PendingCommitmentModal = ({
 
         const belongsToSmmDepartment = Boolean(smmName) || hasSmmDeptOnClient;
 
-        // Only show clients belonging to the Social Media Manager department!
+        // Only show clients belonging to the Social Media Executive department!
         if (!belongsToSmmDepartment) {
           return null;
         }
@@ -280,7 +281,7 @@ const PendingCommitmentModal = ({
   // Base filtered summaries: filtered by SMM, Client dropdown, and search query
   const baseFilteredSummaries = useMemo(() => {
     return enrichedSummaries.filter((cs) => {
-      // 1. Social Media Manager Filter
+      // 1. Social Media Executive Filter
       if (selectedSmm !== "all") {
         if (selectedSmm === "__unassigned__") {
           if (cs.smmName) return false;
@@ -698,7 +699,7 @@ const PendingCommitmentModal = ({
           {/* Filters: SMM Dropdown, Client Dropdown, Search Input */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full xl:w-auto">
             
-            {/* Social Media Manager Dropdown Filter */}
+            {/* Social Media Executive Dropdown Filter */}
             <div className="relative shrink-0 flex-1 sm:flex-initial">
               <select
                 value={selectedSmm}
@@ -706,7 +707,7 @@ const PendingCommitmentModal = ({
                 className={`toolbar-filter-select w-full sm:w-auto min-w-[135px] max-w-[190px] !pl-7 !pr-7 !py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer truncate ${
                   selectedSmm !== "all" ? "is-active" : ""
                 }`}
-                title="Filter by Social Media Manager"
+                title="Filter by Social Media Executive"
               >
                 <option value="all">All SMMs</option>
                 {hasUnassignedSmm && <option value="__unassigned__">Unassigned SMM</option>}
@@ -853,11 +854,11 @@ const PendingCommitmentModal = ({
                             {industry}
                           </span>
 
-                          {/* Social Media Manager Name Badge */}
+                          {/* Social Media Executive Name Badge */}
                           {smmName ? (
                             <span
                               className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/90 dark:border-indigo-800/60 shadow-2xs whitespace-nowrap"
-                              title={`Social Media Manager: ${smmName}`}
+                              title={`Social Media Executive: ${smmName}`}
                             >
                               <FiUser size={12} className="text-indigo-500 shrink-0" />
                               <span className="text-[9.5px] uppercase tracking-wider text-indigo-500 dark:text-indigo-400 font-extrabold">
@@ -870,7 +871,7 @@ const PendingCommitmentModal = ({
                           ) : (
                             <span
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10.5px] font-semibold bg-slate-100 dark:bg-[#151d2e] text-slate-400 dark:text-slate-400 border border-slate-200/60 dark:border-[#22314d] whitespace-nowrap"
-                              title="No Social Media Manager assigned"
+                              title="No Social Media Executive assigned"
                             >
                               <FiUser size={11} className="text-slate-400 shrink-0" />
                               <span>SMM: Unassigned</span>

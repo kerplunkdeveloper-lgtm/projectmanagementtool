@@ -74,6 +74,15 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    // Auto-sync Social media Head department to socialmediamanager role
+    const deptLower = (user.department || '').toLowerCase().trim();
+    if (deptLower.includes('social media head')) {
+      if (user.role !== 'socialmediamanager') {
+        user.role = 'socialmediamanager';
+        await User.updateOne({ _id: user._id }, { $set: { role: 'socialmediamanager' } });
+      }
+    }
+
     // Check if account is deactivated or relieved
     if (user.employmentStatus === 'relieved' || user.accountStatus === 'inactive') {
       return res.status(403).json({
@@ -117,6 +126,12 @@ exports.impersonateUser = async (req, res, next) => {
     const { userId } = req.body;
 
     const user = await User.findById(userId);
+    if (user && user.department && user.department.toLowerCase().includes('social media head')) {
+      if (user.role !== 'socialmediamanager') {
+        user.role = 'socialmediamanager';
+        await User.updateOne({ _id: user._id }, { $set: { role: 'socialmediamanager' } });
+      }
+    }
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -163,8 +178,8 @@ const sendTokenResponse = (user, statusCode, res) => {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role,
-          department: user.department,
+          role: (user.department && user.department.toLowerCase().includes('social media head')) ? 'socialmediamanager' : user.role,
+          department: (user.department && user.department.toLowerCase() === 'social media manager' ? 'Social Media Executive' : user.department),
           location: user.location,
           permissions: user.permissions || {},
         },

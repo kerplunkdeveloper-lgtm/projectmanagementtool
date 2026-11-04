@@ -45,8 +45,18 @@ exports.getSocialAccounts = async (req, res) => {
     }
 
     // Role-based access control:
-    // Team members (e.g. Social Media Manager) can only view social credentials of assigned clients or accounts they created
-    if (req.user && req.user.role !== "admin" && req.user.role !== "operationmanager") {
+    // Admin, Operation Manager, and Social Media Manager have full access to all credentials
+    const deptLower = (req.user?.department || "").toLowerCase();
+    const isSocialMediaManager =
+      req.user?.role === "socialmediamanager" ||
+      req.user?.role === "socialmediahead" ||
+      deptLower.includes("social media head");
+    const isPrivileged =
+      req.user?.role === "admin" ||
+      req.user?.role === "operationmanager" ||
+      isSocialMediaManager;
+
+    if (req.user && !isPrivileged) {
       const assignedClients = await Client.find({ assignedTo: req.user._id }).select("_id companyName");
       const assignedClientIds = assignedClients.map((c) => c._id);
       const assignedClientNames = assignedClients.map((c) => c.companyName);
@@ -68,11 +78,11 @@ exports.getSocialAccounts = async (req, res) => {
         select: "companyName industry phoneNumber color icon status assignedTo spoc designation",
         populate: {
           path: "assignedTo",
-          select: "name email profileImage profilePic avatar role department profile",
+          select: "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile",
         },
       })
-      .populate("accountManager", "name email profileImage profilePic avatar role department profile")
-      .populate("createdBy", "name email profileImage profilePic avatar role department profile")
+      .populate("accountManager", "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile")
+      .populate("createdBy", "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile")
       .populate("updatedBy", "name email")
       .sort({ updatedAt: -1, createdAt: -1 });
 
@@ -102,11 +112,11 @@ exports.getSocialAccountById = async (req, res) => {
         select: "companyName industry phoneNumber color icon status assignedTo spoc designation",
         populate: {
           path: "assignedTo",
-          select: "name email profileImage profilePic avatar role department profile",
+          select: "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile",
         },
       })
-      .populate("accountManager", "name email profileImage profilePic avatar role department profile")
-      .populate("createdBy", "name email profileImage profilePic avatar role department profile")
+      .populate("accountManager", "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile")
+      .populate("createdBy", "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile")
       .populate("updatedBy", "name email");
 
     if (!socialAccount) {
@@ -117,7 +127,17 @@ exports.getSocialAccountById = async (req, res) => {
     }
 
     // Check authorization for team role
-    if (req.user && req.user.role !== "admin" && req.user.role !== "operationmanager") {
+    const deptLower = (req.user?.department || "").toLowerCase();
+    const isSocialMediaManager =
+      req.user?.role === "socialmediamanager" ||
+      req.user?.role === "socialmediahead" ||
+      deptLower.includes("social media head");
+    const isPrivileged =
+      req.user?.role === "admin" ||
+      req.user?.role === "operationmanager" ||
+      isSocialMediaManager;
+
+    if (req.user && !isPrivileged) {
       const isCreator = socialAccount.createdBy?._id?.toString() === req.user._id.toString();
       let isAssigned = false;
       if (socialAccount.client) {
@@ -231,11 +251,11 @@ exports.createSocialAccount = async (req, res) => {
         select: "companyName industry phoneNumber color icon status assignedTo spoc designation",
         populate: {
           path: "assignedTo",
-          select: "name email profileImage profilePic avatar role department profile",
+          select: "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile",
         },
       })
-      .populate("accountManager", "name email profileImage profilePic avatar role department profile")
-      .populate("createdBy", "name email profileImage profilePic avatar role department profile")
+      .populate("accountManager", "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile")
+      .populate("createdBy", "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile")
       .populate("updatedBy", "name email");
 
     res.status(201).json({
@@ -268,7 +288,17 @@ exports.updateSocialAccount = async (req, res) => {
     }
 
     // Check authorization for team role
-    if (req.user && req.user.role !== "admin" && req.user.role !== "operationmanager") {
+    const deptLower = (req.user?.department || "").toLowerCase();
+    const isSocialMediaManager =
+      req.user?.role === "socialmediamanager" ||
+      req.user?.role === "socialmediahead" ||
+      deptLower.includes("social media head");
+    const isPrivileged =
+      req.user?.role === "admin" ||
+      req.user?.role === "operationmanager" ||
+      isSocialMediaManager;
+
+    if (req.user && !isPrivileged) {
       const isCreator = socialAccount.createdBy?.toString() === req.user._id.toString();
       let isAssigned = false;
       if (socialAccount.client) {
@@ -343,11 +373,11 @@ exports.updateSocialAccount = async (req, res) => {
         select: "companyName industry phoneNumber color icon status assignedTo spoc designation",
         populate: {
           path: "assignedTo",
-          select: "name email profileImage profilePic avatar role department profile",
+          select: "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile",
         },
       })
-      .populate("accountManager", "name email profileImage profilePic avatar role department profile")
-      .populate("createdBy", "name email profileImage profilePic avatar role department profile")
+      .populate("accountManager", "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile")
+      .populate("createdBy", "name email profileImage profilePic avatar role department employmentStatus accountStatus status profile")
       .populate("updatedBy", "name email");
 
     res.status(200).json({
@@ -380,7 +410,17 @@ exports.deleteSocialAccount = async (req, res) => {
     }
 
     // Check authorization for team role
-    if (req.user && req.user.role !== "admin" && req.user.role !== "operationmanager") {
+    const deptLower = (req.user?.department || "").toLowerCase();
+    const isSocialMediaManager =
+      req.user?.role === "socialmediamanager" ||
+      req.user?.role === "socialmediahead" ||
+      deptLower.includes("social media head");
+    const isPrivileged =
+      req.user?.role === "admin" ||
+      req.user?.role === "operationmanager" ||
+      isSocialMediaManager;
+
+    if (req.user && !isPrivileged) {
       const isCreator = socialAccount.createdBy?.toString() === req.user._id.toString();
       let isAssigned = false;
       if (socialAccount.client) {

@@ -207,9 +207,18 @@ const ContentCalendar = () => {
   const { user } = useSelector((state) => state.auth);
   const role = user?.role || "admin";
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
-  const isPrivileged = userRoleClean === "admin" || userRoleClean === "operationmanager";
-  const canFilterBySMM = isPrivileged || userRoleClean === "socialmediamanager";
-  const isReadOnly = isPrivileged;
+  const deptLower = (user?.department || "").toLowerCase();
+  const isSocialMediaManagerRole =
+    userRoleClean === "socialmediamanager" ||
+    userRoleClean === "socialmediahead" ||
+    deptLower.includes("social media head");
+
+  const isPrivileged =
+    userRoleClean === "admin" ||
+    userRoleClean === "operationmanager" ||
+    isSocialMediaManagerRole;
+  const canFilterBySMM = isPrivileged;
+  const isReadOnly = userRoleClean === "admin" || userRoleClean === "operationmanager";
 
   const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
   const clientsState = useSelector((state) => state.clients);
@@ -473,7 +482,7 @@ const ContentCalendar = () => {
     return ["All", ...sorted];
   }, [clients, uniqueTasks]);
 
-  // Helper to identify Social Media Managers
+  // Helper to identify Social Media Executives
   const isSocialMediaManager = useCallback((u) => {
     if (!u) return false;
     if (u.employmentStatus === "relieved") return false;
@@ -487,16 +496,17 @@ const ContentCalendar = () => {
       role.includes("social media") ||
       role.includes("smm") ||
       role === "socialmediamanager" ||
+      role === "socialmediaexecutive" ||
       desig.includes("social media") ||
       desig.includes("smm")
     );
   }, []);
 
-  // Dynamic creator / assignee options - ONLY Social Media Managers
+  // Dynamic creator / assignee options - ONLY Social Media Executives
   const assigneeOptions = useMemo(() => {
     const nameMap = new Map();
 
-    // 1. All active Social Media Managers in users list
+    // 1. All active Social Media Executives in users list
     (users || []).forEach((u) => {
       if (u.name && u.name.trim() && isSocialMediaManager(u)) {
         nameMap.set(u.name.trim().toLowerCase(), u.name.trim());

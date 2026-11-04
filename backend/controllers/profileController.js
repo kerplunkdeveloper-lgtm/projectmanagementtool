@@ -46,6 +46,12 @@ exports.createProfile = async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, {
       profile: profile._id,
     });
+    try {
+      const io = req.app.get('io');
+      if (io) io.emit('user_profile_updated', { userId: req.user._id, profile });
+    } catch (e) {
+      console.error('Socket emit error:', e);
+    }
 
     res.status(201).json({
       success: true,
@@ -138,6 +144,12 @@ exports.updateProfile = async (req, res) => {
     }
 
     await profile.save();
+    try {
+      const io = req.app.get('io');
+      if (io) io.emit('user_profile_updated', { userId: req.user._id, profile });
+    } catch (e) {
+      console.error('Socket emit error:', e);
+    }
 
     res.status(200).json({
       success: true,
@@ -179,6 +191,12 @@ exports.deleteProfileImage = async (req, res) => {
       };
 
       await profile.save();
+      try {
+        const io = req.app.get('io');
+        if (io) io.emit('user_profile_updated', { userId: req.user._id, profile });
+      } catch (e) {
+        console.error('Socket emit error:', e);
+      }
     }
 
     res.status(200).json({

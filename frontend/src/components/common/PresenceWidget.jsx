@@ -104,7 +104,9 @@ const PresenceWidget = ({ presence, layout = "floating" }) => {
   const hiddenRoles = [
     "admin",
     "operation manager",
+    "social media executive",
     "social media manager",
+    "socialmediaexecutive",
     "operationmanager",
     "socialmediamanager",
   ];

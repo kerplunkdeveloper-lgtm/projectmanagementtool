@@ -174,7 +174,7 @@ const CallRow = React.memo(({ call, onEdit, onDelete }) => {
             </span>
             {call.createdBy?.department && (
               <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                {call.createdBy.department}
+                {call.createdBy.department === "Social Media Manager" ? "Social Media Executive" : call.createdBy.department}
               </span>
             )}
           </div>
@@ -308,7 +308,14 @@ const ClientCalls = ({ isEmbedded = false }) => {
   // Optimized Filtered Calls
   const filteredCalls = useMemo(() => {
     const currentUserId = user?._id || user?.id;
-    const isTeamUser = user?.role === "team";
+    const deptLower = (user?.department || "").toLowerCase();
+    const roleLower = (user?.role || "").toLowerCase();
+    const isSocialMediaManager =
+      roleLower === "socialmediamanager" ||
+      roleLower === "socialmediahead" ||
+      deptLower.includes("social media head");
+
+    const isTeamUser = user?.role === "team" && !isSocialMediaManager;
 
     return calls.filter((call) => {
       // Role scope restriction
@@ -778,7 +785,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
           </div>
 
           {/* Posted By Filter */}
-          {user?.role !== "team" && (
+          {(user?.role !== "team" || isSocialMediaManager) && (
             <div className="relative">
               <select
                 value={filterPostedBy}

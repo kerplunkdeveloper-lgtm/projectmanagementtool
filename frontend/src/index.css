@@ -3228,3 +3228,11 @@ td:first-child {
 .animate-leave {
   animation: toast-leave 0.22s ease-in forwards;
 }
+
+/* Dark mode text contrast fix: ensure text-slate-100 and text-gray-100 display clearly in dark mode */
+.dark .text-slate-100,
+.dark .dark\:text-slate-100,
+.dark .text-gray-100,
+.dark .dark\:text-gray-100 {
+  color: #f1f5f9 !important;
+}

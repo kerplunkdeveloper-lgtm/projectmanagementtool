@@ -57,6 +57,12 @@ const Login = () => {
       .toLowerCase()
       .replace(/[\s_]+/g, "");
 
+    const deptNorm = (user.department || "").toString().toLowerCase().trim();
+    const isSocialMediaHead = 
+      deptNorm.includes("social media head") ||
+      roleNorm === "socialmediamanager" ||
+      roleNorm === "socialmediahead";
+
     if (roleNorm === "admin") {
       toast.success("Admin Login");
       navigate("/admin");
@@ -66,6 +72,9 @@ const Login = () => {
     } else if (roleNorm === "humanresource" || roleNorm === "hr") {
       toast.success("Human Resource Login");
       navigate("/humanresource");
+    } else if (isSocialMediaHead) {
+      toast.success("Social Media Manager Login");
+      navigate("/socialmediamanager");
     } else {
       toast.success("Login Successful");
       navigate("/team");

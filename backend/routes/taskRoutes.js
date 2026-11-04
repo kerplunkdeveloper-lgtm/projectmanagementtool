@@ -13,11 +13,11 @@ const router = express.Router();
 router
   .route("/")
   .get(protect, getTasks)
-  .post(protect, authorize("admin", "operationmanager", "team"), createTask);
+  .post(protect, authorize("admin", "operationmanager", "team", "socialmediamanager", "socialmediahead"), createTask);
 
 router
   .route("/:id")
   .put(protect, updateTask)
-  .delete(protect, authorize("admin", "operationmanager", "team"), deleteTask);
+  .delete(protect, authorize("admin", "operationmanager", "team", "socialmediamanager", "socialmediahead"), deleteTask);
 
 module.exports = router;

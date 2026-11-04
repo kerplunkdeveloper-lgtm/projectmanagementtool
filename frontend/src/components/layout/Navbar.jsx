@@ -32,7 +32,6 @@ import {
   FiMoon,
   FiMonitor,
   FiMessageSquare,
-  FiMapPin,
   FiCompass,
   FiArrowLeft,
   FiX,
@@ -42,6 +41,7 @@ import {
   FiClock,
   FiUsers,
 } from "react-icons/fi";
+import { FaMapMarkerAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import TeamActiveDrawer from "../common/TeamActiveDrawer";
 
@@ -305,6 +305,8 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
     if (n?.sender?.role) {
       if (n.sender.role === "admin") return "Admin";
       if (n.sender.role === "operationmanager") return "Operations";
+      if (n.sender.role === "humanresource") return "HR";
+      if (n.sender.role === "socialmediamanager" || n.sender.role === "socialmediahead") return "Social Media Manager";
     }
 
     return null;
@@ -312,6 +314,9 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
 
   const getDepartmentBadgeStyle = (dept) => {
     const d = (dept || "").toLowerCase().trim();
+    if (d.includes("social media head") || d.includes("smm head")) {
+      return "text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/50 border-orange-400 dark:border-orange-600";
+    }
     if (d.includes("graphic") || d.includes("design")) {
       return "text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border-purple-400 dark:border-purple-600";
     }
@@ -479,6 +484,8 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
       path === "/operationmanager/" ||
       path === "/humanresource" ||
       path === "/humanresource/" ||
+      path === "/socialmediamanager" ||
+      path === "/socialmediamanager/" ||
       path === "/team" ||
       path === "/team/"
     ) {
@@ -817,23 +824,23 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
       "
     >
       {/* LEFT */}
-      <div className="flex items-center gap-2.5 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 shrink">
         {/* SIDEBAR TOGGLE BUTTON - hidden on lg when horizontal layout */}
         {!(sidebarLayout === "horizontal") && (
           <button
             onClick={() => setSidebarOpen((prev) => !prev)}
             className="
-              w-8 h-8
-              rounded-lg border theme-border theme-bg-main
+              w-8 h-8 sm:w-8.5 sm:h-8.5
+              rounded-xl border theme-border theme-bg-card
               theme-text-secondary hover:theme-text-primary
-              flex items-center justify-center
+              flex items-center justify-center shrink-0
               hover:bg-slate-50 dark:hover:bg-white/5
-              transition-all duration-200 cursor-pointer
+              transition-all duration-200 cursor-pointer active:scale-95
             "
             title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
           >
             <HiOutlineMenuAlt3
-              className={`text-[1.0625rem] transform hover:scale-110 transition-transform duration-200 ${
+              className={`text-base sm:text-[1.125rem] transform hover:scale-105 transition-transform duration-200 ${
                 !sidebarOpen ? "rotate-180" : ""
               }`}
             />
@@ -841,14 +848,14 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
         )} 
 
         {/* PAGE TITLE */}
-        <h1 className="text-xs md:text-[1.05rem] theme-text-accent font-medium shrink-0">
+        <h1 className="text-xs sm:text-sm md:text-[1.05rem] theme-text-accent font-bold truncate max-w-[130px] xs:max-w-[170px] sm:max-w-[260px] md:max-w-none">
           {pageTitle}
         </h1>
       </div>
 
 
       {/* RIGHT */}
-      <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         {/* USER LOCATION (Desktop/Tablet only) */}
         <div
           className="
@@ -860,7 +867,7 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
           "
           title={`Location: ${user?.location || profile?.user?.location || "Chennai"}`}
         >
-          <FiMapPin className="text-[13px] text-rose-500 shrink-0" />
+          <FaMapMarkerAlt className="text-[13px] text-rose-500 shrink-0" />
           <span className="truncate max-w-[90px] md:max-w-[130px] text-[11.5px] font-bold">
             {user?.location || profile?.user?.location || "Chennai"}
           </span>
@@ -871,15 +878,23 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
           <button
             onClick={() => setOpenNotifications(!openNotifications)}
             className={`
-              relative w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer
+              relative w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-xl border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95
               ${
                 openNotifications
                   ? "theme-bg-main border-indigo-500 dark:border-indigo-400 theme-text-primary ring-2 ring-indigo-500/10"
+                  : unreadCount > 0
+                  ? "theme-border theme-bg-card theme-text-primary hover:theme-bg-main ring-1 ring-amber-500/20 shadow-xs"
                   : "theme-border theme-bg-card theme-text-secondary hover:theme-bg-main hover:theme-text-primary"
               }
             `}
           >
-            <FiBell className="text-[0.9375rem]" />
+            <FiBell
+              className={`text-[0.9375rem] transition-all ${
+                unreadCount > 0 && !openNotifications
+                  ? "animate-bell-ring origin-top text-amber-500 dark:text-amber-400"
+                  : ""
+              }`}
+            />
             {unreadCount > 0 && (
               <>
                 <span
@@ -1249,7 +1264,7 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="
-            w-8 h-8 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
+            w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-xl border flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-95
             theme-border theme-bg-card hover:theme-bg-main
           "
           title="Toggle Theme"
@@ -1257,13 +1272,13 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
           {getThemeIcon()}
         </button>
 
-        {/* TEAM ACTIVE BUTTON (Admin & Operation Manager only) */}
+        {/* TEAM ACTIVE BUTTON (Clean on desktop, tucked into profile menu on mobile) */}
         {canViewTeamActive && (
           <button
             id="team-active-navbar-btn"
             onClick={() => setIsTeamActiveOpen(true)}
             className={`
-              flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-lg border transition-all duration-200 cursor-pointer
+              hidden sm:flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 rounded-xl border transition-all duration-200 cursor-pointer
               theme-border theme-bg-card hover:theme-bg-main ${activeAccent.hoverBorder}
               hover:shadow-xs group relative
             `}
@@ -1280,7 +1295,7 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
               </span>
             </div>
 
-            <span className="text-[11px] sm:text-[12px] font-bold theme-text-primary whitespace-nowrap">
+            <span className="text-[12px] font-bold theme-text-primary whitespace-nowrap">
               Team Active
             </span>
 
@@ -1332,7 +1347,7 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
             </div>
 
             <FiChevronDown
-              className={`text-gray-550 dark:text-slate-400 text-xs transition-transform ${openDropdown ? "rotate-180" : ""}`}
+              className={`hidden sm:block text-slate-400 text-xs transition-transform ${openDropdown ? "rotate-180" : ""}`}
             />
           </button>
 
@@ -1365,6 +1380,29 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
                     ACTIVE
                   </span>
                 </div>
+
+                {/* Mobile-only Team Active entry */}
+                {canViewTeamActive && (
+                  <button
+                    onClick={() => {
+                      setIsTeamActiveOpen(true);
+                      setOpenDropdown(false);
+                    }}
+                    className="
+                      sm:hidden w-full px-3 py-2 rounded-lg mb-1
+                      flex items-center justify-between
+                      text-xs theme-text-primary hover:theme-bg-main transition-all cursor-pointer
+                    "
+                  >
+                    <span className="flex items-center gap-2">
+                      <FiUsers className="theme-text-accent" size={13} />
+                      <span className="font-semibold">Team Active</span>
+                    </span>
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 leading-none rounded-full ${activeAccent.badge} border`}>
+                      {teamOnlineCount} online
+                    </span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => {

@@ -1,3 +1,9 @@
+const sanitizeUserDept = (u) => {
+  if (!u) return;
+  if (u.department && u.department.toLowerCase() === 'social media manager') {
+    u.department = 'Social Media Executive';
+  }
+};
 const Mom = require('../models/Mom');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
@@ -91,7 +97,16 @@ exports.getMoms = async (req, res, next) => {
   try {
     let queryOptions = {};
 
-    const isCurrentUserAdminOrOp = req.user.role === 'admin' || req.user.role === 'operationmanager';
+    const deptLower = (req.user.department || '').toLowerCase();
+    const isSocialMediaManager =
+      req.user.role === 'socialmediamanager' ||
+      req.user.role === 'socialmediahead' ||
+      deptLower.includes('social media head');
+
+    const isCurrentUserAdminOrOp =
+      req.user.role === 'admin' ||
+      req.user.role === 'operationmanager' ||
+      isSocialMediaManager;
 
     if (!isCurrentUserAdminOrOp) {
       queryOptions = {
@@ -108,6 +123,10 @@ exports.getMoms = async (req, res, next) => {
       .populate({ path: 'assignedTo', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } });
 
     const moms = await query.sort({ createdAt: -1 });
+    moms.forEach((m) => {
+      sanitizeUserDept(m.createdBy);
+      sanitizeUserDept(m.assignedTo);
+    });
 
     res.status(200).json({
       success: true,
@@ -133,6 +152,8 @@ exports.getMom = async (req, res, next) => {
       return res.status(404).json({ success: false, message: `MOM not found with id of ${req.params.id}` });
     }
 
+    sanitizeUserDept(mom.createdBy);
+    sanitizeUserDept(mom.assignedTo);
     res.status(200).json({
       success: true,
       data: mom,
@@ -180,13 +201,18 @@ exports.updateMom = async (req, res, next) => {
 
     const isCreator = mom.createdBy.toString() === req.user.id;
     const isAssigned = mom.assignedTo && mom.assignedTo.toString() === req.user.id;
-    const isAdminOrOp = req.user.role === 'admin' || req.user.role === 'operationmanager';
     const deptLower = req.user.department ? req.user.department.toLowerCase() : '';
-    const isSocialMedia = deptLower.includes('social manager') || 
+    const isSocialMediaManager =
+      req.user.role === 'socialmediamanager' ||
+      req.user.role === 'socialmediahead' ||
+      deptLower.includes('social media head');
+    const isAdminOrOp = req.user.role === 'admin' || req.user.role === 'operationmanager' || isSocialMediaManager;
+    const isSocialMedia = isSocialMediaManager ||
+                          deptLower.includes('social manager') || 
                           deptLower.includes('social media manager') || 
                           deptLower.includes('social media executive');
 
-    // Allow admin, operationmanager, creator, assigned user, or social media manager to update
+    // Allow admin, operationmanager, creator, assigned user, or social media executive to update
     if (!isCreator && !isAdminOrOp && !isAssigned && !isSocialMedia) {
       return res.status(401).json({ success: false, message: `User not authorized to update this MOM` });
     }
@@ -228,10 +254,17 @@ exports.deleteMom = async (req, res, next) => {
       return res.status(404).json({ success: false, message: `MOM not found with id of ${req.params.id}` });
     }
 
+    const deptLowerDel = (req.user.department || '').toLowerCase();
+    const isSocialMediaManagerDel =
+      req.user.role === 'socialmediamanager' ||
+      req.user.role === 'socialmediahead' ||
+      deptLowerDel.includes('social media head');
+
     if (
       mom.createdBy.toString() !== req.user.id &&
       req.user.role !== 'admin' &&
-      req.user.role !== 'operationmanager'
+      req.user.role !== 'operationmanager' &&
+      !isSocialMediaManagerDel
     ) {
       return res.status(401).json({ success: false, message: `User not authorized to delete this MOM` });
     }

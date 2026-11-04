@@ -1563,12 +1563,12 @@ const Dashboardmain = () => {
     // Find actual department key present in database or fallback to formatted default name
     const graphicKey = unique.find(isGraphic) || "Graphic Designer";
     const cinemaKey = unique.find(isCinema) || "Cinematographer";
-    const socialKey = unique.find(isSocialMedia) || "Social Media Manager";
+    const socialKey = unique.find(isSocialMedia) || "Social Media Executive";
     const webKey = unique.find(isWebDev) || "Web Developer";
     const mobileKey = unique.find(isMobileDev) || "Mobile Developer";
 
     // Only show the 5 specified departments:
-    // 1. Graphic Designer, 2. Cinematographer, 3. Social Media Manager, 4. Web Developer, 5. Mobile Developer
+    // 1. Graphic Designer, 2. Cinematographer, 3. Social Media Executive, 4. Web Developer, 5. Mobile Developer
     return [graphicKey, cinemaKey, socialKey, webKey, mobileKey];
   }, [users]);
 
@@ -1726,13 +1726,27 @@ const Dashboardmain = () => {
     deptNorm.includes("account") ||
     desigNorm.includes("finance") ||
     desigNorm.includes("account");
-  const canSeeProjectsShortcut =
-    roleNorm === "admin" ||
-    roleNorm === "operationmanager" ||
+  const isSocialMediaManager =
     roleNorm === "socialmediamanager" ||
-    desigNorm.includes("social media") ||
-    desigNorm.includes("operation manager") ||
-    desigNorm.includes("admin");
+    roleNorm === "socialmediahead" ||
+    deptNorm.includes("social media head") ||
+    deptNorm.includes("social media manager") ||
+    desigNorm.includes("social media head") ||
+    desigNorm.includes("social media manager") ||
+    (typeof window !== "undefined" &&
+      window.location.pathname.includes("/socialmediamanager"));
+
+  const canSeeProjectsShortcut =
+    !isSocialMediaManager &&
+    (roleNorm === "admin" ||
+      roleNorm === "operationmanager" ||
+      roleNorm === "socialmediaexecutive" ||
+      deptNorm.includes("social media executive") ||
+      desigNorm.includes("social media executive") ||
+      (deptNorm.includes("social media") && !isSocialMediaManager) ||
+      (desigNorm.includes("social media") && !isSocialMediaManager) ||
+      desigNorm.includes("operation manager") ||
+      desigNorm.includes("admin"));
 
   return (
     <div className="space-y-4 pb-6 ">
@@ -1740,7 +1754,7 @@ const Dashboardmain = () => {
       {/* GREETING */}
       <WelcomeUser />
 
-      {/* Goal tasks (All Users) & My Projects shortcut (Admin, Ops Manager, Social Media Manager only) */}
+      {/* Goal tasks (All Users) & My Projects shortcut (Admin, Ops Manager, Social Media Executive only) */}
       <div
         className={`grid grid-cols-1 ${canSeeProjectsShortcut ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-4 mt-2 relative z-10`}
       >
@@ -1753,14 +1767,19 @@ const Dashboardmain = () => {
               <div className="w-8 h-8 rounded-full bg-[#f5d05e] dark:bg-[#eab308]/90 text-[#543d02] font-semibold text-xs flex items-center justify-center shrink-0 shadow-2xs">
                 {getInitials(user?.name) || "Aw"}
               </div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-gray-800 dark:text-gray-100">
                   My Goals tasks
                 </h3>
                 <FiLock
                   size={12}
                   className="text-slate-400 dark:text-slate-500 fill-slate-400 dark:fill-slate-500"
                 />
+                {goals.length > 0 && (
+                  <span className="hidden sm:inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40 ml-1">
+                    {goalStats.completed.length}/{goals.length} Done
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1895,58 +1914,61 @@ const Dashboardmain = () => {
             </div>
           </div>
 
-          {/* Tabs matching reference image */}
-          <div className="flex items-center gap-4 sm:gap-5 border-b border-slate-100 dark:border-white/5 pb-0.5 mb-1.5">
-            {[
-              {
-                id: "Upcoming",
-                label: `Upcoming (${goalStats.upcoming.length})`,
-              },
-              {
-                id: "Overdue",
-                label: `Overdue (${goalStats.overdue.length})`,
-              },
-              {
-                id: "Completed",
-                label: `Completed (${goalStats.completed.length})`,
-              },
-            ].map((tab) => {
-              const isActive = goalTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setGoalTab(tab.id);
-                    setEditingGoalId(null);
-                  }}
-                  className={`text-xs font-medium pb-1.5 cursor-pointer relative transition-colors ${
-                    isActive
-                      ? "text-slate-900 dark:text-slate-300 font-semibold"
-                      : "text-slate-455 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-400"
-                  }`}
-                >
-                  {tab.label}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeAdminGoalTab"
-                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-slate-800 dark:bg-slate-200"
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          {/* Tabs matching reference image & Create task button */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-white/5 pb-1 mb-2">
+            <div className="flex items-center gap-4 sm:gap-6">
+              {[
+                {
+                  id: "Upcoming",
+                  label: `Upcoming (${goalStats.upcoming.length})`,
+                },
+                {
+                  id: "Overdue",
+                  label: `Overdue (${goalStats.overdue.length})`,
+                },
+                {
+                  id: "Completed",
+                  label: `Completed (${goalStats.completed.length})`,
+                },
+              ].map((tab) => {
+                const isActive = goalTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setGoalTab(tab.id);
+                      setEditingGoalId(null);
+                    }}
+                    className={`text-xs font-semibold pb-1.5 cursor-pointer relative transition-colors ${
+                      isActive
+                        ? "text-slate-900 dark:text-white"
+                        : "text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    }`}
+                  >
+                    {tab.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeAdminGoalTab"
+                        className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-400 rounded-full"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* + Create task link - only visible in Upcoming tab */}
-          {goalTab === "Upcoming" && (
-            <button
-              onClick={() => handleCreateGoal(null, "")}
-              className="flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors text-xs py-1.5 cursor-pointer pl-0.5"
-            >
-              <FiPlus size={13} className="text-slate-455" />
-              <span>Create task</span>
-            </button>
-          )}
+            {/* + Create task button - only visible in Upcoming tab */}
+            {goalTab === "Upcoming" && (
+              <button
+                type="button"
+                onClick={() => handleCreateGoal(null, "")}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer"
+              >
+                <FiPlus size={13} />
+                <span>Create task</span>
+              </button>
+            )}
+          </div>
           <div className="flex-1 flex flex-col pt-0.5">
             {/* Tasks List with bottom border lines */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 mt-0.5 divide-y divide-slate-100 dark:divide-white/5">
@@ -1977,7 +1999,7 @@ const Dashboardmain = () => {
                     return (
                       <div
                         key={g._id}
-                        className="flex items-center justify-between py-1.5 bg-transparent group/row"
+                        className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-slate-50 dark:hover:bg-white/[0.03] transition-colors group/row"
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1 pl-0.5">
                           <button
@@ -2184,7 +2206,7 @@ const Dashboardmain = () => {
           )}
         </div>
 
-        {/* MY PROJECTS card - shown ONLY for Admin, Operation Manager, and Social Media Manager */}
+        {/* MY PROJECTS card - shown ONLY for Admin, Operation Manager, and Social Media Executive */}
         {canSeeProjectsShortcut && (
           <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-[#223149] shadow-xs p-4 sm:p-5 flex flex-col justify-between min-h-[200px]">
             <div>
@@ -2436,7 +2458,9 @@ const Dashboardmain = () => {
       {/* ............................................status cards .......................................... */}
       {(user?.role === "admin" ||
         user?.role === "operationmanager" ||
-        user?.department?.toLowerCase() === "social media manager") && (
+        user?.department?.toLowerCase() === "social media manager" ||
+        user?.department?.toLowerCase() === "social media executive" ||
+        user?.department?.toLowerCase()?.includes("social media")) && (
         <div className="w-full py-4 md:py-10">
           {/* Department Tabs */}
           <div className="flex justify-center w-full mb-8 px-2">
@@ -2533,6 +2557,8 @@ const Dashboardmain = () => {
         user?.role !== "admin" &&
         user?.role !== "operationmanager" &&
         user?.department?.toLowerCase() !== "social media manager" &&
+        user?.department?.toLowerCase() !== "social media executive" &&
+        !user?.department?.toLowerCase()?.includes("social media") &&
         !isFinance && (
           <div className="w-full mt-4">
             <GraphicDesignerDeadlines user={user} />

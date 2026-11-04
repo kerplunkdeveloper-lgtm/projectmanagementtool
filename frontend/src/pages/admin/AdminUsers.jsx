@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
@@ -38,6 +38,12 @@ const AdminUsers = () => {
 
   const deptLower = (user?.department || "").toLowerCase();
   const roleLower = (user?.role || "").toLowerCase();
+  const isSocialMediaManager =
+    roleLower === "socialmediamanager" ||
+    roleLower === "socialmediahead" ||
+    deptLower.includes("social media head") ||
+    location.pathname.includes("/socialmediamanager");
+
   const isHr =
     roleLower === "humanresource" ||
     roleLower === "hr" ||
@@ -46,25 +52,28 @@ const AdminUsers = () => {
 
   const userPerms = user?.permissions?.["manage_users"];
   const canCreate =
-    user?.role === "admin" ||
-    user?.role === "operationmanager" ||
-    userPerms === true ||
-    Boolean(userPerms?.write) ||
-    Boolean(userPerms?.create);
+    !isSocialMediaManager &&
+    (user?.role === "admin" ||
+      user?.role === "operationmanager" ||
+      userPerms === true ||
+      Boolean(userPerms?.write) ||
+      Boolean(userPerms?.create));
   const canUpdate =
-    user?.role === "admin" ||
-    user?.role === "operationmanager" ||
-    userPerms === true ||
-    Boolean(userPerms?.update) ||
-    Boolean(userPerms?.write);
+    !isSocialMediaManager &&
+    (user?.role === "admin" ||
+      user?.role === "operationmanager" ||
+      userPerms === true ||
+      Boolean(userPerms?.update) ||
+      Boolean(userPerms?.write));
   const canDelete =
-    user?.role === "admin" ||
-    user?.role === "operationmanager" ||
-    userPerms === true ||
-    Boolean(userPerms?.delete) ||
-    Boolean(userPerms?.write);
+    !isSocialMediaManager &&
+    (user?.role === "admin" ||
+      user?.role === "operationmanager" ||
+      userPerms === true ||
+      Boolean(userPerms?.delete) ||
+      Boolean(userPerms?.write));
   const canWrite = canCreate || canUpdate || canDelete;
-  const isReadOnly = !canWrite;
+  const isReadOnly = isSocialMediaManager || !canWrite;
 
   const [openModal, setOpenModal] = useState(false);
 
@@ -184,7 +193,7 @@ const AdminUsers = () => {
   };
 
   // REQUEST DELETE (OPEN MODAL)
-  const requestDeleteUser = (userToDeleteItem) => {
+  const requestDeleteUser = useCallback((userToDeleteItem) => {
     if (
       userToDeleteItem?.role === "admin" ||
       userToDeleteItem?.role?.toLowerCase() === "admin"
@@ -194,7 +203,7 @@ const AdminUsers = () => {
     }
     setUserToDelete(userToDeleteItem);
     setOpenDeleteModal(true);
-  };
+  }, []);
 
   // DELETE USER (FINAL CONFIRMATION)
   const handleDeleteUser = async () => {
@@ -211,38 +220,41 @@ const AdminUsers = () => {
   };
 
   // IMPERSONATE USER
-  const handleImpersonate = async (userId) => {
+  const handleImpersonate = useCallback(async (userId) => {
     try {
       const result = await dispatch(impersonateUser(userId)).unwrap();
       toast.success("Successfully logged in as user");
       const targetRole = result.data.user.role;
+      const targetDept = (result.data?.user?.department || "").toLowerCase();
       if (targetRole === "admin") {
         navigate("/admin");
       } else if (targetRole === "operationmanager") {
         navigate("/operationmanager");
       } else if (targetRole === "humanresource" || targetRole === "hr") {
         navigate("/humanresource");
+      } else if (targetRole === "socialmediamanager" || targetRole === "socialmediahead" || targetDept.includes("social media head")) {
+        navigate("/socialmediamanager");
       } else {
         navigate("/team");
       }
     } catch (err) {
       toast.error(err || "Failed to impersonate");
     }
-  };
+  }, [dispatch, navigate]);
 
   // RELIEVE USER MODAL TRIGGER
-  const handleRequestRelieve = (user) => {
+  const handleRequestRelieve = useCallback((user) => {
     setRelieveTargetUser(user);
     setRelieveMode("relieve");
     setOpenRelieveModal(true);
-  };
+  }, []);
 
   // REACTIVATE USER MODAL TRIGGER
-  const handleRequestReactivate = (user) => {
+  const handleRequestReactivate = useCallback((user) => {
     setRelieveTargetUser(user);
     setRelieveMode("reactivate");
     setOpenRelieveModal(true);
-  };
+  }, []);
 
   // CONFIRM RELIEVE / REACTIVATE
   const handleConfirmRelieve = async (user, reason) => {
@@ -274,7 +286,11 @@ const AdminUsers = () => {
           (user.name && user.name.toLowerCase().includes(searchLower)) ||
           (user.email && user.email.toLowerCase().includes(searchLower)) ||
           (user.location && user.location.toLowerCase().includes(searchLower));
-        const matchesDept = filterDept === "" || user.department === filterDept;
+        const matchesDept =
+          filterDept === "" ||
+          user.department === filterDept ||
+          ((filterDept === "Social Media Executive" || filterDept === "Social Media Manager") &&
+            (user.department === "Social Media Executive" || user.department === "Social Media Manager"));
         const matchesLoc =
           filterLocation === "" || user.location === filterLocation;
 
@@ -288,33 +304,41 @@ const AdminUsers = () => {
         return matchesSearch && matchesDept && matchesLoc && matchesRelieved;
       })
       .sort((a, b) => {
-        const isAHr =
-          a.role === "humanresource" ||
-          a.role === "hr" ||
-          a.department?.toLowerCase()?.trim() === "hr" ||
-          a.department?.toLowerCase()?.includes("human resource");
-        const isBHr =
-          b.role === "humanresource" ||
-          b.role === "hr" ||
-          b.department?.toLowerCase()?.trim() === "hr" ||
-          b.department?.toLowerCase()?.includes("human resource");
+        const getUserPriority = (u) => {
+          const dept = (u.department || "").toLowerCase().trim();
+          const role = (u.role || "").toLowerCase().trim();
+          if (
+            role === "humanresource" ||
+            role === "hr" ||
+            dept === "hr" ||
+            dept.includes("human resource")
+          )
+            return 1;
+          if (role === "admin" || dept === "admin" || dept.includes("managing partner"))
+            return 2;
+          if (
+            role === "operationmanager" ||
+            role === "operation manager" ||
+            dept.includes("operation manager") ||
+            dept === "operations manager"
+          )
+            return 3;
+          if (dept.includes("social media head") || dept.includes("smm head"))
+            return 4;
+          if (
+            dept.includes("social media executive") ||
+            dept.includes("social media manager") ||
+            dept.includes("social media") ||
+            role === "socialmediamanager" ||
+            role === "socialmediaexecutive"
+          )
+            return 5;
+          return 100;
+        };
 
-        if (isAHr && !isBHr) return -1;
-        if (isBHr && !isAHr) return 1;
-
-        if (a.role === "admin" && b.role !== "admin") return -1;
-        if (b.role === "admin" && a.role !== "admin") return 1;
-
-        if (a.role === "operationmanager" && b.role !== "operationmanager")
-          return -1;
-        if (b.role === "operationmanager" && a.role !== "operationmanager")
-          return 1;
-
-        const isASocial = a.department?.toLowerCase()?.includes("social media");
-        const isBSocial = b.department?.toLowerCase()?.includes("social media");
-
-        if (isASocial && !isBSocial) return -1;
-        if (isBSocial && !isASocial) return 1;
+        const pA = getUserPriority(a);
+        const pB = getUserPriority(b);
+        if (pA !== pB) return pA - pB;
 
         const deptA = a.department || "ZZZ";
         const deptB = b.department || "ZZZ";
@@ -510,9 +534,9 @@ const AdminUsers = () => {
 
       {/* PAGINATION & COUNT */}
       {totalEntries > 0 && (
-        <div className="mt-2 flex flex-col md:flex-row items-center justify-between gap-6 px-2">
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 px-1 sm:px-2">
           {/* Count Details */}
-          <p className="theme-text-secondary text-[13px] font-medium order-2 md:order-1">
+          <p className="theme-text-secondary text-xs sm:text-[13px] font-medium order-2 sm:order-1 text-center sm:text-left">
             Showing{" "}
             <span className="theme-text-primary font-semibold">
               {startEntry}
@@ -527,47 +551,75 @@ const AdminUsers = () => {
           </p>
 
           {/* Pagination Buttons */}
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1.5 order-1 md:order-2 overflow-x-auto pb-1 md:pb-0 w-full md:w-auto justify-center">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((prev) => prev - 1)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-50  text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <FiChevronLeft size={14} />
-              </button>
+          {totalPages > 1 && (() => {
+            const getPages = () => {
+              if (totalPages <= 7) {
+                return Array.from({ length: totalPages }, (_, i) => i + 1);
+              }
+              if (currentPage <= 3) {
+                return [1, 2, 3, 4, "...", totalPages];
+              }
+              if (currentPage >= totalPages - 2) {
+                return [1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+              }
+              return [1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages];
+            };
+            const pages = getPages();
 
-              {[...Array(totalPages)].map((_, index) => (
+            return (
+              <div className="flex items-center gap-1.5 order-1 sm:order-2 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto justify-center">
                 <button
-                  key={index}
-                  onClick={() => setCurrentPage(index + 1)}
-                  className={`
-                    w-7 h-7
-                    rounded-lg
-                    font-semibold
-                    text-xs
-                    transition-all
-                    flex-shrink-0
-                    ${
-                      currentPage === index + 1
-                        ? "dashboard-btn-primary shadow-sm"
-                        : "bg-slate-100 dark:bg-black text-slate-600 dark:text-slate-400 hover:text-black hover:bg-slate-200 dark:hover:bg-slate-900"
-                    }
-                  `}
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => prev - 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                  title="Previous page"
                 >
-                  {index + 1}
+                  <FiChevronLeft size={15} />
                 </button>
-              ))}
 
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((prev) => prev + 1)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-400 dark:bg-slate-50  text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <FiChevronRight size={14} />
-              </button>
-            </div>
-          )}
+                {pages.map((item, idx) =>
+                  item === "..." ? (
+                    <span
+                      key={`dots-${idx}`}
+                      className="w-6 text-center text-xs font-bold text-slate-400 select-none"
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => setCurrentPage(item)}
+                      className={`
+                        w-8 h-8
+                        rounded-xl
+                        font-bold
+                        text-xs
+                        transition-all
+                        flex-shrink-0
+                        cursor-pointer
+                        ${
+                          currentPage === item
+                            ? "dashboard-btn-primary shadow-sm"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700"
+                        }
+                      `}
+                    >
+                      {item}
+                    </button>
+                  )
+                )}
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                  title="Next page"
+                >
+                  <FiChevronRight size={15} />
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
 

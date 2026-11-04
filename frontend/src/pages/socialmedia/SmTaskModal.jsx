@@ -382,7 +382,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                 </span>
               ) : (
                 <span className="text-[11px] font-semibold text-slate-400">
-                  Social Media Manager
+                  Social Media Executive
                 </span>
               )}
             </div>

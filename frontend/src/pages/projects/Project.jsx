@@ -167,14 +167,22 @@ const Project = () => {
     dispatch(getPortfolios());
   }, [dispatch]);
 
+  const deptLower = (currentUser?.department || "").toLowerCase();
+  const isSocialMediaManager =
+    currentUser?.role === "socialmediamanager" ||
+    currentUser?.role === "socialmediahead" ||
+    deptLower.includes("social media head");
+
   const isAdmin =
     currentUser?.role === "admin" ||
     currentUser?.role === "operationmanager" ||
-    currentUser?.role === "team";
+    currentUser?.role === "team" ||
+    isSocialMediaManager;
   const isAdminOrManager =
     currentUser?.role === "admin" ||
     currentUser?.role === "operationmanager" ||
-    currentUser?.role === "team";
+    currentUser?.role === "team" ||
+    isSocialMediaManager;
 
   // Filter projects
   const filteredProjects = useMemo(() => {

@@ -328,7 +328,7 @@ const estimatedMargin =
                 } else if (user.department) {
                   displayRole = user.department.replace(" Team", "");
                   if (displayRole.includes("Social Media"))
-                    displayRole = "Social Media Manager";
+                    displayRole = "Social Media Executive";
                   else if (displayRole.includes("Designer"))
                     displayRole = "Designer";
                   else if (displayRole.includes("SEO"))

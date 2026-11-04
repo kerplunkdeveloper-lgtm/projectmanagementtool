@@ -1,12 +1,24 @@
 const Client = require("../models/Client");
 const Notification = require("../models/Notification");
 
+const isSocialMediaManagerUser = (user) => {
+  if (!user) return false;
+  const dept = (user.department || "").toLowerCase();
+  const role = (user.role || "").toLowerCase();
+  return (
+    role === "socialmediamanager" ||
+    role === "socialmediahead" ||
+    dept.includes("social media head")
+  );
+};
+
 const isPrivilegedClientUser = (user) => {
   if (!user) return false;
   if (
     user.role === "admin" ||
     user.role === "operationmanager" ||
-    user.role === "operation manager"
+    user.role === "operation manager" ||
+    isSocialMediaManagerUser(user)
   ) {
     return true;
   }
@@ -144,6 +156,14 @@ exports.getClients = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    if (isSocialMediaManagerUser(req.user)) {
+      clients.forEach((c) => {
+        delete c.budget;
+        delete c.gst;
+        delete c.totalBudget;
+      });
+    }
+
     res.status(200).json({
       success: true,
       count: clients.length,
@@ -190,6 +210,23 @@ exports.getClient = async (req, res) => {
       });
     }
 
+    if (isSocialMediaManagerUser(req.user)) {
+      delete client.budget;
+      delete client.gst;
+      delete client.totalBudget;
+    }
+
+    if (isSocialMediaManagerUser(req.user) && client) {
+      const clientObj = client.toObject ? client.toObject() : client;
+      delete clientObj.budget;
+      delete clientObj.gst;
+      delete clientObj.totalBudget;
+      return res.status(200).json({
+        success: true,
+        data: clientObj,
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: client,
@@ -229,11 +266,17 @@ exports.updateClient = async (req, res) => {
       });
     }
 
-    const budget = Number(req.body.budget);
-    const gst = Number(req.body.gst);
+    if (isSocialMediaManagerUser(req.user) || req.body.budget === undefined) {
+      delete req.body.budget;
+      delete req.body.gst;
+      delete req.body.totalBudget;
+    } else {
+      const budget = Number(req.body.budget);
+      const gst = Number(req.body.gst);
 
-    req.body.totalBudget =
-      budget + (budget * gst) / 100;
+      req.body.totalBudget =
+        budget + (budget * gst) / 100;
+    }
 
     if (req.body.assignedTo) {
       req.body.assignedTo = Array.isArray(req.body.assignedTo)

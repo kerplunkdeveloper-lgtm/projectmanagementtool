@@ -91,6 +91,26 @@ connectDB().then(() => {
   };
   repairTasksCreatedBy();
 
+  // Ensure Social media Head users have role socialmediamanager
+  const repairSocialMediaHeadRoles = async () => {
+    try {
+      const User = require('./models/User');
+      const resUsers = await User.updateMany(
+        { 
+          department: { $regex: /social media head/i },
+          role: { $ne: 'socialmediamanager' }
+        },
+        { $set: { role: 'socialmediamanager' } }
+      );
+      if (resUsers.modifiedCount > 0) {
+        console.log(`[Database Repair] Updated ${resUsers.modifiedCount} Social media Head users to role socialmediamanager.`);
+      }
+    } catch (err) {
+      console.error('[Database Repair] Error updating Social media Head roles:', err);
+    }
+  };
+  repairSocialMediaHeadRoles();
+
   // Normalize task statuses on startup
   const normalizeTaskStatuses = async () => {
     try {
@@ -329,38 +349,55 @@ const { handlePresenceChange } = require('./utils/presenceService');
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  socket.on('join', async (userId) => {
-    if (!userId) return;
-    socket.join(userId.toString());
-    socket.join("group_chat");
-    console.log(`User ${userId} joined room & group_chat`);
-    
-    // Track online user
-    socketToUser[socket.id] = userId.toString();
-    if (!onlineUsers[userId]) {
-      onlineUsers[userId] = [];
-    }
-    if (!onlineUsers[userId].includes(socket.id)) {
-      onlineUsers[userId].push(socket.id);
+  socket.on('join', async (data) => {
+    let userId;
+    let isImpersonating = false;
+
+    if (data && typeof data === 'object') {
+      userId = data.userId;
+      isImpersonating = Boolean(data.isImpersonating);
+    } else {
+      userId = data;
     }
 
-    userPresence[userId] = {
-      status: 'online',
-      lastSeen: new Date(),
-    };
+    if (!userId) return;
+    const userIdStr = userId.toString();
+    socket.join(userIdStr);
+    socket.join("group_chat");
+    socket.isImpersonating = isImpersonating;
+    socketToUser[socket.id] = userIdStr;
+    console.log(`User ${userIdStr} joined room & group_chat (isImpersonating: ${isImpersonating})`);
     
-    // Notify through presence service to handle auto-resuming tasks
-    await handlePresenceChange(io, userId, 'online');
+    // Track online presence ONLY if user actually self-logged in (not admin impersonating)
+    if (!isImpersonating) {
+      if (!onlineUsers[userIdStr]) {
+        onlineUsers[userIdStr] = [];
+      }
+      if (!onlineUsers[userIdStr].includes(socket.id)) {
+        onlineUsers[userIdStr].push(socket.id);
+      }
+
+      userPresence[userIdStr] = {
+        status: 'online',
+        lastSeen: new Date(),
+      };
+      
+      // Notify through presence service to handle auto-resuming tasks
+      await handlePresenceChange(io, userIdStr, 'online');
+
+      // Broadcast the list of currently online userIds to everyone
+      io.emit('online_users_list', Object.keys(onlineUsers));
+    }
 
     // Send complete presence state to the newly joined socket
     socket.emit('presence_state', userPresence);
-
-    // Broadcast the list of currently online userIds to everyone
-    io.emit('online_users_list', Object.keys(onlineUsers));
+    socket.emit('online_users_list', Object.keys(onlineUsers));
 
   });
 
   socket.on('heartbeat', async ({ status, lastActivityAt }) => {
+    // If admin is impersonating, do not alter target user's presence via heartbeat
+    if (socket.isImpersonating) return;
     const userId = socketToUser[socket.id];
     if (!userId) return;
 
@@ -504,9 +541,13 @@ io.on('connection', (socket) => {
     
     // Remove from online tracking
     const userId = socketToUser[socket.id];
+    const wasImpersonating = Boolean(socket.isImpersonating);
+
     if (userId) {
       delete socketToUser[socket.id];
-      if (onlineUsers[userId]) {
+
+      // Only alter presence if this socket was a real user self-login
+      if (!wasImpersonating && onlineUsers[userId]) {
         onlineUsers[userId] = onlineUsers[userId].filter(id => id !== socket.id);
         if (onlineUsers[userId].length === 0) {
           delete onlineUsers[userId];
@@ -520,9 +561,9 @@ io.on('connection', (socket) => {
 
           await handlePresenceChange(io, userId, 'offline', lastSeenDate);
         }
+        // Broadcast updated online list
+        io.emit('online_users_list', Object.keys(onlineUsers));
       }
-      // Broadcast updated online list
-      io.emit('online_users_list', Object.keys(onlineUsers));
     }
 
     // Cleanup any active calls this socket was a part of

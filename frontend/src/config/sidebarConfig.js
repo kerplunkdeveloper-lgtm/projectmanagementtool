@@ -36,7 +36,6 @@ export const sidebarConfig = {
         { name: "SM Tasks", path: "/admin/sm-tasks", icon: LuListTodo },
         { name: "Designer Tasks", path: "/admin/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
         { name: "Cinematographer Tasks", path: "/admin/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
-        { name: "Assigned Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
       ],
     },
     {
@@ -76,7 +75,6 @@ export const sidebarConfig = {
         { name: "SM Tasks", path: "/operationmanager/sm-tasks", icon: LuListTodo },
         { name: "Designer Tasks", path: "/operationmanager/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
         { name: "Cinematographer Tasks", path: "/operationmanager/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
-        { name: "Assigned Tasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
       ],
     },
     {
@@ -162,6 +160,43 @@ export const sidebarConfig = {
     { name: "Profile", path: "/humanresource/profile", icon: FiUser },
     { name: "Settings", path: "/humanresource/settings", icon: FiSettings },
   ],
+
+  socialmediamanager: [
+    { name: "Home", path: "/socialmediamanager", icon: FiHome },
+    { name: "Sticky Notes", path: "/socialmediamanager/stickynotes", icon: TbPencilHeart },
+    { name: "Clients", path: "/socialmediamanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
+    { name: "Projects", path: "/socialmediamanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    {
+      name: "Tasks",
+      path: "/socialmediamanager/tasks",
+      icon: LuListTodo,
+      children: [
+        { name: "SM Tasks", path: "/socialmediamanager/sm-tasks", icon: LuListTodo },
+        { name: "Designer Tasks", path: "/socialmediamanager/designer-tasks", icon: LuPalette },
+        { name: "Cinematographer Tasks", path: "/socialmediamanager/cinematographer-tasks", icon: LuVideo },
+      ],
+    },
+    {
+      name: "All Calendar",
+      path: "/socialmediamanager/Shootcalendor",
+      icon: LuCalendarDays,
+      children: [
+        { name: "Shoot Calendar", path: "/socialmediamanager/Shootcalendor", icon: LuCalendarDays },
+        { name: "Content Calendar", path: "/socialmediamanager/content-calendar", icon: LuCalendarRange },
+        { name: "Calendar", path: "/socialmediamanager/event-calendar", icon: LuCalendarCheck },
+      ],
+    },
+    { name: "Workload", path: "/socialmediamanager/workload", icon: LuActivity },
+    { name: "Chat", path: "/socialmediamanager/chat", icon: LuMessagesSquare },
+    { name: "MOM / Client Calls", path: "/socialmediamanager/mom-points", icon: LuStickyNote },
+    { name: "Users", path: "/socialmediamanager/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "SM Credentials", path: "/socialmediamanager/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
+    { name: "Reports", path: "/socialmediamanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
+    { name: "Portfolio", path: "/socialmediamanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
+    { name: "Profile", path: "/socialmediamanager/profile", icon: FiUser },
+    { name: "Settings", path: "/socialmediamanager/settings", icon: FiSettings },
+  ],
 };
 
 sidebarConfig.hr = sidebarConfig.humanresource;
+sidebarConfig.socialmediahead = sidebarConfig.socialmediamanager;

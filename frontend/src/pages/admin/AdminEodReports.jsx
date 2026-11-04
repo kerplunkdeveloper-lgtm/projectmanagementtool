@@ -1004,7 +1004,7 @@ const AdminEodReports = () => {
     }
   };
   const loading = designerLoading || generalLoading;
-  const totalColumnsCount = 15;
+  const totalColumnsCount = 13;
 
   return (
     <div className="min-h-screen py-6 transition-colors duration-300">
@@ -1359,14 +1359,8 @@ const AdminEodReports = () => {
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     Team Member
                   </th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                    Client Name
-                  </th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                    Task Name
-                  </th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
-                    Task Assigned by
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[340px]">
+                    Task Details (Task • Client • Assigned By)
                   </th>
 
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
@@ -1498,116 +1492,111 @@ const AdminEodReports = () => {
                         </div>
                       </td>
 
-                      {/* CLIENT NAME */}
-                      <td className="px-5 py-3 max-w-[200px] text-left">
-                        {report.tasks && Array.isArray(report.tasks) ? (
-                          <div className="flex flex-col gap-1.5 items-start">
+                      {/* TASK DETAILS: TASK NAME + CONTENT TYPE + CLIENT + SM EXECUTIVE */}
+                      <td className="px-5 py-3 text-left min-w-[340px] max-w-[460px]">
+                        {report.tasks && Array.isArray(report.tasks) && report.tasks.length > 0 ? (
+                          <div className="flex flex-col gap-1.5">
                             {report.tasks.map((t, idx) => {
                               const clientObj = getClientObject(t.client);
-                              return clientObj ? (
-                                <ClientBadge key={idx} client={clientObj} size="sm" />
-                              ) : (
-                                <span key={idx} className="text-xs text-slate-400">
-                                  —
-                                </span>
+                              const reviewer =
+                                t.reviewedBy ||
+                                report.tasks.find((x) => x.reviewedBy)?.reviewedBy;
+
+                              return (
+                                <div
+                                  key={idx}
+                                  className="group flex items-center justify-between gap-2.5 px-2.5 py-1.5 rounded-lg bg-slate-50/70 hover:bg-slate-100/90 dark:bg-slate-800/40 dark:hover:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 transition-all shadow-2xs"
+                                >
+                                  {/* Left: Task Name + CF + Content Type */}
+                                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <span
+                                      className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate"
+                                      title={t.title}
+                                    >
+                                      {t.title || "-"}
+                                    </span>
+                                    {isCarryForwardTask(t, report.date) && (
+                                      <span
+                                        className="px-1 py-[1px] border border-amber-300 dark:border-amber-600/60 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 rounded text-[9px] font-bold shrink-0"
+                                        title="Carry Forward"
+                                      >
+                                        CF
+                                      </span>
+                                    )}
+                                    {t.contentType && (
+                                      <span
+                                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${getContentTypeStyle(t.contentType)}`}
+                                      >
+                                        {t.contentType}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Middle: Client Name Badge */}
+                                  <div className="shrink-0">
+                                    {clientObj ? (
+                                      <ClientBadge client={clientObj} size="sm" />
+                                    ) : t.client ? (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                        {t.client}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-slate-400">—</span>
+                                    )}
+                                  </div>
+
+                                  {/* Right: Social Media Executive */}
+                                  <div className="shrink-0 flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-700/70">
+                                    {reviewer ? (
+                                      <div
+                                        className="flex items-center gap-1.5"
+                                        title={`Social Media Executive: ${reviewer.name || "Assigned"}`}
+                                      >
+                                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-[8px] font-bold shadow-2xs shrink-0 overflow-hidden">
+                                          {reviewer.profile?.profileImage?.url ? (
+                                            <img
+                                              src={reviewer.profile.profileImage.url}
+                                              alt={reviewer.name || "User"}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            (reviewer.name || "U").charAt(0).toUpperCase()
+                                          )}
+                                        </div>
+                                        <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate max-w-[85px]">
+                                          {reviewer.name}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-400 italic">No SM</span>
+                                    )}
+                                  </div>
+                                </div>
                               );
                             })}
-                            {report.tasks.length === 0 && (
-                              <span className="text-xs text-slate-400">—</span>
-                            )}
                           </div>
-                        ) : report.clientName ? (
-                          <div className="flex flex-col gap-1.5 items-start">
-                            {report.clientName
-                              .split(/[,;\n]+/)
-                              .map((c) => c.trim())
-                              .filter(Boolean)
-                              .map((c, idx) => {
-                                const clientObj = getClientObject(c);
-                                return clientObj ? (
-                                  <ClientBadge key={idx} client={clientObj} size="sm" />
+                        ) : report.projectsWorkedOn || report.clientName ? (
+                          <div className="flex items-center justify-between gap-2.5 px-2.5 py-1.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60">
+                            <span
+                              className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate flex-1"
+                              title={report.projectsWorkedOn}
+                            >
+                              {report.projectsWorkedOn || "-"}
+                            </span>
+                            {report.clientName && (
+                              <div className="shrink-0">
+                                {getClientObject(report.clientName) ? (
+                                  <ClientBadge client={getClientObject(report.clientName)} size="sm" />
                                 ) : (
-                                  <span key={idx} className="text-xs text-slate-400">
-                                    —
-                                  </span>
-                                );
-                              })}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">-</span>
-                        )}
-                      </td>
-
-                      {/* TASK NAME */}
-                      <td className="px-5 py-3 max-w-[280px] text-left">
-                        {report.tasks && Array.isArray(report.tasks) ? (
-                          <div className="flex flex-col gap-1.5">
-                            {report.tasks.map((t, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-1.5 min-w-0"
-                              >
-                                <span
-                                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5"
-                                  title={t.title}
-                                >
-                                  <span className="truncate">{t.title || "-"}</span>
-                                  {isCarryForwardTask(t, report.date) && (
-                                    <span className="px-1 py-[1px] border border-slate-300 dark:border-slate-600 rounded text-[9px] font-bold text-slate-500 dark:text-slate-400 shrink-0" title="Carry Forward">
-                                      CF
-                                    </span>
-                                  )}
-                                </span>
-                                {t.contentType && (
-                                  <span
-                                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${getContentTypeStyle(t.contentType)}`}
-                                  >
-                                    {t.contentType}
+                                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                    {report.clientName}
                                   </span>
                                 )}
                               </div>
-                            ))}
-                            {report.tasks.length === 0 && (
-                              <span className="text-xs text-slate-400">—</span>
                             )}
                           </div>
                         ) : (
-                          <span
-                            className="text-xs font-semibold text-slate-805 dark:text-slate-200 block truncate"
-                            title={report.projectsWorkedOn}
-                          >
-                            {report.projectsWorkedOn || "-"}
-                          </span>
-                        )}
-                      </td>
-
-                      {/* TASK ASSIGNED BY */}
-                      <td className="px-5 py-3 text-left whitespace-nowrap">
-                        {report.tasks && Array.isArray(report.tasks) && report.tasks[0]?.reviewedBy ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-[9px] font-bold shadow-sm shrink-0 overflow-hidden">
-                              {report.tasks[0].reviewedBy?.profile?.profileImage?.url ? (
-                                <img
-                                  src={report.tasks[0].reviewedBy.profile.profileImage.url}
-                                  alt={report.tasks[0].reviewedBy?.name || "User"}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                (report.tasks[0].reviewedBy?.name || "U").charAt(0).toUpperCase()
-                              )}
-                            </div>
-                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                              {[
-                                ...new Set(
-                                  report.tasks
-                                    .map((t) => t.reviewedBy?.name)
-                                    .filter(Boolean),
-                                ),
-                              ].join(", ") || "-"}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400">-</span>
+                          <span className="text-xs text-slate-400">—</span>
                         )}
                       </td>
 

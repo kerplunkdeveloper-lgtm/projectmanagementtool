@@ -14,11 +14,20 @@ import { Link } from "react-router-dom";
 import { MdOutlineEdit as MdPencilEdit } from "react-icons/md";
 import { motion } from "framer-motion";
 import { getProfile } from "../../../../features/profile/profileSlice";
+import { useTheme } from "../../../../context/ThemeContext";
 
 const WelcomeUser = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { profile, loading: profileLoading } = useSelector((state) => state.profile);
+  const { theme, accentColor } = useTheme();
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const isBrightAccent = accentColor === "neon-green" || accentColor === "lime";
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hasAttemptedProfileFetch, setHasAttemptedProfileFetch] = useState(false);
@@ -333,7 +342,7 @@ const WelcomeUser = () => {
                   className="w-full h-full rounded-full object-cover bg-white dark:bg-slate-900"
                 />
               ) : (
-                <div className="w-full h-full rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-800 dark:text-[#3b82f6] font-black text-sm">
+                <div className="w-full h-full rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-800 dark:text-white font-black text-sm">
                   {initials}
                 </div>
               )}
@@ -430,9 +439,18 @@ const WelcomeUser = () => {
                     key={idx}
                     type="button"
                     onClick={() => handleDayClick(cell.day, cell.isCurrentMonth)}
+                    style={
+                      isSelected
+                        ? {
+                            background: "var(--color-brand-primary)",
+                            boxShadow: "0 3px 10px var(--btn-glow-shadow)",
+                            color: isBrightAccent ? "#020617" : "#ffffff",
+                          }
+                        : undefined
+                    }
                     className={`h-5.5 w-5.5 sm:h-5.5 sm:w-5.5 mx-auto flex items-center justify-center rounded-full text-[10px] sm:text-[10.5px] transition-all duration-150 cursor-pointer ${
                       isSelected
-                        ? "bg-[#2563eb] text-white font-bold shadow-md shadow-blue-500/50 scale-105"
+                        ? "font-bold scale-105"
                         : cell.isCurrentMonth
                         ? "text-slate-900 dark:text-white font-bold hover:bg-slate-100 dark:hover:bg-white/10"
                         : "text-slate-400 dark:text-white/30 font-medium"
@@ -449,7 +467,14 @@ const WelcomeUser = () => {
               <button
                 type="button"
                 onClick={handleTodayClick}
-                className="px-2.5 sm:px-2.5 py-0.5 sm:py-0.5 rounded-lg border border-slate-200/90 dark:border-white/15 bg-white dark:bg-slate-800 text-[#2563eb] dark:text-blue-400 font-bold text-[10px] sm:text-[10px] shadow-2xs hover:shadow-sm hover:border-blue-400 dark:hover:border-blue-400 active:scale-95 transition-all cursor-pointer"
+                style={{ color: "var(--color-brand-primary)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--color-brand-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "";
+                }}
+                className="px-2.5 sm:px-2.5 py-0.5 sm:py-0.5 rounded-lg border border-slate-200/90 dark:border-white/15 bg-white dark:bg-slate-800 font-bold text-[10px] sm:text-[10px] shadow-2xs hover:shadow-sm active:scale-95 transition-all cursor-pointer"
               >
                 Today
               </button>
@@ -468,19 +493,37 @@ const WelcomeUser = () => {
 
             {/* Row: Time Card + Greeting on left, Mascot on right */}
             <div className="flex items-center justify-between gap-1 sm:gap-2">
-              {/* Left Column: Blue Time Card & Greeting Pill */}
+              {/* Left Column: Time Card & Greeting Pill */}
               <div className="flex flex-col items-start gap-1 sm:gap-1.5 min-w-0">
-                {/* Gradient Blue Digital Clock Box */}
-                <div className="w-[78px] sm:w-[98px] h-[64px] sm:h-[76px] rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#2563eb] text-white shadow-md shadow-blue-500/25 flex flex-col items-center justify-center p-1 sm:p-1.5 relative overflow-hidden group shrink-0">
+                {/* Gradient Digital Clock Box */}
+                <div
+                  className="w-[78px] sm:w-[98px] h-[64px] sm:h-[76px] rounded-xl flex flex-col items-center justify-center p-1 sm:p-1.5 relative overflow-hidden group shrink-0 transition-all duration-300"
+                  style={{
+                    background: "var(--color-brand-gradient)",
+                    boxShadow: "0 8px 20px -4px var(--btn-glow-shadow)",
+                  }}
+                >
                   {/* Subtle top ambient shine */}
-                  <div className="absolute -top-4 -right-4 w-10 h-10 bg-white/15 rounded-full blur-sm pointer-events-none" />
+                  <div
+                    className={`absolute -top-4 -right-4 w-10 h-10 rounded-full blur-sm pointer-events-none ${
+                      isBrightAccent ? "bg-black/10" : "bg-white/20"
+                    }`}
+                  />
 
                   {/* Digital Time: HH:MM */}
-                  <div className="flex items-center text-[17px] sm:text-[22px] font-black tracking-tight leading-none text-white select-none">
+                  <div
+                    className={`flex items-center text-[17px] sm:text-[22px] font-black tracking-tight leading-none select-none ${
+                      isBrightAccent ? "text-slate-950" : "text-white"
+                    }`}
+                  >
                     <span>
                       {String(currentTime.getHours() % 12 || 12).padStart(2, "0")}
                     </span>
-                    <span className="mx-0.5 text-white/90 animate-pulse font-bold">
+                    <span
+                      className={`mx-0.5 animate-pulse font-bold ${
+                        isBrightAccent ? "text-slate-900/80" : "text-white/90"
+                      }`}
+                    >
                       :
                     </span>
                     <span>
@@ -489,7 +532,11 @@ const WelcomeUser = () => {
                   </div>
 
                   {/* AM/PM */}
-                  <div className="text-[9px] sm:text-[10px] font-extrabold text-white/95 mt-0.5 sm:mt-1 uppercase tracking-wider select-none">
+                  <div
+                    className={`text-[9px] sm:text-[10px] font-extrabold mt-0.5 sm:mt-1 uppercase tracking-wider select-none ${
+                      isBrightAccent ? "text-slate-900/90" : "text-white/95"
+                    }`}
+                  >
                     {currentTime.getHours() >= 12 ? "PM" : "AM"}
                   </div>
                 </div>
@@ -542,7 +589,10 @@ const WelcomeUser = () => {
                     className="w-16 sm:w-[76px] h-20 sm:h-[105px] object-contain filter drop-shadow-md select-none pointer-events-none transition-transform duration-300 group-hover:scale-105"
                   />
                   {/* Celebration sparkles beside thumbs up */}
-                  <div className="absolute top-2 -right-1 text-blue-500 font-bold text-[10px] animate-bounce pointer-events-none select-none">
+                  <div
+                    className="absolute top-2 -right-1 font-bold text-[10px] animate-bounce pointer-events-none select-none"
+                    style={{ color: "var(--color-brand-primary)" }}
+                  >
                     ✨
                   </div>
                 </motion.div>
@@ -601,7 +651,10 @@ const WelcomeUser = () => {
             <div className="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-center text-left">
               {/* Role Badges */}
               <div className="flex items-center gap-2 mb-3">
-                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-blue-600 dark:text-[#3b82f6] text-[9.5px] font-black uppercase tracking-wider">
+                <span
+                  className="px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[9.5px] font-black uppercase tracking-wider"
+                  style={{ color: "var(--color-brand-primary)" }}
+                >
                   {user?.role || "Member"}
                 </span>
                 {user?.department && (

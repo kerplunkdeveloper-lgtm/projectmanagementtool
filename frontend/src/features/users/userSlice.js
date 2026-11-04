@@ -179,6 +179,18 @@ const userSlice = createSlice({
     clearUserError: (state) => {
       state.error = null;
     },
+    userProfileUpdated: (state, action) => {
+      const { userId, profile } = action.payload || {};
+      if (!userId) return;
+      const uidStr = userId.toString();
+      state.users = state.users.map((u) => {
+        const uId = (u._id || u.id)?.toString();
+        if (uId === uidStr) {
+          return { ...u, profile: (profile && typeof profile === 'object') ? profile : u.profile };
+        }
+        return u;
+      });
+    },
   },
 
   extraReducers: (builder) => {
@@ -243,12 +255,17 @@ const userSlice = createSlice({
       })
 
       .addCase(updateUser.fulfilled, (state, action) => {
-
         state.loading = false;
-
         state.users = state.users.map((user) =>
           user._id === action.payload.data._id
-            ? action.payload.data
+            ? {
+                ...user,
+                ...action.payload.data,
+                profile:
+                  action.payload.data.profile && typeof action.payload.data.profile === 'object'
+                    ? action.payload.data.profile
+                    : user.profile,
+              }
             : user
         );
       })
@@ -287,7 +304,14 @@ const userSlice = createSlice({
         state.loading = false;
         state.users = state.users.map((user) =>
           user._id === action.payload.data._id
-            ? action.payload.data
+            ? {
+                ...user,
+                ...action.payload.data,
+                profile:
+                  action.payload.data.profile && typeof action.payload.data.profile === 'object'
+                    ? action.payload.data.profile
+                    : user.profile,
+              }
             : user
         );
       })
@@ -306,9 +330,53 @@ const userSlice = createSlice({
         state.loading = false;
         state.users = state.users.map((user) =>
           user._id === action.payload.data._id
-            ? action.payload.data
+            ? {
+                ...user,
+                ...action.payload.data,
+                profile:
+                  action.payload.data.profile && typeof action.payload.data.profile === 'object'
+                    ? action.payload.data.profile
+                    : user.profile,
+              }
             : user
         );
+      })
+      // PROFILE CROSS-SLICE LISTENERS
+      .addCase('profile/updateProfile/fulfilled', (state, action) => {
+        const profile = action.payload?.profile;
+        if (profile) {
+          const uid = (profile.user?._id || profile.user)?.toString();
+          if (uid) {
+            state.users = state.users.map((u) => {
+              const uId = (u._id || u.id)?.toString();
+              return uId === uid ? { ...u, profile } : u;
+            });
+          }
+        }
+      })
+      .addCase('profile/createProfile/fulfilled', (state, action) => {
+        const profile = action.payload?.profile;
+        if (profile) {
+          const uid = (profile.user?._id || profile.user)?.toString();
+          if (uid) {
+            state.users = state.users.map((u) => {
+              const uId = (u._id || u.id)?.toString();
+              return uId === uid ? { ...u, profile } : u;
+            });
+          }
+        }
+      })
+      .addCase('profile/deleteProfileImage/fulfilled', (state, action) => {
+        const profile = action.payload?.profile;
+        if (profile) {
+          const uid = (profile.user?._id || profile.user)?.toString();
+          if (uid) {
+            state.users = state.users.map((u) => {
+              const uId = (u._id || u.id)?.toString();
+              return uId === uid ? { ...u, profile } : u;
+            });
+          }
+        }
       })
 
       .addCase(reactivateUser.rejected, (state, action) => {
@@ -324,6 +392,6 @@ const userSlice = createSlice({
   },
 });
 
-export const { clearUserError } = userSlice.actions;
+export const { clearUserError, userProfileUpdated } = userSlice.actions;
 
 export default userSlice.reducer;

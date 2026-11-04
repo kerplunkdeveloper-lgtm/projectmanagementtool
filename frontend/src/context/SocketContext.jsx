@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { userProfileUpdated } from "../features/users/userSlice";
 
 const SocketContext = createContext(null);
 
@@ -36,8 +37,13 @@ const getSocketUrl = () => {
  * re-render when the socket becomes available after async connect.
  */
 export const SocketProvider = ({ children }) => {
-  const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const { user, originalAdminUser } = useSelector((state) => state.auth);
   const userId = user?._id || user?.id;
+  const isImpersonating = Boolean(
+    originalAdminUser ||
+    (typeof window !== "undefined" && localStorage.getItem("originalAdminUser"))
+  );
 
   // socket stored in STATE so children re-render when it's ready
   const [socket, setSocket] = useState(null);
@@ -67,12 +73,12 @@ export const SocketProvider = ({ children }) => {
 
     // Emit join when connected (and on reconnect)
     socketInstance.on("connect", () => {
-      socketInstance.emit("join", userId.toString());
+      socketInstance.emit("join", { userId: userId.toString(), isImpersonating });
     });
 
     if (socketInstance.io) {
       socketInstance.io.on("reconnect", () => {
-        socketInstance.emit("join", userId.toString());
+        socketInstance.emit("join", { userId: userId.toString(), isImpersonating });
       });
     }
 
@@ -109,11 +115,17 @@ export const SocketProvider = ({ children }) => {
       });
     });
 
+    // Real-time user profile / photo update
+    socketInstance.on("user_profile_updated", ({ userId: targetId, profile }) => {
+      if (!targetId || !profile) return;
+      dispatch(userProfileUpdated({ userId: targetId, profile }));
+    });
+
     return () => {
       socketInstance.disconnect();
       setSocket(null);
     };
-  }, [userId]);
+  }, [userId, isImpersonating]);
 
   return (
     <SocketContext.Provider

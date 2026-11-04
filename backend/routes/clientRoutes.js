@@ -20,7 +20,7 @@ const {
 router.post(
   "/",
   protect,
-  authorize("admin", "operationmanager", "team"),
+  authorize("admin", "operationmanager", "team", "socialmediamanager"),
   createClient
 );
 
@@ -29,7 +29,7 @@ router.post(
 router.get(
   "/",
   protect,
-  authorize("admin", "operationmanager", "team"),
+  authorize("admin", "operationmanager", "team", "socialmediamanager"),
   getClients
 );
 
@@ -38,7 +38,7 @@ router.get(
 router.get(
   "/:id",
   protect,
-  authorize("admin", "operationmanager", "team"),
+  authorize("admin", "operationmanager", "team", "socialmediamanager"),
   getClient
 );
 
@@ -47,7 +47,7 @@ router.get(
 router.put(
   "/:id",
   protect,
-  authorize("admin", "operationmanager", "team"),
+  authorize("admin", "operationmanager", "team", "socialmediamanager"),
   updateClient
 );
 
@@ -56,7 +56,7 @@ router.put(
 router.delete(
   "/:id",
   protect,
-  authorize("admin", "operationmanager", "team"),
+  authorize("admin", "operationmanager", "team", "socialmediamanager"),
   deleteClient
 );
 

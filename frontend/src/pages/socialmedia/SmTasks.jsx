@@ -383,7 +383,7 @@ const getContentTypeConfig = (contentType) => {
   }
 };
 
-// Helper to identify Social Media Managers
+// Helper to identify Social Media Executives
 const isSocialMediaManager = (u) => {
   if (!u) return false;
   if (u.employmentStatus === "relieved") return false;
@@ -396,6 +396,7 @@ const isSocialMediaManager = (u) => {
     role.includes("social media") ||
     role.includes("smm") ||
     role === "socialmediamanager" ||
+    role === "socialmediaexecutive" ||
     desig.includes("social media") ||
     desig.includes("smm")
   );
@@ -415,9 +416,18 @@ const SmTasks = () => {
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
-  // Role check: Only admin and operation manager can see all users' tasks and filter by Created By
+  // Role check: Admin, Operation Manager, and Social Media Manager can see all users' tasks and filter by Created By
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
-  const canFilterByCreatedBy = userRoleClean === "admin" || userRoleClean === "operationmanager";
+  const deptLower = (user?.department || "").toLowerCase();
+  const isSocialMediaManagerRole =
+    userRoleClean === "socialmediamanager" ||
+    userRoleClean === "socialmediahead" ||
+    deptLower.includes("social media head");
+
+  const canFilterByCreatedBy =
+    userRoleClean === "admin" ||
+    userRoleClean === "operationmanager" ||
+    isSocialMediaManagerRole;
   const isReadOnly = userRoleClean === "admin" || userRoleClean === "operationmanager";
 
   // Month & Commitments state (Image 1 style)
@@ -601,11 +611,11 @@ const SmTasks = () => {
     });
   }, [tasks]);
 
-  // Dynamic unique creators list for Admin & Operation Manager filter - ONLY Social Media Managers
+  // Dynamic unique creators list for Admin & Operation Manager filter - ONLY Social Media Executives
   const createdByOptions = useMemo(() => {
     const nameMap = new Map();
 
-    // 1. All active Social Media Managers in users list
+    // 1. All active Social Media Executives in users list
     (users || []).forEach((u) => {
       if (u.name && u.name.trim() && isSocialMediaManager(u)) {
         nameMap.set(u.name.trim().toLowerCase(), u.name.trim());

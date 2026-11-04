@@ -149,8 +149,10 @@ exports.getDesignerEodReports = async (req, res) => {
   try {
     let query = {};
 
-    // If role is team, only show their own reports, unless they are a Social Media Manager
-    if (req.user.role === "team" && req.user.department?.toLowerCase() !== "social media manager") {
+    // If role is team, only show their own reports, unless they are a Social Media Executive
+    const deptLower = (req.user.department || "").toLowerCase();
+    const isSocialMedia = deptLower.includes("social media") || deptLower.includes("social manager");
+    if (req.user.role === "team" && !isSocialMedia) {
       query.user = req.user._id;
     }
 

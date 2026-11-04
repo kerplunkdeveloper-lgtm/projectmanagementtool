@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
 
   role: {
     type: String,
-    enum: ['admin', 'operationmanager', 'team', 'humanresource'],
+    enum: ['admin', 'operationmanager', 'team', 'humanresource', 'socialmediamanager'],
     default: 'team',
   },
 
@@ -53,6 +53,7 @@ const userSchema = new mongoose.Schema({
     default: function() {
       if (this.role === 'admin') return 0;
       if (this.role === 'operationmanager') return 35000;
+      if (this.role === 'socialmediamanager') return 30000;
       if (this.role === 'humanresource') return 30000;
       return 22000;
     },
@@ -71,6 +72,7 @@ const userSchema = new mongoose.Schema({
     default: function() {
       if (this.role === 'admin') return 20;
       if (this.role === 'operationmanager') return 12;
+      if (this.role === 'socialmediamanager') return 12;
       if (this.role === 'humanresource') return 8;
       return 8;
     },
@@ -198,6 +200,12 @@ const userSchema = new mongoose.Schema({
 
 // Encrypt password & set defaults
 userSchema.pre('save', async function () {
+  if (this.role === 'socialmediamanager' && (!this.department || this.department.trim() === '')) {
+    this.department = 'Social media Head';
+  }
+  if (this.department && this.department.trim().toLowerCase() === 'social media head' && (!this.role || this.role === 'team')) {
+    this.role = 'socialmediamanager';
+  }
   if (this.role === 'humanresource' && (!this.department || this.department.trim() === '')) {
     this.department = 'HR';
   }

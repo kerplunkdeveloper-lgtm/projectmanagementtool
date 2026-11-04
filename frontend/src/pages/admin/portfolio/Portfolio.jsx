@@ -271,7 +271,7 @@ const Portfolio = () => {
   const [viewMode, setViewMode] = useState("tiles"); // "tiles" or "list"
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
 
-  // Filter users list to include Social Media Executives / Social Media Managers (Logged-in user comes first)
+  // Filter users list to include Social Media Executives (Logged-in user comes first)
   const socialMediaUsers = useMemo(() => {
     if (!users || !Array.isArray(users)) return [];
     const currentUserId = String(user?._id || user?.id || "");

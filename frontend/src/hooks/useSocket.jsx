@@ -132,7 +132,10 @@ const useSocket = (externalSocket) => {
         });
 
         socketInstance.on("connect", () => {
-          socketInstance.emit("join", userId.toString());
+          const isImpersonating = Boolean(
+          typeof window !== "undefined" && localStorage.getItem("originalAdminUser")
+        );
+        socketInstance.emit("join", { userId: userId.toString(), isImpersonating });
         });
       }
 

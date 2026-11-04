@@ -10,7 +10,7 @@ const InReviewNotificationPopup = () => {
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
-  // Check if current user is authorized (Admin, Operation Manager, or Social Media Manager)
+  // Check if current user is authorized (Admin, Operation Manager, or Social Media Executive)
   const isAuthorized = useMemo(() => {
     if (!user) return false;
     const role = user.role?.toLowerCase() || "";
@@ -18,7 +18,9 @@ const InReviewNotificationPopup = () => {
     return (
       role === "admin" ||
       role === "operationmanager" ||
-      dept === "social media manager"
+      dept === "social media executive" ||
+      dept === "social media manager" ||
+      dept.includes("social media")
     );
   }, [user]);
 
@@ -77,7 +79,7 @@ const InReviewNotificationPopup = () => {
 
   const currentUserId = user?._id || user?.id;
 
-  // Filter tasks that are in review or revision (All for Admin/OpManager, createdBy only for Social Media Manager)
+  // Filter tasks that are in review or revision (All for Admin/OpManager, createdBy only for Social Media Executive)
   const inReviewTasks = useMemo(() => {
     if (!isAuthorized || !currentUserId) return [];
     const filtered = allTasks.filter((task) => {
@@ -110,7 +112,7 @@ const InReviewNotificationPopup = () => {
       return;
     }
 
-    // Set 5-minute periodic interval for all authorized users (Admin, OpManager, Social Media Manager)
+    // Set 5-minute periodic interval for all authorized users (Admin, OpManager, Social Media Executive)
     // To prevent showing the popup immediately on page load/refresh, we only check on interval ticks.
     const interval = setInterval(() => {
       if (inReviewTasks.length > 0) {
