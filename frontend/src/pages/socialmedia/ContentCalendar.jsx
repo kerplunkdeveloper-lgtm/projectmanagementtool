@@ -723,7 +723,13 @@ const ContentCalendar = () => {
       }
 
       if (selectedClient !== "All" && task.clientName !== selectedClient) return false;
-      if (selectedCategory !== "All" && task.category !== selectedCategory) return false;
+      if (selectedCategory !== "All") {
+        const isSelCal = selectedCategory === "Content Calendar" || selectedCategory === "Content";
+        const isTaskCal = task.category === "Content Calendar" || task.category === "Content";
+        if (!isSelCal || !isTaskCal) {
+          if (task.category !== selectedCategory) return false;
+        }
+      }
       if (selectedContentType !== "All" && task.contentType !== selectedContentType) return false;
       if (selectedStatus !== "All") {
         const normSelected = selectedStatus.toLowerCase().trim();

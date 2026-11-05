@@ -1045,7 +1045,7 @@ exports.bulkImportSocialmediaTasks = async (req, res) => {
         client: clientId,
         clientName,
         clientColor,
-        category: 'Content Calendar',
+        category: 'Content',
         contentType,
         platforms,
         completedPlatforms,

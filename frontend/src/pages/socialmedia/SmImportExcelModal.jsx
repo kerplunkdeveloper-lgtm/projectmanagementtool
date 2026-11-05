@@ -198,6 +198,7 @@ const parseCSV = (text) => {
     parsedData.push({
       clientName: clientName.trim(),
       taskTitle: taskTitle.trim(),
+      category: "Content",
       contentType: contentType.trim() || "Post",
       platforms: platforms.length > 0 ? platforms : ["Instagram"],
       publishDate: parsedPublish.toISOString(),

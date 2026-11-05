@@ -28,7 +28,7 @@ const socialmediaTaskCalendorSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      default: 'Content Calendar',
+      default: 'Content',
       trim: true,
     },
     contentType: {
@@ -152,9 +152,11 @@ socialmediaTaskCalendorSchema.pre('save', function () {
   const isContentCalendar =
     cat === 'content calendar' ||
     cat === 'content calendor' ||
-    cat === 'content';
+    cat === 'content' ||
+    cat === 'calendar';
 
   if (isContentCalendar) {
+    this.category = 'Content';
     this.commitment = true;
     if (this.publishDate && !isNaN(new Date(this.publishDate).getTime())) {
       this.onCalendar = true;

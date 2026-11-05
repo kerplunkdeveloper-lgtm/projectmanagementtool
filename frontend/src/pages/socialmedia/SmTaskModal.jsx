@@ -557,7 +557,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         client: formData.clientId || null,
         clientName: formData.clientName || "General",
         clientColor: formData.clientColor || "#6366f1",
-        category: formData.category,
+        category: isCal ? "Content" : (formData.category === "Content Calendar" ? "Content" : formData.category),
         contentType: isCal ? formData.contentType : "Others Task",
         platform: isCal ? formData.platform : "",
         platforms: isCal ? (formData.platforms && formData.platforms.length > 0 ? formData.platforms : [formData.platform].filter(Boolean)) : [],
