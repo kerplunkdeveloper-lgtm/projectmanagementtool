@@ -47,13 +47,14 @@ const SmTaskCards = ({
   selectedStatus,
   setSelectedStatus,
   setCurrentPage,
+  className = "",
 }) => {
   const monthName = MONTH_NAMES[selectedMonth - 1] || "";
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+    <div className={`bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl p-4 sm:p-5 shadow-xs space-y-4 ${className}`}>
       {/* Section Header: Title, Subtitle, Overall Deliverables summary & Client Modal Trigger */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-100 dark:border-slate-800/60">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-100 dark:border-[#1e2a40]">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/40 shrink-0">
             <FiCalendar size={18} />
@@ -112,9 +113,16 @@ const SmTaskCards = ({
       </div>
 
       {/* 5-Card Metrics Grid: Posts, Reels, Stories, At Risk, Awaiting Approval */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+      {/* Mobile Swipe Hint */}
+      <div className="flex sm:hidden items-center justify-between text-[11px] text-slate-400 font-medium px-1">
+        <span>Commitments summary</span>
+        <span className="text-indigo-500 dark:text-indigo-400 font-semibold text-[10.5px]">Swipe cards →</span>
+      </div>
+
+      {/* 5-Card Metrics Carousel on Mobile / Grid on Desktop */}
+      <div className="flex overflow-x-auto snap-x scrollbar-none pb-2 gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 sm:overflow-visible">
         {/* Card 1: Posts Progress Card (Emerald Theme) */}
-        <div className="group relative bg-emerald-50/70 dark:bg-[#0c1a17] border border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 p-4 rounded-3xl flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden min-h-[148px]">
+        <div className="min-w-[270px] sm:min-w-0 flex-1 shrink-0 snap-start group relative bg-emerald-50/70 dark:bg-[#0c1a17] border border-emerald-200/80 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-600 p-4 rounded-3xl flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden min-h-[148px]">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-100/90 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/90 dark:border-emerald-800/80 shrink-0 shadow-2xs">
@@ -161,7 +169,7 @@ const SmTaskCards = ({
         </div>
 
         {/* Card 2: Reels Progress Card (Purple Theme) */}
-        <div className="group relative bg-purple-50/70 dark:bg-[#150d24] border border-purple-200/80 dark:border-purple-800/60 hover:border-purple-400 dark:hover:border-purple-600 p-4 rounded-3xl flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden min-h-[148px]">
+        <div className="min-w-[270px] sm:min-w-0 flex-1 shrink-0 snap-start group relative bg-purple-50/70 dark:bg-[#150d24] border border-purple-200/80 dark:border-purple-800/60 hover:border-purple-400 dark:hover:border-purple-600 p-4 rounded-3xl flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden min-h-[148px]">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-purple-100/90 dark:bg-purple-950/70 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200/90 dark:border-purple-800/80 shrink-0 shadow-2xs">
@@ -208,7 +216,7 @@ const SmTaskCards = ({
         </div>
 
         {/* Card 3: Stories Progress Card (Amber Theme) */}
-        <div className="group relative bg-amber-50/70 dark:bg-[#1a140b] border border-amber-200/80 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 p-4 rounded-3xl flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden min-h-[148px]">
+        <div className="min-w-[270px] sm:min-w-0 flex-1 shrink-0 snap-start group relative bg-amber-50/70 dark:bg-[#1a140b] border border-amber-200/80 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 p-4 rounded-3xl flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden min-h-[148px]">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-amber-100/90 dark:bg-amber-950/70 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/90 dark:border-amber-800/80 shrink-0 shadow-2xs">
@@ -260,7 +268,7 @@ const SmTaskCards = ({
             if (setAtRiskOnly) setAtRiskOnly((prev) => !prev);
           }}
           title={atRiskOnly ? "Click to clear At risk filter" : "Click to view only At risk tasks"}
-          className={`group relative border p-4 rounded-3xl flex flex-col justify-between transition-all duration-300 cursor-pointer select-none overflow-hidden min-h-[148px] ${
+          className={`min-w-[270px] sm:min-w-0 flex-1 shrink-0 snap-start group relative border p-4 rounded-3xl flex flex-col justify-between transition-all duration-300 cursor-pointer select-none overflow-hidden min-h-[148px] ${
             atRiskOnly
               ? "bg-rose-100/90 dark:bg-[#2c101b] border-rose-400 dark:border-rose-500 ring-2 ring-rose-400/40 shadow-md"
               : "bg-rose-50/70 dark:bg-[#1f0d14] border-rose-200/80 dark:border-rose-800/60 hover:border-rose-400 dark:hover:border-rose-600 shadow-xs hover:shadow-md"
@@ -315,13 +323,13 @@ const SmTaskCards = ({
         <div
           onClick={() => {
             if (setSelectedStatus) {
-              setSelectedStatus((prev) => (prev === "In QC" ? "All" : "In QC"));
+              setSelectedStatus((prev) => (prev === "In QC" || prev === "QC" ? "All" : "In QC"));
             }
             if (setCurrentPage) setCurrentPage(1);
           }}
-          title={selectedStatus === "In QC" ? "Click to clear In QC filter" : "Click to view In QC tasks"}
-          className={`group relative border p-4 rounded-3xl flex flex-col justify-between transition-all duration-300 cursor-pointer select-none overflow-hidden min-h-[148px] ${
-            selectedStatus === "In QC"
+          title={selectedStatus === "In QC" || selectedStatus === "QC" ? "Click to clear In QC filter" : "Click to view In QC tasks"}
+          className={`min-w-[270px] sm:min-w-0 flex-1 shrink-0 snap-start group relative border p-4 rounded-3xl flex flex-col justify-between transition-all duration-300 cursor-pointer select-none overflow-hidden min-h-[148px] ${
+            selectedStatus === "In QC" || selectedStatus === "QC"
               ? "bg-amber-100/90 dark:bg-[#291f10] border-amber-400 dark:border-amber-500 ring-2 ring-amber-400/40 shadow-md"
               : "bg-amber-50/70 dark:bg-[#1a140b] border-amber-200/80 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-600 shadow-xs hover:shadow-md"
           }`}
@@ -340,23 +348,23 @@ const SmTaskCards = ({
             </div>
             <span
               className={`text-[11px] font-bold px-3 py-1 rounded-full shrink-0 transition-colors shadow-2xs ${
-                selectedStatus === "In QC"
+                selectedStatus === "In QC" || selectedStatus === "QC"
                   ? "bg-amber-600 text-white shadow-xs"
                   : "bg-amber-100/90 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/70"
               }`}
             >
-              {selectedStatus === "In QC" ? "Active" : "Review"}
+              {selectedStatus === "In QC" || selectedStatus === "QC" ? "Active" : "Review"}
             </span>
           </div>
 
           <div className="flex items-end justify-between gap-2 mt-2 pt-1">
             <div className="flex-1 min-w-0 pb-1">
               <div className="pt-2 border-t border-amber-200/80 dark:border-amber-900/60 flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
-                <span>{selectedStatus === "In QC" ? "Clear filter" : "Filter In QC"}</span>
+                <span>{selectedStatus === "In QC" || selectedStatus === "QC" ? "Clear filter" : "Filter In QC"}</span>
                 <FiArrowRight
                   size={13}
                   className={`transition-transform duration-200 ${
-                    selectedStatus === "In QC" ? "rotate-180" : "group-hover:translate-x-1"
+                    selectedStatus === "In QC" || selectedStatus === "QC" ? "rotate-180" : "group-hover:translate-x-1"
                   }`}
                 />
               </div>

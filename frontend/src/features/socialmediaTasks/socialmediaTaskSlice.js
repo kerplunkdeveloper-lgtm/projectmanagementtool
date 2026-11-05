@@ -8,6 +8,7 @@ import {
   rescheduleSocialmediaTaskAPI,
   deleteSocialmediaTaskAPI,
   getSocialmediaMetadataAPI,
+  bulkImportSocialmediaTasksAPI,
 } from "./socialmediaTaskApi";
 
 // GET ALL TASKS
@@ -112,6 +113,22 @@ export const getSocialmediaMetadata = createAsyncThunk(
       return thunkAPI.rejectWithValue(
         error.response?.data?.message || "Failed to fetch metadata"
       );
+    }
+  }
+);
+
+// BULK IMPORT COMMITMENT TASKS
+export const bulkImportSocialmediaTasks = createAsyncThunk(
+  "socialmediaTasks/bulkImportSocialmediaTasks",
+  async (tasks, thunkAPI) => {
+    try {
+      const response = await bulkImportSocialmediaTasksAPI(tasks);
+      toast.success(response.message || "Commitment tasks imported successfully!");
+      return response;
+    } catch (error) {
+      const msg = error.response?.data?.message || "Failed to import tasks";
+      toast.error(msg);
+      return thunkAPI.rejectWithValue(msg);
     }
   }
 );
@@ -222,6 +239,18 @@ const socialmediaTaskSlice = createSlice({
           if (action.payload.data.commitment) {
             state.commitmentsCount += 1;
           }
+          recalcStats(state);
+        }
+      })
+
+      // BULK IMPORT COMMITMENT TASKS
+      .addCase(bulkImportSocialmediaTasks.fulfilled, (state, action) => {
+        if (action.payload?.data && Array.isArray(action.payload.data)) {
+          const newTasks = action.payload.data;
+          const existingIds = new Set(state.tasks.map((t) => (t._id || t.id)?.toString()));
+          const toAdd = newTasks.filter((t) => !existingIds.has((t._id || t.id)?.toString()));
+          state.tasks = [...toAdd, ...state.tasks];
+          state.totalCount += toAdd.length;
           recalcStats(state);
         }
       })

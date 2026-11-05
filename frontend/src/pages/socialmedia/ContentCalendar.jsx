@@ -2,8 +2,18 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
+  FaInstagram,
+  FaFacebook,
+  FaYoutube,
+  FaGoogle,
+  FaTwitter,
+  FaLinkedin,
+} from "react-icons/fa";
+import {
   FiChevronLeft,
   FiChevronRight,
+  FiChevronDown,
+  FiSearch,
   FiPlus,
   FiFilter,
   FiGrid,
@@ -12,6 +22,7 @@ import {
   FiClock,
   FiAlertCircle,
   FiCheckCircle,
+  FiCheck,
   FiTrendingUp,
   FiX,
   FiLayers,
@@ -28,6 +39,7 @@ import {
   FiBarChart2,
   FiTarget,
   FiArrowRight,
+  FiUpload,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,16 +53,27 @@ import {
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
+import SmTaskCards from "./SmTaskCards";
+import SmPlatformWarningModal from "./SmPlatformWarningModal";
+import SmImportExcelModal from "./SmImportExcelModal";
 import SearchableDropdown from "../../components/common/SearchableDropdown";
 import PendingCommitmentModal from "../../components/common/PendingCommitmentModal";
 import {
   computeAllClientsCommitments,
   computeSingleClientCommitments,
-  getTaskCommitmentProgress,
   formatCommitmentDate,
 } from "../../utils/smCommitmentUtils";
 import { formatLocalDateKey } from "../../utils/dateUtils";
 import calendarMascotImg from "../../../public/assets/calendorchar.png";
+
+const ALL_PLATFORMS_MAP = [
+  { id: "Instagram", name: "Instagram", icon: FaInstagram, color: "#E1306C" },
+  { id: "Facebook", name: "Facebook", icon: FaFacebook, color: "#1877F2" },
+  { id: "YouTube", name: "YouTube", icon: FaYoutube, color: "#FF0000" },
+  { id: "GMB", name: "GMB", icon: FaGoogle, color: "#4285F4" },
+  { id: "Twitter", name: "Twitter", icon: FaTwitter, color: "#1DA1F2" },
+  { id: "LinkedIn", name: "LinkedIn", icon: FaLinkedin, color: "#0A66C2" },
+];
 
 const MONTH_NAMES = [
   "January",
@@ -71,24 +94,30 @@ const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const CATEGORIES = [
   "All",
-  "Content",
-  "Copy",
-  "Posting",
-  "Engagement",
-  "Client",
-  "Ads",
-  "Strategy",
-  "Reporting",
-  "Calendar",
-  "Audit",
-  "Other",
+  "Content Calendar",
+  "Ad campaign check",
+  "Google review reply",
+  "Engagement monitor",
+  "Platform qc",
+  "Client app",
+  "Influencer",
+  "Client call",
+  "Model arrangement",
+  "Content kt",
+  "Business development",
+  "Competitor analysis",
+  "Trend analysis",
+  "Insight report",
 ];
 const CONTENT_TYPES = [
   "All",
-  "Reel",
   "Post",
-  "Carousel",
+  "Reels",
+  "Stories",
+  "Others Task",
+  "Reel",
   "Story",
+  "Carousel",
   "GMB",
   "YouTube",
   "Blog",
@@ -341,13 +370,13 @@ const ContentCalendar = () => {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedAssignee, setSelectedAssignee] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
-  const [selectedCommitment, setSelectedCommitment] = useState("All");
   const [atRiskOnly, setAtRiskOnly] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState(null);
   const [initialDateForCreate, setInitialDateForCreate] = useState(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Day popover / expanded list modal
   const [selectedDayPosts, setSelectedDayPosts] = useState(null);
@@ -383,7 +412,27 @@ const ContentCalendar = () => {
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const dateStr = `${due.getDate()} ${months[due.getMonth()]}`;
-    const isLive = status === "Live" || status === "Completed";
+
+    const s = (status || "").trim().toLowerCase();
+    const isWaiting = s === "qc" || s === "in qc" || s.includes("client approval");
+    if (isWaiting) {
+      return (
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+            {dateStr}
+          </span>
+          <span
+            title={`Status: ${status} • Waiting`}
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9.5px] font-extrabold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/60 shadow-2xs whitespace-nowrap"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+            <span>Waiting</span>
+          </span>
+        </div>
+      );
+    }
+
+    const isLive = status === "Live" || status === "Completed" || status === "Published" || status === "Published Live";
     if (isLive) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs whitespace-nowrap">
@@ -424,14 +473,102 @@ const ContentCalendar = () => {
     );
   };
 
+  const handleTogglePlatformSubtask = async (task, platformId, e) => {
+    if (e) e.stopPropagation();
+    if (!task || !task._id || isReadOnly) return;
+
+    const currentCompleted = Array.isArray(task.completedPlatforms)
+      ? task.completedPlatforms
+      : [];
+    const isCompleted = currentCompleted.some(
+      (p) => p.toLowerCase() === platformId.toLowerCase()
+    );
+
+    const newCompleted = isCompleted
+      ? currentCompleted.filter((p) => p.toLowerCase() !== platformId.toLowerCase())
+      : [...currentCompleted, platformId];
+
+    try {
+      await dispatch(
+        updateSocialmediaTask({
+          id: task._id,
+          data: {
+            completedPlatforms: newCompleted,
+          },
+        })
+      ).unwrap();
+
+      if (!isCompleted) {
+        toast.success(`✓ ${platformId} marked as completed`);
+      } else {
+        toast(`Unchecked ${platformId}`, { icon: "↩️" });
+      }
+    } catch (err) {
+      toast.error(err?.message || "Failed to update platform tick");
+    }
+  };
+
   const handleQuickStatusChange = async (task, newStatus) => {
     if (!task || !task._id || isReadOnly) return;
+
+    const s = (newStatus || "").trim().toLowerCase();
+    const isVerificationStatus =
+      s === "qc" ||
+      s === "in qc" ||
+      s.includes("client approval") ||
+      s === "published live" ||
+      s === "live" ||
+      s === "published";
+
+    if (isVerificationStatus) {
+      const assigned =
+        Array.isArray(task.platforms) && task.platforms.length > 0
+          ? task.platforms
+          : task.platform
+          ? [task.platform]
+          : [];
+      const completed = Array.isArray(task.completedPlatforms)
+        ? task.completedPlatforms
+        : [];
+      const unticked = assigned.filter(
+        (p) => !completed.some((cp) => cp.toLowerCase() === p.toLowerCase())
+      );
+      if (unticked.length > 0) {
+        setPlatformWarningModal({
+          isOpen: true,
+          task,
+          targetStatus: newStatus,
+        });
+        return;
+      }
+    }
+
     try {
       await dispatch(updateSocialmediaTask({ id: task._id, data: { status: newStatus } })).unwrap();
       toast.success(`Status updated to "${newStatus}"`);
       dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
     } catch (err) {
       toast.error(err?.message || "Failed to update status");
+    }
+  };
+
+  const handleConfirmPlatformWarning = async ({ task, targetStatus, completedPlatforms }) => {
+    try {
+      await dispatch(
+        updateSocialmediaTask({
+          id: task._id,
+          data: {
+            status: targetStatus,
+            completedPlatforms,
+          },
+        })
+      ).unwrap();
+      toast.success(`✓ Status updated to "${targetStatus}"`);
+      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+    } catch (err) {
+      toast.error(err?.message || "Failed to update status");
+    } finally {
+      setPlatformWarningModal({ isOpen: false, task: null, targetStatus: "" });
     }
   };
 
@@ -443,7 +580,15 @@ const ContentCalendar = () => {
 
   // Pending Commitments & Calendar Date State
   const [isPendingCommitmentOpen, setIsPendingCommitmentOpen] = useState(false);
+  const [platformWarningModal, setPlatformWarningModal] = useState({
+    isOpen: false,
+    task: null,
+    targetStatus: "",
+  });
   const [selectedCalendarDateKey, setSelectedCalendarDateKey] = useState(realTodayStr);
+  const [mobileCalView, setMobileCalView] = useState("agenda");
+  const [showMetricsMobile, setShowMetricsMobile] = useState(false);
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   // (commitmentOverview moved after calendarTasks for dynamic filter reactivity)
 
@@ -539,10 +684,12 @@ const ContentCalendar = () => {
     return ["All", ...sorted];
   }, [users, uniqueTasks, usersMap, user, isSocialMediaManager]);
 
-  // Filtered tasks for calendar (only tasks with publishDate)
+  // Filtered tasks for calendar (ONLY Commitment: Yes tasks with publishDate)
   const calendarTasks = useMemo(() => {
     return uniqueTasks.filter((task) => {
-      if (!task.publishDate) return false;
+      // Must be a commitment (Yes) and have a publishDate or dueDate to be shown on the calendar!
+      if (!task.commitment) return false;
+      if (!task.publishDate && !task.dueDate) return false;
 
       // Regular users see tasks created by OR assigned to themselves.
       // Admin and Operation Manager can see all users' tasks.
@@ -578,7 +725,29 @@ const ContentCalendar = () => {
       if (selectedClient !== "All" && task.clientName !== selectedClient) return false;
       if (selectedCategory !== "All" && task.category !== selectedCategory) return false;
       if (selectedContentType !== "All" && task.contentType !== selectedContentType) return false;
-      if (selectedStatus !== "All" && task.status !== selectedStatus) return false;
+      if (selectedStatus !== "All") {
+        const normSelected = selectedStatus.toLowerCase().trim();
+        const normTaskStatus = (task.status || "Not started").toLowerCase().trim();
+
+        let match = false;
+        if (normSelected === "published live") {
+          match = ["published live", "published", "live"].includes(normTaskStatus);
+        } else if (normSelected === "qc" || normSelected === "in qc") {
+          match = ["qc", "in qc"].includes(normTaskStatus) || normTaskStatus.includes("client approval");
+        } else if (normSelected === "inprogress") {
+          match = ["inprogress", "in progress"].includes(normTaskStatus);
+        } else if (normSelected.includes("client approval")) {
+          match = normTaskStatus.includes("client approval");
+        } else if (normSelected === "waiting for response") {
+          match = ["waiting for response", "waiting for responce"].includes(normTaskStatus);
+        } else if (normSelected === "completed") {
+          match = normTaskStatus === "completed";
+        } else {
+          match = normTaskStatus === normSelected;
+        }
+
+        if (!match) return false;
+      }
       if (isPrivileged && selectedAssignee !== "All") {
         const creator = task.createdBy?.name || task.createdByName;
         const assignee = task.assignee?.name || task.assigneeName;
@@ -593,10 +762,6 @@ const ContentCalendar = () => {
       }
       if (selectedPriority !== "All" && task.priority !== selectedPriority) return false;
 
-      if (selectedCommitment !== "All") {
-        const isYes = selectedCommitment === "Yes";
-        if (Boolean(task.commitment) !== isYes) return false;
-      }
 
       if (atRiskOnly) {
         if (!task.commitment) return false;
@@ -620,22 +785,57 @@ const ContentCalendar = () => {
     selectedStatus,
     selectedAssignee,
     selectedPriority,
-    selectedCommitment,
     atRiskOnly,
   ]);
 
-  // Compute live commitments across all clients (posts, reels, deliverables) - dynamically adapts to active filters
+    const relevantClients = useMemo(() => {
+    if (selectedClient === "All") return clients;
+    return (clients || []).filter(
+      (c) => (c.companyName || "").trim().toLowerCase() === selectedClient.trim().toLowerCase()
+    );
+  }, [clients, selectedClient]);
+
+  const tasksForCommitments = useMemo(() => {
+    let list = uniqueTasks || [];
+    if (selectedClient !== "All") {
+      list = list.filter((t) => t.clientName === selectedClient);
+    }
+    if (isPrivileged && selectedAssignee !== "All") {
+      const selectedLower = selectedAssignee.trim().toLowerCase();
+      list = list.filter((t) => {
+        const creator = t.createdBy?.name || t.createdByName;
+        const assignee = t.assignee?.name || t.assigneeName;
+        const creatorInfo = getCreatorInfo(t);
+        return (
+          (creator && creator.trim().toLowerCase() === selectedLower) ||
+          (assignee && assignee.trim().toLowerCase() === selectedLower) ||
+          (creatorInfo?.name && creatorInfo.name.trim().toLowerCase() === selectedLower)
+        );
+      });
+    }
+    return list;
+  }, [uniqueTasks, selectedClient, isPrivileged, selectedAssignee, getCreatorInfo]);
+
+  // Compute live commitments across all clients (posts, reels, deliverables) - 2nd Reference Image
   const commitmentOverview = useMemo(() => {
-    const isFiltered = (isPrivileged && selectedAssignee !== "All") || selectedClient !== "All";
-    const tasksToUse = isFiltered ? calendarTasks : (tasks || []);
     return computeAllClientsCommitments(
-      clients,
-      tasksToUse,
+      relevantClients,
+      tasksForCommitments,
       currentMonth + 1,
       currentYear,
       selectedClient !== "All"
     );
-  }, [clients, tasks, calendarTasks, currentMonth, currentYear, isPrivileged, selectedAssignee, selectedClient]);
+  }, [relevantClients, tasksForCommitments, currentMonth, currentYear, selectedClient]);
+
+  const hasActiveFilters = Boolean(
+    selectedClient !== "All" ||
+    selectedCategory !== "All" ||
+    selectedContentType !== "All" ||
+    selectedStatus !== "All" ||
+    (isPrivileged && selectedAssignee !== "All") ||
+    selectedPriority !== "All" ||
+    atRiskOnly
+  );
 
   // 5 KPI Metric Cards - dynamically calculated when Admin/Operation Manager filters by Created By  or Client
   const displayStats = useMemo(() => {
@@ -841,14 +1041,16 @@ const ContentCalendar = () => {
   const tasksByDate = useMemo(() => {
     const map = {};
     calendarTasks.forEach((task) => {
-      if (!task.publishDate) return;
-      const key = formatLocalDateKey(task.publishDate);
+      const targetDate = task.publishDate || task.dueDate;
+      if (!targetDate) return;
+      const key = formatLocalDateKey(targetDate);
+      if (!key) return;
       if (!map[key]) map[key] = [];
       map[key].push(task);
     });
 
     Object.keys(map).forEach((key) => {
-      map[key].sort((a, b) => new Date(a.publishDate) - new Date(b.publishDate));
+      map[key].sort((a, b) => new Date(a.publishDate || a.dueDate) - new Date(b.publishDate || b.dueDate));
     });
 
     return map;
@@ -1132,10 +1334,39 @@ const ContentCalendar = () => {
   };
 
   // Content type badge style helper
+  const getPlatformIcon = (platform) => {
+    if (!platform) return null;
+    const p = platform.trim().toLowerCase();
+    if (p.includes("instagram")) return <FaInstagram className="text-[#E1306C] shrink-0" size={11} title="Instagram" />;
+    if (p.includes("facebook")) return <FaFacebook className="text-[#1877F2] shrink-0" size={11} title="Facebook" />;
+    if (p.includes("youtube")) return <FaYoutube className="text-[#FF0000] shrink-0" size={11} title="YouTube" />;
+    if (p.includes("gmb") || p.includes("google")) return <FaGoogle className="text-[#4285F4] shrink-0" size={10} title="Google My Business" />;
+    if (p.includes("twitter")) return <FaTwitter className="text-[#1DA1F2] shrink-0" size={11} title="Twitter / X" />;
+    if (p.includes("linkedin")) return <FaLinkedin className="text-[#0A66C2] shrink-0" size={11} title="LinkedIn" />;
+    return null;
+  };
+
   const getContentTypeStyle = (contentType) => {
     const type = (contentType || "Post").trim().toLowerCase();
     switch (type) {
       case "reel":
+      case "reels":
+        return {
+          bg: "bg-fuchsia-50 dark:bg-[#290d2e] text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-900/70",
+          label: "REEL",
+        };
+      case "story":
+      case "stories":
+        return {
+          bg: "bg-amber-50 dark:bg-[#2d1b06] text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900/70",
+          label: "STORY",
+        };
+      case "others task":
+      case "other":
+        return {
+          bg: "bg-slate-100 dark:bg-[#1a2333] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#2b3c5a]",
+          label: "TASK",
+        };
         return {
           bg: "bg-fuchsia-50 dark:bg-[#290d2e] text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-900/70",
           label: "REEL",
@@ -1179,7 +1410,7 @@ const ContentCalendar = () => {
   const setSidebarOpen = outletContext?.setSidebarOpen;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6 relative">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-3 sm:p-6 lg:p-8 space-y-3.5 sm:space-y-6 relative">
       {/* Full Page Centered Loading Animation */}
       <AnimatePresence>
         {isCalendarLoading && (
@@ -1216,7 +1447,7 @@ const ContentCalendar = () => {
         </div>
 
         {/* Navigation & View switcher */}
-        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+        <div className="flex items-center justify-between w-full sm:w-auto gap-2 sm:gap-2.5 self-start sm:self-auto flex-wrap">
           {/* Month/Week selector navigation */}
           <div className="flex items-center bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-[#1e2a40] rounded-xl p-0.5 shadow-xs">
             <button
@@ -1230,9 +1461,10 @@ const ContentCalendar = () => {
             <button
               onClick={handleToday}
               disabled={isCalendarLoading}
-              className="px-3 py-1 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-[#182338] rounded-lg transition-colors cursor-pointer disabled:opacity-40"
+              className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#182338] rounded-lg transition-colors cursor-pointer disabled:opacity-40 whitespace-nowrap text-center"
+              title="Click to return to Current Month"
             >
-              Today
+              {MONTH_NAMES[currentMonth]}
             </button>
             <button
               onClick={handleNext}
@@ -1243,6 +1475,18 @@ const ContentCalendar = () => {
               <FiChevronRight size={16} />
             </button>
           </div>
+
+          {(currentMonth !== new Date().getMonth() || currentYear !== new Date().getFullYear()) && (
+            <button
+              type="button"
+              onClick={handleToday}
+              disabled={isCalendarLoading}
+              className="px-2.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 rounded-xl transition-colors cursor-pointer shadow-2xs"
+              title="Return to Today"
+            >
+              Today
+            </button>
+          )}
 
           {/* Quick Refresh Button */}
           <button
@@ -1281,13 +1525,24 @@ const ContentCalendar = () => {
               <span>Read Only</span>
             </div>
           ) : (
-            <button
-              onClick={() => handleAddPostOnDate(new Date())}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer"
-            >
-              <FiPlus size={14} />
-              <span>Add Post</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors shadow-2xs cursor-pointer"
+                title="Import Commitment Posts via Excel / CSV"
+              >
+                <FiUpload size={14} />
+                <span>Import Excel</span>
+              </button>
+              <button
+                onClick={() => handleAddPostOnDate(new Date())}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer"
+              >
+                <FiPlus size={14} />
+                <span>Add Post</span>
+              </button>
+            </div>
           )}
 
           <button
@@ -1300,106 +1555,38 @@ const ContentCalendar = () => {
         </div>
       </div>
 
-      {/* Top Deliverables Progress Tracker (Image 2) */}
-      <div className="bg-white dark:bg-[#0b101d] border border-slate-200/90 dark:border-[#1e2a40] rounded-3xl p-4 sm:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="w-full max-w-2xl mx-auto space-y-2 text-center md:text-left">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="text-slate-900 dark:text-white flex items-center gap-2">
-              <span className="font-extrabold text-sm">{MONTH_NAMES[currentMonth]}</span>
-              <span className="text-slate-300 dark:text-slate-600">•</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {commitmentOverview.totalDeliverablesPublished}/{commitmentOverview.totalDeliverablesCommitted} deliverables published
-              </span>
-            </span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">
-              {commitmentOverview.deliverablesProgressPct}%
-            </span>
-          </div>
-
-          <div className="w-full h-2.5 bg-slate-200/80 dark:bg-[#151d2e] rounded-full overflow-hidden shadow-inner border border-slate-200 dark:border-[#22314d]">
-            <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-500 shadow-sm"
-              style={{ width: `${commitmentOverview.deliverablesProgressPct}%` }}
-            />
-          </div>
-        </div>
-
+      {/* Mobile Metrics Toggle Pill */}
+      <div className="sm:hidden flex items-center justify-between px-1">
         <button
           type="button"
-          onClick={() => setIsPendingCommitmentOpen(true)}
-          className="shrink-0 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-[#24334f] hover:border-indigo-400 dark:hover:border-indigo-500 bg-slate-50 dark:bg-[#131b2e] hover:bg-indigo-50/40 dark:hover:bg-[#1a253d] text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          onClick={() => setShowMetricsMobile(!showMetricsMobile)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+            showMetricsMobile
+              ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700"
+              : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+          }`}
         >
-          <FiBarChart2 size={15} className="text-indigo-500 dark:text-indigo-400" />
-          <span>Pending Commitments</span>
+          <FiBarChart2 size={13} className="text-indigo-500" />
+          <span>{showMetricsMobile ? "Hide Metrics" : "Show Monthly Deliverables"}</span>
+          <FiChevronDown size={13} className={`transition-transform duration-200 ${showMetricsMobile ? "rotate-180" : ""}`} />
         </button>
       </div>
 
-      {/* 5 KPI Metric Cards - 100% Dynamic from MongoDB */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        {/* COMMITMENTS */}
-        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-            Commitments
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {displayStats.commitments ?? 0}
-          </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 block">
-            {isPrivileged && selectedAssignee !== "All" ? `planned (${selectedAssignee})` : "planned this month"}
-          </span>
-        </div>
-
-        {/* COMPLETED */}
-        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-            Completed
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight">
-            {displayStats.completed ?? 0}
-          </div>
-          <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium mt-1 block">
-            published on time
-          </span>
-        </div>
-
-        {/* PENDING */}
-        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-            Pending
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {displayStats.pending ?? 0}
-          </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 block">
-            in production or QC
-          </span>
-        </div>
-
-        {/* OVERDUE */}
-        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-            Overdue
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-rose-600 dark:text-rose-400 tracking-tight">
-            {displayStats.overdue ?? 0}
-          </div>
-          <span className="text-[11px] text-rose-700 dark:text-rose-300 font-medium mt-1 block">
-            past publish date
-          </span>
-        </div>
-
-        {/* ACHIEVEMENT */}
-        <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] p-4 rounded-2xl shadow-xs col-span-2 sm:col-span-1">
-          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-            Achievement
-          </span>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {displayStats.achievement ?? 0}%
-          </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 block">
-            vs 90% target
-          </span>
-        </div>
+      {/* 2nd Reference Image: Commitments Overview Section (Cards) */}
+      <div className={showMetricsMobile ? "block" : "hidden sm:block"}>
+      <SmTaskCards
+        selectedClient={selectedClient}
+        selectedMonth={currentMonth + 1}
+        selectedYear={currentYear}
+        hasActiveFilters={hasActiveFilters}
+        commitmentOverview={commitmentOverview}
+        onOpenPendingCommitment={() => setIsPendingCommitmentOpen(true)}
+        atRiskOnly={atRiskOnly}
+        setAtRiskOnly={setAtRiskOnly}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+        setCurrentPage={setTablePage}
+      />
       </div>
 
       {/* Filter Bar */}
@@ -1489,19 +1676,6 @@ const ContentCalendar = () => {
             ))}
           </select>
 
-          {/* Commitment */}
-          <select
-            value={selectedCommitment}
-            onChange={(e) => setSelectedCommitment(e.target.value)}
-            className={`toolbar-filter-select ${selectedCommitment !== "All" ? "is-active" : ""}`}
-          >
-            <option value="All">Commitment</option>
-            {COMMITMENTS.filter((c) => c !== "All").map((co) => (
-              <option key={co} value={co}>
-                {co}
-              </option>
-            ))}
-          </select>
 
           {/* At Risk Pill Button */}
           <button
@@ -1643,13 +1817,6 @@ const ContentCalendar = () => {
                               postDiffHours <= 24;
                             const typeStyle = getContentTypeStyle(post.contentType);
                             const statusStyle = getStatusCardStyles(post.status, isRisk);
-                            const postCommitment = getTaskCommitmentProgress(
-                              post,
-                              clients,
-                              tasks,
-                              currentMonth + 1,
-                              currentYear
-                            );
                             const userInfo = getUserInfo(post);
 
                             return (
@@ -1665,20 +1832,17 @@ const ContentCalendar = () => {
                                 className={`p-2 rounded-xl border ${statusStyle.card} hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1.5 shadow-2xs`}
                                 style={{ borderLeftWidth: "3.5px", borderLeftColor: clientColor }}
                               >
-                                {/* Top Row: Time + Content Type Pill + Status / Risk Badge */}
+                                {/* Top Row: Time + Content Type Pill */}
                                 <div className="flex items-center justify-between gap-1 text-[10px] leading-tight">
                                   <div className="flex items-center gap-1 min-w-0">
                                     <span className="font-mono font-bold text-slate-700 dark:text-slate-300 text-[10px] shrink-0">
                                       {formatCardTime(post.publishDate)}
                                     </span>
                                     <span
-                                      className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wide border shrink-0 ${typeStyle.bg}`}
+                                      className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wide border shrink-0 ${typeStyle.bg} inline-flex items-center gap-1`}
                                     >
-                                      {typeStyle.label}
+                                      <span>{typeStyle.label}</span>
                                     </span>
-                                  </div>
-                                  <div className="shrink-0">
-                                    {renderStatusBadge(post.status, isRisk)}
                                   </div>
                                 </div>
 
@@ -1690,23 +1854,89 @@ const ContentCalendar = () => {
                                   {post.clientName} - {post.contentType}
                                 </div>
 
-                                {/* Deliverables Commitment Tag */}
-                                {postCommitment ? (
-                                  <div className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 inline-block shrink-0" />
-                                    <span className="truncate">
-                                      {MONTH_NAMES[currentMonth]} {postCommitment.type} {postCommitment.published}/{postCommitment.committed}
-                                    </span>
-                                  </div>
-                                ) : post.taskTitle ? (
-                                  <div className="text-[9.5px] text-slate-400 truncate">
+                                {/* Task Title */}
+                                {post.taskTitle ? (
+                                  <div className="text-[9.5px] text-slate-500 dark:text-slate-400 truncate" title={post.taskTitle}>
                                     {post.taskTitle}
                                   </div>
                                 ) : null}
 
-                                {/* Bottom Row: User Profile & Name + Client color indicator */}
+                                {/* Dynamic Platforms Checklist (Only platforms assigned to this task with Tick option) */}
+                                {(() => {
+                                  const assigned = Array.isArray(post.platforms) && post.platforms.length > 0
+                                    ? post.platforms
+                                    : (post.platform ? [post.platform] : []);
+                                  const completed = Array.isArray(post.completedPlatforms)
+                                    ? post.completedPlatforms
+                                    : [];
+
+                                  if (assigned.length === 0) return null;
+
+                                  return (
+                                    <div
+                                      className="grid grid-cols-3 gap-1.5 w-fit pt-0.5"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {assigned.map((platId) => {
+                                        const platObj = ALL_PLATFORMS_MAP.find(
+                                          (p) => p.id.toLowerCase() === platId.toLowerCase()
+                                        ) || {
+                                          id: platId,
+                                          name: platId,
+                                          icon: FiLayers,
+                                          color: "#6366f1",
+                                        };
+                                        const IconComp = platObj.icon;
+                                        const isTicked = completed.some(
+                                          (cp) => cp.toLowerCase() === platId.toLowerCase()
+                                        );
+
+                                        return (
+                                          <button
+                                            key={platId}
+                                            type="button"
+                                            disabled={isReadOnly}
+                                            onClick={(e) => handleTogglePlatformSubtask(post, platId, e)}
+                                            title={
+                                              isTicked
+                                                ? `✓ ${platObj.name} (Posted/Ticked - Click to untick)`
+                                                : `○ ${platObj.name} (Pending post - Click to tick)`
+                                            }
+                                            className={`group/tick relative inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded-lg border transition-all duration-150 cursor-pointer ${
+                                              isTicked
+                                                ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300/90 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100 hover:scale-105"
+                                                : "bg-white dark:bg-[#131d31] border-slate-200 dark:border-white/10 text-slate-400 hover:border-emerald-400 hover:bg-emerald-50/30 hover:scale-105 shadow-2xs"
+                                            } active:scale-95 disabled:cursor-not-allowed`}
+                                          >
+                                            {/* Tick Checkbox Indicator */}
+                                            <span
+                                              className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[8.5px] transition-colors shrink-0 ${
+                                                isTicked
+                                                  ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs"
+                                                  : "border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 group-hover/tick:border-emerald-400 text-transparent"
+                                              }`}
+                                            >
+                                              <FiCheck className="stroke-[3]" size={9} />
+                                            </span>
+
+                                            {/* Platform Icon */}
+                                            <IconComp
+                                              size={12}
+                                              className={`shrink-0 transition-opacity ${
+                                                isTicked ? "opacity-100" : "opacity-80 group-hover/tick:opacity-100"
+                                              }`}
+                                              style={{ color: platObj.color }}
+                                            />
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })()}
+
+                                {/* Bottom Row: User Profile & Name + Risk Badge on right side + Client indicator dot */}
                                 <div
-                                  className={`pt-1 border-t ${statusStyle.divider || "border-slate-100 dark:border-slate-800/80"} flex items-center justify-between gap-1.5 text-[10px]`}
+                                  className={`pt-1 border-t ${statusStyle.divider || "border-slate-100 dark:border-slate-800/80"} flex items-center justify-between gap-1 text-[10px]`}
                                 >
                                   <div
                                     className="flex items-center gap-1.5 min-w-0 flex-1"
@@ -1738,11 +1968,15 @@ const ContentCalendar = () => {
                                     </span>
                                   </div>
 
-                                  <span
-                                    className="w-1.5 h-1.5 rounded-full shrink-0 shadow-2xs ring-1 ring-white dark:ring-slate-900"
-                                    style={{ backgroundColor: clientColor }}
-                                    title={`Client: ${post.clientName}`}
-                                  />
+                                  {/* Right side of User Name: Risk badge + Client indicator dot */}
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {renderStatusBadge(post.status, isRisk)}
+                                    <span
+                                      className="w-1.5 h-1.5 rounded-full shrink-0 shadow-2xs ring-1 ring-white dark:ring-slate-900"
+                                      style={{ backgroundColor: clientColor }}
+                                      title={`Client: ${post.clientName}`}
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -1883,7 +2117,7 @@ const ContentCalendar = () => {
 
                         {/* Category */}
                         <td className="py-3 px-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/60">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-[#131d31] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10">
                             {t.category || "Content"}
                           </span>
                         </td>
@@ -1936,7 +2170,7 @@ const ContentCalendar = () => {
                                 ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
                                 : t.status === "Overdue"
                                 ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                                : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                                : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-[#131d31] dark:text-slate-300 dark:border-white/10"
                             }`}
                           >
                             {STATUSES.filter((s) => s !== "All").map((st) => (
@@ -1955,7 +2189,7 @@ const ContentCalendar = () => {
                                 ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
                                 : t.priority === "Medium"
                                 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                                : "bg-slate-100 text-slate-600 dark:bg-[#131d31] dark:text-slate-300"
                             }`}
                           >
                             {t.priority || "Medium"}
@@ -2025,14 +2259,14 @@ const ContentCalendar = () => {
                 <button
                   disabled={tablePage === 1}
                   onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold hover:bg-slate-50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d31] font-bold hover:bg-slate-50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                 >
                   Prev
                 </button>
                 <button
                   disabled={tablePage === tableTotalPages}
                   onClick={() => setTablePage((p) => Math.min(tableTotalPages, p + 1))}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold hover:bg-slate-50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d31] font-bold hover:bg-slate-50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -2071,7 +2305,7 @@ const ContentCalendar = () => {
                     isReadOnly ? "cursor-default" : "cursor-pointer"
                   } hover:border-blue-400 transition-colors`}
                 >
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-700/50 mb-2">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10/50 mb-2">
                     <span className={`text-xs font-black uppercase ${dayItem.isToday ? "text-blue-600 dark:text-blue-400" : "text-slate-500"}`}>
                       {WEEK_DAYS[idx]}
                     </span>
@@ -2247,7 +2481,7 @@ const ContentCalendar = () => {
 
                     <div className="flex items-center gap-3 self-end md:self-auto shrink-0" onClick={(e) => e.stopPropagation()}>
                       {/* Creator Profile Chip */}
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60" title={`${creator.isAssignee ? "Assigned to" : "Created by"}: ${creator.name}`}>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10" title={`${creator.isAssignee ? "Assigned to" : "Created by"}: ${creator.name}`}>
                         <div className="relative w-5 h-5 rounded-full overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shrink-0 shadow-2xs">
                           {creator.avatarUrl ? (
                             <img
@@ -2446,6 +2680,42 @@ const ContentCalendar = () => {
           });
           setInitialDateForCreate(new Date());
           setIsModalOpen(true);
+        }}
+      />
+
+      {/* Platform Verification Warning Modal */}
+      <SmPlatformWarningModal
+        isOpen={platformWarningModal.isOpen}
+        onClose={() =>
+          setPlatformWarningModal({ isOpen: false, task: null, targetStatus: "" })
+        }
+        task={platformWarningModal.task}
+        targetStatus={platformWarningModal.targetStatus}
+        onConfirm={handleConfirmPlatformWarning}
+      />
+
+      {/* Excel / CSV Commitment Import Modal */}
+      <SmImportExcelModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        clients={clients}
+        users={users}
+        onSuccess={(meta) => {
+          if (meta?.targetMonth !== undefined && meta.targetMonth !== currentMonth) {
+            setCurrentMonth(meta.targetMonth);
+            if (meta.targetYear) setCurrentYear(meta.targetYear);
+            dispatch(getSocialmediaTasks({ year: meta.targetYear || currentYear, month: meta.targetMonth + 1 }));
+            dispatch(getSocialmediaStats({ year: meta.targetYear || currentYear, month: meta.targetMonth + 1 }));
+          } else {
+            dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
+            dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+          }
+          // Reset filters so newly imported posts immediately show up
+          setSelectedClient("All");
+          setSelectedAssignee("All");
+          setSelectedStatus("All");
+          setSelectedCategory("All");
+          setSelectedContentType("All");
         }}
       />
     </div>

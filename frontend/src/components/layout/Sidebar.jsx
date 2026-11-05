@@ -10,7 +10,10 @@ import {
   FiList,
   FiLayers,
   FiShare2,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
+import { HiOutlineMenuAlt2, HiOutlineMenuAlt3 } from "react-icons/hi";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -1213,15 +1216,30 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           }
         `}
       >
+        {/* Desktop Floating Edge Toggle Pill */}
+        <button
+          type="button"
+          onClick={() => setSidebarOpen((prev) => !prev)}
+          className="hidden lg:flex absolute -right-3 top-5 z-[110] w-6 h-6 rounded-full bg-white dark:bg-[#131d31] border border-slate-200/90 dark:border-white/15 text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer group"
+          title={sidebarOpen ? "Collapse to Half Sidebar" : "Expand to Full Sidebar"}
+        >
+          <FiChevronLeft
+            size={13}
+            className={`transition-transform duration-300 ease-in-out group-hover:scale-110 ${
+              !sidebarOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
         {/* HEADER */}
         <div
           className={`flex items-center shrink-0 border-b border-slate-200/50 dark:border-white/5 transition-all duration-300 ${
-            sidebarOpen ? "justify-between px-4 py-3.5" : "justify-center py-3 px-1.5"
+            sidebarOpen ? "justify-between px-3.5 py-3.5" : "justify-center py-2.5 px-1"
           }`}
         >
           {sidebarOpen ? (
             <>
-              {/* LOGO */}
+              {/* FULL LOGO */}
               <div
                 onClick={() => navigate(`/${role}`)}
                 className="cursor-pointer transition-transform active:scale-95 flex items-center px-1"
@@ -1230,33 +1248,58 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 <img
                   src={isDark ? darkSortedLogo : sortedLogo}
                   alt="Sorted Logo"
-                  className="h-10 w-auto object-contain drop-shadow-sm"
+                  className="h-9 w-auto object-contain drop-shadow-sm transition-all duration-300"
                 />
               </div>
 
+              {/* Mobile Close Button */}
               <button
+                type="button"
                 onClick={() => setSidebarOpen(false)}
-                className="lg:hidden w-8 h-8 rounded-lg bg-white dark:bg-[#0b0c10] hover:bg-slate-50 flex items-center justify-center transition-all border border-slate-200 dark:border-white/5"
+                className="lg:hidden w-8 h-8 rounded-lg bg-white dark:bg-[#0b0c10] hover:bg-slate-50 flex items-center justify-center transition-all border border-slate-200 dark:border-white/5 cursor-pointer"
               >
                 <FiX size={18} className="text-slate-900 dark:text-white" />
               </button>
+
+              {/* Desktop Menu Toggle Button (Collapse to Half View) */}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                className="hidden lg:flex w-7.5 h-7.5 rounded-xl bg-slate-100/90 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white items-center justify-center transition-all duration-200 cursor-pointer border border-slate-200/80 dark:border-white/10 shadow-2xs hover:scale-105 active:scale-95"
+                title="Collapse Sidebar (Half View)"
+              >
+                <HiOutlineMenuAlt3 size={16} />
+              </button>
             </>
           ) : (
-            /* COLLAPSED ICON LOGO - SORTED.PNG IMAGE */
-            <div
-              onClick={() => navigate(`/${role}`)}
-              onMouseEnter={(e) =>
-                handleItemMouseEnter(e, { name: "Sorted Dashboard" }, false, 0)
-              }
-              onMouseLeave={handleItemMouseLeave}
-              className="group/logo w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-slate-100 dark:hover:bg-white/5"
-              title="Sorted - Go to Dashboard"
-            >
-              <img
-                src="/sorted.png"
-                alt="Sorted Logo"
-                className="w-8 h-8 object-contain drop-shadow-md transition-transform duration-200 group-hover/logo:scale-110 active:scale-95"
-              />
+            /* COLLAPSED / HALF (MINI) VIEW */
+            <div className="flex flex-col items-center gap-1.5 py-1">
+              {/* COLLAPSED ICON LOGO */}
+              <div
+                onClick={() => navigate(`/${role}`)}
+                onMouseEnter={(e) =>
+                  handleItemMouseEnter(e, { name: "Sorted Dashboard" }, false, 0)
+                }
+                onMouseLeave={handleItemMouseLeave}
+                className="group/logo w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 hover:bg-slate-100 dark:hover:bg-white/5"
+                title="Sorted - Go to Dashboard"
+              >
+                <img
+                  src="/sorted.png"
+                  alt="Sorted Logo"
+                  className="w-7 h-7 object-contain drop-shadow-md transition-transform duration-200 group-hover/logo:scale-110 active:scale-95"
+                />
+              </div>
+
+              {/* Desktop Menu Toggle Button (Expand to Full View) */}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="hidden lg:flex w-7 h-7 rounded-xl bg-slate-100/90 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white items-center justify-center transition-all duration-200 cursor-pointer border border-slate-200/80 dark:border-white/10 shadow-2xs hover:scale-105 active:scale-95"
+                title="Expand Sidebar (Full View)"
+              >
+                <HiOutlineMenuAlt2 size={15} />
+              </button>
             </div>
           )}
         </div>

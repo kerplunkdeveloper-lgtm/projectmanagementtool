@@ -11,6 +11,7 @@ const {
   deleteSocialmediaTask,
   cleanDuplicateTasks,
   getSocialmediaMetadata,
+  bulkImportSocialmediaTasks,
 } = require('../controllers/socialmediaTaskCalendorController');
 
 const { protect } = require('../middleware/auth');
@@ -20,6 +21,7 @@ router.use(protect);
 
 router.get('/meta', getSocialmediaMetadata);
 router.post('/clean-duplicates', cleanDuplicateTasks);
+router.post('/bulk-import', bulkImportSocialmediaTasks);
 
 router.route('/')
   .get(getSocialmediaTasks)

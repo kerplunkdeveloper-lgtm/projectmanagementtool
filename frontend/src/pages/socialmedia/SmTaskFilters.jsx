@@ -8,15 +8,41 @@ import {
   FiCalendar,
   FiRotateCcw,
   FiDownload,
+  FiImage,
+  FiPlay,
+  FiZap,
+  FiLayers,
+  FiGrid,
 } from "react-icons/fi";
 import SearchableDropdown from "../../components/common/SearchableDropdown";
 
+const DEFAULT_CATEGORIES = [
+  "All",
+  "Content Calendar",
+  "Ad campaign check",
+  "Google review reply",
+  "Engagement monitor",
+  "Platform qc",
+  "Client app",
+  "Influencer",
+  "Client call",
+  "Model arrangement",
+  "Content kt",
+  "Business development",
+  "Competitor analysis",
+  "Trend analysis",
+  "Insight report",
+];
+
 const DEFAULT_CONTENT_TYPES = [
   "All",
-  "Reel",
   "Post",
-  "Carousel",
+  "Reels",
+  "Stories",
+  "Others Task",
+  "Reel",
   "Story",
+  "Carousel",
   "GMB",
   "YouTube",
   "Blog",
@@ -50,6 +76,9 @@ const SmTaskFilters = ({
   setSelectedCreatedBy,
   createdByOptions = [],
   user,
+  selectedCategory = "All",
+  setSelectedCategory,
+  categories = DEFAULT_CATEGORIES,
   selectedContentType = "All",
   setSelectedContentType,
   contentTypes = DEFAULT_CONTENT_TYPES,
@@ -83,6 +112,10 @@ const SmTaskFilters = ({
 
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const dateDropdownRef = useRef(null);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  const [isContentTypeDropdownOpen, setIsContentTypeDropdownOpen] = useState(false);
+  const contentTypeDropdownRef = useRef(null);
 
   // Close popover dropdowns on outside click
   useEffect(() => {
@@ -99,14 +132,20 @@ const SmTaskFilters = ({
       ) {
         setIsDateDropdownOpen(false);
       }
+      if (
+        contentTypeDropdownRef.current &&
+        !contentTypeDropdownRef.current.contains(event.target)
+      ) {
+        setIsContentTypeDropdownOpen(false);
+      }
     };
-    if (isClientDropdownOpen || isDateDropdownOpen) {
+    if (isClientDropdownOpen || isDateDropdownOpen || isContentTypeDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isClientDropdownOpen, isDateDropdownOpen]);
+  }, [isClientDropdownOpen, isDateDropdownOpen, isContentTypeDropdownOpen]);
 
   const dateFilterLabel = useMemo(() => {
     if (customStartDate && customEndDate) {
@@ -138,12 +177,13 @@ const SmTaskFilters = ({
   }, [clientOptions, clientSearchQuery]);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+    <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
       {/* Row 1: Search Input & Action Buttons */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative w-full sm:w-80 md:w-96">
-          
+        {/* Search Input with Search Icon */}
+        <div className="flex items-center gap-2 w-full sm:w-80 md:w-96">
+          <div className="relative flex-1">
+         
           <input
             type="text"
             placeholder="Search tasks, clients, creators..."
@@ -152,7 +192,7 @@ const SmTaskFilters = ({
               if (setSearchQuery) setSearchQuery(e.target.value);
               if (setCurrentPage) setCurrentPage(1);
             }}
-            className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-xs sm:text-[13px] font-normal focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-2xs"
+            className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d31] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-xs sm:text-[13px] font-medium focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-2xs"
           />
           {searchQuery && (
             <button
@@ -167,15 +207,33 @@ const SmTaskFilters = ({
               <FiX size={14} />
             </button>
           )}
+          </div>
+
+          {/* Mobile Filter Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+            className={`sm:hidden h-10 px-3 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              isMobileFiltersOpen || hasActiveFilters
+                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
+                : "bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
+            }`}
+          >
+            <FiFilter size={13} className="text-emerald-600 dark:text-emerald-400" />
+            <span>Filters</span>
+            {hasActiveFilters && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            )}
+          </button>
         </div>
 
         {/* Action Controls: Export to Excel + At Risk Toggle */}
-        <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
+        <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
           {/* Export to Excel */}
           <button
             type="button"
             onClick={onExportExcel}
-            className="inline-flex items-center gap-2 px-4 h-10 rounded-xl text-xs sm:text-[13px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 transition-all cursor-pointer shadow-sm shadow-blue-500/25 shrink-0"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-4 h-10 rounded-xl text-xs sm:text-[13px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-all cursor-pointer shadow-sm shadow-emerald-600/20 shrink-0"
             title="Export filtered tasks to Excel"
           >
             <FiDownload size={14} className="stroke-[2.5]" />
@@ -189,10 +247,10 @@ const SmTaskFilters = ({
               if (setAtRiskOnly) setAtRiskOnly(!atRiskOnly);
               if (setCurrentPage) setCurrentPage(1);
             }}
-            className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-xl text-xs sm:text-[13px] font-semibold transition-all cursor-pointer border shrink-0 shadow-2xs ${
+            className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 sm:px-3.5 h-10 rounded-xl text-xs sm:text-[13px] font-semibold transition-all cursor-pointer border shrink-0 shadow-2xs ${
               atRiskOnly
                 ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 ring-2 ring-rose-400/20"
-                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300"
+                : "bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#182338] hover:border-slate-300"
             }`}
             title="Filter tasks at risk (due in <= 24 hours)"
           >
@@ -204,11 +262,11 @@ const SmTaskFilters = ({
         </div>
       </div>
 
-      {/* Row 2: Filter Pills Row */}
-      <div className="flex items-center gap-2 flex-wrap min-w-0">
+      {/* Row 2: Filter Pills Row (Horizontally scrollable on mobile) */}
+      <div className={`flex items-center gap-2 overflow-x-auto scrollbar-none py-1 sm:overflow-visible sm:flex-wrap min-w-0 ${isMobileFiltersOpen ? "flex" : "hidden sm:flex"}`}>
         {/* FILTERS: Label */}
-        <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 select-none mr-1">
-          <FiFilter size={14} className="text-blue-500" />
+        <div className="inline-flex items-center gap-1.5 h-[2.25rem] text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 select-none mr-1">
+          <FiFilter size={14} className="text-emerald-500 dark:text-emerald-400 stroke-[2.5]" />
           <span>FILTERS:</span>
         </div>
 
@@ -238,9 +296,9 @@ const SmTaskFilters = ({
 
           {/* Dropdown Menu with Search Box */}
           {isClientDropdownOpen && (
-            <div className="absolute left-0 top-full mt-1.5 w-64 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute left-0 top-full mt-1.5 w-64 z-50 bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
               {/* Search Box */}
-              <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+              <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-[#131d31]/80">
                 <div className="relative flex items-center">
                   <input
                     type="text"
@@ -351,26 +409,205 @@ const SmTaskFilters = ({
           </div>
         )}
 
-        {/* Content Type Filter */}
-        <select
-          value={selectedContentType}
-          onChange={(e) => {
-            if (setSelectedContentType) setSelectedContentType(e.target.value);
-            if (setCurrentPage) setCurrentPage(1);
-          }}
-          className={`toolbar-filter-select ${
-            selectedContentType !== "All" ? "is-active" : ""
-          }`}
-        >
-          <option value="All">Content type</option>
-          {contentTypes
-            .filter((c) => c !== "All")
-            .map((ct) => (
-              <option key={ct} value={ct}>
-                {ct}
-              </option>
-            ))}
-        </select>
+        {/* Category Filter - Fixed Badge with Calendar Icon for Commitment, Dropdown for Non-commitment */}
+        {selectedCommitment === "Yes" ? (
+          <div
+            className="inline-flex items-center gap-1.5 h-[2.25rem] px-3.5 rounded-xl text-xs font-bold bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs select-none"
+            title="Category is fixed to Content Calendar for Commitment tasks"
+          >
+            <FiCalendar size={13} className="text-indigo-500 shrink-0 stroke-[2.5]" />
+            <span>Content Calendar</span>
+          </div>
+        ) : (
+          <select
+            value={selectedCategory}
+            onChange={(e) => {
+              if (setSelectedCategory) setSelectedCategory(e.target.value);
+              if (setCurrentPage) setCurrentPage(1);
+            }}
+            className={`toolbar-filter-select ${
+              selectedCategory !== "All" ? "is-active" : ""
+            }`}
+          >
+            <option value="All">Category</option>
+            {categories
+              .filter(
+                (c) =>
+                  c !== "All" &&
+                  c.trim().toLowerCase() !== "content calendar" &&
+                  c.trim().toLowerCase() !== "content calendor" &&
+                  c.trim().toLowerCase() !== "content"
+              )
+              .map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+          </select>
+        )}
+
+        {/* Content Type Filter - Colorful Dropdown for Commitment, Fixed Badge for Non-commitment */}
+        {selectedCommitment === "No" ? (
+          <div
+            className="inline-flex items-center gap-1.5 h-[2.25rem] px-3.5 rounded-xl text-xs font-bold bg-slate-100/90 dark:bg-[#131d31] text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-white/10 shadow-2xs select-none"
+            title="Content type is fixed to Others Task for Non-commitment tasks"
+          >
+            <FiLayers size={13} className="text-slate-500 shrink-0 stroke-[2.5]" />
+            <span>Others Task</span>
+          </div>
+        ) : (
+          <div className="relative" ref={contentTypeDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsContentTypeDropdownOpen(!isContentTypeDropdownOpen)}
+              className={`toolbar-filter-btn flex items-center gap-2 ${
+                selectedContentType !== "All"
+                  ? "is-active ring-1 ring-emerald-500/30"
+                  : ""
+              }`}
+              title="Filter by Content Type"
+            >
+              {(() => {
+                if (selectedContentType === "Post") {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400">
+                      <FiImage size={13} className="text-blue-500 stroke-[2.5]" />
+                      <span>Post</span>
+                    </span>
+                  );
+                }
+                if (selectedContentType === "Reels" || selectedContentType === "Reel") {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-fuchsia-600 dark:text-fuchsia-400">
+                      <FiPlay size={13} className="text-fuchsia-500 fill-fuchsia-500" />
+                      <span>Reels</span>
+                    </span>
+                  );
+                }
+                if (selectedContentType === "Stories" || selectedContentType === "Story") {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400">
+                      <FiZap size={13} className="text-amber-500 fill-amber-500" />
+                      <span>Stories</span>
+                    </span>
+                  );
+                }
+                return <span>Content type</span>;
+              })()}
+              <FiChevronDown
+                size={14}
+                className={`text-slate-400 transition-transform duration-150 shrink-0 ${
+                  isContentTypeDropdownOpen ? "rotate-180 text-emerald-500" : ""
+                }`}
+              />
+            </button>
+
+            {/* Custom Colorful Content Type Dropdown Menu */}
+            {isContentTypeDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-48 z-50 bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden p-1.5 animate-in fade-in zoom-in-95 duration-100">
+                {/* Option 1: All Content Types */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (setSelectedContentType) setSelectedContentType("All");
+                    if (setCurrentPage) setCurrentPage(1);
+                    setIsContentTypeDropdownOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                    selectedContentType === "All"
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-[#182338] flex items-center justify-center text-slate-400">
+                      <FiGrid size={12} />
+                    </div>
+                    <span>All Content types</span>
+                  </div>
+                  {selectedContentType === "All" && (
+                    <FiCheck size={14} className="text-emerald-500 stroke-[3]" />
+                  )}
+                </button>
+
+                {/* Option 2: Post (Blue) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (setSelectedContentType) setSelectedContentType("Post");
+                    if (setCurrentPage) setCurrentPage(1);
+                    setIsContentTypeDropdownOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer mt-0.5 ${
+                    selectedContentType === "Post"
+                      ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-blue-50/50 dark:hover:bg-blue-950/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                      <FiImage size={13} className="stroke-[2.5]" />
+                    </div>
+                    <span className="font-bold">Post</span>
+                  </div>
+                  {selectedContentType === "Post" && (
+                    <FiCheck size={14} className="text-blue-600 stroke-[3]" />
+                  )}
+                </button>
+
+                {/* Option 3: Reels (Fuchsia/Pink) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (setSelectedContentType) setSelectedContentType("Reels");
+                    if (setCurrentPage) setCurrentPage(1);
+                    setIsContentTypeDropdownOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer mt-0.5 ${
+                    selectedContentType === "Reels" || selectedContentType === "Reel"
+                      ? "bg-fuchsia-50 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-300 font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-fuchsia-50/50 dark:hover:bg-fuchsia-950/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-fuchsia-100 dark:bg-fuchsia-900/50 flex items-center justify-center text-fuchsia-600 dark:text-fuchsia-400">
+                      <FiPlay size={13} className="fill-fuchsia-600 dark:fill-fuchsia-400" />
+                    </div>
+                    <span className="font-bold">Reels</span>
+                  </div>
+                  {(selectedContentType === "Reels" || selectedContentType === "Reel") && (
+                    <FiCheck size={14} className="text-fuchsia-600 stroke-[3]" />
+                  )}
+                </button>
+
+                {/* Option 4: Stories (Amber/Orange) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (setSelectedContentType) setSelectedContentType("Stories");
+                    if (setCurrentPage) setCurrentPage(1);
+                    setIsContentTypeDropdownOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer mt-0.5 ${
+                    selectedContentType === "Stories" || selectedContentType === "Story"
+                      ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-amber-50/50 dark:hover:bg-amber-950/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                      <FiZap size={13} className="fill-amber-500/40 text-amber-600 stroke-[2.5]" />
+                    </div>
+                    <span className="font-bold">Stories</span>
+                  </div>
+                  {(selectedContentType === "Stories" || selectedContentType === "Story") && (
+                    <FiCheck size={14} className="text-amber-600 stroke-[3]" />
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Status Filter */}
         <select
@@ -414,26 +651,7 @@ const SmTaskFilters = ({
             ))}
         </select>
 
-        {/* Commitment Filter */}
-        <select
-          value={selectedCommitment}
-          onChange={(e) => {
-            if (setSelectedCommitment) setSelectedCommitment(e.target.value);
-            if (setCurrentPage) setCurrentPage(1);
-          }}
-          className={`toolbar-filter-select ${
-            selectedCommitment !== "All" ? "is-active" : ""
-          }`}
-        >
-          <option value="All">Commitment</option>
-          {commitments
-            .filter((c) => c !== "All")
-            .map((com) => (
-              <option key={com} value={com}>
-                {com}
-              </option>
-            ))}
-        </select>
+
 
         {/* Date Filter Popover */}
         <div className="relative" ref={dateDropdownRef}>
@@ -466,7 +684,7 @@ const SmTaskFilters = ({
 
           {/* Date Filter Popover Menu */}
           {isDateDropdownOpen && (
-            <div className="absolute right-0 sm:left-0 top-full mt-1.5 w-72 sm:w-80 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3.5 space-y-3 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 sm:left-0 top-full mt-1.5 w-72 sm:w-80 z-50 bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl p-3.5 space-y-3 animate-in fade-in zoom-in-95 duration-100">
               {/* Header */}
               <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-900 dark:text-white">
@@ -494,7 +712,7 @@ const SmTaskFilters = ({
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
                   Target Date Field
                 </span>
-                <div className="grid grid-cols-3 gap-1 p-0.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-[11px] font-bold">
+                <div className="grid grid-cols-3 gap-1 p-0.5 bg-slate-100 dark:bg-[#131d31] rounded-xl text-[11px] font-bold border border-slate-200/60 dark:border-white/10">
                   {[
                     { id: "any", label: "Any Date" },
                     { id: "publish", label: "Publish" },
@@ -634,21 +852,22 @@ const SmTaskFilters = ({
       </div>
 
       {/* Row 3: Meta Info (Showing X of Y tasks · Z are calendar commitments) */}
-      <div className="flex items-center justify-between pt-1 text-xs text-slate-500 dark:text-slate-400">
-        <div>
-          Showing{" "}
+      <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span>Showing</span>
           <strong className="font-bold text-slate-900 dark:text-white">
             {filteredCount}
-          </strong>{" "}
-          of{" "}
+          </strong>
+          <span>of</span>
           <strong className="font-bold text-slate-900 dark:text-white">
             {totalCount}
-          </strong>{" "}
-          tasks ·{" "}
-          <strong className="font-bold text-blue-600 dark:text-blue-400">
+          </strong>
+          <span>tasks</span>
+          <span className="text-slate-300 dark:text-slate-600 font-normal">•</span>
+          <strong className="font-bold text-emerald-600 dark:text-emerald-400">
             {currentCommitmentsCount}
-          </strong>{" "}
-          are calendar commitments
+          </strong>
+          <span>are calendar commitments</span>
         </div>
 
         {hasActiveFilters && (

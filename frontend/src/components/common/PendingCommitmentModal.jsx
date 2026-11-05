@@ -189,10 +189,11 @@ const PendingCommitmentModal = ({
           (t) => (t.status || "").trim().toLowerCase() === "completed"
         );
 
-        // Tasks in QC awaiting approval
-        const inQcTasks = allClientTasks.filter(
-          (t) => (t.status || "").trim().toLowerCase() === "in qc"
-        );
+        // Tasks in QC awaiting approval (matches QC and Completed and wait CLient Approval)
+        const inQcTasks = allClientTasks.filter((t) => {
+          const s = (t.status || "").trim().toLowerCase();
+          return s === "in qc" || s === "qc" || s.includes("client approval");
+        });
 
         const liveTasksCount = liveTasks.length;
         const completedTasksCount = completedTasks.length;
@@ -437,7 +438,7 @@ const PendingCommitmentModal = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 md:p-6 bg-slate-950/75 backdrop-blur-md overflow-hidden animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 md:p-6 bg-slate-900 dark:bg-black/10 backdrop-blur-md overflow-hidden animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}

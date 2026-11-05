@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useTheme } from "../../context/ThemeContext";
+import {
+  FaInstagram,
+  FaFacebook,
+  FaYoutube,
+  FaGoogle,
+  FaTwitter,
+  FaLinkedin,
+} from "react-icons/fa";
 import {
   FiPlus,
   FiRepeat,
@@ -12,6 +22,8 @@ import {
   FiSearch,
   FiChevronLeft,
   FiChevronRight,
+  FiChevronsLeft,
+  FiChevronsRight,
   FiCalendar,
   FiX,
   FiPlay,
@@ -45,36 +57,59 @@ import {
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
-import SmTaskCards from "./SmTaskCards";
 import SmTaskFilters from "./SmTaskFilters";
+import SmPlatformWarningModal from "./SmPlatformWarningModal";
 
 const CATEGORIES = [
   "All",
-  "Content",
-  "Copy",
-  "Posting",
-  "Engagement",
-  "Client",
-  "Ads",
-  "Strategy",
-  "Reporting",
-  "Calendar",
-  "Audit",
-  "Other",
+  "Content Calendar",
+  "Ad campaign check",
+  "Google review reply",
+  "Engagement monitor",
+  "Platform qc",
+  "Client app",
+  "Influencer",
+  "Client call",
+  "Model arrangement",
+  "Content kt",
+  "Business development",
+  "Competitor analysis",
+  "Trend analysis",
+  "Insight report",
 ];
 const CONTENT_TYPES = [
   "All",
-  "Reel",
   "Post",
-  "Carousel",
+  "Reels",
+  "Stories",
+  "Others Task",
+  "Reel",
   "Story",
+  "Carousel",
   "GMB",
   "YouTube",
   "Blog",
   "Ad",
   "Other",
 ];
-const STATUSES = ["All", "In QC", "Scheduled", "Overdue", "Not started", "In progress", "Completed", "Live"];
+const COMMITMENT_STATUS_OPTIONS = [
+  "Not started",
+  "Inprogress",
+  "QC",
+  "Completed and wait CLient Approval",
+  "Published Live",
+];
+const COMMITMENT_STATUSES = ["All", ...COMMITMENT_STATUS_OPTIONS];
+
+const NON_COMMITMENT_STATUS_OPTIONS = [
+  "Not started",
+  "Inprogress",
+  "Waiting for Response",
+  "Completed",
+];
+const NON_COMMITMENT_STATUSES = ["All", ...NON_COMMITMENT_STATUS_OPTIONS];
+
+const STATUSES = COMMITMENT_STATUSES;
 const PRIORITIES = ["All", "High", "Medium", "Low"];
 const COMMITMENTS = ["All", "Yes", "No"];
 
@@ -125,7 +160,28 @@ const renderDueDateBadge = (dueDate, status) => {
   if (isNaN(due.getTime())) return <span className="text-slate-400 font-medium">-</span>;
 
   const dateStr = formatDisplayDate(dueDate);
-  const isLive = status === "Live" || status === "Completed";
+
+  // Status QC or Completed and wait client approval -> show "Waiting" below the date ("date kila")
+  const s = (status || "").trim().toLowerCase();
+  const isWaiting = s === "qc" || s === "in qc" || s.includes("client approval");
+  if (isWaiting) {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+          {dateStr}
+        </span>
+        <span
+          title={`Status: ${status} • Waiting`}
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9.5px] font-extrabold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/60 shadow-2xs whitespace-nowrap"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+          <span>Waiting</span>
+        </span>
+      </div>
+    );
+  }
+
+  const isLive = ["Live", "Completed", "Published", "Published Live"].includes(status);
 
   // Calculate day difference relative to start of today in local time
   const now = new Date();
@@ -143,7 +199,7 @@ const renderDueDateBadge = (dueDate, status) => {
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
         <span>{dateStr}</span>
         <span className="text-[9.5px] font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-400 pl-0.5">
-          • {status === "Live" ? "Live" : "Done"}
+          • {["Live", "Published", "Published Live"].includes(status) ? "Published Live" : "Done"}
         </span>
       </span>
     );
@@ -204,7 +260,8 @@ const renderDueDateBadge = (dueDate, status) => {
  */
 const isTaskOverdue = (task) => {
   if (!task) return false;
-  if (["Completed", "Live"].includes(task.status)) return false;
+  const sSt = (task.status || "").trim().toLowerCase();
+  if (["completed", "live", "published", "published live", "qc", "in qc"].includes(sSt) || sSt.includes("client approval")) return false;
   if (task.status === "Overdue") return true;
 
   const targetDate = task.dueDate || task.publishDate;
@@ -220,45 +277,34 @@ const isTaskOverdue = (task) => {
   return dueDayStart < todayStart;
 };
 
-// Rich Category Styling (Curated tag theme with colored dot)
+// Helper to render platform icon
+const getPlatformIcon = (platform) => {
+  if (!platform) return null;
+  const p = platform.trim().toLowerCase();
+  if (p.includes("instagram")) return <FaInstagram className="text-[#E1306C] shrink-0" size={12} title="Instagram" />;
+  if (p.includes("facebook")) return <FaFacebook className="text-[#1877F2] shrink-0" size={12} title="Facebook" />;
+  if (p.includes("youtube")) return <FaYoutube className="text-[#FF0000] shrink-0" size={12} title="YouTube" />;
+  if (p.includes("gmb") || p.includes("google")) return <FaGoogle className="text-[#4285F4] shrink-0" size={11} title="GMB" />;
+  if (p.includes("twitter")) return <FaTwitter className="text-[#1DA1F2] shrink-0" size={12} title="Twitter / X" />;
+  if (p.includes("linkedin")) return <FaLinkedin className="text-[#0A66C2] shrink-0" size={12} title="LinkedIn" />;
+  return null;
+};
+
+// Rich Category Styling (Curated tag theme with colored dot for all categories)
 const getCategoryStyle = (category) => {
-  const cat = (category || "Content").trim().toLowerCase();
+  const cat = (category || "Content Calendar").trim().toLowerCase();
   switch (cat) {
+    case "content calendar":
+    case "content calendor":
     case "content":
+    case "calendar":
       return {
         bg: "bg-indigo-50 dark:bg-indigo-950/40",
         text: "text-indigo-700 dark:text-indigo-300",
         border: "border-indigo-200/90 dark:border-indigo-800/60",
         dot: "bg-indigo-500",
       };
-    case "copy":
-      return {
-        bg: "bg-teal-50 dark:bg-teal-950/40",
-        text: "text-teal-700 dark:text-teal-300",
-        border: "border-teal-200/90 dark:border-teal-800/60",
-        dot: "bg-teal-500",
-      };
-    case "posting":
-      return {
-        bg: "bg-sky-50 dark:bg-sky-950/40",
-        text: "text-sky-700 dark:text-sky-300",
-        border: "border-sky-200/90 dark:border-sky-800/60",
-        dot: "bg-sky-500",
-      };
-    case "engagement":
-      return {
-        bg: "bg-pink-50 dark:bg-pink-950/40",
-        text: "text-pink-700 dark:text-pink-300",
-        border: "border-pink-200/90 dark:border-pink-800/60",
-        dot: "bg-pink-500",
-      };
-    case "client":
-      return {
-        bg: "bg-purple-50 dark:bg-purple-950/40",
-        text: "text-purple-700 dark:text-purple-300",
-        border: "border-purple-200/90 dark:border-purple-800/60",
-        dot: "bg-purple-500",
-      };
+    case "ad campaign check":
     case "ads":
       return {
         bg: "bg-rose-50 dark:bg-rose-950/40",
@@ -266,33 +312,96 @@ const getCategoryStyle = (category) => {
         border: "border-rose-200/90 dark:border-rose-800/60",
         dot: "bg-rose-500",
       };
-    case "strategy":
-      return {
-        bg: "bg-amber-50 dark:bg-amber-950/40",
-        text: "text-amber-700 dark:text-amber-300",
-        border: "border-amber-200/90 dark:border-amber-800/60",
-        dot: "bg-amber-500",
-      };
-    case "reporting":
+    case "google review reply":
       return {
         bg: "bg-emerald-50 dark:bg-emerald-950/40",
         text: "text-emerald-700 dark:text-emerald-300",
         border: "border-emerald-200/90 dark:border-emerald-800/60",
         dot: "bg-emerald-500",
       };
-    case "calendar":
+    case "engagement monitor":
+    case "engagement":
+      return {
+        bg: "bg-pink-50 dark:bg-pink-950/40",
+        text: "text-pink-700 dark:text-pink-300",
+        border: "border-pink-200/90 dark:border-pink-800/60",
+        dot: "bg-pink-500",
+      };
+    case "platform qc":
+      return {
+        bg: "bg-purple-50 dark:bg-purple-950/40",
+        text: "text-purple-700 dark:text-purple-300",
+        border: "border-purple-200/90 dark:border-purple-800/60",
+        dot: "bg-purple-500",
+      };
+    case "client app":
+    case "client":
+      return {
+        bg: "bg-amber-50 dark:bg-amber-950/40",
+        text: "text-amber-700 dark:text-amber-300",
+        border: "border-amber-200/90 dark:border-amber-800/60",
+        dot: "bg-amber-500",
+      };
+    case "influencer":
+    case "inflener":
+      return {
+        bg: "bg-cyan-50 dark:bg-cyan-950/40",
+        text: "text-cyan-700 dark:text-cyan-300",
+        border: "border-cyan-200/90 dark:border-cyan-800/60",
+        dot: "bg-cyan-500",
+      };
+    case "client call":
+    case "clientcall":
       return {
         bg: "bg-blue-50 dark:bg-blue-950/40",
         text: "text-blue-700 dark:text-blue-300",
         border: "border-blue-200/90 dark:border-blue-800/60",
         dot: "bg-blue-500",
       };
-    case "audit":
+    case "model arrangement":
+    case "modal arrangement":
       return {
         bg: "bg-orange-50 dark:bg-orange-950/40",
         text: "text-orange-700 dark:text-orange-300",
         border: "border-orange-200/90 dark:border-orange-800/60",
         dot: "bg-orange-500",
+      };
+    case "content kt":
+      return {
+        bg: "bg-violet-50 dark:bg-violet-950/40",
+        text: "text-violet-700 dark:text-violet-300",
+        border: "border-violet-200/90 dark:border-violet-800/60",
+        dot: "bg-violet-500",
+      };
+    case "business development":
+    case "bussiness deve":
+      return {
+        bg: "bg-teal-50 dark:bg-teal-950/40",
+        text: "text-teal-700 dark:text-teal-300",
+        border: "border-teal-200/90 dark:border-teal-800/60",
+        dot: "bg-teal-500",
+      };
+    case "competitor analysis":
+      return {
+        bg: "bg-red-50 dark:bg-red-950/40",
+        text: "text-red-700 dark:text-red-300",
+        border: "border-red-200/90 dark:border-red-800/60",
+        dot: "bg-red-500",
+      };
+    case "trend analysis":
+      return {
+        bg: "bg-fuchsia-50 dark:bg-fuchsia-950/40",
+        text: "text-fuchsia-700 dark:text-fuchsia-300",
+        border: "border-fuchsia-200/90 dark:border-fuchsia-800/60",
+        dot: "bg-fuchsia-500",
+      };
+    case "insight report":
+    case "reporting":
+      return {
+        bg: "bg-sky-50 dark:bg-sky-950/40",
+        text: "text-sky-700 dark:text-sky-300",
+        border: "border-sky-200/90 dark:border-sky-800/60",
+        dot: "bg-sky-500",
       };
     default:
       return {
@@ -309,6 +418,32 @@ const getContentTypeConfig = (contentType) => {
   const type = (contentType || "Post").trim().toLowerCase();
   switch (type) {
     case "reel":
+    case "reels":
+      return {
+        bg: "bg-fuchsia-50 dark:bg-fuchsia-950/40",
+        text: "text-fuchsia-700 dark:text-fuchsia-300",
+        border: "border-fuchsia-250 dark:border-fuchsia-800/60",
+        icon: FiPlay,
+        iconClass: "fill-fuchsia-600 dark:fill-fuchsia-400 text-fuchsia-600 dark:text-fuchsia-400",
+      };
+    case "story":
+    case "stories":
+      return {
+        bg: "bg-amber-50 dark:bg-amber-950/40",
+        text: "text-amber-700 dark:text-amber-300",
+        border: "border-amber-200 dark:border-amber-800/60",
+        icon: FiZap,
+        iconClass: "text-amber-600 dark:text-amber-400 fill-amber-500/20",
+      };
+    case "others task":
+    case "other":
+      return {
+        bg: "bg-slate-100 dark:bg-slate-800",
+        text: "text-slate-700 dark:text-slate-300",
+        border: "border-slate-200 dark:border-slate-700",
+        icon: FiLayers,
+        iconClass: "text-slate-500 dark:text-slate-400",
+      };
       return {
         bg: "bg-fuchsia-50 dark:bg-fuchsia-950/40",
         text: "text-fuchsia-700 dark:text-fuchsia-300",
@@ -402,11 +537,57 @@ const isSocialMediaManager = (u) => {
   );
 };
 
+const getDisplayStatusForTask = (task, selectedCommitment) => {
+  const isComm = Boolean(task?.commitment) || selectedCommitment === "Yes";
+  const st = task?.status || "Not started";
+  if (isComm) {
+    if (st === "Live" || st === "Published" || st === "Published Live") return "Published Live";
+    if (st === "In QC" || st === "QC") return "QC";
+    if (st === "In progress" || st === "Inprogress") return "Inprogress";
+    if ((st || "").toLowerCase().includes("client approval")) return "Completed and wait CLient Approval";
+    return st;
+  } else {
+    if (st === "In progress" || st === "Inprogress") return "Inprogress";
+    return st;
+  }
+};
+
+const getTableStatusStyle = (status) => {
+  const s = (status || "").toLowerCase().trim();
+  if (s.includes("not started")) {
+    return "bg-slate-100 text-slate-700 dark:bg-[#131d31] dark:text-slate-200 border-slate-200 dark:border-white/10";
+  }
+  if (s.includes("inprogress") || s.includes("in progress")) {
+    return "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300";
+  }
+  if (s === "qc" || s.includes("in qc")) {
+    return "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300";
+  }
+  if (s.includes("client approval") || s.includes("approval")) {
+    return "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-300 font-semibold";
+  }
+  if (s.includes("waiting for response") || s.includes("response")) {
+    return "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-300 font-semibold";
+  }
+  if (s.includes("published live") || s.includes("published") || s === "live") {
+    return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 font-bold";
+  }
+  if (s.includes("completed")) {
+    return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 font-bold";
+  }
+  if (s.includes("overdue")) {
+    return "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300";
+  }
+  return "bg-slate-100 text-slate-700 dark:bg-[#131d31] dark:text-slate-200 border-slate-200 dark:border-white/10";
+};
+
 const SmTasks = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const role = user?.role || "admin";
+  const { theme, accentColor = "emerald" } = useTheme();
+  const isLightAccent = ["neon-green", "lime"].includes(accentColor);
 
   const { tasks, totalCount, commitmentsCount, loading } = useSelector(
     (state) => state.socialmediaTasks
@@ -516,11 +697,11 @@ const SmTasks = () => {
   // Filter States
   const [selectedClient, setSelectedClient] = useState("All");
   const [selectedCreatedBy, setSelectedCreatedBy] = useState("All");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("Content Calendar");
   const [selectedContentType, setSelectedContentType] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
-  const [selectedCommitment, setSelectedCommitment] = useState("All");
+  const [selectedCommitment, setSelectedCommitment] = useState("Yes");
 
   // Comprehensive Date Filter States
   const [dateFilterPreset, setDateFilterPreset] = useState("All"); // "All", "Today", "Tomorrow", "This Week", "This Month", "Overdue", "Custom"
@@ -534,10 +715,25 @@ const SmTasks = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState(null);
+  const [platformWarningModal, setPlatformWarningModal] = useState({
+    isOpen: false,
+    task: null,
+    targetStatus: "",
+  });
+  const [activePlatformMenuTaskId, setActivePlatformMenuTaskId] = useState(null);
+
+  useEffect(() => {
+    const handleOutside = () => setActivePlatformMenuTaskId(null);
+    if (activePlatformMenuTaskId) {
+      document.addEventListener("click", handleOutside);
+    }
+    return () => document.removeEventListener("click", handleOutside);
+  }, [activePlatformMenuTaskId]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 12;
+  const [mobileViewMode, setMobileViewMode] = useState("cards");
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Initial fetch of dynamic data
   useEffect(() => {
@@ -713,18 +909,63 @@ const SmTasks = () => {
       }
 
       // Category
-      if (selectedCategory !== "All" && task.category !== selectedCategory) {
-        return false;
+      if (selectedCategory !== "All") {
+        const catLower = (task.category || "").trim().toLowerCase();
+        const selCatLower = selectedCategory.trim().toLowerCase();
+        if (selCatLower === "content calendar" || selCatLower === "content calendor") {
+          const isCal =
+            catLower === "content calendar" ||
+            catLower === "content calendor" ||
+            catLower === "content" ||
+            Boolean(task.commitment);
+          if (!isCal) return false;
+        } else if (catLower !== selCatLower) {
+          return false;
+        }
       }
 
       // Content Type
-      if (selectedContentType !== "All" && task.contentType !== selectedContentType) {
-        return false;
+      if (selectedContentType !== "All") {
+        const ctLower = (task.contentType || "").trim().toLowerCase();
+        const selCtLower = selectedContentType.trim().toLowerCase();
+        if (selCtLower === "reels" || selCtLower === "reel") {
+          if (ctLower !== "reels" && ctLower !== "reel") return false;
+        } else if (selCtLower === "stories" || selCtLower === "story") {
+          if (ctLower !== "stories" && ctLower !== "story") return false;
+        } else if (selCtLower === "post") {
+          if (ctLower !== "post") return false;
+        } else if (selCtLower === "others task" || selCtLower === "other" || selCtLower === "others") {
+          if (ctLower && ctLower !== "others task" && ctLower !== "other" && ctLower !== "others") {
+            return false;
+          }
+        } else if (ctLower !== selCtLower) {
+          return false;
+        }
       }
 
       // Status
-      if (selectedStatus !== "All" && task.status !== selectedStatus) {
-        return false;
+      if (selectedStatus !== "All") {
+        const normSelected = selectedStatus.toLowerCase().trim();
+        const normTaskStatus = (task.status || "Not started").toLowerCase().trim();
+
+        let match = false;
+        if (normSelected === "published live") {
+          match = ["published live", "published", "live"].includes(normTaskStatus);
+        } else if (normSelected === "qc" || normSelected === "in qc") {
+          match = ["qc", "in qc"].includes(normTaskStatus) || normTaskStatus.includes("client approval");
+        } else if (normSelected === "inprogress") {
+          match = ["inprogress", "in progress"].includes(normTaskStatus);
+        } else if (normSelected.includes("client approval")) {
+          match = normTaskStatus.includes("client approval");
+        } else if (normSelected === "waiting for response") {
+          match = ["waiting for response", "waiting for responce"].includes(normTaskStatus);
+        } else if (normSelected === "completed") {
+          match = normTaskStatus === "completed";
+        } else {
+          match = normTaskStatus === normSelected;
+        }
+
+        if (!match) return false;
       }
 
       // Priority
@@ -741,7 +982,7 @@ const SmTasks = () => {
       // At risk toggle
       if (atRiskOnly) {
         if (!task.commitment) return false;
-        if (["Completed", "Live"].includes(task.status)) return false;
+        if (["Completed", "Live", "Published", "Published Live", "Completed and wait CLient Approval", "Completed and wait Client Approval"].includes(task.status)) return false;
         const targetDate = task.publishDate || task.dueDate;
         if (!targetDate) return false;
         const diffHours = (new Date(targetDate).getTime() - Date.now()) / (1000 * 60 * 60);
@@ -807,7 +1048,7 @@ const SmTasks = () => {
           });
           if (!matches) return false;
         } else if (dateFilterPreset === "Overdue") {
-          if (["Completed", "Live"].includes(task.status)) return false;
+          if (["Completed", "Live", "Published"].includes(task.status)) return false;
           const hasOverdue = targetDates.some((d) => new Date(d).getTime() < now.getTime());
           if (!hasOverdue) return false;
         } else if (dateFilterPreset === "Custom" || customStartDate || customEndDate) {
@@ -857,7 +1098,23 @@ const SmTasks = () => {
     return filteredTasks.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTasks, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredTasks.length / itemsPerPage) || 1;
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / itemsPerPage));
+
+  // Dynamic Page numbers with ellipsis for pagination
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages = [];
+    if (currentPage <= 4) {
+      pages.push(1, 2, 3, 4, 5, "...", totalPages);
+    } else if (currentPage >= totalPages - 3) {
+      pages.push(1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
+    }
+    return pages;
+  }, [currentPage, totalPages]);
 
   // Filtered clients matching current selection (client, category, creator)
   const relevantClients = useMemo(() => {
@@ -944,17 +1201,34 @@ const SmTasks = () => {
     return filteredTasks.filter((t) => t.commitment).length;
   }, [filteredTasks]);
 
+  const totalCommitmentsCount = useMemo(() => {
+    return uniqueTasks.filter((t) => Boolean(t.commitment)).length;
+  }, [uniqueTasks]);
+
+  const totalNonCommitmentsCount = useMemo(() => {
+    return uniqueTasks.filter((t) => !t.commitment).length;
+  }, [uniqueTasks]);
+
 
 
   const hasActiveFilters = useMemo(() => {
+    const isCategoryFiltered =
+      selectedCommitment === "Yes"
+        ? false
+        : selectedCategory !== "All";
+
+    const isContentTypeFiltered =
+      selectedCommitment === "No"
+        ? false
+        : selectedContentType !== "All";
+
     return (
       selectedClient !== "All" ||
       selectedCreatedBy !== "All" ||
-      selectedCategory !== "All" ||
-      selectedContentType !== "All" ||
+      isCategoryFiltered ||
+      isContentTypeFiltered ||
       selectedStatus !== "All" ||
       selectedPriority !== "All" ||
-      selectedCommitment !== "All" ||
       dateFilterPreset !== "All" ||
       Boolean(customStartDate) ||
       Boolean(customEndDate) ||
@@ -964,11 +1238,11 @@ const SmTasks = () => {
   }, [
     selectedClient,
     selectedCreatedBy,
+    selectedCommitment,
     selectedCategory,
     selectedContentType,
     selectedStatus,
     selectedPriority,
-    selectedCommitment,
     dateFilterPreset,
     customStartDate,
     customEndDate,
@@ -1006,11 +1280,16 @@ const SmTasks = () => {
   const handleResetFilters = () => {
     setSelectedClient("All");
     setSelectedCreatedBy("All");
-    setSelectedCategory("All");
-    setSelectedContentType("All");
+    if (selectedCommitment === "Yes") {
+      setSelectedCategory("Content Calendar");
+      setSelectedContentType("All");
+    } else {
+      setSelectedCategory("All");
+      setSelectedContentType("Others Task");
+    }
     setSelectedStatus("All");
     setSelectedPriority("All");
-    setSelectedCommitment("All");
+    setSelectedCommitment(selectedCommitment);
     setDateFilterPreset("All");
     setDateFilterField("any");
     setCustomStartDate("");
@@ -1137,9 +1416,324 @@ const SmTasks = () => {
     setIsModalOpen(true);
   };
 
+  const ALL_PLATFORMS_LIST = [
+    { id: "Instagram", name: "Instagram", icon: FaInstagram, color: "#E1306C" },
+    { id: "Facebook", name: "Facebook", icon: FaFacebook, color: "#1877F2" },
+    { id: "YouTube", name: "YouTube", icon: FaYoutube, color: "#FF0000" },
+    { id: "GMB", name: "GMB", icon: FaGoogle, color: "#4285F4" },
+    { id: "Twitter", name: "Twitter", icon: FaTwitter, color: "#1DA1F2" },
+    { id: "LinkedIn", name: "LinkedIn", icon: FaLinkedin, color: "#0A66C2" },
+  ];
+
+  const handleTogglePlatformSubtask = async (task, platformId, e) => {
+    if (e) e.stopPropagation();
+    if (!task || !task._id || isReadOnly) return;
+
+    const currentCompleted = Array.isArray(task.completedPlatforms) ? task.completedPlatforms : [];
+    const isCompleted = currentCompleted.some((p) => p.toLowerCase() === platformId.toLowerCase());
+
+    const newCompleted = isCompleted
+      ? currentCompleted.filter((p) => p.toLowerCase() !== platformId.toLowerCase())
+      : [...currentCompleted, platformId];
+
+    const currentPlatforms = Array.isArray(task.platforms) && task.platforms.length > 0
+      ? task.platforms
+      : (task.platform ? [task.platform] : []);
+    
+    const newPlatforms = currentPlatforms.some((p) => p.toLowerCase() === platformId.toLowerCase())
+      ? currentPlatforms
+      : [...currentPlatforms, platformId];
+
+    try {
+      await dispatch(
+        updateSocialmediaTask({
+          id: task._id,
+          data: {
+            completedPlatforms: newCompleted,
+            platforms: newPlatforms,
+          },
+        })
+      ).unwrap();
+
+      if (!isCompleted) {
+        toast.success(`✓ ${platformId} marked as completed`);
+      } else {
+        toast(`Unchecked ${platformId}`, { icon: "↩️" });
+      }
+    } catch (err) {
+      toast.error(err?.message || "Failed to update platform status");
+    }
+  };
+
+  const handleTogglePlatformAssignment = async (task, platformId) => {
+    if (!task || !task._id || isReadOnly) return;
+
+    const currentPlatforms = Array.isArray(task.platforms) && task.platforms.length > 0
+      ? task.platforms
+      : (task.platform ? [task.platform] : ["Instagram"]);
+
+    const exists = currentPlatforms.some((p) => p.toLowerCase() === platformId.toLowerCase());
+    let updatedPlatforms;
+    let updatedCompleted = Array.isArray(task.completedPlatforms) ? [...task.completedPlatforms] : [];
+
+    if (exists) {
+      updatedPlatforms = currentPlatforms.filter((p) => p.toLowerCase() !== platformId.toLowerCase());
+      updatedCompleted = updatedCompleted.filter((p) => p.toLowerCase() !== platformId.toLowerCase());
+    } else {
+      updatedPlatforms = [...currentPlatforms, platformId];
+    }
+
+    try {
+      await dispatch(
+        updateSocialmediaTask({
+          id: task._id,
+          data: {
+            platforms: updatedPlatforms,
+            completedPlatforms: updatedCompleted,
+            platform: updatedPlatforms[0] || "",
+          },
+        })
+      ).unwrap();
+      toast.success(exists ? `Removed ${platformId}` : `Added ${platformId} sub-task`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update platform assignment");
+    }
+  };
+
+  const renderPlatformSubtasks = (task) => {
+    const isCal =
+      (task.category || "").trim().toLowerCase() === "content calendar" ||
+      (task.category || "").trim().toLowerCase() === "content calendor" ||
+      (task.category || "").trim().toLowerCase() === "content" ||
+      Boolean(task.commitment);
+
+    if (!isCal) {
+      return (
+        <span className="text-[11px] text-slate-400 font-medium italic">
+          -
+        </span>
+      );
+    }
+
+    const assignedPlatforms = Array.isArray(task.platforms) && task.platforms.length > 0
+      ? task.platforms
+      : (task.platform ? [task.platform] : ["Instagram"]);
+
+    const targetPlatforms = assignedPlatforms;
+    const completedPlatforms = Array.isArray(task.completedPlatforms) ? task.completedPlatforms : [];
+    const completedCount = targetPlatforms.filter((p) =>
+      completedPlatforms.some((cp) => cp.toLowerCase() === p.toLowerCase())
+    ).length;
+    const totalCount = targetPlatforms.length;
+    const allDone = totalCount > 0 && completedCount === totalCount;
+    const isMenuOpen = activePlatformMenuTaskId === task._id;
+
+    return (
+      <div className="flex flex-col gap-1.5 py-1 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        {/* Subtask Progress Bar & Badge */}
+        <div className="flex items-center justify-between gap-1.5 text-[10px]">
+          <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Platforms
+          </span>
+          <span
+            className={`px-1.5 py-0.2 rounded-md font-extrabold text-[9px] ${
+              allDone
+                ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                : completedCount > 0
+                  ? "bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+            }`}
+          >
+            {completedCount}/{totalCount} {allDone ? "✓ All Done" : "Posted"}
+          </span>
+        </div>
+
+        {/* Interactive Checkbox Chips (Tick & Icon Only - Better UI/UX) */}
+        <div className="grid grid-cols-3 gap-1.5 w-fit">
+          {targetPlatforms.map((platId) => {
+            const platObj = ALL_PLATFORMS_LIST.find((p) => p.id.toLowerCase() === platId.toLowerCase()) || {
+              id: platId,
+              name: platId,
+              icon: FiLayers,
+              color: "#6366f1",
+            };
+            const IconComp = platObj.icon;
+            const isCompleted = completedPlatforms.some((cp) => cp.toLowerCase() === platId.toLowerCase());
+
+            return (
+              <button
+                key={platId}
+                type="button"
+                disabled={isReadOnly}
+                onClick={(e) => handleTogglePlatformSubtask(task, platObj.id, e)}
+                title={
+                  isCompleted
+                    ? `✓ ${platObj.name} (Posted - Click to uncheck)`
+                    : `○ ${platObj.name} (Pending - Click to mark posted)`
+                }
+                className={`group/plat relative inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all duration-150 cursor-pointer ${
+                  isCompleted
+                    ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300/90 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100 hover:scale-105"
+                    : "bg-white dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-emerald-400 hover:bg-emerald-50/30 hover:scale-105 shadow-2xs"
+                } active:scale-95 disabled:cursor-not-allowed`}
+              >
+                {/* Tick Checkbox Indicator */}
+                <span
+                  className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] transition-colors shrink-0 ${
+                    isCompleted
+                      ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs"
+                      : "border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 group-hover/plat:border-emerald-400 text-transparent"
+                  }`}
+                >
+                  <FiCheck className="stroke-[3]" size={10} />
+                </span>
+
+                {/* Platform Icon */}
+                <IconComp
+                  size={13}
+                  className={`shrink-0 transition-opacity ${
+                    isCompleted ? "opacity-100" : "opacity-75 group-hover/plat:opacity-100"
+                  }`}
+                  style={{ color: platObj.color }}
+                />
+              </button>
+            );
+          })}
+
+          {/* Quick Add Platform Subtask Button */}
+          {!isReadOnly && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActivePlatformMenuTaskId(isMenuOpen ? null : task._id);
+                }}
+                className="w-full h-full min-h-[25px] min-w-[36px] rounded-lg border border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 flex items-center justify-center text-[11px] transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                title="Add or remove platforms from this task"
+              >
+                <FiPlus size={12} className="stroke-[2.5]" />
+              </button>
+
+              {/* Popover */}
+              {isMenuOpen && (
+                <div
+                  className="absolute left-0 top-full mt-1.5 w-48 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-2 space-y-1 animate-in fade-in zoom-in-95"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1.5 pb-1 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span>Manage Platforms</span>
+                    <button
+                      type="button"
+                      onClick={() => setActivePlatformMenuTaskId(null)}
+                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <FiX size={11} />
+                    </button>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto py-0.5 space-y-0.5 text-xs">
+                    {ALL_PLATFORMS_LIST.map((plat) => {
+                      const IconComp = plat.icon;
+                      const isAssigned = targetPlatforms.some((p) => p.toLowerCase() === plat.id.toLowerCase());
+                      const isCompleted = completedPlatforms.some((p) => p.toLowerCase() === plat.id.toLowerCase());
+
+                      return (
+                        <button
+                          key={plat.id}
+                          type="button"
+                          onClick={() => handleTogglePlatformAssignment(task, plat.id)}
+                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer text-xs font-semibold ${
+                            isAssigned
+                              ? "bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300"
+                              : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <IconComp size={12} style={{ color: plat.color }} />
+                            <span>{plat.name}</span>
+                          </div>
+                          <span className={`text-[10px] font-bold ${isAssigned ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
+                            {isAssigned ? (isCompleted ? "✓ Done" : "Target") : "+ Add"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const handleQuickStatusChange = (task, newStatus) => {
-    if (isReadOnly) return;
+    if (isReadOnly || !task || !task._id) return;
+
+    const isComm =
+      Boolean(task.commitment) ||
+      selectedCommitment === "Yes" ||
+      (task.category || "").trim().toLowerCase() === "content calendar" ||
+      (task.category || "").trim().toLowerCase() === "content calendor" ||
+      (task.category || "").trim().toLowerCase() === "content";
+
+    // Verification required for: QC, Completed and wait CLient Approval, Published Live
+    const s = (newStatus || "").trim().toLowerCase();
+    const isVerificationStatus =
+      s === "qc" ||
+      s === "in qc" ||
+      s.includes("client approval") ||
+      s === "published live" ||
+      s === "live" ||
+      s === "published";
+
+    if (isComm && isVerificationStatus) {
+      const assignedPlatforms =
+        Array.isArray(task.platforms) && task.platforms.length > 0
+          ? task.platforms
+          : task.platform
+          ? [task.platform]
+          : [];
+
+      const completedPlatforms = Array.isArray(task.completedPlatforms)
+        ? task.completedPlatforms
+        : [];
+      const untickedPlatforms = assignedPlatforms.filter(
+        (p) => !completedPlatforms.some((cp) => cp.toLowerCase() === p.toLowerCase())
+      );
+
+      if (untickedPlatforms.length > 0) {
+        setPlatformWarningModal({
+          isOpen: true,
+          task,
+          targetStatus: newStatus,
+        });
+        return;
+      }
+    }
+
     dispatch(updateSocialmediaTask({ id: task._id, data: { status: newStatus } }));
+    toast.success(`Status updated to "${newStatus}"`);
+  };
+
+  const handleConfirmPlatformWarning = async ({ task, targetStatus, completedPlatforms }) => {
+    try {
+      await dispatch(
+        updateSocialmediaTask({
+          id: task._id,
+          data: {
+            status: targetStatus,
+            completedPlatforms,
+          },
+        })
+      ).unwrap();
+      toast.success(`✓ Status updated to "${targetStatus}"`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to update status");
+    } finally {
+      setPlatformWarningModal({ isOpen: false, task: null, targetStatus: "" });
+    }
   };
 
   const handleDeleteTask = (task, e) => {
@@ -1151,7 +1745,7 @@ const SmTasks = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-2 space-y-6">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-3 sm:p-5 space-y-3.5 sm:space-y-6">
       {/* Top Header - Matching Image 1 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -1210,7 +1804,7 @@ const SmTasks = () => {
           ) : (
             <button
               onClick={handleCreateNew}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all cursor-pointer"
             >
               <FiPlus size={15} className="stroke-[2.5]" />
               <span>Create task</span>
@@ -1220,7 +1814,7 @@ const SmTasks = () => {
       </div>
 
       {/* Synchronized Banner (Image 1 style) */}
-      <div className="bg-[#f0fdf4] dark:bg-emerald-950/30 border border-[#bbf7d0] dark:border-emerald-800/50 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
+      <div className="hidden sm:flex bg-[#f0fdf4] dark:bg-emerald-950/30 border border-[#bbf7d0] dark:border-emerald-800/50 rounded-2xl p-4 flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-white flex items-center justify-center shrink-0">
             <FiRepeat size={16} />
@@ -1233,31 +1827,142 @@ const SmTasks = () => {
 
         <button
           onClick={handleOpenCalendar}
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:textwhite0 hover:text-emerald-800 dark:hover:textwhite0 transition-colors shrink-0 whitespace-nowrap self-end md:self-auto cursor-pointer"
+          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors shrink-0 whitespace-nowrap self-end md:self-auto cursor-pointer"
         >
           <span>Open calendar</span>
           <FiArrowRight size={14} />
         </button>
       </div>
 
-      {/* Commitments Overview Section (Cards) */}
-      <SmTaskCards
-        selectedClient={selectedClient}
-        selectedMonth={selectedMonth}
-        selectedYear={selectedYear}
-        hasActiveFilters={hasActiveFilters}
-        commitmentOverview={commitmentOverview}
-        onOpenPendingCommitment={() => setIsPendingCommitmentOpen(true)}
-        atRiskOnly={atRiskOnly}
-        setAtRiskOnly={setAtRiskOnly}
-        selectedStatus={selectedStatus}
-        setSelectedStatus={setSelectedStatus}
-        setCurrentPage={setCurrentPage}
-      />
+      {/* Premium Segmented Tab Navigation: Commitment vs SME tasks  */}
+      <div className="bg-white/95 dark:bg-[#0c1220] backdrop-blur-md rounded-2xl p-2.5 shadow-sm border border-slate-200/80 dark:border-white/10 flex items-center justify-between flex-wrap gap-3">
+        {/* Sleek Segmented Switcher */}
+        <div className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex items-center p-1.5 bg-slate-100/90 dark:bg-[#131d31] rounded-2xl border border-slate-200/70 dark:border-white/10 gap-1.5 shadow-inner relative">
+          {/* Tab 1: Commitment */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCommitment("Yes");
+              setSelectedCategory("Content Calendar");
+              setSelectedContentType("All");
+              setCurrentPage(1);
+            }}
+            className={`group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${
+              selectedCommitment === "Yes"
+                ? (isLightAccent ? "text-slate-950 font-black" : "text-white")
+                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            {selectedCommitment === "Yes" && (
+              <motion.div
+                layoutId="activeSmTaskTab"
+                className="absolute inset-0 rounded-xl"
+                style={{
+                  background: "var(--color-brand-gradient, var(--accent-gradient))",
+                  boxShadow: "0 4px 16px var(--btn-glow-shadow, rgba(0,0,0,0.25))",
+                }}
+                transition={{ type: "spring", stiffness: 450, damping: 35 }}
+              />
+            )}
+            <div className="relative z-10 flex items-center gap-2">
+              <div
+                className={`p-1 rounded-lg transition-colors ${
+                  selectedCommitment === "Yes"
+                    ? "bg-white/20 text-current"
+                    : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300/80 dark:group-hover:bg-white/20"
+                }`}
+              >
+                <FiLock size={13} className="stroke-[2.5]" />
+              </div>
+              <span>Commitment</span>
+              <span
+                className={`text-[11px] px-2 py-0.5 rounded-full font-black transition-all ${
+                  selectedCommitment === "Yes"
+                    ? (isLightAccent ? "bg-black/15 text-slate-950" : "bg-white/25 text-white backdrop-blur-xs")
+                    : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/10"
+                }`}
+              >
+                {totalCommitmentsCount}
+              </span>
+            </div>
+          </button>
+
+          {/* Tab 2: SME tasks  */}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCommitment("No");
+              setSelectedCategory("All");
+              setSelectedContentType("Others Task");
+              setCurrentPage(1);
+            }}
+            className={`group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${
+              selectedCommitment === "No"
+                ? (isLightAccent ? "text-slate-950 font-black" : "text-white")
+                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            {selectedCommitment === "No" && (
+              <motion.div
+                layoutId="activeSmTaskTab"
+                className="absolute inset-0 rounded-xl"
+                style={{
+                  background: "var(--color-brand-gradient, var(--accent-gradient))",
+                  boxShadow: "0 4px 16px var(--btn-glow-shadow, rgba(0,0,0,0.25))",
+                }}
+                transition={{ type: "spring", stiffness: 450, damping: 35 }}
+              />
+            )}
+            <div className="relative z-10 flex items-center gap-2">
+              <div
+                className={`p-1 rounded-lg transition-colors ${
+                  selectedCommitment === "No"
+                    ? "bg-white/20 text-current"
+                    : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300/80 dark:group-hover:bg-white/20"
+                }`}
+              >
+                <FiLayers size={13} className="stroke-[2.5]" />
+              </div>
+              <span>SME tasks </span>
+              <span
+                className={`text-[11px] px-2 py-0.5 rounded-full font-black transition-all ${
+                  selectedCommitment === "No"
+                    ? (isLightAccent ? "bg-black/15 text-slate-950" : "bg-white/25 text-white backdrop-blur-xs")
+                    : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/10"
+                }`}
+              >
+                {totalNonCommitmentsCount}
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* Live Filter Indicator Pill */}
+        <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10">
+          <span
+            className="w-2 h-2 rounded-full animate-pulse"
+            style={{ backgroundColor: "var(--accent-color, #10b981)" }}
+          />
+          <span className="text-slate-700 dark:text-slate-200">
+            {selectedCommitment === "Yes" ? (
+              <>
+                Showing <strong style={{ color: "var(--accent-color, #10b981)" }} className="font-bold">{filteredTasks.length}</strong> Content Calendar Commitments
+              </>
+            ) : (
+              <>
+                Showing <strong style={{ color: "var(--accent-color, #3b82f6)" }} className="font-bold">{filteredTasks.length}</strong> Non-commitment &amp; Ad-hoc Tasks
+              </>
+            )}
+          </span>
+        </div>
+      </div>
 
       {/* Reference Matching Filter UI Container */}
       <SmTaskFilters
         searchQuery={searchQuery}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        categories={CATEGORIES}
         setSearchQuery={setSearchQuery}
         onExportExcel={handleExportExcel}
         atRiskOnly={atRiskOnly}
@@ -1272,10 +1977,14 @@ const SmTasks = () => {
         user={user}
         selectedContentType={selectedContentType}
         setSelectedContentType={setSelectedContentType}
-        contentTypes={CONTENT_TYPES}
+        contentTypes={
+          selectedCommitment === "Yes"
+            ? ["All", "Post", "Reels", "Stories"]
+            : ["All", "Others Task"]
+        }
         selectedStatus={selectedStatus}
         setSelectedStatus={setSelectedStatus}
-        statuses={STATUSES}
+        statuses={selectedCommitment === "Yes" ? COMMITMENT_STATUSES : NON_COMMITMENT_STATUSES}
         selectedPriority={selectedPriority}
         setSelectedPriority={setSelectedPriority}
         priorities={PRIORITIES}
@@ -1299,35 +2008,44 @@ const SmTasks = () => {
       />
 
       {/* Main Table Container */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-[#0c1220] rounded-2xl shadow-sm border border-slate-200/80 dark:border-white/10 overflow-hidden">
         <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs whitespace-nowrap">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  <th className="py-3 px-4">Task</th>
-                  <th className="py-3 px-4">Client</th>
-                  <th className="py-3 px-3">Category</th>
-                  <th className="py-3 px-3">Content Type</th>
-                  <th className="py-3 px-4">Created by</th>
-                  <th className="py-3 px-3">Due Date</th>
-                  <th className="py-3 px-3">Status</th>
-                  <th className="py-3 px-3">Priority</th>
-                  <th className="py-3 px-3">QC</th>
-                  <th className="py-3 px-4 bg-slate-100/50 dark:bg-slate-800/80 font-bold">Publish Date</th>
-                  <th className="py-3 px-3 bg-slate-100/50 dark:bg-slate-800/80 font-bold">Calendar</th>
-                  <th className="py-3 px-3 text-center">Action</th>
+                <tr className="border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-[#131d31] text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                  <th className="py-3 px-3 text-center whitespace-nowrap w-12 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
+                  <th className="py-3 px-4 min-w-[200px]">Task</th>
+                  <th className="py-3 px-4 whitespace-nowrap">Client</th>
+                  <th className="py-3 px-3 whitespace-nowrap">Category</th>
+                  <th className="py-3 px-3 whitespace-nowrap">Content Type</th>
+                  {selectedCommitment !== "No" && (
+                    <th className="py-3 px-3.5 font-bold whitespace-nowrap">Platforms</th>
+                  )}
+                  <th className="py-3 px-4 whitespace-nowrap">Created by</th>
+                  <th className="py-3 px-3 whitespace-nowrap">Due Date</th>
+                  <th className="py-3 px-3 whitespace-nowrap">Status</th>
+                  <th className="py-3 px-3 whitespace-nowrap">Priority</th>
+                  {selectedCommitment !== "No" && (
+                    <>
+                      <th className="py-3 px-3 whitespace-nowrap">QC</th>
+                      <th className="py-3 px-4 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
+                      <th className="py-3 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Commitment</th>
+                      <th className="py-3 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Calendar</th>
+                    </>
+                  )}
+                  <th className="py-3 px-3 text-center whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
                 {loading && tasks.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="py-12 text-center text-slate-400 italic">
+                    <td colSpan={selectedCommitment === "No" ? 10 : 15} className="py-12 text-center text-slate-400 italic">
                       Loading social media tasks...
                     </td>
                   </tr>
                 ) : paginatedTasks.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="py-12 text-center">
+                    <td colSpan={selectedCommitment === "No" ? 10 : 15} className="py-12 text-center">
                       <div className="flex flex-col items-center justify-center py-6">
                         <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-500 mb-3">
                           <FiCalendar size={22} />
@@ -1348,7 +2066,7 @@ const SmTasks = () => {
                     </td>
                   </tr>
                 ) : (
-                  paginatedTasks.map((task) => {
+                  paginatedTasks.map((task, index) => {
                     const clientColor = task.clientColor || "#6366f1";
                     const isOverdue = isTaskOverdue(task);
 
@@ -1361,6 +2079,11 @@ const SmTasks = () => {
                           }`}
                         onClick={() => handleEditTask(task)}
                       >
+                        {/* SL.NO */}
+                        <td className="py-3 px-3 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </td>
+
                         {/* TASK NAME with Left Accent Line */}
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
@@ -1368,9 +2091,11 @@ const SmTasks = () => {
                               className="w-1 h-5 rounded-full shrink-0"
                               style={{ backgroundColor: clientColor }}
                             />
-                            <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">
-                              {task.taskTitle}
-                            </span>
+                            <div className="min-w-0">
+                              <span className="font-bold text-slate-900 dark:text-white leading-snug block">
+                                {task.taskTitle}
+                              </span>
+                            </div>
                           </div>
                         </td>
 
@@ -1382,7 +2107,7 @@ const SmTasks = () => {
                               <ClientBadge
                                 client={clientObj}
                                 size="md"
-                                className="!text-[11px] !py-1 !px-2.5 rounded-lg font-bold shadow-2xs max-w-[170px]"
+                                className="!text-[11px] !py-1 !px-2.5 rounded-lg font-bold shadow-2xs whitespace-nowrap [&>span]:!max-w-none"
                               />
                             );
                           })()}
@@ -1397,7 +2122,7 @@ const SmTasks = () => {
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
                               >
                                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
-                                <span className="truncate max-w-[90px]">{task.category || "Content"}</span>
+                                <span className="whitespace-nowrap">{task.category || "Content"}</span>
                               </span>
                             );
                           })()}
@@ -1413,11 +2138,18 @@ const SmTasks = () => {
                                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border shadow-2xs transition-colors ${typeCfg.bg} ${typeCfg.text} ${typeCfg.border}`}
                               >
                                 <TypeIcon className={`w-3 h-3 shrink-0 ${typeCfg.iconClass}`} />
-                                <span className="truncate max-w-[85px]">{task.contentType || "Post"}</span>
+                                <span className="whitespace-nowrap">{task.contentType || "Post"}</span>
                               </span>
                             );
                           })()}
                         </td>
+
+                        {/* PLATFORMS SUB-TASKS (Checklist with ticks) */}
+                        {selectedCommitment !== "No" && (
+                          <td className="py-3 px-3">
+                            {renderPlatformSubtasks(task)}
+                          </td>
+                        )}
 
                         {/* CREATED BY */}
                         <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
@@ -1446,7 +2178,7 @@ const SmTasks = () => {
                                     {creator.initials}
                                   </div>
                                 </div>
-                                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px]" title={creator.name}>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap" title={creator.name}>
                                   {creator.name}
                                 </span>
                               </div>
@@ -1461,29 +2193,25 @@ const SmTasks = () => {
 
                         {/* STATUS - Interactive quick-change dropdown */}
                         <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
-                          <select
-                            value={task.status}
-                            disabled={isReadOnly}
-                            onChange={(e) => handleQuickStatusChange(task, e.target.value)}
-                            className={`table-status-select ${isReadOnly ? "cursor-default opacity-90" : "cursor-pointer"} focus:ring-1 focus:ring-indigo-500 shadow-2xs ${task.status === "In QC"
-                                ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                                : task.status === "Scheduled"
-                                  ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
-                                  : task.status === "Overdue"
-                                    ? "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
-                                    : task.status === "Not started"
-                                      ? "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                                      : task.status === "In progress"
-                                        ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"
-                                        : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                              }`}
-                          >
-                            {STATUSES.filter((s) => s !== "All").map((st) => (
-                              <option key={st} value={st}>
-                                {st}
-                              </option>
-                            ))}
-                          </select>
+                          {(() => {
+                            const isComm = Boolean(task.commitment) || selectedCommitment === "Yes";
+                            const currentDisplayStatus = getDisplayStatusForTask(task, selectedCommitment);
+                            const options = isComm ? COMMITMENT_STATUS_OPTIONS : NON_COMMITMENT_STATUS_OPTIONS;
+                            return (
+                              <select
+                                value={currentDisplayStatus}
+                                disabled={isReadOnly}
+                                onChange={(e) => handleQuickStatusChange(task, e.target.value)}
+                                className={`table-status-select ${isReadOnly ? "cursor-default opacity-90" : "cursor-pointer"} focus:ring-1 focus:ring-indigo-500 shadow-2xs font-semibold ${getTableStatusStyle(currentDisplayStatus)}`}
+                              >
+                                {options.map((st) => (
+                                  <option key={st} value={st}>
+                                    {st}
+                                  </option>
+                                ))}
+                              </select>
+                            );
+                          })()}
                         </td>
 
                         {/* PRIORITY */}
@@ -1493,47 +2221,66 @@ const SmTasks = () => {
                           {task.priority === "Low" && <span className="text-slate-500 dark:text-slate-400">Low</span>}
                         </td>
 
-                        {/* QC */}
-                        <td className="py-3 px-3">
-                          {task.qc === "Pending" && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
-                              Pending
-                            </span>
-                          )}
-                          {task.qc === "Passed" && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/50">
-                              Passed
-                            </span>
-                          )}
-                          {task.qc === "Rejected" && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
-                              Rejected
-                            </span>
-                          )}
-                          {(!task.qc || task.qc === "-") && <span className="text-slate-400">-</span>}
-                        </td>
+                        {/* Columns visible only in Commitment: QC, Publish Date, Commitment, Calendar */}
+                        {selectedCommitment !== "No" && (
+                          <>
+                            {/* QC */}
+                            <td className="py-3 px-3 whitespace-nowrap">
+                              {task.qc === "Pending" && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
+                                  Pending
+                                </span>
+                              )}
+                              {task.qc === "Passed" && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/50">
+                                  Passed
+                                </span>
+                              )}
+                              {task.qc === "Rejected" && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
+                                  Rejected
+                                </span>
+                              )}
+                              {(!task.qc || task.qc === "-") && <span className="text-slate-400">-</span>}
+                            </td>
 
-                        {/* PUBLISH DATE (Shaded column) */}
-                        <td className="py-3 px-4 bg-slate-50/60 dark:bg-slate-800/40 font-mono text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
-                          {formatPublishDateTime(task.publishDate)}
-                        </td>
+                            {/* PUBLISH DATE (Shaded column) */}
+                            <td className="py-3 px-4 bg-slate-50/60 dark:bg-[#131d31]/50 font-mono text-[11px] text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap">
+                              {formatPublishDateTime(task.publishDate)}
+                            </td>
 
-                        {/* CALENDAR (Shaded column) */}
-                        <td className="py-3 px-3 bg-slate-50/60 dark:bg-slate-800/40">
-                          {task.onCalendar ? (
-                            <span
-                              className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenCalendar();
-                              }}
-                            >
-                              On calendar
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">Not shown</span>
-                          )}
-                        </td>
+                            {/* COMMITMENT (Shaded column) */}
+                            <td className="py-3 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 whitespace-nowrap">
+                              {task.commitment ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
+                                  <FiLock size={10} className="shrink-0" />
+                                  <span>Yes</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-slate-100 dark:bg-[#182338] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                                  No
+                                </span>
+                              )}
+                            </td>
+
+                            {/* CALENDAR (Shaded column) */}
+                            <td className="py-3 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 whitespace-nowrap">
+                              {task.onCalendar ? (
+                                <span
+                                  className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenCalendar();
+                                  }}
+                                >
+                                  On calendar
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">Not shown</span>
+                              )}
+                            </td>
+                          </>
+                        )}
 
                         {/* ACTIONS */}
                         <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
@@ -1566,34 +2313,114 @@ const SmTasks = () => {
             </table>
           </div>
 
-          {/* Footer Note and Pagination */}
-          <div className="px-5 py-3.5 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
-            <span className="text-[11px] italic">
-              Shaded columns are filled by Sorted, not by the SMM.
-            </span>
-
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                Rows {filteredTasks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}-
-                {Math.min(currentPage * itemsPerPage, filteredTasks.length)} of {filteredTasks.length}
+          {/* Footer Note, Entries Info, Page Size & Pagination */}
+          <div className="px-5 py-4 bg-slate-50/90 dark:bg-[#0c1220] border-t border-slate-200/80 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-300">
+            {/* Left: Row range & Items per page dropdown */}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                Showing{" "}
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {filteredTasks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+                </span>{" "}
+                to{" "}
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {Math.min(currentPage * itemsPerPage, filteredTasks.length)}
+                </span>{" "}
+                of{" "}
+                <span className="font-bold text-slate-900 dark:text-white">
+                  {filteredTasks.length}
+                </span>{" "}
+                tasks
               </span>
 
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="p-1 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:cursor-not-allowed"
+              <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-700">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Show</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2.5 py-1 bg-white dark:bg-[#131d31] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer shadow-2xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
-                  <FiChevronLeft size={14} />
-                </button>
-                <button
-                  disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="p-1 rounded-md border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer disabled:cursor-not-allowed"
-                >
-                  <FiChevronRight size={14} />
-                </button>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">per page</span>
               </div>
+            </div>
+
+            {/* Right: Page Navigation with Numbers & Prev/Next */}
+            <div className="flex items-center gap-1.5">
+              {/* First Page */}
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                title="First Page"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+              >
+                <FiChevronsLeft size={14} />
+              </button>
+
+              {/* Previous Page */}
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                title="Previous Page"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+              >
+                <FiChevronLeft size={14} />
+              </button>
+
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1 px-1">
+                {pageNumbers.map((p, idx) => {
+                  if (p === "...") {
+                    return (
+                      <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 font-bold select-none">
+                        …
+                      </span>
+                    );
+                  }
+                  const isActive = p === currentPage;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p)}
+                      style={isActive ? { background: "var(--color-brand-gradient, var(--accent-gradient))" } : {}}
+                      className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        isActive
+                          ? (isLightAccent ? "text-slate-950 font-black shadow-sm ring-1 ring-black/20" : "text-white shadow-sm ring-1 ring-white/20")
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e2a40] border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d31]"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Next Page */}
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                title="Next Page"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+              >
+                <FiChevronRight size={14} />
+              </button>
+
+              {/* Last Page */}
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(totalPages)}
+                title="Last Page"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+              >
+                <FiChevronsRight size={14} />
+              </button>
             </div>
           </div>
         </div>
@@ -1626,6 +2453,17 @@ const SmTasks = () => {
             });
             setIsModalOpen(true);
           }}
+        />
+
+        {/* Platform Verification Warning Modal */}
+        <SmPlatformWarningModal
+          isOpen={platformWarningModal.isOpen}
+          onClose={() =>
+            setPlatformWarningModal({ isOpen: false, task: null, targetStatus: "" })
+          }
+          task={platformWarningModal.task}
+          targetStatus={platformWarningModal.targetStatus}
+          onConfirm={handleConfirmPlatformWarning}
         />
       </div>
       );

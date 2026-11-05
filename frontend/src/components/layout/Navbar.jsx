@@ -830,6 +830,7 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
           <button
             onClick={() => setSidebarOpen((prev) => !prev)}
             className="
+              lg:hidden
               w-8 h-8 sm:w-8.5 sm:h-8.5
               rounded-xl border theme-border theme-bg-card
               theme-text-secondary hover:theme-text-primary

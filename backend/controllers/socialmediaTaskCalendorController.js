@@ -41,9 +41,39 @@ exports.getSocialmediaMetadata = async (req, res) => {
       data: {
         clients,
         users,
-        categories: ['Content', 'Copy', 'Posting', 'Engagement', 'Client', 'Ads', 'Strategy', 'Reporting', 'Calendar', 'Audit', 'Other'],
-        contentTypes: ['Reel', 'Post', 'Carousel', 'Story', 'GMB', 'YouTube', 'Blog', 'Ad', 'Other'],
-        statuses: ['Not started', 'In progress', 'In QC', 'Scheduled', 'Overdue', 'Completed', 'Live'],
+        categories: [
+          'Content Calendar',
+          'Ad campaign check',
+          'Google review reply',
+          'Engagement monitor',
+          'Platform qc',
+          'Client app',
+          'Influencer',
+          'Client call',
+          'Model arrangement',
+          'Content kt',
+          'Business development',
+          'Competitor analysis',
+          'Trend analysis',
+          'Insight report',
+        ],
+        contentTypes: ['Post', 'Reels', 'Stories', 'Others Task'],
+        platforms: ['Instagram', 'Facebook', 'YouTube', 'GMB', 'Twitter', 'LinkedIn'],
+        statuses: [
+          'Not started',
+          'In progress',
+          'Inprogress',
+          'In QC',
+          'QC',
+          'Scheduled',
+          'Overdue',
+          'Completed',
+          'Live',
+          'Published',
+          'Published Live',
+          'Completed and wait CLient Approval',
+          'Waiting for Response',
+        ],
         priorities: ['High', 'Medium', 'Low'],
         qcStatuses: ['-', 'Pending', 'Passed', 'Rejected'],
       },
@@ -203,7 +233,10 @@ exports.getSocialmediaTasks = async (req, res) => {
       const start = new Date(y, normalizedMonth, 1 - 10, 0, 0, 0, 0);
       const end = new Date(y, normalizedMonth + 1, 10, 23, 59, 59, 999);
 
-      query.publishDate = { $gte: start, $lte: end };
+      query.$or = [
+        { publishDate: { $gte: start, $lte: end } },
+        { publishDate: null, dueDate: { $gte: start, $lte: end } },
+      ];
     }
 
     // Combine any OR conditions safely using $and if multiple exist
@@ -237,7 +270,7 @@ exports.getSocialmediaTasks = async (req, res) => {
       const now = new Date();
       tasks = tasks.filter((t) => {
         if (!t.commitment) return false;
-        if (['Completed', 'Live'].includes(t.status)) return false;
+        if (['Completed', 'Live', 'Published', 'Published Live', 'Completed and wait CLient Approval', 'Completed and wait Client Approval'].includes(t.status)) return false;
         const targetDate = t.publishDate || t.dueDate;
         if (!targetDate) return false;
         const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -312,13 +345,13 @@ exports.getSocialmediaStats = async (req, res) => {
 
     // Dynamic Completed / published on time
     const completedTasks = monthlyCommitments.filter((t) =>
-      ['Completed', 'Live'].includes(t.status)
+      ['Completed', 'Live', 'Published', 'Published Live', 'Completed and wait CLient Approval', 'Completed and wait Client Approval'].includes(t.status)
     );
     const completedCount = completedTasks.length;
 
     // Dynamic Overdue tasks
     const overdueTasks = monthlyCommitments.filter((t) => {
-      if (['Completed', 'Live'].includes(t.status)) return false;
+      if (['Completed', 'Live', 'Published', 'Published Live', 'Completed and wait CLient Approval', 'Completed and wait Client Approval'].includes(t.status)) return false;
       const pub = new Date(t.publishDate);
       return pub < now || t.status === 'Overdue';
     });
@@ -326,14 +359,14 @@ exports.getSocialmediaStats = async (req, res) => {
 
     // Dynamic Pending in production or QC
     const pendingTasks = monthlyCommitments.filter((t) =>
-      ['In QC', 'Scheduled', 'In progress', 'Not started'].includes(t.status) &&
+      ['In QC', 'QC', 'Completed and wait CLient Approval', 'Scheduled', 'In progress', 'Inprogress', 'Not started'].includes(t.status) &&
       new Date(t.publishDate) >= now
     );
     const pendingCount = pendingTasks.length;
 
     // Dynamic At risk: commitment + due within 24h + not completed (diffHours >= 0 && diffHours <= 24)
     const atRiskTasks = monthlyCommitments.filter((t) => {
-      if (['Completed', 'Live'].includes(t.status)) return false;
+      if (['Completed', 'Live', 'Published', 'Published Live', 'Completed and wait CLient Approval', 'Completed and wait Client Approval'].includes(t.status)) return false;
       const targetDate = t.publishDate || t.dueDate;
       if (!targetDate) return false;
       const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -454,13 +487,24 @@ exports.createSocialmediaTask = async (req, res) => {
       }
     }
 
-    // Workflow rule: publishDate determines commitment & onCalendar
-    if (body.publishDate && !isNaN(new Date(body.publishDate).getTime())) {
+    // Category determines commitment & onCalendar rule
+    const cat = (body.category || '').trim().toLowerCase();
+    const isContentCalendar =
+      cat === 'content calendar' ||
+      cat === 'content calendor' ||
+      cat === 'content';
+
+    if (isContentCalendar) {
       body.commitment = true;
-      body.onCalendar = true;
+      if (body.publishDate && !isNaN(new Date(body.publishDate).getTime())) {
+        body.onCalendar = true;
+      } else {
+        body.onCalendar = false;
+      }
     } else {
       body.commitment = false;
       body.onCalendar = false;
+      body.contentType = 'Others Task';
       body.publishDate = null;
     }
 
@@ -509,13 +553,30 @@ exports.updateSocialmediaTask = async (req, res) => {
 
     const body = { ...req.body };
 
-    // Recalculate commitment & onCalendar rule
-    if (body.publishDate !== undefined) {
-      if (body.publishDate && !isNaN(new Date(body.publishDate).getTime())) {
+    // Recalculate commitment & onCalendar rule based on category
+    if (body.category !== undefined) {
+      const cat = (body.category || '').trim().toLowerCase();
+      const isContentCalendar =
+        cat === 'content calendar' ||
+        cat === 'content calendor' ||
+        cat === 'content';
+
+      if (isContentCalendar) {
         body.commitment = true;
-        body.onCalendar = true;
+        if (body.publishDate !== undefined) {
+          body.onCalendar = Boolean(body.publishDate && !isNaN(new Date(body.publishDate).getTime()));
+          if (!body.onCalendar) body.publishDate = null;
+        }
       } else {
         body.commitment = false;
+        body.onCalendar = false;
+        body.contentType = 'Others Task';
+        body.publishDate = null;
+      }
+    } else if (body.publishDate !== undefined) {
+      if (body.publishDate && !isNaN(new Date(body.publishDate).getTime())) {
+        body.onCalendar = true;
+      } else {
         body.onCalendar = false;
         body.publishDate = null;
       }
@@ -746,6 +807,303 @@ exports.cleanDuplicateTasks = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Server error',
+    });
+  }
+};
+
+// @desc    Bulk import commitment tasks (Excel/CSV import)
+// @route   POST /api/socialmedia-task-calendar/bulk-import
+// @access  Private
+
+// Smart date parser supporting DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, Excel serials, etc.
+function parseSmartDate(dateInput, timeInput) {
+  if (!dateInput) return null;
+  const str = String(dateInput).trim();
+  if (!str) return null;
+
+  let hours = 18;
+  let minutes = 0;
+  if (timeInput) {
+    const tMatch = String(timeInput).trim().match(/(\d{1,2}):(\d{2})/);
+    if (tMatch) {
+      hours = parseInt(tMatch[1], 10);
+      minutes = parseInt(tMatch[2], 10);
+    }
+  }
+
+  // Excel serial number (e.g. 45601)
+  if (/^\d{5}$/.test(str)) {
+    const days = parseInt(str, 10);
+    const d = new Date(Math.round((days - 25569) * 86400 * 1000));
+    if (!isNaN(d.getTime())) {
+      d.setHours(hours, minutes, 0, 0);
+      return d;
+    }
+  }
+
+  // DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+  const dmyMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (dmyMatch) {
+    let p1 = parseInt(dmyMatch[1], 10);
+    let p2 = parseInt(dmyMatch[2], 10);
+    const year = parseInt(dmyMatch[3], 10);
+
+    let day = p1;
+    let month = p2 - 1;
+
+    if (p1 > 12 && p2 <= 12) {
+      day = p1;
+      month = p2 - 1;
+    } else if (p2 > 12 && p1 <= 12) {
+      day = p2;
+      month = p1 - 1;
+    } else {
+      // In India / Asia, DD/MM/YYYY is standard
+      day = p1;
+      month = p2 - 1;
+    }
+
+    return new Date(year, month, day, hours, minutes, 0, 0);
+  }
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+  if (ymdMatch) {
+    const year = parseInt(ymdMatch[1], 10);
+    const month = parseInt(ymdMatch[2], 10) - 1;
+    const day = parseInt(ymdMatch[3], 10);
+    return new Date(year, month, day, hours, minutes, 0, 0);
+  }
+
+  // Word parsed: "5 Nov 2026", "Nov 5, 2026"
+  const direct = new Date(str + (timeInput ? ' ' + timeInput : ''));
+  if (!isNaN(direct.getTime())) {
+    return direct;
+  }
+
+  return null;
+}
+
+// @desc    Bulk import commitment tasks (Excel/CSV import)
+// @route   POST /api/socialmedia-task-calendar/bulk-import
+// @access  Private
+exports.bulkImportSocialmediaTasks = async (req, res) => {
+  try {
+    const tasksRaw = Array.isArray(req.body) ? req.body : req.body.tasks;
+    if (!tasksRaw || !Array.isArray(tasksRaw) || tasksRaw.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No tasks provided for import',
+      });
+    }
+
+    // Dynamic Client and User caches for fast mapping
+    const allClients = await Client.find({}).select('_id companyName color');
+    const allUsers = await User.find({ accountStatus: { $ne: 'inactive' } }).select('_id name email');
+
+    const clientMap = new Map();
+    allClients.forEach((c) => {
+      if (c.companyName) {
+        clientMap.set(c.companyName.trim().toLowerCase(), c);
+      }
+    });
+
+    const userMap = new Map();
+    allUsers.forEach((u) => {
+      if (u.name) userMap.set(u.name.trim().toLowerCase(), u);
+      if (u.email) userMap.set(u.email.trim().toLowerCase(), u);
+    });
+
+    const validTasksToCreate = [];
+    const errors = [];
+
+    for (let i = 0; i < tasksRaw.length; i++) {
+      const row = tasksRaw[i];
+      const rowIndex = i + 1;
+
+      const title = (row.taskTitle || row.title || '').trim();
+      const rawClientName = (row.clientName || row.client || '').trim();
+
+      if (!title) {
+        errors.push('Row ' + rowIndex + ': Task Title is required.');
+        continue;
+      }
+      if (!rawClientName) {
+        errors.push('Row ' + rowIndex + ': Client Name is required.');
+        continue;
+      }
+
+      // Resolve client
+      let clientDoc = null;
+      if (row.client && typeof row.client === 'string' && row.client.match(/^[0-9a-fA-F]{24}$/)) {
+        clientDoc = allClients.find((c) => c._id.toString() === row.client);
+      }
+      if (!clientDoc && rawClientName) {
+        clientDoc = clientMap.get(rawClientName.toLowerCase());
+      }
+
+      const clientName = clientDoc ? clientDoc.companyName : rawClientName;
+      const clientColor = clientDoc ? (clientDoc.color || '#6366f1') : (row.clientColor || '#6366f1');
+      const clientId = clientDoc ? clientDoc._id : null;
+
+      // Resolve assignee
+      let assigneeDoc = null;
+      const rawAssignee = (row.assigneeName || row.assignee || '').trim();
+      if (row.assignee && typeof row.assignee === 'string' && row.assignee.match(/^[0-9a-fA-F]{24}$/)) {
+        assigneeDoc = allUsers.find((u) => u._id.toString() === row.assignee);
+      }
+      if (!assigneeDoc && rawAssignee) {
+        assigneeDoc = userMap.get(rawAssignee.toLowerCase());
+      }
+
+      const assigneeId = assigneeDoc ? assigneeDoc._id : null;
+      const assigneeName = assigneeDoc ? assigneeDoc.name : (rawAssignee || 'Unassigned');
+
+      // Platforms parsing
+      let platforms = [];
+      if (Array.isArray(row.platforms)) {
+        platforms = row.platforms.map((p) => String(p).trim()).filter(Boolean);
+      } else if (typeof row.platforms === 'string') {
+        platforms = row.platforms
+          .split(/[,;|]/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+      }
+      if (platforms.length === 0) {
+        platforms = ['Instagram'];
+      }
+
+      // Completed platforms
+      let completedPlatforms = [];
+      if (Array.isArray(row.completedPlatforms)) {
+        completedPlatforms = row.completedPlatforms.map((p) => String(p).trim()).filter(Boolean);
+      } else if (typeof row.completedPlatforms === 'string') {
+        completedPlatforms = row.completedPlatforms
+          .split(/[,;|]/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+      }
+
+      // Smart Dates parsing
+      let publishDate = parseSmartDate(row.publishDate, row.publishTime);
+      let dueDate = parseSmartDate(row.dueDate, row.publishTime || '18:00');
+
+      if (!publishDate && dueDate) {
+        publishDate = new Date(dueDate);
+      }
+      if (!dueDate && publishDate) {
+        dueDate = new Date(publishDate);
+      }
+      if (!publishDate && !dueDate) {
+        publishDate = new Date();
+        dueDate = new Date();
+      }
+
+      // Priority
+      let priority = 'Medium';
+      const rawPriority = (row.priority || '').trim().toLowerCase();
+      if (rawPriority.includes('high')) priority = 'High';
+      else if (rawPriority.includes('low')) priority = 'Low';
+      else priority = 'Medium';
+
+      // Status
+      let status = 'Not started';
+      const rawStatus = (row.status || '').trim();
+      const validStatuses = [
+        'Not started',
+        'In progress',
+        'Inprogress',
+        'In QC',
+        'QC',
+        'Scheduled',
+        'Overdue',
+        'Completed',
+        'Live',
+        'Published',
+        'Published Live',
+        'Completed and wait CLient Approval',
+        'Completed and wait Client Approval',
+        'Waiting for Response',
+      ];
+      const matchedStatus = validStatuses.find(
+        (s) => s.toLowerCase() === rawStatus.toLowerCase()
+      );
+      if (matchedStatus) {
+        status = matchedStatus;
+      }
+
+      // Content Type
+      let contentType = 'Post';
+      const rawType = (row.contentType || row.type || '').trim().toLowerCase();
+      if (rawType.includes('reel')) contentType = 'Reels';
+      else if (rawType.includes('stori') || rawType.includes('story')) contentType = 'Stories';
+      else if (rawType.includes('other')) contentType = 'Others Task';
+      else contentType = 'Post';
+
+      const taskDoc = {
+        taskTitle: title,
+        client: clientId,
+        clientName,
+        clientColor,
+        category: 'Content Calendar',
+        contentType,
+        platforms,
+        completedPlatforms,
+        assignee: assigneeId,
+        assigneeName,
+        dueDate,
+        publishDate,
+        priority,
+        status,
+        qc: row.qc || '-',
+        commitment: true,
+        onCalendar: true,
+        notes: (row.notes || row.caption || '').trim(),
+        createdBy: req.user ? (req.user._id || req.user.id) : null,
+        createdByName: req.user ? req.user.name : 'Imported',
+      };
+
+      validTasksToCreate.push(taskDoc);
+    }
+
+    if (validTasksToCreate.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid tasks could be processed from the imported data.',
+        errors,
+      });
+    }
+
+    // Insert tasks
+    const createdRaw = await SocialmediaTaskCalendor.create(validTasksToCreate);
+
+    // Populate for immediate return to frontend Redux state
+    const createdIds = createdRaw.map((t) => t._id);
+    const populatedTasks = await SocialmediaTaskCalendor.find({ _id: { $in: createdIds } })
+      .populate('client', 'companyName color icon industry posts reels story')
+      .populate({
+        path: 'assignee',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      })
+      .populate({
+        path: 'createdBy',
+        select: 'name email role profile',
+        populate: { path: 'profile', select: 'profileImage' },
+      });
+
+    res.status(201).json({
+      success: true,
+      count: populatedTasks.length,
+      data: populatedTasks,
+      message: 'Successfully imported ' + populatedTasks.length + ' commitment posts to Content Calendar!',
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error('[SocialmediaTaskCalendor] bulkImportSocialmediaTasks error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error during bulk import',
     });
   }
 };

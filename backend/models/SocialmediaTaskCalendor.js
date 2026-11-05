@@ -28,13 +28,26 @@ const socialmediaTaskCalendorSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['Content', 'Copy', 'Posting', 'Engagement', 'Client', 'Ads', 'Strategy', 'Reporting', 'Calendar', 'Audit', 'Other'],
-      default: 'Content',
+      default: 'Content Calendar',
+      trim: true,
     },
     contentType: {
       type: String,
-      enum: ['Reel', 'Post', 'Carousel', 'Story', 'GMB', 'YouTube', 'Blog', 'Ad', 'Other'],
       default: 'Post',
+      trim: true,
+    },
+    platform: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    platforms: {
+      type: [String],
+      default: [],
+    },
+    completedPlatforms: {
+      type: [String],
+      default: [],
     },
     assignee: {
       type: mongoose.Schema.Types.ObjectId,
@@ -57,7 +70,22 @@ const socialmediaTaskCalendorSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Not started', 'In progress', 'In QC', 'Scheduled', 'Overdue', 'Completed', 'Live'],
+      enum: [
+        'Not started',
+        'In progress',
+        'Inprogress',
+        'In QC',
+        'QC',
+        'Scheduled',
+        'Overdue',
+        'Completed',
+        'Live',
+        'Published',
+        'Published Live',
+        'Completed and wait CLient Approval',
+        'Completed and wait Client Approval',
+        'Waiting for Response',
+      ],
       default: 'Not started',
     },
     priority: {
@@ -106,7 +134,7 @@ const socialmediaTaskCalendorSchema = new mongoose.Schema(
 // Virtual: At risk logic -> Commitment is YES + due within 24 hours + not completed
 socialmediaTaskCalendorSchema.virtual('isAtRisk').get(function () {
   if (!this.commitment) return false;
-  if (['Completed', 'Live'].includes(this.status)) return false;
+  if (['Completed', 'Live', 'Published', 'Published Live', 'Completed and wait CLient Approval', 'Completed and wait Client Approval'].includes(this.status)) return false;
 
   const targetDate = this.publishDate || this.dueDate;
   if (!targetDate) return false;
@@ -120,13 +148,23 @@ socialmediaTaskCalendorSchema.virtual('isAtRisk').get(function () {
 
 // Pre-save hook: auto-sync commitment, onCalendar and taskCode
 socialmediaTaskCalendorSchema.pre('save', function () {
-  // If publishDate is valid, commitment and onCalendar must be true
-  if (this.publishDate && !isNaN(new Date(this.publishDate).getTime())) {
+  const cat = (this.category || '').trim().toLowerCase();
+  const isContentCalendar =
+    cat === 'content calendar' ||
+    cat === 'content calendor' ||
+    cat === 'content';
+
+  if (isContentCalendar) {
     this.commitment = true;
-    this.onCalendar = true;
+    if (this.publishDate && !isNaN(new Date(this.publishDate).getTime())) {
+      this.onCalendar = true;
+    } else {
+      this.onCalendar = false;
+    }
   } else {
     this.commitment = false;
     this.onCalendar = false;
+    this.contentType = 'Others Task';
     this.publishDate = null;
   }
 

@@ -43,6 +43,8 @@ export const isTaskStory = (contentType) => {
  * Check if a task belongs to Post category (Post, Carousel, GMB, Blog, Ad, etc.)
  */
 export const isTaskPost = (contentType) => {
+  const type = (contentType || "").trim().toLowerCase();
+  if (type === "others task" || type === "other") return false;
   return !isTaskReel(contentType) && !isTaskStory(contentType);
 };
 
@@ -73,8 +75,9 @@ export const computeSingleClientCommitments = (client, tasks = [], month = null,
   const clientId = client._id ? client._id.toString() : null;
   const clientLower = clientName.trim().toLowerCase();
 
-  // Filter tasks belonging to this client
+  // Filter tasks belonging to this client (Commitment tasks only)
   const clientTasks = tasks.filter((t) => {
+    if (t.commitment === false) return false;
     const tId = t.client && typeof t.client === "object" ? t.client._id?.toString() : t.client?.toString();
     const tName = (t.clientName || (t.client && t.client.companyName) || "").trim().toLowerCase();
     const isClientMatch = (clientId && tId === clientId) || (clientLower && tName === clientLower);
@@ -105,14 +108,14 @@ export const computeSingleClientCommitments = (client, tasks = [], month = null,
 
   // Helper to aggregate content bucket
   const processBucket = (taskList, committedNumber) => {
-    const postedTasks = taskList.filter((t) => ["Completed", "Live"].includes(t.status));
-    const inHandTasks = taskList.filter((t) => !["Completed", "Live"].includes(t.status));
+    const postedTasks = taskList.filter((t) => ["Completed", "Live", "Published", "Published Live"].includes(t.status));
+    const inHandTasks = taskList.filter((t) => !["Completed", "Live", "Published", "Published Live"].includes(t.status));
 
     const postedCount = postedTasks.length;
     const inHandCount = inHandTasks.length;
 
     // Sub-status breakdown for in-hand
-    const inQC = inHandTasks.filter((t) => t.status === "In QC").length;
+    const inQC = inHandTasks.filter((t) => { const s = (t.status || "").trim().toLowerCase(); return s === "in qc" || s === "qc" || s.includes("client approval"); }).length;
     const inProgress = inHandTasks.filter((t) => t.status === "In progress").length;
     const scheduled = inHandTasks.filter((t) => t.status === "Scheduled").length;
     const notStarted = inHandTasks.filter((t) => ["Not started", "Draft"].includes(t.status)).length;
@@ -179,7 +182,7 @@ export const computeSingleClientCommitments = (client, tasks = [], month = null,
   const totalPendingDelivery = postsSummary.pendingDelivery + reelsSummary.pendingDelivery + storySummary.pendingDelivery;
 
   // Overall last published
-  const allPosted = clientTasks.filter((t) => ["Completed", "Live"].includes(t.status));
+  const allPosted = clientTasks.filter((t) => ["Completed", "Live", "Published", "Published Live"].includes(t.status));
   let lastPublishedFormatted = "-";
   if (allPosted.length > 0) {
     const sorted = [...allPosted].sort((a, b) => {
@@ -191,7 +194,7 @@ export const computeSingleClientCommitments = (client, tasks = [], month = null,
   }
 
   // Next due upcoming date
-  const upcoming = clientTasks.filter((t) => !["Completed", "Live"].includes(t.status) && (t.dueDate || t.publishDate));
+  const upcoming = clientTasks.filter((t) => !["Completed", "Live", "Published", "Published Live"].includes(t.status) && (t.dueDate || t.publishDate));
   let nextDueFormatted = "-";
   if (upcoming.length > 0) {
     const sortedUpcoming = [...upcoming].sort((a, b) => {
@@ -281,10 +284,16 @@ export const computeAllClientsCommitments = (
 
   // Total At Risk and Awaiting approval from active tasks
   (tasks || []).forEach((t) => {
-    if (!["Completed", "Live"].includes(t.status)) {
-      if (t.status === "In QC") {
-        awaitingApprovalCount++;
-      }
+    const s = (t.status || "").trim().toLowerCase();
+    // Finished only if purely Live/Published or Completed without client approval
+    const isPureCompleted = s === "completed" || s === "live" || s === "published" || s === "published live";
+    const isApprovalPending = s === "qc" || s === "in qc" || s.includes("client approval");
+
+    if (isApprovalPending) {
+      awaitingApprovalCount++;
+    }
+
+    if (!isPureCompleted && !isApprovalPending) {
       const target = t.publishDate || t.dueDate;
       if (target) {
         const diffHours = (new Date(target).getTime() - now) / (1000 * 60 * 60);
@@ -348,9 +357,9 @@ export const getTaskCommitmentProgress = (task, clients = [], tasks = [], month 
     // If no client object found, default based on task
     return {
       committed: 1,
-      published: ["Completed", "Live"].includes(task.status) ? 1 : 0,
-      label: ["Completed", "Live"].includes(task.status) ? "1/1 published" : "0/1 published",
-      progressPct: ["Completed", "Live"].includes(task.status) ? 100 : 0,
+      published: ["Completed", "Live", "Published", "Published Live"].includes(task.status) ? 1 : 0,
+      label: ["Completed", "Live", "Published", "Published Live"].includes(task.status) ? "1/1 published" : "0/1 published",
+      progressPct: ["Completed", "Live", "Published", "Published Live"].includes(task.status) ? 100 : 0,
     };
   }
 
