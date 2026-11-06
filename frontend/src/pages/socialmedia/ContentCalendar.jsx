@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
@@ -36,6 +36,8 @@ import {
   FiPlay,
   FiImage,
   FiVideo,
+  FiFilm,
+  FiZap,
   FiBarChart2,
   FiTarget,
   FiArrowRight,
@@ -113,19 +115,17 @@ const CATEGORIES = [
 const CONTENT_TYPES = [
   "All",
   "Post",
-  "Reels",
-  "Stories",
-  "Others Task",
   "Reel",
   "Story",
-  "Carousel",
-  "GMB",
-  "YouTube",
-  "Blog",
-  "Ad",
-  "Other",
 ];
-const STATUSES = ["All", "Live", "Scheduled", "In QC", "In progress", "Not started", "Overdue"];
+const STATUSES = [
+  "All",
+  "Not started",
+  "Inprogress",
+  "QC",
+  "Completed and wait CLient Approval",
+  "Published Live",
+];
 const PRIORITIES = ["All", "High", "Medium", "Low"];
 const COMMITMENTS = ["All", "Yes", "No"];
 
@@ -366,12 +366,28 @@ const ContentCalendar = () => {
 
   // Filter States
   const [selectedClient, setSelectedClient] = useState("All");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState("Content Calendar");
   const [selectedContentType, setSelectedContentType] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedAssignee, setSelectedAssignee] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
   const [atRiskOnly, setAtRiskOnly] = useState(false);
+  const [isContentTypeOpen, setIsContentTypeOpen] = useState(false);
+  const contentTypeRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (contentTypeRef.current && !contentTypeRef.current.contains(event.target)) {
+        setIsContentTypeOpen(false);
+      }
+    };
+    if (isContentTypeOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isContentTypeOpen]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -724,31 +740,41 @@ const ContentCalendar = () => {
       }
 
       if (selectedClient !== "All" && task.clientName !== selectedClient) return false;
-      if (selectedCategory !== "All") {
-        const isSelCal = selectedCategory === "Content Calendar" || selectedCategory === "Content";
-        const isTaskCal = task.category === "Content Calendar" || task.category === "Content";
+      if (selectedCategory && selectedCategory !== "All") {
+        const isSelCal = selectedCategory === "Content Calendar" || selectedCategory === "Content" || selectedCategory === "Content calendor";
+        const isTaskCal = !task.category || task.category === "Content Calendar" || task.category === "Content" || task.category === "Content calendor";
         if (!isSelCal || !isTaskCal) {
           if (task.category !== selectedCategory) return false;
         }
       }
-      if (selectedContentType !== "All" && task.contentType !== selectedContentType) return false;
+      if (selectedContentType !== "All") {
+        const selCtLower = selectedContentType.toLowerCase().trim();
+        const taskCtLower = (task.contentType || "").toLowerCase().trim();
+        if (selCtLower === "reel" || selCtLower === "reels") {
+          if (taskCtLower !== "reel" && taskCtLower !== "reels") return false;
+        } else if (selCtLower === "story" || selCtLower === "stories") {
+          if (taskCtLower !== "story" && taskCtLower !== "stories") return false;
+        } else if (selCtLower === "post" || selCtLower === "posts") {
+          if (taskCtLower !== "post" && taskCtLower !== "posts") return false;
+        } else {
+          if (taskCtLower !== selCtLower) return false;
+        }
+      }
       if (selectedStatus !== "All") {
         const normSelected = selectedStatus.toLowerCase().trim();
         const normTaskStatus = (task.status || "Not started").toLowerCase().trim();
 
         let match = false;
         if (normSelected === "published live") {
-          match = ["published live", "published", "live"].includes(normTaskStatus);
+          match = ["published live", "published", "live", "completed"].includes(normTaskStatus);
         } else if (normSelected === "qc" || normSelected === "in qc") {
-          match = ["qc", "in qc"].includes(normTaskStatus) || normTaskStatus.includes("client approval");
-        } else if (normSelected === "inprogress") {
+          match = ["qc", "in qc"].includes(normTaskStatus);
+        } else if (normSelected === "inprogress" || normSelected === "in progress") {
           match = ["inprogress", "in progress"].includes(normTaskStatus);
-        } else if (normSelected.includes("client approval")) {
+        } else if (normSelected.includes("client approval") || normSelected === "completed and wait client approval") {
           match = normTaskStatus.includes("client approval");
-        } else if (normSelected === "waiting for response") {
-          match = ["waiting for response", "waiting for responce"].includes(normTaskStatus);
-        } else if (normSelected === "completed") {
-          match = normTaskStatus === "completed";
+        } else if (normSelected === "not started") {
+          match = ["not started", "draft", ""].includes(normTaskStatus);
         } else {
           match = normTaskStatus === normSelected;
         }
@@ -836,7 +862,7 @@ const ContentCalendar = () => {
 
   const hasActiveFilters = Boolean(
     selectedClient !== "All" ||
-    selectedCategory !== "All" ||
+    (selectedCategory !== "All" && selectedCategory !== "Content Calendar") ||
     selectedContentType !== "All" ||
     selectedStatus !== "All" ||
     (isPrivileged && selectedAssignee !== "All") ||
@@ -886,23 +912,23 @@ const ContentCalendar = () => {
       const totalCommitments = userMonthlyCommitments.length;
 
       const completedCount = userMonthlyCommitments.filter((t) =>
-        ["Completed", "Live"].includes(t.status)
+        ["Completed", "Live", "Published", "Published Live"].includes(t.status)
       ).length;
 
       const overdueCount = userMonthlyCommitments.filter((t) => {
-        if (["Completed", "Live"].includes(t.status)) return false;
+        if (["Completed", "Live", "Published", "Published Live"].includes(t.status)) return false;
         const pub = new Date(t.publishDate);
         return pub.getTime() < nowTime || t.status === "Overdue";
       }).length;
 
       const pendingCount = userMonthlyCommitments.filter((t) => {
-        if (!["In QC", "Scheduled", "In progress", "Not started"].includes(t.status)) return false;
+        if (!["In QC", "QC", "Scheduled", "In progress", "Inprogress", "Not started", "Completed and wait CLient Approval"].includes(t.status)) return false;
         const pub = new Date(t.publishDate);
         return pub.getTime() >= nowTime;
       }).length;
 
       const atRiskCount = userMonthlyCommitments.filter((t) => {
-        if (["Completed", "Live"].includes(t.status)) return false;
+        if (["Completed", "Live", "Published", "Published Live", "Completed and wait CLient Approval"].includes(t.status)) return false;
         const targetDate = t.publishDate || t.dueDate;
         if (!targetDate) return false;
         const diffHours = (new Date(targetDate).getTime() - nowTime) / (1000 * 60 * 60);
@@ -1264,58 +1290,68 @@ const ContentCalendar = () => {
 
     const s = (status || "").trim().toLowerCase();
 
-    switch (s) {
-      case "live":
-      case "completed":
-        return {
-          card: "bg-[#e6f9ee] dark:bg-[#072418] border-emerald-200 dark:border-emerald-900/60 hover:bg-[#d5f5e2] dark:hover:bg-[#0c3323] hover:border-emerald-300 dark:hover:border-emerald-700/70 shadow-2xs hover:shadow-xs",
-          badge: "bg-emerald-100 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-800/70",
-          dot: "bg-emerald-400",
-          divider: "border-emerald-200/80 dark:border-emerald-900/40",
-          label: "Live",
-        };
-      case "scheduled":
-        return {
-          card: "bg-[#e8f4fd] dark:bg-[#0a2139] border-sky-200 dark:border-sky-900/60 hover:bg-[#d8edfd] dark:hover:bg-[#0e2e4e] hover:border-sky-300 dark:hover:border-sky-700/70 shadow-2xs hover:shadow-xs",
-          badge: "bg-sky-100 dark:bg-sky-950/90 text-sky-800 dark:text-sky-300 border-sky-300/80 dark:border-sky-800/70",
-          dot: "bg-sky-400",
-          divider: "border-sky-200/80 dark:border-sky-900/40",
-          label: "Sched",
-        };
-      case "in qc":
-        return {
-          card: "bg-[#fef7e3] dark:bg-[#261c0a] border-amber-200 dark:border-amber-900/60 hover:bg-[#fdeec4] dark:hover:bg-[#34260f] hover:border-amber-300 dark:hover:border-amber-700/70 shadow-2xs hover:shadow-xs",
-          badge: "bg-amber-100 dark:bg-amber-950/90 text-amber-800 dark:text-amber-300 border-amber-300/80 dark:border-amber-800/70",
-          dot: "bg-amber-400",
-          divider: "border-amber-200/80 dark:border-amber-900/40",
-          label: "QC",
-        };
-      case "in progress":
-        return {
-          card: "bg-[#eef0fe] dark:bg-[#151936] border-indigo-200 dark:border-indigo-900/60 hover:bg-[#e0e4fe] dark:hover:bg-[#1e234a] hover:border-indigo-300 dark:hover:border-indigo-700/70 shadow-2xs hover:shadow-xs",
-          badge: "bg-indigo-100 dark:bg-indigo-950/90 text-indigo-800 dark:text-indigo-300 border-indigo-300/80 dark:border-indigo-800/70",
-          dot: "bg-indigo-400",
-          divider: "border-indigo-200/80 dark:border-indigo-900/40",
-          label: "In Prog",
-        };
-      case "overdue":
-        return {
-          card: "bg-[#feebee] dark:bg-[#280d13] border-rose-200 dark:border-rose-900/60 hover:bg-[#fed9de] dark:hover:bg-[#35121a] hover:border-rose-300 dark:hover:border-rose-700/70 shadow-2xs hover:shadow-xs",
-          badge: "bg-rose-100 dark:bg-rose-950/90 text-rose-800 dark:text-rose-300 border-rose-300/80 dark:border-rose-800/70",
-          dot: "bg-rose-500 animate-pulse",
-          divider: "border-rose-200/80 dark:border-rose-900/40",
-          label: "Risk",
-        };
-      default:
-        // Not started / Draft / default
-        return {
-          card: "bg-[#f8fafc] dark:bg-[#131b2e] border-slate-200 dark:border-[#202d44] hover:bg-slate-100 dark:hover:bg-[#18233a] hover:border-slate-300 dark:hover:border-[#2b3c5a] shadow-2xs hover:shadow-xs",
-          badge: "bg-slate-100 dark:bg-[#1e2a40] text-slate-700 dark:text-[#cbd5e1] border-slate-200 dark:border-[#2c3d5b]",
-          dot: "bg-slate-400",
-          divider: "border-slate-200/80 dark:border-[#1e2a40]",
-          label: "Draft",
-        };
+    if (s.includes("published live") || s === "live" || s === "completed" || s === "published") {
+      return {
+        card: "bg-[#e6f9ee] dark:bg-[#072418] border-emerald-200 dark:border-emerald-900/60 hover:bg-[#d5f5e2] dark:hover:bg-[#0c3323] hover:border-emerald-300 dark:hover:border-emerald-700/70 shadow-2xs hover:shadow-xs",
+        badge: "bg-emerald-100 dark:bg-emerald-950/90 text-emerald-800 dark:text-emerald-300 border-emerald-300/80 dark:border-emerald-800/70",
+        dot: "bg-emerald-400",
+        divider: "border-emerald-200/80 dark:border-emerald-900/40",
+        label: "Live",
+      };
     }
+    if (s === "qc" || s === "in qc") {
+      return {
+        card: "bg-[#fef7e3] dark:bg-[#261c0a] border-amber-200 dark:border-amber-900/60 hover:bg-[#fdeec4] dark:hover:bg-[#34260f] hover:border-amber-300 dark:hover:border-amber-700/70 shadow-2xs hover:shadow-xs",
+        badge: "bg-amber-100 dark:bg-amber-950/90 text-amber-800 dark:text-amber-300 border-amber-300/80 dark:border-amber-800/70",
+        dot: "bg-amber-400",
+        divider: "border-amber-200/80 dark:border-amber-900/40",
+        label: "QC",
+      };
+    }
+    if (s.includes("client approval") || s.includes("approval")) {
+      return {
+        card: "bg-[#f3e8ff] dark:bg-[#201335] border-purple-200 dark:border-purple-900/60 hover:bg-[#ede0fe] dark:hover:bg-[#2a1a45] hover:border-purple-300 dark:hover:border-purple-700/70 shadow-2xs hover:shadow-xs",
+        badge: "bg-purple-100 dark:bg-purple-950/90 text-purple-800 dark:text-purple-300 border-purple-300/80 dark:border-purple-800/70",
+        dot: "bg-purple-400",
+        divider: "border-purple-200/80 dark:border-purple-900/40",
+        label: "Approval",
+      };
+    }
+    if (s === "inprogress" || s === "in progress") {
+      return {
+        card: "bg-[#eef0fe] dark:bg-[#151936] border-indigo-200 dark:border-indigo-900/60 hover:bg-[#e0e4fe] dark:hover:bg-[#1e234a] hover:border-indigo-300 dark:hover:border-indigo-700/70 shadow-2xs hover:shadow-xs",
+        badge: "bg-indigo-100 dark:bg-indigo-950/90 text-indigo-800 dark:text-indigo-300 border-indigo-300/80 dark:border-indigo-800/70",
+        dot: "bg-indigo-400",
+        divider: "border-indigo-200/80 dark:border-indigo-900/40",
+        label: "In Prog",
+      };
+    }
+    if (s === "scheduled") {
+      return {
+        card: "bg-[#e8f4fd] dark:bg-[#0a2139] border-sky-200 dark:border-sky-900/60 hover:bg-[#d8edfd] dark:hover:bg-[#0e2e4e] hover:border-sky-300 dark:hover:border-sky-700/70 shadow-2xs hover:shadow-xs",
+        badge: "bg-sky-100 dark:bg-sky-950/90 text-sky-800 dark:text-sky-300 border-sky-300/80 dark:border-sky-800/70",
+        dot: "bg-sky-400",
+        divider: "border-sky-200/80 dark:border-sky-900/40",
+        label: "Sched",
+      };
+    }
+    if (s === "overdue") {
+      return {
+        card: "bg-[#feebee] dark:bg-[#280d13] border-rose-200 dark:border-rose-900/60 hover:bg-[#fed9de] dark:hover:bg-[#35121a] hover:border-rose-300 dark:hover:border-rose-700/70 shadow-2xs hover:shadow-xs",
+        badge: "bg-rose-100 dark:bg-rose-950/90 text-rose-800 dark:text-rose-300 border-rose-300/80 dark:border-rose-800/70",
+        dot: "bg-rose-500 animate-pulse",
+        divider: "border-rose-200/80 dark:border-rose-900/40",
+        label: "Risk",
+      };
+    }
+
+    return {
+      card: "bg-[#f8fafc] dark:bg-[#131b2e] border-slate-200 dark:border-[#202d44] hover:bg-slate-100 dark:hover:bg-[#18233a] hover:border-slate-300 dark:hover:border-[#2b3c5a] shadow-2xs hover:shadow-xs",
+      badge: "bg-slate-100 dark:bg-[#1e2a40] text-slate-700 dark:text-[#cbd5e1] border-slate-200 dark:border-[#2c3d5b]",
+      dot: "bg-slate-400",
+      divider: "border-slate-200/80 dark:border-[#1e2a40]",
+      label: "Draft",
+    };
   };
 
   // Status badge styling helper
@@ -1417,7 +1453,7 @@ const ContentCalendar = () => {
   const setSidebarOpen = outletContext?.setSidebarOpen;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-3 sm:p-6 lg:p-8 space-y-3.5 sm:space-y-6 relative">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100  p-3 space-y-3.5 sm:space-y-6 relative">
       {/* Full Page Centered Loading Animation */}
       <AnimatePresence>
         {isCalendarLoading && (
@@ -1612,35 +1648,163 @@ const ContentCalendar = () => {
             buttonClassName="toolbar-filter-btn"
           />
 
-          {/* Category */}
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className={`toolbar-filter-select ${selectedCategory !== "All" ? "is-active" : ""}`}
+          {/* Category - Fixed as Content Calendar without dropdown icon */}
+          <div
+            className="toolbar-filter-btn inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 select-none cursor-default !justify-center"
+            title="Category: Content Calendar"
           >
-            <option value="All">Category</option>
-            {CATEGORIES.filter((c) => c !== "All").map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            <span>Content Calendar</span>
+          </div>
 
-          {/* Content Type */}
-          <select
-            value={selectedContentType}
-            onChange={(e) => setSelectedContentType(e.target.value)}
-            className={`toolbar-filter-select ${selectedContentType !== "All" ? "is-active" : ""}`}
-          >
-            <option value="All">Content type</option>
-            {CONTENT_TYPES.filter((c) => c !== "All").map((ct) => (
-              <option key={ct} value={ct}>
-                {ct}
-              </option>
-            ))}
-          </select>
+          {/* Content Type (Post, Reel, Story with icons) */}
+          <div className="relative" ref={contentTypeRef}>
+            <button
+              type="button"
+              onClick={() => setIsContentTypeOpen((prev) => !prev)}
+              className={`toolbar-filter-btn inline-flex items-center justify-between gap-2 cursor-pointer transition-all ${
+                selectedContentType !== "All"
+                  ? "!border-blue-500 !bg-blue-50/50 dark:!bg-blue-950/40 text-blue-700 dark:text-blue-300 font-bold"
+                  : ""
+              }`}
+            >
+              {(() => {
+                if (selectedContentType === "Post") {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400">
+                      <FiImage size={13} className="text-blue-500 stroke-[2.5]" />
+                      <span>Post</span>
+                    </span>
+                  );
+                }
+                if (selectedContentType === "Reel" || selectedContentType === "Reels") {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-pink-600 dark:text-pink-400">
+                      <FiFilm size={13} className="text-pink-500 stroke-[2.5]" />
+                      <span>Reel</span>
+                    </span>
+                  );
+                }
+                if (selectedContentType === "Story" || selectedContentType === "Stories") {
+                  return (
+                    <span className="inline-flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400">
+                      <FiZap size={13} className="text-amber-500 fill-amber-500" />
+                      <span>Story</span>
+                    </span>
+                  );
+                }
+                return <span>Content type</span>;
+              })()}
+              <FiChevronDown
+                size={13}
+                className={`text-slate-400 transition-transform duration-150 shrink-0 ${
+                  isContentTypeOpen ? "rotate-180 text-blue-500" : ""
+                }`}
+              />
+            </button>
 
-          {/* Status */}
+            {/* Custom Content Type Dropdown Menu */}
+            {isContentTypeOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-48 z-50 bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-white/10 rounded-2xl shadow-xl overflow-hidden p-1.5 animate-in fade-in zoom-in-95 duration-100">
+                {/* Option 1: All */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedContentType("All");
+                    setIsContentTypeOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                    selectedContentType === "All"
+                      ? "bg-slate-100 dark:bg-[#182338] text-slate-900 dark:text-white font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#182338]/60"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-[#182338] flex items-center justify-center text-slate-400">
+                      <FiGrid size={12} />
+                    </div>
+                    <span>All Content types</span>
+                  </div>
+                  {selectedContentType === "All" && (
+                    <FiCheck size={14} className="text-emerald-500 stroke-[3]" />
+                  )}
+                </button>
+
+                {/* Option 2: Post */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedContentType("Post");
+                    setIsContentTypeOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer mt-0.5 ${
+                    selectedContentType === "Post"
+                      ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-blue-50/50 dark:hover:bg-blue-950/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                      <FiImage size={13} className="stroke-[2.5]" />
+                    </div>
+                    <span className="font-bold">Post</span>
+                  </div>
+                  {selectedContentType === "Post" && (
+                    <FiCheck size={14} className="text-blue-600 stroke-[3]" />
+                  )}
+                </button>
+
+                {/* Option 3: Reel */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedContentType("Reel");
+                    setIsContentTypeOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer mt-0.5 ${
+                    selectedContentType === "Reel" || selectedContentType === "Reels"
+                      ? "bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-pink-50/50 dark:hover:bg-pink-950/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-pink-100 dark:bg-pink-900/50 flex items-center justify-center text-pink-600 dark:text-pink-400">
+                      <FiFilm size={13} className="stroke-[2.5]" />
+                    </div>
+                    <span className="font-bold">Reel</span>
+                  </div>
+                  {(selectedContentType === "Reel" || selectedContentType === "Reels") && (
+                    <FiCheck size={14} className="text-pink-600 stroke-[3]" />
+                  )}
+                </button>
+
+                {/* Option 4: Story */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedContentType("Story");
+                    setIsContentTypeOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer mt-0.5 ${
+                    selectedContentType === "Story" || selectedContentType === "Stories"
+                      ? "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-amber-50/50 dark:hover:bg-amber-950/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                      <FiZap size={13} className="fill-amber-500 text-amber-600" />
+                    </div>
+                    <span className="font-bold">Story</span>
+                  </div>
+                  {(selectedContentType === "Story" || selectedContentType === "Stories") && (
+                    <FiCheck size={14} className="text-amber-600 stroke-[3]" />
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Status (From Reference Image 2: Not started, Inprogress, QC, Completed and wait CLient Approval, Published Live) */}
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
@@ -2165,18 +2329,28 @@ const ContentCalendar = () => {
                         {/* Status Dropdown */}
                         <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
                           <select
-                            value={t.status || "Not started"}
+                            value={
+                              ["Live", "Published", "Published Live", "Completed"].includes(t.status)
+                                ? "Published Live"
+                                : ["In QC", "QC"].includes(t.status)
+                                ? "QC"
+                                : (t.status || "").toLowerCase().includes("client approval")
+                                ? "Completed and wait CLient Approval"
+                                : ["In progress", "Inprogress"].includes(t.status)
+                                ? "Inprogress"
+                                : t.status || "Not started"
+                            }
                             disabled={isReadOnly}
                             onChange={(e) => handleQuickStatusChange(t, e.target.value)}
                             className={`text-[11px] font-bold rounded-lg px-2 py-1 border transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-2xs ${
-                              t.status === "Live" || t.status === "Completed"
+                              ["Live", "Published", "Published Live", "Completed"].includes(t.status)
                                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                                : t.status === "In QC"
+                                : ["In QC", "QC"].includes(t.status)
                                 ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                                : t.status === "Scheduled"
+                                : (t.status || "").toLowerCase().includes("client approval")
+                                ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                : ["In progress", "Inprogress"].includes(t.status)
                                 ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                                : t.status === "Overdue"
-                                ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
                                 : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-[#131d31] dark:text-slate-300 dark:border-white/10"
                             }`}
                           >
@@ -2723,7 +2897,7 @@ const ContentCalendar = () => {
           setSelectedClient("All");
           setSelectedAssignee("All");
           setSelectedStatus("All");
-          setSelectedCategory("All");
+          setSelectedCategory("Content Calendar");
           setSelectedContentType("All");
         }}
       />

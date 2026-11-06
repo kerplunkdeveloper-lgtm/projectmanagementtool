@@ -52,20 +52,14 @@ const SmTaskCards = ({
   const monthName = MONTH_NAMES[selectedMonth - 1] || "";
 
   return (
-    <div className={`bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl p-4 sm:p-5 shadow-xs space-y-4 ${className}`}>
+    <div className={`rounded-2xl shadow-xs space-y-4 ${className}`}>
       {/* Section Header: Title, Subtitle, Overall Deliverables summary & Client Modal Trigger */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-100 dark:border-[#1e2a40]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/60 dark:border-indigo-800/40 shrink-0">
-            <FiCalendar size={18} />
-          </div>
+
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white leading-tight">
-                {selectedClient !== "All"
-                  ? `${selectedClient} Commitments`
-                  : `${monthName} Commitments`}
-              </h3>
+             
               {selectedClient !== "All" && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100/80 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                   Filtered by Client
@@ -77,11 +71,7 @@ const SmTaskCards = ({
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-              {selectedClient !== "All"
-                ? `Tracking deliverables for ${selectedClient} • ${monthName} ${selectedYear}`
-                : `Track your deliverables across clients • ${monthName} ${selectedYear}`}
-            </p>
+           
           </div>
         </div>
 
