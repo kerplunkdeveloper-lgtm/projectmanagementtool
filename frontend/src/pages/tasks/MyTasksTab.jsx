@@ -3079,7 +3079,7 @@ const MyTasksTab = ({
 
       {/* STATUS TABS */}
       <div className="px-4 xl:px-6 pb-2 flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex items-center gap-1 p-1 bg-slate-50/80 dark:bg-[#151923] border border-slate-200/80 dark:border-slate-700/60 rounded-full overflow-x-auto custom-scrollbar shadow-sm">
+        <div className="inline-flex items-center gap-1 p-1 bg-slate-100/90 dark:bg-[#121620] border border-slate-200/90 dark:border-slate-800 rounded-full overflow-x-auto custom-scrollbar shadow-xs">
           {[
             { name: "All", label: "All status" },
             { name: "Previous Pending Task", label: "Previous Pending Task" },
@@ -3099,24 +3099,24 @@ const MyTasksTab = ({
                 className={`
                   relative px-4 py-1.5 rounded-full text-[12px] font-bold tracking-wide transition-colors whitespace-nowrap shrink-0 z-10 flex items-center gap-1.5 cursor-pointer
                   ${isActive
-                    ? "text-white dark:text-white"
-                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                    ? "status-tab-button-active text-white"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
                   }
                 `}
               >
                 {isActive && (
                   <motion.div
                     layoutId="statusTabIndicator"
-                    className="absolute inset-0 bg-blue-600 dark:bg-blue-500 rounded-full shadow-md shadow-blue-500/20 -z-10"
+                    className="absolute inset-0 status-tab-indicator-pill rounded-full -z-10"
                     transition={{ type: "spring", stiffness: 500, damping: 35 }}
                   />
                 )}
                 <span className="relative z-10">{st.label}</span>
                 <span
-                  className={`relative z-10 text-[10px] font-black px-1.5 py-0.5 rounded-full transition-colors min-w-[18px] text-center ${
+                  className={`status-tab-count-badge relative z-10 text-[10px] font-black px-1.5 py-0.5 rounded-full transition-colors min-w-[18px] text-center ${
                     isActive
-                      ? "bg-white/25 text-white"
-                      : "bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                      ? "shadow-xs border border-white/25"
+                      : "bg-slate-200/80 text-slate-600 dark:bg-white/10 dark:text-slate-300"
                   }`}
                 >
                   {count}

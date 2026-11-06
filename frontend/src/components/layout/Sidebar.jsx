@@ -2209,7 +2209,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   <div className="space-y-4">
                     {/* General / Core Group */}
                     <div className="space-y-1">
-                      <div className="border border-slate-200/60 dark:border-white/5 bg-slate-50/30 dark:bg-slate-50 shadow-xl rounded-2xl p-1.5 space-y-0.5 shadow-sm">
+                      <div className="border border-slate-200/80 dark:border-white/10 bg-white dark:bg-black rounded-2xl p-1.5 space-y-0.5 shadow-sm transition-colors duration-200">
                         {topMenuItems.map((item) => renderMenuItem(item))}
                       </div>
                     </div>

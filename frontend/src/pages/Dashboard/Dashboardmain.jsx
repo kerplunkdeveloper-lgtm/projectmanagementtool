@@ -69,6 +69,8 @@ import {
   FiLock,
   FiFolder,
   FiTrash2,
+  FiFilter,
+  FiRotateCcw,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -152,17 +154,11 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
     { refetchOnMountOrArgChange: true },
   );
 
-  const getTodayDateString = () => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const [filterTab, setFilterTab] = useState("all"); // "active" | "overdue" | "today" | "completed" | "all"
+  const [filterTab, setFilterTab] = useState("all"); // "all" | "top_high" | "today" | "upcoming" | "overdue" | "completed"
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedPriority, setSelectedPriority] = useState("all");
   const [selectedClient, setSelectedClient] = useState("all");
-  const [selectedDate, setSelectedDate] = useState(getTodayDateString());
+  const [selectedDate, setSelectedDate] = useState(""); // default empty so all upcoming/active tasks are visible without date blockage
 
   // Filter tasks assigned to this user
   const currentUserId = (user?._id || user?.id)?.toString();
@@ -204,11 +200,31 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
     return Array.from(clientsMap.entries()).map(([id, name]) => ({ id, name }));
   }, [myTasks]);
 
+  const uniqueStatuses = React.useMemo(() => {
+    const defaultStatuses = [
+      "Not Started",
+      "In Progress",
+      "In Review",
+      "Correction",
+      "On Hold",
+      "Completed",
+    ];
+    const statusSet = new Set(defaultStatuses);
+    myTasks.forEach((t) => {
+      if (t.status && typeof t.status === "string") {
+        statusSet.add(t.status.trim());
+      }
+    });
+    return Array.from(statusSet);
+  }, [myTasks]);
+
   const taskStats = React.useMemo(() => {
     let overdueCount = 0;
     let todayCount = 0;
-    let activeCount = 0;
+    let upcomingCount = 0;
+    let topHighCount = 0;
     let completedCount = 0;
+    let allCount = 0;
 
     myTasks.forEach((t) => {
       // Client Filter
@@ -222,20 +238,34 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
       }
 
       // Date Filter
-      if (!matchesDateFilter(t, selectedDate)) return;
+      if (selectedDate && !matchesDateFilter(t, selectedDate)) return;
 
-      if (t.status === "Completed") {
+      const dueDays = getDaysRemaining(t.dueDate);
+      const startDays = getDaysRemaining(t.startDate);
+      const isCompleted = t.status === "Completed";
+      const isTopHigh =
+        isSameDateHelper(t.startDate, t.dueDate) ||
+        t.priority === "Top High";
+
+      allCount++;
+      if (isCompleted) {
         completedCount++;
       } else {
-        activeCount++;
-        const dueDays = getDaysRemaining(t.dueDate);
-        const startDays = getDaysRemaining(t.startDate);
+        if (isTopHigh) topHighCount++;
         if (dueDays !== null && dueDays < 0) overdueCount++;
         if (dueDays === 0 || startDays === 0) todayCount++;
+        if (dueDays !== null && dueDays > 0) upcomingCount++;
       }
     });
 
-    return { overdueCount, todayCount, activeCount, completedCount };
+    return {
+      allCount,
+      topHighCount,
+      todayCount,
+      upcomingCount,
+      overdueCount,
+      completedCount,
+    };
   }, [myTasks, selectedClient, selectedDate]);
 
   const filteredTasks = React.useMemo(() => {
@@ -244,18 +274,63 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
         const dueDays = getDaysRemaining(t.dueDate);
         const startDays = getDaysRemaining(t.startDate);
         const isCompleted = t.status === "Completed";
+        const isTopHigh =
+          isSameDateHelper(t.startDate, t.dueDate) ||
+          t.priority === "Top High";
 
-        if (filterTab === "overdue") {
-          if (isCompleted || dueDays === null || dueDays >= 0) return false;
+        // 1. Quick Tab Filter
+        if (filterTab === "top_high") {
+          if (!isTopHigh || isCompleted) return false;
         } else if (filterTab === "today") {
           if (isCompleted || (dueDays !== 0 && startDays !== 0)) return false;
-        } else if (filterTab === "active") {
-          if (isCompleted) return false;
+        } else if (filterTab === "upcoming") {
+          if (isCompleted || (dueDays === null || dueDays <= 0)) return false;
+        } else if (filterTab === "overdue") {
+          if (isCompleted || dueDays === null || dueDays >= 0) return false;
         } else if (filterTab === "completed") {
           if (!isCompleted) return false;
         }
 
-        // Client Filter
+        // 2. Status Filter ("All status wise")
+        if (selectedStatus !== "all") {
+          const sLower = (t.status || "").toLowerCase().trim();
+          const targetLower = selectedStatus.toLowerCase().trim();
+          if (targetLower === "in review") {
+            if (
+              sLower !== "in review" &&
+              sLower !== "in-review" &&
+              sLower !== "in_review"
+            )
+              return false;
+          } else if (targetLower === "in progress") {
+            if (
+              sLower !== "in progress" &&
+              sLower !== "in-progress" &&
+              sLower !== "in_progress"
+            )
+              return false;
+          } else if (targetLower === "not started") {
+            if (
+              sLower !== "not started" &&
+              sLower !== "not-started" &&
+              sLower !== "not_started"
+            )
+              return false;
+          } else if (sLower !== targetLower) {
+            return false;
+          }
+        }
+
+        // 3. Priority Filter ("easy find top high priority")
+        if (selectedPriority !== "all") {
+          if (selectedPriority === "Top High") {
+            if (!isTopHigh) return false;
+          } else {
+            if (t.priority !== selectedPriority) return false;
+          }
+        }
+
+        // 4. Client Filter
         if (selectedClient !== "all") {
           const clientVal = t.client;
           const clientId =
@@ -265,8 +340,8 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
           if (clientId !== selectedClient) return false;
         }
 
-        // Date Filter
-        if (!matchesDateFilter(t, selectedDate)) return false;
+        // 5. Date Filter (only applied if user explicitly picked a date)
+        if (selectedDate && !matchesDateFilter(t, selectedDate)) return false;
 
         return true;
       })
@@ -286,7 +361,14 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
         if (!dateB) return -1;
         return new Date(dateA) - new Date(dateB);
       });
-  }, [myTasks, filterTab, selectedClient, selectedDate]);
+  }, [
+    myTasks,
+    filterTab,
+    selectedStatus,
+    selectedPriority,
+    selectedClient,
+    selectedDate,
+  ]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -311,57 +393,137 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
     return `${day} ${month} ${year}`;
   };
 
+  const isFilterActive =
+    filterTab !== "all" ||
+    selectedStatus !== "all" ||
+    selectedPriority !== "all" ||
+    selectedClient !== "all" ||
+    selectedDate !== "";
+
+  const handleResetFilters = () => {
+    setFilterTab("all");
+    setSelectedStatus("all");
+    setSelectedPriority("all");
+    setSelectedClient("all");
+    setSelectedDate("");
+  };
+
   if (isLoading) {
     return (
-      <div className="theme-bg-card border theme-border rounded-xl p-6 shadow-sm animate-pulse space-y-4">
-        <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/4"></div>
+      <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 p-5 shadow-xs animate-pulse space-y-4 min-h-[340px] w-full">
+        <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
         <div className="space-y-3">
-          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded"></div>
-          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded"></div>
+          <div className="h-14 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+          <div className="h-14 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+          <div className="h-14 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="theme-bg-card border theme-border rounded-2xl p-5 shadow-sm w-full">
-      {/* Stats Quick Filters & Search Control Row */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 border-b theme-border pb-4">
-        {/* Quick Filter Tabs */}
-        <div className="flex flex-wrap gap-2">
+    <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col justify-between min-h-[340px] relative w-full">
+      {/* ─── Top Header: Title, Total Count, and "View Task Board" Link ─── */}
+      <div>
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200/80 dark:border-white/10 flex-wrap gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold text-xs flex items-center justify-center shrink-0 border border-emerald-500/20">
+              <FiLayers size={14} />
+            </div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-gray-800 dark:text-gray-100">
+                View Task Board
+              </h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                {myTasks.length} Assigned
+              </span>
+              {taskStats.topHighCount > 0 && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500 text-white shadow-xs animate-pulse">
+                  🔴 {taskStats.topHighCount} Top High
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isFilterActive && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer"
+                title="Reset all filters"
+              >
+                <FiRotateCcw size={11} />
+                <span>Reset</span>
+              </button>
+            )}
+            <button
+              onClick={() => navigate(`/${user?.role}/tasks`)}
+              className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-600 dark:text-emerald-400 hover:underline uppercase tracking-wider cursor-pointer"
+            >
+              View Task Board <FiChevronRight size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* ─── Filter Tabs Row (All Tasks, Top High, Today, Upcoming, Overdue, Completed) ─── */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {[
             {
               id: "all",
               label: "All Tasks",
-              count: myTasks.filter((t) => {
-                if (selectedClient !== "all") {
-                  const clientVal = t.client;
-                  const clientId =
-                    typeof clientVal === "object"
-                      ? clientVal._id || clientVal.id
-                      : clientVal;
-                  if (clientId !== selectedClient) return false;
-                }
-                if (!matchesDateFilter(t, selectedDate)) return false;
-                return true;
-              }).length,
-              color:
-                "border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800",
+              count: taskStats.allCount,
+              activeBg: "bg-emerald-600 border-emerald-600 text-white",
+              badgeActive: "bg-white/20 text-white",
+              idle: "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800",
+              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200",
+            },
+            {
+              id: "top_high",
+              label: "🔴 Top High",
+              count: taskStats.topHighCount,
+              activeBg: "bg-red-600 border-red-600 text-white shadow-red-500/30",
+              badgeActive: "bg-white/25 text-white",
+              idle: "border-yellow-400/80 dark:border-yellow-500/40 text-red-700 dark:text-yellow-300 bg-yellow-50/80 dark:bg-yellow-950/30 hover:bg-yellow-100/80",
+              badgeIdle: "bg-yellow-200 dark:bg-yellow-900/60 text-red-900 dark:text-yellow-200",
+              highlight: taskStats.topHighCount > 0,
+            },
+            {
+              id: "today",
+              label: "Today",
+              count: taskStats.todayCount,
+              activeBg: "bg-amber-600 border-amber-600 text-white",
+              badgeActive: "bg-white/20 text-white",
+              idle: "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800",
+              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200",
+            },
+            {
+              id: "upcoming",
+              label: "Upcoming",
+              count: taskStats.upcomingCount,
+              activeBg: "bg-blue-600 border-blue-600 text-white",
+              badgeActive: "bg-white/20 text-white",
+              idle: "border-blue-200/80 dark:border-blue-800/40 text-blue-700 dark:text-blue-300 bg-blue-50/60 dark:bg-blue-950/30 hover:bg-blue-100/60",
+              badgeIdle: "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200",
             },
             {
               id: "overdue",
               label: "Overdue",
               count: taskStats.overdueCount,
-              color:
-                "border-rose-300 dark:border-rose-700/60 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50",
+              activeBg: "bg-rose-600 border-rose-600 text-white",
+              badgeActive: "bg-white/20 text-white",
+              idle: "border-rose-200/80 dark:border-rose-800/40 text-rose-700 dark:text-rose-300 bg-rose-50/60 dark:bg-rose-950/30 hover:bg-rose-100/60",
+              badgeIdle: "bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200",
               highlight: taskStats.overdueCount > 0,
             },
             {
               id: "completed",
               label: "Completed",
               count: taskStats.completedCount,
-              color:
-                "border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50",
+              activeBg: "bg-emerald-600 border-emerald-600 text-white",
+              badgeActive: "bg-white/20 text-white",
+              idle: "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800",
+              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200",
             },
           ].map((tab) => {
             const isActive = filterTab === tab.id;
@@ -369,18 +531,16 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
               <button
                 key={tab.id}
                 onClick={() => setFilterTab(tab.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all shadow-sm cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold transition-all shadow-2xs cursor-pointer ${
                   isActive
-                    ? "bg-blue-600 border-blue-600 text-white dark:bg-blue-600 dark:border-blue-500 dark:text-white"
-                    : `${tab.color} hover:bg-slate-200 dark:hover:bg-slate-800`
+                    ? `${tab.activeBg} shadow-xs scale-[1.02]`
+                    : `${tab.idle}`
                 } ${tab.highlight ? "animate-pulse" : ""}`}
               >
                 <span>{tab.label}</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${
-                    isActive
-                      ? "bg-white/20 text-white"
-                      : "bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
+                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-black min-w-[16px] text-center ${
+                    isActive ? tab.badgeActive : tab.badgeIdle
                   }`}
                 >
                   {tab.count}
@@ -390,41 +550,108 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
           })}
         </div>
 
-        {/* Date Filter Input */}
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Date Picker */}
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-3 py-1.5 rounded-xl text-slate-800 dark:text-slate-100 shadow-sm relative">
+        {/* ─── Detailed Filters: All Status, Priority, Client, Date Picker ─── */}
+        <div className="flex flex-wrap items-center gap-2 pb-2 text-[11px]">
+          {/* Status Dropdown ("All status wise") */}
+          <div className="flex items-center gap-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-200 shadow-2xs">
+            <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10px]">
+              Status:
+            </span>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="bg-transparent font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 text-[11px]"
+            >
+              <option value="all" className="dark:bg-slate-800">
+                All Status
+              </option>
+              {uniqueStatuses.map((st) => (
+                <option key={st} value={st} className="dark:bg-slate-800">
+                  {st}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Priority Dropdown ("easy find top high priority") */}
+          <div className="flex items-center gap-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-200 shadow-2xs">
+            <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10px]">
+              Priority:
+            </span>
+            <select
+              value={selectedPriority}
+              onChange={(e) => setSelectedPriority(e.target.value)}
+              className="bg-transparent font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 text-[11px]"
+            >
+              <option value="all" className="dark:bg-slate-800">
+                All Priority
+              </option>
+              <option value="Top High" className="dark:bg-slate-800">
+                🔴 Top High
+              </option>
+              <option value="High" className="dark:bg-slate-800">
+                High
+              </option>
+              <option value="Medium" className="dark:bg-slate-800">
+                Medium
+              </option>
+              <option value="Low" className="dark:bg-slate-800">
+                Low
+              </option>
+            </select>
+          </div>
+
+          {/* Client Filter Dropdown */}
+          {uniqueClients.length > 0 && (
+            <div className="flex items-center gap-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-200 shadow-2xs">
+              <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10px]">
+                Client:
+              </span>
+              <select
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                className="bg-transparent font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 text-[11px] max-w-[130px] truncate"
+              >
+                <option value="all" className="dark:bg-slate-800">
+                  All Clients
+                </option>
+                {uniqueClients.map((c) => (
+                  <option key={c.id} value={c.id} className="dark:bg-slate-800">
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Date Picker Filter */}
+          <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-2 py-1 rounded-lg text-slate-800 dark:text-slate-100 shadow-2xs">
             <FiCalendar
-              className="shrink-0 text-indigo-600 dark:text-indigo-400"
-              size={13}
+              className="shrink-0 text-emerald-600 dark:text-emerald-400"
+              size={12}
             />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent text-[11px] font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 [&::-webkit-calendar-picker-indicator]:dark:invert"
+              className="bg-transparent text-[10.5px] font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 [&::-webkit-calendar-picker-indicator]:dark:invert"
             />
             {selectedDate && (
               <button
+                type="button"
                 onClick={() => setSelectedDate("")}
-                className="text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors ml-1"
+                className="text-slate-400 hover:text-rose-500 transition-colors ml-0.5"
+                title="Clear date"
               >
-                <FiX size={12} />
+                <FiX size={11} />
               </button>
             )}
           </div>
-
-          <button
-            onClick={() => navigate(`/${user?.role}/tasks`)}
-            className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-wider ml-1"
-          >
-            View Task Board <FiChevronRight size={12} />
-          </button>
         </div>
       </div>
 
-      {/* Task List */}
-      <div className="space-y-2 overflow-y-auto max-h-[380px] pr-1.5 scrollbar-thin">
+      {/* ─── Task List ─── */}
+      <div className="space-y-2 overflow-y-auto max-h-[360px] pr-1.5 scrollbar-thin flex-1 mt-1">
         {filteredTasks.length > 0 ? (
           filteredTasks.map((task) => {
             const daysLeft = getDaysRemaining(task.dueDate);
@@ -588,7 +815,6 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
 
                 {/* Right side: Deadline */}
                 <div className="flex items-center gap-2 shrink-0 flex-wrap justify-between sm:justify-end">
-                  {/* Deadline Label */}
                   {task.dueDate ? (
                     <div className="flex items-center gap-1.5">
                       <span
@@ -635,17 +861,26 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
             );
           })
         ) : (
-          <div className="text-center py-10 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-dashed theme-border">
+          <div className="text-center py-10 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-dashed border-slate-200 dark:border-white/10">
             <FiCheckCircle
               size={32}
-              className="mx-auto text-slate-300 dark:text-slate-700 mb-2"
+              className="mx-auto text-slate-300 dark:text-slate-600 mb-2"
             />
-            <h3 className="text-xs font-bold theme-text-primary">
-              All caught up!
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200">
+              No tasks found
             </h3>
-            <p className="text-[10px] theme-text-secondary mt-0.5">
-              No tasks found matching your filter criteria.
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+              No tasks match your selected filter criteria.
             </p>
+            {isFilterActive && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="mt-3 px-3 py-1 rounded-lg text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-300 transition-all cursor-pointer"
+              >
+                Reset All Filters
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1736,6 +1971,39 @@ const Dashboardmain = () => {
     (typeof window !== "undefined" &&
       window.location.pathname.includes("/socialmediamanager"));
 
+  const isGraphicDesigner =
+    roleNorm !== "admin" &&
+    roleNorm !== "operationmanager" &&
+    (roleNorm === "graphicdesigner" ||
+      roleNorm === "designer" ||
+      deptNorm.includes("graphic") ||
+      deptNorm.includes("design") ||
+      desigNorm.includes("graphic") ||
+      desigNorm.includes("design"));
+
+  const isCinematographer =
+    roleNorm !== "admin" &&
+    roleNorm !== "operationmanager" &&
+    (roleNorm.includes("cinema") ||
+      roleNorm.includes("video") ||
+      roleNorm.includes("edit") ||
+      deptNorm.includes("cinema") ||
+      deptNorm.includes("video") ||
+      deptNorm.includes("edit") ||
+      deptNorm.includes("shoot") ||
+      deptNorm.includes("camera") ||
+      desigNorm.includes("cinema") ||
+      desigNorm.includes("video") ||
+      desigNorm.includes("edit") ||
+      desigNorm.includes("shoot") ||
+      desigNorm.includes("camera") ||
+      (typeof window !== "undefined" &&
+        (window.location.pathname.includes("/cinematographer") ||
+          window.location.pathname.includes("/videographer"))));
+
+  const showContentCalendar =
+    !isFinance && !isGraphicDesigner && !isCinematographer;
+
   const canSeeProjectsShortcut =
     !isSocialMediaManager &&
     (roleNorm === "admin" ||
@@ -1754,9 +2022,9 @@ const Dashboardmain = () => {
       {/* GREETING */}
       <WelcomeUser />
 
-      {/* Goal tasks (All Users) & My Projects shortcut (Admin, Ops Manager, Social Media Executive only) */}
+      {/* Goal tasks (Left) & My Projects / View Task Board (Right) */}
       <div
-        className={`grid grid-cols-1 ${canSeeProjectsShortcut ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-4 mt-2 relative z-10`}
+        className={`grid grid-cols-1 ${canSeeProjectsShortcut || isGraphicDesigner || isCinematographer ? "xl:grid-cols-2" : "grid-cols-1"} gap-4 mt-2 relative z-10 items-stretch`}
       >
         {/* My Goals tasks card */}
         <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col min-h-[340px] relative w-full">
@@ -2378,25 +2646,34 @@ const Dashboardmain = () => {
             )}
           </div>
         )}
+
+        {/* Right side: View Task Board (Graphic Designer & Cinematographer) */}
+        {!canSeeProjectsShortcut && (isGraphicDesigner || isCinematographer) && (
+          <div className="w-full flex">
+            <GraphicDesignerDeadlines user={user} />
+          </div>
+        )}
       </div>
 
       {/* ─── CALENDAR OVERVIEW SECTION (Left: Shoot Calendar Overview, Right: Content Calendar Overview) ─── */}
-      {!isFinance && (
+      {!isFinance && (canReadShootCalendar || showContentCalendar) && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4 mb-4 items-stretch">
           {canReadShootCalendar && (
-            <div className="w-full flex">
+            <div className={`w-full flex ${!showContentCalendar ? "xl:col-span-2" : ""}`}>
               <ShootCalendarOverview />
             </div>
           )}
 
-          <div className={`w-full flex ${!canReadShootCalendar ? "xl:col-span-2" : ""}`}>
-            <ContentCalendarOverview />
-          </div>
+          {showContentCalendar && (
+            <div className={`w-full flex ${!canReadShootCalendar ? "xl:col-span-2" : ""}`}>
+              <ContentCalendarOverview />
+            </div>
+          )}
         </div>
       )}
 
       {/* .................................................Dashboard Cards / Assigned Clients.............................. */}
-      {!isFinance && (() => {
+      {!isFinance && !isGraphicDesigner && !isCinematographer && (() => {
         const deptLower = (user?.department || "").toLowerCase();
         const roleLower = (user?.role || "").toLowerCase();
         const isHr =
@@ -2559,7 +2836,9 @@ const Dashboardmain = () => {
         user?.department?.toLowerCase() !== "social media manager" &&
         user?.department?.toLowerCase() !== "social media executive" &&
         !user?.department?.toLowerCase()?.includes("social media") &&
-        !isFinance && (
+        !isFinance &&
+        !isGraphicDesigner &&
+        !isCinematographer && (
           <div className="w-full mt-4">
             <GraphicDesignerDeadlines user={user} />
           </div>

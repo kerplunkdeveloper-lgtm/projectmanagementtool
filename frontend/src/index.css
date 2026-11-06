@@ -3279,3 +3279,40 @@ td:first-child {
 .dark .dark\:text-gray-100 {
   color: #f1f5f9 !important;
 }
+
+/* Status Filter Tab Indicator in MyTasksTab - dynamically synced with Settings Accent Color */
+.status-tab-indicator-pill {
+  background: var(--accent-gradient) !important;
+  background-color: var(--accent-color) !important;
+  box-shadow: 0 4px 14px 0 var(--accent-hover-shadow) !important;
+}
+
+.dark .status-tab-indicator-pill {
+  background: var(--accent-gradient-dark) !important;
+  background-color: var(--accent-color-dark) !important;
+  box-shadow: 0 4px 16px 0 var(--accent-hover-shadow-dark), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Active tab text color synced with accent contrast */
+.status-tab-button-active {
+  color: #ffffff !important;
+}
+
+.status-tab-button-active .status-tab-count-badge {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* For bright accents in dark mode (neon-green, lime), use deep black for crystal-clear readability */
+:root[data-accent="lime"] .dark .status-tab-button-active,
+:root[data-accent="neon-green"] .dark .status-tab-button-active {
+  color: #000000 !important;
+}
+
+:root[data-accent="lime"] .dark .status-tab-button-active .status-tab-count-badge,
+:root[data-accent="neon-green"] .dark .status-tab-button-active .status-tab-count-badge {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  color: #000000 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}

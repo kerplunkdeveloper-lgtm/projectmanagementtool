@@ -266,7 +266,39 @@ const ContentCalendarOverview = () => {
     userRole === "operationmanager";
   const isReadOnly = isSuperOrAdmin;
 
+  const deptNorm = (
+    currentUser?.department ||
+    currentUser?.profile?.department ||
+    ""
+  ).toLowerCase();
+  const desigNorm = (
+    currentUser?.designation ||
+    currentUser?.department ||
+    currentUser?.profile?.department ||
+    ""
+  ).toLowerCase();
+
+  const isCinematographer =
+    !isSuperOrAdmin &&
+    (userRole.includes("cinema") ||
+      userRole.includes("video") ||
+      userRole.includes("edit") ||
+      deptNorm.includes("cinema") ||
+      deptNorm.includes("video") ||
+      deptNorm.includes("edit") ||
+      deptNorm.includes("shoot") ||
+      deptNorm.includes("camera") ||
+      desigNorm.includes("cinema") ||
+      desigNorm.includes("video") ||
+      desigNorm.includes("edit") ||
+      desigNorm.includes("shoot") ||
+      desigNorm.includes("camera") ||
+      (typeof window !== "undefined" &&
+        (window.location.pathname.includes("/cinematographer") ||
+          window.location.pathname.includes("/videographer"))));
+
   const fetchTasks = useCallback(async () => {
+    if (isCinematographer) return;
     try {
       setLoading(true);
       const { data } = await axiosInstance.get("/socialmedia-task-calendar");
@@ -276,11 +308,13 @@ const ContentCalendarOverview = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isCinematographer]);
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    if (!isCinematographer) {
+      fetchTasks();
+    }
+  }, [fetchTasks, isCinematographer]);
 
   // Clients list for filter dropdown
   const clientOptions = useMemo(() => {
@@ -546,6 +580,10 @@ const ContentCalendarOverview = () => {
   };
 
   const calendarPath = `/${userRole || "admin"}/content-calendar`;
+
+  if (isCinematographer) {
+    return null;
+  }
 
   return (
     <div className="w-full sidebar-bg rounded-2xl border border-slate-200 dark:border-[#223149] shadow-xs p-4 sm:p-5 transition-all flex flex-col justify-between">
