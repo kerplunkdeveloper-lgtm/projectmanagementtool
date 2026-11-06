@@ -45,15 +45,15 @@ const getStatusStyles = (status = "") => {
       cardBorder: "hover:border-emerald-400 dark:hover:border-emerald-500/50",
     };
   }
-  if (s.includes("schedule")) {
+  if (s.includes("wait") || s.includes("response") || s.includes("approval")) {
     return {
-      cardBg: "bg-[#e8f4fd] dark:bg-sky-950/25 border-sky-200/90 dark:border-sky-800/60",
-      badge: "bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-500/30",
-      dot: "bg-sky-500",
-      cardBorder: "hover:border-sky-400 dark:hover:border-sky-500/50",
+      cardBg: "bg-[#f3e8ff] dark:bg-purple-950/25 border-purple-200/90 dark:border-purple-800/60",
+      badge: "bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30",
+      dot: "bg-purple-500",
+      cardBorder: "hover:border-purple-400 dark:hover:border-purple-500/50",
     };
   }
-  if (s.includes("qc")) {
+  if (s === "qc" || s.includes("in qc")) {
     return {
       cardBg: "bg-[#fef7e3] dark:bg-amber-950/25 border-amber-200/90 dark:border-amber-800/60",
       badge: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30",
@@ -61,12 +61,20 @@ const getStatusStyles = (status = "") => {
       cardBorder: "hover:border-amber-400 dark:hover:border-amber-500/50",
     };
   }
-  if (s.includes("progress")) {
+  if (s.includes("progress") || s.includes("inprogress")) {
     return {
       cardBg: "bg-[#eef0fe] dark:bg-indigo-950/25 border-indigo-200/90 dark:border-indigo-800/60",
       badge: "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30",
       dot: "bg-indigo-500",
       cardBorder: "hover:border-indigo-400 dark:hover:border-indigo-500/50",
+    };
+  }
+  if (s.includes("schedule")) {
+    return {
+      cardBg: "bg-[#e8f4fd] dark:bg-sky-950/25 border-sky-200/90 dark:border-sky-800/60",
+      badge: "bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-500/30",
+      dot: "bg-sky-500",
+      cardBorder: "hover:border-sky-400 dark:hover:border-sky-500/50",
     };
   }
   if (s.includes("overdue") || s.includes("past due")) {
@@ -255,6 +263,8 @@ const ContentCalendarOverview = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTaskForModal, setSelectedTaskForModal] = useState(null);
   const [viewMode, setViewMode] = useState("table"); // "table" | "grid"
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
 
   const userRole = (currentUser?.role?.name || currentUser?.role || "")
     .toString()
@@ -351,8 +361,10 @@ const ContentCalendarOverview = () => {
   const metrics = useMemo(() => {
     const total = tasks.length;
     let todayCount = 0;
-    let scheduledCount = 0;
-    let inQcCount = 0;
+    let notStartedCount = 0;
+    let inProgressCount = 0;
+    let qcCount = 0;
+    let waitResponseCount = 0;
     let liveCount = 0;
     let overdueCount = 0;
     const now = new Date();
@@ -361,28 +373,31 @@ const ContentCalendarOverview = () => {
       const dateStr = t.publishDate || t.dueDate;
       if (dateStr) {
         try {
-          const parsed = parseISO(dateStr);
+          const parsed = typeof dateStr === "string" ? parseISO(dateStr) : dateStr;
           if (isToday(parsed)) {
             todayCount += 1;
           }
-          if (parsed < now && t.status !== "Completed" && t.status !== "Live") {
+          if (parsed < now && !["completed", "live", "published", "published live"].includes((t.status || "").toLowerCase().trim())) {
             overdueCount += 1;
           }
         } catch {}
       }
 
-      const st = (t.status || "").toLowerCase();
-      if (st === "scheduled") scheduledCount += 1;
-      else if (st === "in qc") inQcCount += 1;
-      else if (st === "live" || st === "completed") liveCount += 1;
-      else if (st === "overdue") overdueCount += 1;
+      const st = (t.status || "").toLowerCase().trim();
+      if (st === "not started" || st === "draft" || !st) notStartedCount += 1;
+      else if (st === "inprogress" || st === "in progress") inProgressCount += 1;
+      else if (st === "qc" || st === "in qc") qcCount += 1;
+      else if (st.includes("wait") || st.includes("response") || st.includes("approval")) waitResponseCount += 1;
+      else if (st === "live" || st === "published" || st === "published live" || st === "completed") liveCount += 1;
     });
 
     return {
       total,
       today: todayCount,
-      scheduled: scheduledCount,
-      inQc: inQcCount,
+      notStarted: notStartedCount,
+      inProgress: inProgressCount,
+      qc: qcCount,
+      waitResponse: waitResponseCount,
       live: liveCount,
       overdue: overdueCount,
     };
@@ -398,36 +413,45 @@ const ContentCalendarOverview = () => {
         const d = t.publishDate || t.dueDate;
         if (!d) return false;
         try {
-          return isToday(parseISO(d));
+          return isToday(typeof d === "string" ? parseISO(d) : d);
         } catch {
           return false;
         }
       });
-    } else if (activeTab === "upcoming") {
-      const now = new Date();
+    } else if (activeTab === "notstarted") {
       list = list.filter((t) => {
-        const d = t.publishDate || t.dueDate;
-        if (!d) return false;
-        try {
-          return parseISO(d) >= now && t.status !== "Completed" && t.status !== "Live";
-        } catch {
-          return false;
-        }
+        const s = (t.status || "").toLowerCase().trim();
+        return s === "not started" || s === "draft" || !s;
       });
-    } else if (activeTab === "scheduled") {
-      list = list.filter((t) => t.status === "Scheduled");
-    } else if (activeTab === "inqc") {
-      list = list.filter((t) => t.status === "In QC");
+    } else if (activeTab === "inprogress") {
+      list = list.filter((t) => {
+        const s = (t.status || "").toLowerCase().trim();
+        return s === "inprogress" || s === "in progress";
+      });
+    } else if (activeTab === "qc" || activeTab === "inqc") {
+      list = list.filter((t) => {
+        const s = (t.status || "").toLowerCase().trim();
+        return s === "qc" || s === "in qc";
+      });
+    } else if (activeTab === "waitresponse") {
+      list = list.filter((t) => {
+        const s = (t.status || "").toLowerCase().trim();
+        return s.includes("wait") || s.includes("response") || s.includes("approval");
+      });
     } else if (activeTab === "live") {
-      list = list.filter((t) => t.status === "Live" || t.status === "Completed");
+      list = list.filter((t) => {
+        const s = (t.status || "").toLowerCase().trim();
+        return s === "live" || s === "published" || s === "published live" || s === "completed";
+      });
     } else if (activeTab === "overdue") {
       const now = new Date();
       list = list.filter((t) => {
-        if (t.status === "Overdue") return true;
+        if ((t.status || "").toLowerCase().trim() === "overdue") return true;
         const dStr = t.publishDate || t.dueDate;
         if (!dStr) return false;
         try {
-          return parseISO(dStr) < now && t.status !== "Completed" && t.status !== "Live";
+          const parsed = typeof dStr === "string" ? parseISO(dStr) : dStr;
+          return parsed < now && !["completed", "live", "published", "published live"].includes((t.status || "").toLowerCase().trim());
         } catch {
           return false;
         }
@@ -473,15 +497,75 @@ const ContentCalendarOverview = () => {
       });
     }
 
-    // Sort chronologically
+    // Status rank ordering helper:
+    // Requested exact order: Not started (1) -> Inprogress (2) -> Qc (3) -> Complete wait for response (4) -> Published live (5)
+    const getStatusOrderRank = (status = "") => {
+      const s = (status || "").toLowerCase().trim();
+      if (s.includes("not started") || s === "draft" || !s) return 1;
+      if (s.includes("inprogress") || s.includes("in progress")) return 2;
+      if (s === "qc" || s.includes("in qc")) return 3;
+      if (s.includes("wait") || s.includes("response") || s.includes("approval")) return 4;
+      if (s.includes("published live") || s.includes("published") || s === "live" || s.includes("completed")) return 5;
+      if (s.includes("schedule")) return 6;
+      return 7;
+    };
+
+    const getDatePriority = (task) => {
+      const dStr = task.publishDate || task.dueDate;
+      if (!dStr) return 3;
+      try {
+        const d = typeof dStr === "string" ? parseISO(dStr) : dStr;
+        if (isToday(d)) return 0; // Today due first!
+        const now = new Date();
+        if (d < now) return 1; // Past / Overdue
+        return 2; // Upcoming
+      } catch {
+        return 3;
+      }
+    };
+
+    // Sort order:
+    // 1. Current Today Due first (0), then Overdue/Past (1), then Upcoming (2)
+    // 2. Exact status order: Not started (1) -> Inprogress (2) -> QC (3) -> Complete wait for response (4) -> Published live (5)
+    // 3. Chronological time
     list.sort((a, b) => {
-      const dateA = new Date(a.publishDate || a.dueDate || 0);
-      const dateB = new Date(b.publishDate || b.dueDate || 0);
-      return dateA - dateB;
+      const datePriA = getDatePriority(a);
+      const datePriB = getDatePriority(b);
+      if (datePriA !== datePriB) {
+        return datePriA - datePriB;
+      }
+
+      const rankA = getStatusOrderRank(a.status);
+      const rankB = getStatusOrderRank(b.status);
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+
+      const timeA = new Date(a.publishDate || a.dueDate || 0).getTime();
+      const timeB = new Date(b.publishDate || b.dueDate || 0).getTime();
+      return timeA - timeB;
     });
 
     return list;
   }, [tasks, activeTab, selectedClient, selectedContentType, searchQuery]);
+
+  // Reset pagination on filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, selectedClient, selectedContentType, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
+  const paginatedTasks = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredTasks.slice(start, start + pageSize);
+  }, [filteredTasks, currentPage, pageSize]);
 
   const hasActiveFilters =
     activeTab !== "all" ||
@@ -494,6 +578,7 @@ const ContentCalendarOverview = () => {
     setSelectedClient("all");
     setSelectedContentType("all");
     setSearchQuery("");
+    setCurrentPage(1);
   };
 
   const handleExportExcel = () => {
@@ -675,10 +760,12 @@ const ContentCalendarOverview = () => {
         <div className="flex items-center gap-1.5 flex-wrap my-3">
           {[
             { id: "all", label: "All Posts", count: metrics.total },
-            { id: "today", label: "Today", count: metrics.today },
-            { id: "scheduled", label: "Scheduled", count: metrics.scheduled },
-            { id: "inqc", label: "In QC", count: metrics.inQc },
-            { id: "live", label: "Live", count: metrics.live },
+            { id: "today", label: "Today Due", count: metrics.today },
+            { id: "notstarted", label: "Not Started", count: metrics.notStarted },
+            { id: "inprogress", label: "Inprogress", count: metrics.inProgress },
+            { id: "qc", label: "QC", count: metrics.qc },
+            { id: "waitresponse", label: "Wait for Response", count: metrics.waitResponse },
+            { id: "live", label: "Published Live", count: metrics.live },
             { id: "overdue", label: "Overdue", count: metrics.overdue },
           ].map((pill) => {
             const isActive = activeTab === pill.id;
@@ -827,7 +914,7 @@ const ContentCalendarOverview = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/10 text-xs">
-                {filteredTasks.slice(0, 5).map((task) => {
+                {paginatedTasks.map((task) => {
                   const statusStyle = getStatusStyles(task.status);
                   const dateStr = task.publishDate || task.dueDate;
                   const relativeDate = getRelativeDateLabel(dateStr, task.status);
@@ -938,7 +1025,7 @@ const ContentCalendarOverview = () => {
         ) : (
           /* ─── FALLBACK GRID VIEW ─── */
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {filteredTasks.slice(0, 4).map((task) => {
+            {paginatedTasks.map((task) => {
               const statusStyle = getStatusStyles(task.status);
               const dateStr = task.publishDate || task.dueDate;
               const formattedDate = dateStr
@@ -1005,6 +1092,90 @@ const ContentCalendarOverview = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ─── Pagination Controls ───────────────────────────────────── */}
+        {filteredTasks.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-3 mt-3 border-t border-slate-100 dark:border-white/10 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-2">
+              <span>
+                Showing{" "}
+                <strong className="text-slate-800 dark:text-slate-200">
+                  {Math.min((currentPage - 1) * pageSize + 1, filteredTasks.length)}
+                </strong>
+                -
+                <strong className="text-slate-800 dark:text-slate-200">
+                  {Math.min(currentPage * pageSize, filteredTasks.length)}
+                </strong>{" "}
+                of{" "}
+                <strong className="text-slate-800 dark:text-slate-200">
+                  {filteredTasks.length}
+                </strong>{" "}
+                posts
+              </span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="ml-2 text-[11px] font-semibold py-0.5 px-2 bg-slate-50 dark:bg-[#131d2e] border border-slate-200 dark:border-white/10 rounded-md text-slate-700 dark:text-slate-300 outline-none cursor-pointer"
+              >
+                <option value={5}>5 / page</option>
+                <option value={6}>6 / page</option>
+                <option value={10}>10 / page</option>
+                <option value={20}>20 / page</option>
+              </select>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d2e] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1a2538] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-all shadow-2xs"
+                >
+                  Prev
+                </button>
+
+                <div className="flex items-center gap-1 px-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .map((p, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      return (
+                        <React.Fragment key={p}>
+                          {prev && p - prev > 1 && (
+                            <span className="px-1 text-slate-400">...</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPage(p)}
+                            className={`min-w-[28px] h-7 px-2 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                              currentPage === p
+                                ? "theme-bg-accent text-white shadow-2xs"
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d2e] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#1a2538] disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed transition-all shadow-2xs"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
