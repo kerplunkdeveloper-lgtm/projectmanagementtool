@@ -166,11 +166,11 @@ const ActionBtn = React.memo(({ onClick, label, colorClass, children }) => (
         e.stopPropagation();
         if (onClick) onClick(e);
       }}
-      className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer ${colorClass}`}
+      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-150 hover:scale-105 active:scale-95 cursor-pointer ${colorClass}`}
     >
       {children}
     </button>
-    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 text-[10px] font-bold text-white bg-slate-900 dark:bg-slate-700 rounded-lg shadow-xl opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50">
+    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-0.5 text-[9.5px] font-bold text-white bg-slate-900 dark:bg-slate-700 rounded-md shadow-xl opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 whitespace-nowrap z-50">
       {label}
     </span>
   </div>
@@ -180,6 +180,7 @@ const ActionBtn = React.memo(({ onClick, label, colorClass, children }) => (
 const UserTableRow = React.memo(
   ({
     user,
+    serialNumber,
     currentUser,
     isOnline,
     isReadOnly,
@@ -262,15 +263,22 @@ const UserTableRow = React.memo(
             : "hover:bg-slate-50/80 dark:hover:bg-white/[0.03]"
         }`}
       >
+        {/* ── SL. NO ───────────────────────────────── */}
+        <td className="w-14 px-2 py-2 text-center align-middle whitespace-nowrap">
+          <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 font-mono">
+            {serialNumber}
+          </span>
+        </td>
+
         {/* ── USER ─────────────────────────────────── */}
-        <td className="px-5 py-3.5 align-middle">
-          <div className="flex items-center gap-3">
+        <td className="px-4 py-2 align-middle">
+          <div className="flex items-center gap-2.5">
             {/* Avatar */}
             <div className="relative shrink-0">
               <div
-                className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarGrad(
+                className={`w-7 h-7 rounded-full bg-gradient-to-br ${avatarGrad(
                   user.name,
-                )} flex items-center justify-center text-white font-bold text-sm overflow-hidden shadow-sm group-hover:scale-105 transition-transform duration-150 ${
+                )} flex items-center justify-center text-white font-bold text-xs overflow-hidden shadow-xs group-hover:scale-105 transition-transform duration-150 ${
                   isRelieved ? "grayscale" : ""
                 }`}
               >
@@ -290,7 +298,7 @@ const UserTableRow = React.memo(
               {/* Online indicator dot */}
               {!isRelieved && (
                 <span
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 transition-colors duration-200 ${
+                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 transition-colors duration-200 ${
                     isOnline ? "bg-emerald-500" : "bg-slate-400"
                   }`}
                 />
@@ -300,7 +308,7 @@ const UserTableRow = React.memo(
             {/* Name */}
             <div>
               <p
-                className={`text-[13px] font-bold leading-tight ${
+                className={`text-xs font-semibold leading-tight ${
                   isRelieved
                     ? "text-slate-500 dark:text-slate-400"
                     : "text-slate-900 dark:text-white"
@@ -314,13 +322,13 @@ const UserTableRow = React.memo(
 
         {/* ── EMAIL ────────────────────────────────── */}
         {!isSMM && (
-          <td className="px-5 py-3.5 align-middle">
-            <div className="flex items-center gap-2">
+          <td className="px-4 py-2 align-middle">
+            <div className="flex items-center gap-1.5">
               <FiMail
-                size={12}
+                size={11}
                 className="text-slate-400 dark:text-slate-500 shrink-0"
               />
-              <span className="text-[12.5px] font-medium text-slate-600 dark:text-slate-300 truncate max-w-[200px]">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate max-w-[190px]">
                 {user.email}
               </span>
               {/* Copy Email button */}
@@ -328,7 +336,7 @@ const UserTableRow = React.memo(
                 type="button"
                 onClick={handleCopyEmail}
                 title="Copy email"
-                className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-150 cursor-pointer"
+                className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-150 cursor-pointer"
               >
                 {copiedEmail ? (
                   <FiCheck size={11} className="text-emerald-500" />
@@ -339,11 +347,11 @@ const UserTableRow = React.memo(
             </div>
 
             {user.plainPassword && !hideActionsForUser && (
-              <div className="flex items-center gap-1.5 mt-1 text-[11px]">
-                <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px]">
+                <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   PWD:
                 </span>
-                <span className="font-mono text-slate-700 dark:text-slate-300 text-[11px] font-semibold tracking-wide">
+                <span className="font-mono text-slate-700 dark:text-slate-300 text-[10.5px] font-medium tracking-wide">
                   {showPass ? user.plainPassword : "••••••••"}
                 </span>
                 <button
@@ -352,7 +360,7 @@ const UserTableRow = React.memo(
                   title={showPass ? "Hide password" : "Show password"}
                   className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 >
-                  {showPass ? <FiEyeOff size={11} /> : <FiEye size={11} />}
+                  {showPass ? <FiEyeOff size={10} /> : <FiEye size={10} />}
                 </button>
                 <button
                   type="button"
@@ -361,9 +369,9 @@ const UserTableRow = React.memo(
                   className="p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 >
                   {copiedPass ? (
-                    <FiCheck size={11} className="text-emerald-500" />
+                    <FiCheck size={10} className="text-emerald-500" />
                   ) : (
-                    <FiCopy size={11} />
+                    <FiCopy size={10} />
                   )}
                 </button>
               </div>
@@ -372,14 +380,14 @@ const UserTableRow = React.memo(
         )}
 
         {/* ── LOCATION ─────────────────────────────── */}
-        <td className="px-5 py-3.5 align-middle">
+        <td className="px-4 py-2 align-middle">
           {user.location ? (
-            <div className="flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 dark:text-slate-300">
-              <FaMapMarkerAlt size={14} className="text-red-500 shrink-0" />
-              <span className="truncate max-w-[150px]">{user.location}</span>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+              <FaMapMarkerAlt size={12} className="text-red-500 shrink-0" />
+              <span className="truncate max-w-[140px]">{user.location}</span>
             </div>
           ) : (
-            <span className="text-slate-300 dark:text-slate-600 text-sm font-semibold">
+            <span className="text-slate-300 dark:text-slate-600 text-xs font-medium">
               —
             </span>
           )}
@@ -387,49 +395,49 @@ const UserTableRow = React.memo(
 
         {/* ── ROLE ─────────────────────────────────── */}
         {!isSMM && (
-          <td className="px-5 py-3.5 align-middle">
+          <td className="px-4 py-2 align-middle">
             <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10.5px] font-bold border ${roleCfg.badge}`}
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-semibold border ${roleCfg.badge}`}
             >
               <span className={`w-1.5 h-1.5 rounded-full ${roleCfg.dot}`} />
-              <FiShield size={10} />
+              <FiShield size={9} />
               {roleCfg.text}
             </span>
           </td>
         )}
 
         {/* ── DEPARTMENT ───────────────────────────── */}
-        <td className="px-5 py-3.5 align-middle">
+        <td className="px-4 py-2 align-middle">
           {user.department ? (
             <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10.5px] font-bold border ${getDeptStyle(
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10px] font-semibold border ${getDeptStyle(
                 user.department,
               )}`}
             >
-              <FiUsers size={10} />
+              <FiUsers size={9} />
               {user.department === "Social Media Manager" ? "Social Media Executive" : user.department}
             </span>
           ) : (
-            <span className="text-slate-300 dark:text-slate-600 text-sm font-semibold">
+            <span className="text-slate-300 dark:text-slate-600 text-xs font-medium">
               —
             </span>
           )}
         </td>
 
         {/* ── STATUS ───────────────────────────────── */}
-        <td className="px-5 py-3.5 align-middle">
+        <td className="px-4 py-2 align-middle">
           {isRelieved ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-slate-200 text-slate-800 border-slate-300 dark:bg-slate-800/90 dark:text-slate-300 dark:border-slate-700 shadow-2xs">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border bg-slate-200 text-slate-800 border-slate-300 dark:bg-slate-800/90 dark:text-slate-300 dark:border-slate-700 shadow-2xs">
               <span className="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-slate-400" />
               Relieved
             </span>
           ) : isOnline ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-transparent">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-transparent">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Online
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-red-500 text-white border-red-500 dark:bg-red-500 dark:text-white dark:border-slate-700">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border bg-red-500 text-white border-red-500 dark:bg-red-500 dark:text-white dark:border-slate-700">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-500" />
               Offline
             </span>
@@ -438,13 +446,13 @@ const UserTableRow = React.memo(
 
         {/* ── ACTIONS ──────────────────────────────── */}
         {!isReadOnly && !isSMM && (
-          <td className="px-5 py-3.5 align-middle">
+          <td className="px-4 py-2 align-middle">
             {hideActionsForUser ? (
-              <span className="text-slate-300 dark:text-slate-600 text-sm font-semibold select-none">
+              <span className="text-slate-300 dark:text-slate-600 text-xs font-medium select-none">
                 —
               </span>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {!isRelieved ? (
                   <>
                     {canUpdate && (
@@ -453,7 +461,7 @@ const UserTableRow = React.memo(
                         label="Edit User"
                         colorClass="bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/35"
                       >
-                        <FiEdit2 size={13} />
+                        <FiEdit2 size={12} />
                       </ActionBtn>
                     )}
 
@@ -463,7 +471,7 @@ const UserTableRow = React.memo(
                         label="Permissions"
                         colorClass="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/35"
                       >
-                        <FiSliders size={13} />
+                        <FiSliders size={12} />
                       </ActionBtn>
                     )}
 
@@ -473,7 +481,7 @@ const UserTableRow = React.memo(
                         label="Relieve User"
                         colorClass="bg-slate-200 text-slate-800 dark:bg-black dark:text-white"
                       >
-                        <FiUserMinus size={13} />
+                        <FiUserMinus size={12} />
                       </ActionBtn>
                     )}
                   </>
@@ -485,7 +493,7 @@ const UserTableRow = React.memo(
                         label="Reactivate User"
                         colorClass="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/35"
                       >
-                        <FiUserCheck size={13} />
+                        <FiUserCheck size={12} />
                       </ActionBtn>
                     )}
                   </>
@@ -497,7 +505,7 @@ const UserTableRow = React.memo(
                     label="Delete User"
                     colorClass="bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:hover:bg-rose-500/35"
                   >
-                    <FiTrash2 size={13} />
+                    <FiTrash2 size={12} />
                   </ActionBtn>
                 )}
               </div>
@@ -513,6 +521,7 @@ const UserTableRow = React.memo(
 const UserMobileCard = React.memo(
   ({
     user,
+    serialNumber,
     currentUser,
     isOnline,
     isReadOnly,
@@ -589,21 +598,26 @@ const UserMobileCard = React.memo(
 
     return (
       <div
-        className={`bg-white dark:bg-[#111827] rounded-2xl p-4 border transition-all duration-200 shadow-sm space-y-3 ${
+        className={`bg-white dark:bg-[#111827] rounded-xl p-3 border transition-all duration-200 shadow-xs space-y-2.5 ${
           isRelieved
             ? "border-slate-200/60 dark:border-slate-800/60 opacity-80"
             : "border-slate-200/90 dark:border-0 hover:border-slate-300"
         }`}
       >
-        {/* Top: Avatar, Name & Status */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        {/* Top: Sl.No, Avatar, Name & Status */}
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            {/* Serial Number */}
+            <span className="inline-flex items-center justify-center min-w-[22px] h-5 px-1 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono shrink-0">
+              #{serialNumber}
+            </span>
+
             {/* Avatar */}
             <div className="relative shrink-0">
               <div
-                className={`w-11 h-11 rounded-full bg-gradient-to-br ${avatarGrad(
+                className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarGrad(
                   user.name,
-                )} flex items-center justify-center text-white font-bold text-base overflow-hidden shadow-sm ${
+                )} flex items-center justify-center text-white font-bold text-sm overflow-hidden shadow-xs ${
                   isRelieved ? "grayscale" : ""
                 }`}
               >
@@ -622,7 +636,7 @@ const UserMobileCard = React.memo(
               </div>
               {!isRelieved && (
                 <span
-                  className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-[#111827] ${
+                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-[#111827] ${
                     isOnline ? "bg-emerald-500" : "bg-slate-400"
                   }`}
                 />
@@ -632,7 +646,7 @@ const UserMobileCard = React.memo(
             {/* Name & Role */}
             <div className="min-w-0">
               <h4
-                className={`text-sm font-bold truncate leading-tight ${
+                className={`text-xs font-bold truncate leading-tight ${
                   isRelieved
                     ? "text-slate-500 dark:text-slate-400"
                     : "text-slate-900 dark:text-white"
@@ -641,11 +655,11 @@ const UserMobileCard = React.memo(
                 {user.name}
               </h4>
               {!isSMM && (
-                <div className="flex items-center gap-1.5 mt-1">
+                <div className="flex items-center gap-1 mt-0.5">
                   <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border ${roleCfg.badge}`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] font-semibold border ${roleCfg.badge}`}
                   >
-                    <FiShield size={9} />
+                    <FiShield size={8.5} />
                     {roleCfg.text}
                   </span>
                 </div>
@@ -656,17 +670,17 @@ const UserMobileCard = React.memo(
           {/* Status Badge */}
           <div className="shrink-0">
             {isRelieved ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 text-slate-700 dark:bg-[#1a2234] dark:text-slate-300 border border-slate-200 dark:border-0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-[#1a2234] dark:text-slate-300 border border-slate-200 dark:border-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
                 Relieved
               </span>
             ) : isOnline ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border border-emerald-200 dark:border-transparent">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border border-emerald-200 dark:border-transparent">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Online
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-slate-100 text-slate-600 dark:bg-[#1a2234] dark:text-slate-400 border border-slate-200 dark:border-0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-[#1a2234] dark:text-slate-400 border border-slate-200 dark:border-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                 Offline
               </span>
@@ -824,6 +838,7 @@ const UserTable = React.memo(
   ({
     users,
     loading,
+    startIndex = 0,
     handleDeleteUser,
     handleRequestRelieve,
     handleRequestReactivate,
@@ -926,7 +941,7 @@ const UserTable = React.memo(
       [currentUser?.role, rolesPerms],
     );
 
-    const colSpan = isSMM ? 4 : isReadOnly ? 6 : 7;
+    const colSpan = isSMM ? 5 : isReadOnly ? 7 : 8;
 
     return (
       <div className="w-full">
@@ -945,7 +960,7 @@ const UserTable = React.memo(
               </div>
             </div>
           ) : users?.length > 0 ? (
-            users.map((user) => {
+            users.map((user, index) => {
               const uid = (user._id || user.id)?.toString();
               const userIsOnline =
                 onlineSet.has(uid) ||
@@ -954,6 +969,7 @@ const UserTable = React.memo(
               return (
                 <UserMobileCard
                   key={user._id || user.id}
+                  serialNumber={startIndex + index + 1}
                   user={user}
                   currentUser={currentUser}
                   isOnline={Boolean(userIsOnline)}
@@ -995,15 +1011,16 @@ const UserTable = React.memo(
         </div>
 
         {/* ── DESKTOP TABLE VIEW (Tablets & Desktops >= md) ── */}
-        <div className="hidden md:block rounded-2xl overflow-hidden border border-slate-200 dark:border-0 bg-white dark:bg-[#111827] shadow-md dark:shadow-[0_8px_40px_rgba(0,0,0,0.6)] transition-colors duration-200">
+        <div className="hidden md:block rounded-xl overflow-hidden border border-slate-200 dark:border-0 bg-white dark:bg-[#111827] shadow-sm dark:shadow-[0_8px_40px_rgba(0,0,0,0.6)] transition-colors duration-200">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px]">
+            <table className="w-full min-w-[760px]">
               {/* ── HEADER ─────────────────────────────────────────── */}
               <thead>
-                <tr className="bg-slate-50 dark:bg-[#0d1117] border-b border-slate-100 dark:border-white/5">
+                <tr className="bg-slate-50/80 dark:bg-[#0d1117] border-b border-slate-100 dark:border-white/5">
                   {(isSMM
-                    ? ["User", "Location", "Department", "Status"]
+                    ? ["Sl. No", "User", "Location", "Department", "Status"]
                     : [
+                        "Sl. No",
                         "User",
                         "Email Address",
                         "Location",
@@ -1017,7 +1034,9 @@ const UserTable = React.memo(
                     .map((h) => (
                       <th
                         key={h}
-                        className="px-5 py-4 text-left text-[12px] font-bold text-slate-400 dark:text-slate-500 select-none"
+                        className={`px-4 py-2.5 text-left text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none ${
+                          h === "Sl. No" ? "w-14 text-center !px-2" : ""
+                        }`}
                       >
                         {h}
                       </th>
@@ -1029,9 +1048,9 @@ const UserTable = React.memo(
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                 {loading ? (
                   <tr>
-                    <td colSpan={colSpan} className="py-20 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="relative w-10 h-10">
+                    <td colSpan={colSpan} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-2.5">
+                        <div className="relative w-8 h-8">
                           <div className="absolute inset-0 rounded-full border-2 border-slate-200 dark:border-slate-700" />
                           <div className="absolute inset-0 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
                         </div>
@@ -1042,7 +1061,7 @@ const UserTable = React.memo(
                     </td>
                   </tr>
                 ) : users?.length > 0 ? (
-                  users.map((user) => {
+                  users.map((user, index) => {
                     const uid = (user._id || user.id)?.toString();
                     const userIsOnline =
                       onlineSet.has(uid) ||
@@ -1051,6 +1070,7 @@ const UserTable = React.memo(
                     return (
                       <UserTableRow
                         key={user._id || user.id}
+                        serialNumber={startIndex + index + 1}
                         user={user}
                         currentUser={currentUser}
                         isOnline={Boolean(userIsOnline)}
@@ -1072,19 +1092,19 @@ const UserTable = React.memo(
                 ) : (
                   /* Empty state */
                   <tr>
-                    <td colSpan={colSpan} className="py-20 text-center">
-                      <div className="flex flex-col items-center gap-3.5 max-w-xs mx-auto">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                    <td colSpan={colSpan} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-2.5 max-w-xs mx-auto">
+                        <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center">
                           <FiUsers
-                            size={22}
+                            size={20}
                             className="text-slate-400 dark:text-slate-500"
                           />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
                             No users found
                           </p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                             Adjust your filters or add a new user.
                           </p>
                         </div>

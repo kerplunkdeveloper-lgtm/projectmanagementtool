@@ -31,50 +31,54 @@ import { useSocketContext } from "../../../context/SocketContext";
 
 // Status styling definitions
 const getStatusStyles = (status) => {
-  switch (status) {
-    case "Confirmed":
-      return {
-        badge: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30",
-        dot: "bg-emerald-500",
-        cardBorder: "hover:border-emerald-400 dark:hover:border-emerald-500/50",
-      };
-    case "In Progress":
-      return {
-        badge: "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
-        dot: "bg-blue-500",
-        cardBorder: "hover:border-blue-400 dark:hover:border-blue-500/50",
-      };
-    case "Planned":
-      return {
-        badge: "bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/30",
-        dot: "bg-purple-500",
-        cardBorder: "hover:border-purple-400 dark:hover:border-purple-500/50",
-      };
-    case "Pending Approval":
-      return {
-        badge: "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
-        dot: "bg-amber-500",
-        cardBorder: "hover:border-amber-400 dark:hover:border-amber-500/50",
-      };
-    case "At Risk":
-      return {
-        badge: "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/30",
-        dot: "bg-rose-500",
-        cardBorder: "hover:border-rose-400 dark:hover:border-rose-500/50",
-      };
-    case "Completed":
-      return {
-        badge: "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-500/30",
-        dot: "bg-teal-500",
-        cardBorder: "hover:border-teal-400 dark:hover:border-teal-500/50",
-      };
-    default:
-      return {
-        badge: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
-        dot: "bg-slate-400",
-        cardBorder: "hover:border-slate-400 dark:hover:border-slate-600",
-      };
+  const s = (status || "").toLowerCase().trim();
+  if (s.includes("confirm")) {
+    return {
+      badge: "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30",
+      dot: "bg-emerald-500",
+      cardBorder: "hover:border-emerald-400 dark:hover:border-emerald-500/50",
+    };
   }
+  if (s.includes("progress")) {
+    return {
+      badge: "bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30",
+      dot: "bg-blue-500",
+      cardBorder: "hover:border-blue-400 dark:hover:border-blue-500/50",
+    };
+  }
+  if (s.includes("plan")) {
+    return {
+      badge: "bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-500/30",
+      dot: "bg-purple-500",
+      cardBorder: "hover:border-purple-400 dark:hover:border-purple-500/50",
+    };
+  }
+  if (s.includes("pending") || s.includes("approval")) {
+    return {
+      badge: "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30",
+      dot: "bg-amber-500",
+      cardBorder: "hover:border-amber-400 dark:hover:border-amber-500/50",
+    };
+  }
+  if (s.includes("risk")) {
+    return {
+      badge: "bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/30",
+      dot: "bg-rose-500",
+      cardBorder: "hover:border-rose-400 dark:hover:border-rose-500/50",
+    };
+  }
+  if (s.includes("completed")) {
+    return {
+      badge: "bg-teal-50 dark:bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-500/30",
+      dot: "bg-teal-500",
+      cardBorder: "hover:border-teal-400 dark:hover:border-teal-500/50",
+    };
+  }
+  return {
+    badge: "bg-slate-100 dark:bg-[#162033] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-[#2b3a55]",
+    dot: "bg-slate-400",
+    cardBorder: "hover:border-slate-400 dark:hover:border-slate-600",
+  };
 };
 
 const getRelativeDateLabel = (date) => {
@@ -298,7 +302,7 @@ const ShootCalendarOverview = () => {
     <div className="w-full sidebar-bg rounded-2xl border border-slate-200 dark:border-[#223149] shadow-xs p-4 sm:p-5 transition-all flex flex-col justify-between">
       {/* ─── Top Section: Header, Metrics, Actions ─────────────────── */}
       <div>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100 dark:border-white/10">
           {/* Title & Description */}
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl theme-bg-accent text-white shadow-xs shrink-0">
@@ -325,7 +329,7 @@ const ShootCalendarOverview = () => {
           {/* Action & View Mode Controls */}
           <div className="flex items-center gap-1.5 flex-wrap shrink-0">
             {/* Table / Grid Switcher */}
-            <div className="flex items-center bg-slate-100 dark:bg-[#131d2e] p-0.5 rounded-lg border border-slate-200/80 dark:border-slate-800">
+            <div className="flex items-center bg-slate-100 dark:bg-[#131d2e] p-0.5 rounded-lg border border-slate-200/80 dark:border-white/10">
               <button
                 type="button"
                 onClick={() => setViewMode("table")}
@@ -356,7 +360,7 @@ const ShootCalendarOverview = () => {
               type="button"
               onClick={fetchShoots}
               title="Refresh Shoots"
-              className="p-1.5 rounded-lg border border-slate-200/90 dark:border-slate-700 bg-slate-50 dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-all cursor-pointer shadow-2xs"
+              className="p-1.5 rounded-lg border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-[#1a2538] text-slate-600 dark:text-slate-300 transition-all cursor-pointer shadow-2xs"
             >
               <FiRefreshCw size={13} className={loading ? "animate-spin" : ""} />
             </button>
@@ -373,7 +377,7 @@ const ShootCalendarOverview = () => {
 
             <Link
               to={`/${currentUser?.role}/Shootcalendor`}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-all cursor-pointer group"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-[#131d2e] hover:bg-slate-100 dark:hover:bg-[#1a2538] text-slate-700 dark:text-slate-200 transition-all cursor-pointer group"
             >
               <span>Full Calendar</span>
               <FiChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform theme-text-accent" />
@@ -399,7 +403,7 @@ const ShootCalendarOverview = () => {
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
                   isActive
                     ? "theme-bg-accent text-white border-transparent shadow-2xs font-black"
-                    : "bg-slate-50/70 dark:bg-[#111927] border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
+                    : "bg-slate-50/70 dark:bg-[#111927] border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-white/5"
                 }`}
               >
                 <span>{pill.label}</span>
@@ -407,7 +411,7 @@ const ShootCalendarOverview = () => {
                   className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-full ${
                     isActive
                       ? "bg-white/25 text-white"
-                      : "bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                      : "bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-slate-200"
                   }`}
                 >
                   {pill.count}
@@ -424,7 +428,7 @@ const ShootCalendarOverview = () => {
             <select
               value={selectedClient}
               onChange={(e) => setSelectedClient(e.target.value)}
-              className="w-full text-[11px] font-semibold py-1.5 pl-2.5 pr-6 bg-slate-50 dark:bg-[#131d2e] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer truncate"
+              className="w-full text-[11px] font-semibold py-1.5 pl-2.5 pr-6 bg-slate-50 dark:bg-[#131d2e] border border-slate-200 dark:border-white/10 rounded-lg text-slate-800 dark:text-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer truncate"
             >
               <option value="all">🏢 All Clients</option>
               {clientOptions.map((cName) => (
@@ -437,13 +441,12 @@ const ShootCalendarOverview = () => {
 
           {/* Live Search */}
           <div className="relative flex-1">
-           
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search shoot title, client, crew..."
-              className="w-full pl-7 pr-6 py-1.5 text-[11px] bg-slate-50 dark:bg-[#131d2e] border border-slate-200 dark:border-slate-700/80 rounded-lg font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              className="w-full pl-7 pr-6 py-1.5 text-[11px] bg-slate-50 dark:bg-[#131d2e] border border-slate-200 dark:border-white/10 rounded-lg font-medium text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
             />
             {searchQuery && (
               <button
@@ -460,7 +463,7 @@ const ShootCalendarOverview = () => {
             <button
               type="button"
               onClick={clearFilters}
-              className="px-2 py-1.5 rounded-lg text-[10px] font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-slate-200 dark:border-slate-700 shrink-0 transition-colors cursor-pointer"
+              className="px-2 py-1.5 rounded-lg text-[10px] font-bold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-slate-200 dark:border-white/10 shrink-0 transition-colors cursor-pointer"
             >
               Reset
             </button>
@@ -474,7 +477,7 @@ const ShootCalendarOverview = () => {
             <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Loading shoots...</p>
           </div>
         ) : filteredShoots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-slate-50/50 dark:bg-[#111927]/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+          <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-slate-50/50 dark:bg-[#111927]/60 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
             <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 border border-emerald-500/20">
               <FiCalendar size={18} />
             </div>
@@ -490,7 +493,7 @@ const ShootCalendarOverview = () => {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                className="px-3 py-1 text-[11px] font-bold rounded-lg bg-slate-100 dark:bg-[#162033] text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#1a2538] transition-all cursor-pointer"
               >
                 Clear Filters
               </button>
@@ -498,10 +501,10 @@ const ShootCalendarOverview = () => {
           </div>
         ) : viewMode === "table" ? (
           /* ─── MINIMALIST TABLE VIEW ─── */
-          <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-slate-800/80 scrollbar-thin">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto rounded-xl border border-slate-200/80 dark:border-white/10 scrollbar-thin">
+            <table className="w-full text-left border-collapse dashboard-overview-table">
               <thead>
-                <tr className="bg-slate-50/90 dark:bg-[#111927] border-b border-slate-200/80 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 select-none">
+                <tr className="bg-slate-50/90 dark:bg-[#111927] border-b border-slate-200/80 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 select-none">
                   <th className="py-2 px-3">Date & Time</th>
                   <th className="py-2 px-3">Shoot & Client</th>
                   <th className="py-2 px-3 hidden sm:table-cell">Type</th>
@@ -509,7 +512,7 @@ const ShootCalendarOverview = () => {
                   <th className="py-2 px-3 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+              <tbody className="divide-y divide-slate-100 dark:divide-white/10 text-xs">
                 {filteredShoots.slice(0, 5).map((shoot) => {
                   const statusStyle = getStatusStyles(shoot.status);
                   const isVideo = (shoot.shootType || "").toLowerCase().includes("video");
@@ -539,7 +542,7 @@ const ShootCalendarOverview = () => {
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-slate-400 font-medium">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                             {shoot.schedule?.startTime || "Time TBD"}
                             {shoot.schedule?.endTime && ` - ${shoot.schedule.endTime}`}
                           </span>
@@ -560,7 +563,7 @@ const ShootCalendarOverview = () => {
 
                       {/* Shoot Type */}
                       <td className="py-2 px-3 hidden sm:table-cell whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-[#1a2538] text-slate-700 dark:text-slate-300">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-[#1a2538] text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-white/10">
                           {isVideo ? (
                             <FiVideo size={10} className="text-blue-500 shrink-0" />
                           ) : (
@@ -576,7 +579,7 @@ const ShootCalendarOverview = () => {
                           <div className="w-5 h-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold flex items-center justify-center text-[9px] shrink-0">
                             {shoot.assignedTo?.name ? shoot.assignedTo.name.charAt(0).toUpperCase() : "U"}
                           </div>
-                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate max-w-[90px]">
+                          <span className="text-[11px] font-medium text-slate-700 dark:text-slate-200 truncate max-w-[90px]">
                             {shoot.assignedTo?.name || "Unassigned"}
                           </span>
                         </div>
@@ -585,7 +588,7 @@ const ShootCalendarOverview = () => {
                       {/* Status */}
                       <td className="py-2 px-3 text-right whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-bold border ${statusStyle.badge}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9.5px] font-bold border shadow-2xs ${statusStyle.badge}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
                           <span>{shoot.status}</span>
@@ -616,7 +619,7 @@ const ShootCalendarOverview = () => {
                   className={`bg-white dark:bg-[#131d2e] rounded-xl p-3 border transition-all cursor-pointer flex flex-col justify-between group ${statusStyle.cardBorder} ${
                     isFirstActive
                       ? "border-emerald-500/80 dark:border-emerald-500/60 ring-2 ring-emerald-500/20 shadow-xs"
-                      : "border-slate-200/90 dark:border-slate-800/90 shadow-2xs hover:shadow-md"
+                      : "border-slate-200/90 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-2xs hover:shadow-md"
                   }`}
                 >
                   <div>
@@ -625,7 +628,7 @@ const ShootCalendarOverview = () => {
                         <FiCalendar size={11} className="text-emerald-500" />
                         {formattedDate}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${statusStyle.badge}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border shadow-2xs ${statusStyle.badge}`}>
                         {shoot.status}
                       </span>
                     </div>
@@ -638,9 +641,9 @@ const ShootCalendarOverview = () => {
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between gap-1 pt-2 border-t border-slate-100 dark:border-slate-800 mt-2 text-[10px] text-slate-500">
-                    <span className="truncate">{shoot.assignedTo?.name || "Unassigned"}</span>
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">{shoot.shootType}</span>
+                  <div className="flex items-center justify-between gap-1 pt-2 border-t border-slate-100 dark:border-white/10 mt-2 text-[10px]">
+                    <span className="truncate text-slate-500 dark:text-slate-400">{shoot.assignedTo?.name || "Unassigned"}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{shoot.shootType}</span>
                   </div>
                 </div>
               );
@@ -650,7 +653,7 @@ const ShootCalendarOverview = () => {
       </div>
 
       {/* ─── Minimalist Footer ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
+      <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 dark:border-white/10 text-[11px] text-slate-500 dark:text-slate-400">
         <span>
           Showing {Math.min(filteredShoots.length, viewMode === "table" ? 5 : 4)} of {filteredShoots.length} shoots
         </span>

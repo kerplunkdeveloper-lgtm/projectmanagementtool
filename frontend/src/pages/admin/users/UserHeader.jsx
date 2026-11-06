@@ -128,7 +128,7 @@ const UserHeader = ({
       </div>
 
       {/* ── MAIN SEARCH & FILTER BAR ── */}
-      <div className="bg-white dark:bg-[#111827] rounded-2xl p-3 sm:p-3.5 border border-slate-200 dark:border-0 shadow-sm flex flex-col lg:flex-row lg:items-center gap-2.5 sm:gap-3 relative z-30">
+      <div className=" flex flex-col lg:flex-row lg:items-center gap-2.5 sm:gap-3 relative z-30">
         {/* SEARCH INPUT */}
         <div className="relative flex items-center flex-1 h-11 bg-slate-100/90 dark:bg-[#1a2234] rounded-xl px-4 border border-slate-200/80 dark:border-0 transition-all focus-within:ring-2 focus-within:ring-blue-500/40">
           <FiSearch className="text-slate-400 dark:text-slate-300 shrink-0 mr-2.5" size={16} />

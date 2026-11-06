@@ -622,6 +622,49 @@ thead tr * {
   border-bottom: none !important;
 }
 
+/* Dashboard Overview Cards Table Header - Refined Dark Theme */
+.dashboard-overview-table thead th,
+.dashboard-overview-table thead tr {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.dashboard-overview-table thead th *,
+.dashboard-overview-table thead tr * {
+  color: #64748b !important;
+}
+
+.dark .dashboard-overview-table thead th,
+.dark .dashboard-overview-table thead tr {
+  background: #111927 !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.dark .dashboard-overview-table thead th *,
+.dark .dashboard-overview-table thead tr * {
+  color: #94a3b8 !important;
+}
+
+/* Client Page Table Refinement */
+.client-page-table th,
+.client-page-table td {
+  border-right: none !important;
+  border-left: none !important;
+}
+
+.dark .client-page-table th,
+.dark .client-page-table td {
+  border-right: none !important;
+  border-left: none !important;
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
 /* Section Header Styling for Task Boards */
 .project-task-table tbody tr.group\/secrow,
 .project-task-table tbody tr.group\/secrow td {

@@ -215,6 +215,121 @@ const getDeptColor = (dept) => {
   return "text-indigo-600 dark:text-indigo-400";
 };
 
+const getMemberDeptStyle = (dept) => {
+  if (!dept) {
+    return {
+      pillBg:
+        "bg-slate-100/90 dark:bg-slate-800/80 border-slate-200/80 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600",
+      nameColor: "text-slate-800 dark:text-slate-100",
+      divider: "bg-slate-300 dark:bg-slate-700",
+      deptColor: "text-slate-600 dark:text-slate-400",
+    };
+  }
+  const d = dept.toLowerCase().trim();
+
+  // Video Production / Cinematographer / Editor / Shoot
+  if (
+    d.includes("video") ||
+    d.includes("cinema") ||
+    d.includes("editor") ||
+    d.includes("shoot") ||
+    d === "vp"
+  ) {
+    return {
+      pillBg:
+        "bg-purple-100/80 dark:bg-purple-950/50 border-purple-200/90 dark:border-purple-800/60 hover:border-purple-400 dark:hover:border-purple-400",
+      nameColor: "text-purple-950 dark:text-purple-100",
+      divider: "bg-purple-300/80 dark:bg-purple-700/60",
+      deptColor: "text-purple-700 dark:text-purple-300",
+    };
+  }
+
+  // Graphic Designer / Design / Creative
+  if (
+    d.includes("graphic") ||
+    d.includes("design") ||
+    d.includes("creative") ||
+    d.includes("art") ||
+    d === "gd"
+  ) {
+    return {
+      pillBg:
+        "bg-pink-100/80 dark:bg-pink-950/50 border-pink-200/90 dark:border-pink-800/60 hover:border-pink-400 dark:hover:border-pink-400",
+      nameColor: "text-pink-950 dark:text-pink-100",
+      divider: "bg-pink-300/80 dark:bg-pink-700/60",
+      deptColor: "text-pink-700 dark:text-pink-300",
+    };
+  }
+
+  // Social Media Executive / Social Media Manager / Marketing / SMM
+  if (
+    d.includes("social") ||
+    d.includes("marketing") ||
+    d.includes("smm") ||
+    d === "dm"
+  ) {
+    return {
+      pillBg:
+        "bg-amber-100/80 dark:bg-amber-950/50 border-amber-200/90 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-400",
+      nameColor: "text-amber-950 dark:text-amber-100",
+      divider: "bg-amber-300/80 dark:bg-amber-700/60",
+      deptColor: "text-amber-700 dark:text-amber-300",
+    };
+  }
+
+  // Web Developer / Developer / Tech / Engineering
+  if (
+    d.includes("web") ||
+    d.includes("dev") ||
+    d.includes("tech") ||
+    d.includes("engineering")
+  ) {
+    return {
+      pillBg:
+        "bg-cyan-100/80 dark:bg-cyan-950/50 border-cyan-200/90 dark:border-cyan-800/60 hover:border-cyan-400 dark:hover:border-cyan-400",
+      nameColor: "text-cyan-950 dark:text-cyan-100",
+      divider: "bg-cyan-300/80 dark:bg-cyan-700/60",
+      deptColor: "text-cyan-700 dark:text-cyan-300",
+    };
+  }
+
+  // SEO / Performance Marketer
+  if (d.includes("seo") || d.includes("performance")) {
+    return {
+      pillBg:
+        "bg-emerald-100/80 dark:bg-emerald-950/50 border-emerald-200/90 dark:border-emerald-800/60 hover:border-emerald-400 dark:hover:border-emerald-400",
+      nameColor: "text-emerald-950 dark:text-emerald-100",
+      divider: "bg-emerald-300/80 dark:bg-emerald-700/60",
+      deptColor: "text-emerald-700 dark:text-emerald-300",
+    };
+  }
+
+  // HR / Human Resource / Operations / Admin
+  if (
+    d.includes("hr") ||
+    d.includes("human") ||
+    d.includes("operation") ||
+    d.includes("admin")
+  ) {
+    return {
+      pillBg:
+        "bg-indigo-100/80 dark:bg-indigo-950/50 border-indigo-200/90 dark:border-indigo-800/60 hover:border-indigo-400 dark:hover:border-indigo-400",
+      nameColor: "text-indigo-950 dark:text-indigo-100",
+      divider: "bg-indigo-300/80 dark:bg-indigo-700/60",
+      deptColor: "text-indigo-700 dark:text-indigo-300",
+    };
+  }
+
+  // Default
+  return {
+    pillBg:
+      "bg-blue-100/80 dark:bg-blue-950/50 border-blue-200/90 dark:border-blue-800/60 hover:border-blue-400 dark:hover:border-blue-400",
+    nameColor: "text-blue-950 dark:text-blue-100",
+    divider: "bg-blue-300/80 dark:bg-blue-700/60",
+    deptColor: "text-blue-700 dark:text-blue-300",
+  };
+};
+
 const getDeptShortName = (d) => {
   if (!d) return "";
   const str = d.trim();
@@ -1626,27 +1741,27 @@ const Clients = () => {
 
       {/* MAIN CONTENT TABLE */}
       {!loading && (
-        <motion.div layout className="overflow-hidden theme-bg-card">
+        <motion.div layout className="overflow-hidden theme-bg-card rounded-2xl border border-slate-200/80 dark:border-white/[0.05] shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left  whitespace-nowrap min-w-275 text-xs">
+            <table className="client-page-table w-full text-left whitespace-nowrap min-w-275 text-xs">
               <thead>
-                <tr className=" text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[10px]">
+                <tr className="text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[10px]">
                   <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[190px]">
                     <div className="flex items-center justify-start gap-1.5">
                       <FaRegBuilding size={12} className="opacity-70" />
                       Client
                     </div>
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-center  w-20">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center w-20">
                     Status
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-center  w-14">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center w-14">
                     Projects
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[380px] ">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[380px]">
                     Service & Members
                   </th>
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[280px] ">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[280px]">
                     Deliverables
                   </th>
 
@@ -1660,16 +1775,16 @@ const Clients = () => {
                   )}
 
                   {user?.role === "team" && !isFinance && (
-                    <th className="px-4 py-3 font-extrabold bg-transparent text-center  last:border-r-0">
+                    <th className="px-4 py-3 font-extrabold bg-transparent text-center">
                       Assigned By
                     </th>
                   )}
-                  <th className="px-4 py-3 font-extrabold bg-transparent text-center w-20 border-r-0">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center w-20">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700/60">
+              <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                 <AnimatePresence>
                   {filteredClients.length > 0 ? (
                     paginatedClients.map((client, index) => {
@@ -1680,7 +1795,7 @@ const Clients = () => {
                       const ServiceIcon = conf.icon;
 
                       const cellClass =
-                        "px-4 py-2.5 bg-transparent transition-colors border-r border-slate-200 dark:border-slate-700/60 last:border-r-0";
+                        "px-4 py-3 bg-transparent transition-colors align-middle !border-r-0 !border-l-0";
 
                       const nameColors = [
                         "text-blue-900 dark:text-blue-400",
@@ -1731,9 +1846,9 @@ const Clients = () => {
                           key={client._id || client.id || `client-row-${index}`}
                           className={`group transition-colors ${
                             client.status === "Inactive"
-                              ? "bg-rose-50/80 dark:bg-rose-950/30 hover:bg-rose-100/80 dark:hover:bg-rose-950/50"
-                              : "hover:bg-slate-50/40 dark:hover:bg-[#16223f]/40"
-                          } border-b border-slate-200 dark:border-slate-700/60`}
+                              ? "bg-rose-50/70 dark:bg-rose-950/20 hover:bg-rose-100/70 dark:hover:bg-rose-950/30"
+                              : "hover:bg-slate-50/60 dark:hover:bg-white/[0.02]"
+                          } border-b border-slate-100 dark:border-white/[0.04]`}
                         >
                           <td className={`${cellClass} relative`}>
                             <div className="flex items-center gap-2.5">
@@ -1756,7 +1871,7 @@ const Clients = () => {
                               })()}
                               <div className="min-w-[110px]">
                                 <h2
-                                  className={`font-bold transition-colors text-[12.5px] text-slate-800 dark:text-slate-900 truncate max-w-[200px] ${
+                                  className={`font-bold transition-colors text-[12.5px] text-slate-900 dark:text-white truncate max-w-[200px] ${
                                     hasFullAccess ||
                                     (user?.department || "")
                                       .toLowerCase()
@@ -1779,11 +1894,11 @@ const Clients = () => {
                                   {client.companyName}
                                 </h2>
                                 <div className="flex items-center gap-1.5 mt-0.5">
-                                  <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-[#16223f] px-1.5 py-0.5 rounded">
+                                  <span className="text-[9px] text-slate-600 dark:text-slate-300 font-semibold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-white/10">
                                     {client.industry}
                                   </span>
                                   {client.onboardingDate && (
-                                    <span className="text-[9px] text-black dark:text-white px-1.5 py-0.5 bg-slate-100 rounded dark:bg-[#16223f] font-medium flex items-center gap-1">
+                                    <span className="text-[9px] text-slate-600 dark:text-slate-300 px-1.5 py-0.5 bg-slate-100 rounded dark:bg-white/10 font-medium flex items-center gap-1 border border-slate-200/60 dark:border-white/10">
                                       <FiCalendar size={8} />
                                       {new Date(
                                         client.onboardingDate,
@@ -1850,7 +1965,7 @@ const Clients = () => {
                             </div>
                           </td>
                           <td className={`${cellClass} text-center w-28`}>
-                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-[10px] border border-blue-200/50 dark:border-blue-800/30">
+                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-slate-200 font-bold text-[10.5px] border border-slate-200/80 dark:border-white/10">
                               {projects?.filter(
                                 (p) =>
                                   p.client?._id === client._id ||
@@ -1882,7 +1997,7 @@ const Clients = () => {
                                   })}
                               </div>
 
-                              {/* Members - User Name & Dept Name on Single Line */}
+                              {/* Members - User Name & Dept Name with Dept Background Colors */}
                               <div className="flex flex-wrap items-center gap-1.5 max-w-[380px]">
                                 {client.assignedTo &&
                                 (Array.isArray(client.assignedTo)
@@ -1898,24 +2013,25 @@ const Clients = () => {
                                         ? dept.charAt(0).toUpperCase() +
                                           dept.slice(1)
                                         : "";
+                                      const mStyle = getMemberDeptStyle(dept);
                                       return (
                                         <span
                                           key={member._id || member}
-                                          className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default whitespace-nowrap shrink-0 pr-2.5"
+                                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full ${mStyle.pillBg} shadow-2xs border transition-all cursor-default whitespace-nowrap shrink-0 pr-2.5`}
                                           title={`${memberName}${formattedDept ? ` · ${formattedDept}` : ""}`}
                                         >
                                           {renderUserAvatarSmall(
                                             fullUser,
                                             "w-5 h-5 text-[9px]",
                                           )}
-                                          <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                          <span className={`text-[10.5px] font-bold ${mStyle.nameColor} whitespace-nowrap`}>
                                             {memberName}
                                           </span>
                                           {formattedDept && (
                                             <>
-                                              <span className="w-[1px] h-3 bg-slate-200 dark:bg-slate-700 shrink-0"></span>
+                                              <span className={`w-[1px] h-2.5 ${mStyle.divider} shrink-0`}></span>
                                               <span
-                                                className={`text-[9px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}
+                                                className={`text-[9px] font-extrabold ${mStyle.deptColor} whitespace-nowrap`}
                                               >
                                                 {formattedDept}
                                               </span>
@@ -1937,23 +2053,24 @@ const Clients = () => {
                                         ? dept.charAt(0).toUpperCase() +
                                           dept.slice(1)
                                         : "";
+                                      const mStyle = getMemberDeptStyle(dept);
                                       return (
                                         <span
-                                          className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default whitespace-nowrap shrink-0 pr-2.5"
+                                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full ${mStyle.pillBg} shadow-2xs border transition-all cursor-default whitespace-nowrap shrink-0 pr-2.5`}
                                           title={`${memberName}${formattedDept ? ` · ${formattedDept}` : ""}`}
                                         >
                                           {renderUserAvatarSmall(
                                             fullUser,
                                             "w-5 h-5 text-[9px]",
                                           )}
-                                          <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                          <span className={`text-[10.5px] font-bold ${mStyle.nameColor} whitespace-nowrap`}>
                                             {memberName}
                                           </span>
                                           {formattedDept && (
                                             <>
-                                              <span className="w-[1px] h-3 bg-slate-200 dark:bg-slate-700 shrink-0"></span>
+                                              <span className={`w-[1px] h-2.5 ${mStyle.divider} shrink-0`}></span>
                                               <span
-                                                className={`text-[9px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}
+                                                className={`text-[9px] font-extrabold ${mStyle.deptColor} whitespace-nowrap`}
                                               >
                                                 {formattedDept}
                                               </span>
@@ -1964,7 +2081,7 @@ const Clients = () => {
                                     })()
                                   )
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-50/50 dark:bg-white/5 text-slate-400 dark:text-slate-500 italic text-[9.5px] whitespace-nowrap shrink-0">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-white/10 italic text-[9.5px] whitespace-nowrap shrink-0">
                                     <FiUser size={9} />
                                     <span>Unassigned</span>
                                   </span>
@@ -2065,7 +2182,7 @@ const Clients = () => {
                                 !client.pages &&
                                 !client.onpage &&
                                 !client.offpage && (
-                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 italic px-1">
+                                  <span className="text-[10.5px] text-slate-400 dark:text-slate-400 italic px-1 font-medium">
                                     No deliverables set.
                                   </span>
                                 )}
@@ -2074,18 +2191,18 @@ const Clients = () => {
                           {canViewBudget && (
                             <td className={`${cellClass} text-left w-36`}>
                               <div className="flex flex-col gap-0.5 py-1">
-                                <div className="flex items-baseline gap-1 font-extrabold text-[12px] text-slate-800 dark:text-slate-100">
-                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">₹</span>
+                                <div className="flex items-baseline gap-1 font-extrabold text-[12px] text-slate-900 dark:text-slate-100">
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-400 font-semibold">₹</span>
                                   <span>
                                     {Number(
                                       client.totalBudget || client.budget || 0
                                     ).toLocaleString("en-IN")}
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-1 text-[9.5px] text-slate-500 dark:text-slate-400">
+                                <div className="flex items-center gap-1.5 text-[9.5px] text-slate-500 dark:text-slate-400 font-medium">
                                   <span>Base: ₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
-                                  {client.gst ? (
-                                    <span className="px-1 py-0.2 rounded text-[8.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  {Number(client.gst) > 0 ? (
+                                    <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10">
                                       +{client.gst}% GST
                                     </span>
                                   ) : null}
@@ -2123,33 +2240,33 @@ const Clients = () => {
                             </td>
                           )}
                           <td className={`${cellClass} text-center w-20`}>
-                              <div className="flex items-center justify-center gap-1">
+                              <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   onClick={() => {
                                     setViewClient(client);
                                     setShowViewOffcanvas(true);
                                   }}
-                                  className="w-6 h-6 flex items-center justify-center bg-teal-50 dark:bg-teal-500/10 hover:bg-teal-100 dark:hover:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-500/30 rounded-md transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
+                                  className="w-7 h-7 flex items-center justify-center bg-teal-50 dark:bg-teal-500/15 hover:bg-teal-100 dark:hover:bg-teal-500/25 text-teal-600 dark:text-teal-300 border border-teal-200 dark:border-teal-500/30 rounded-lg transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
                                   title="View Record"
                                 >
-                                  <FiEye size={11} className="stroke-[2.5]" />
+                                  <FiEye size={12} className="stroke-[2.5]" />
                                 </button>
                                 {hasFullAccess && (
                                   <>
                                     <button
                                       onClick={() => handleEdit(client)}
-                                      className="w-6 h-6 flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-md transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
+                                      className="w-7 h-7 flex items-center justify-center bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 dark:hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30 rounded-lg transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
                                       title="Edit Record"
                                     >
-                                      <FiEdit size={11} className="stroke-[2.5]" />
+                                      <FiEdit size={12} className="stroke-[2.5]" />
                                     </button>
                                     <button
                                       onClick={() => setClientToDelete(client)}
-                                      className="w-6 h-6 flex items-center justify-center bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-md transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
+                                      className="w-7 h-7 flex items-center justify-center bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30 rounded-lg transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
                                       title="Delete Record"
                                     >
                                       <FiTrash2
-                                        size={11}
+                                        size={12}
                                         className="stroke-[2.5]"
                                       />
                                     </button>

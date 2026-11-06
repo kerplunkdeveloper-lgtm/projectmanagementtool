@@ -26,7 +26,7 @@ import DeleteUserModal from "./users/DeleteUserModal";
 import PermissionsModal from "./users/PermissionsModal";
 import RelieveUserModal from "./users/RelieveUserModal";
 
-const USERS_PER_PAGE = 7;
+const USERS_PER_PAGE = 10;
 
 const AdminUsers = () => {
   const dispatch = useDispatch();
@@ -521,6 +521,7 @@ const AdminUsers = () => {
       <UserTable
         users={currentUsers}
         loading={loading}
+        startIndex={startIndex}
         handleDeleteUser={requestDeleteUser}
         handleRequestRelieve={handleRequestRelieve}
         handleRequestReactivate={handleRequestReactivate}
