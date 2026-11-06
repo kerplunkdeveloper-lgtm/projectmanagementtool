@@ -263,11 +263,7 @@ const Workload = () => {
 
   // Attach real-time socket presence
   const withPresence = useCallback((base) => {
-    const isOnline =
-      onlineUserIdsSet.has(base.userIdStr) ||
-      userPresence[base.userIdStr]?.status === "online" ||
-      userPresence[base.userIdStr]?.status === "away" ||
-      base.user.presenceStatus === "online";
+    const isOnline = onlineUserIdsSet.has(base.userIdStr);
 
     let availability = {
       label: isOnline ? "Online (Available)" : "Offline",
@@ -277,9 +273,9 @@ const Workload = () => {
         : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-[#1e293b]/70 dark:text-slate-400 dark:border-slate-700/60",
       dotClass: isOnline ? "bg-sky-500" : "bg-slate-400 dark:bg-slate-500",
     };
-    if (base.activeTasks.length > 0) {
+    if (isOnline && base.activeTasks.length > 0) {
       availability = { label: "Busy (Working)", status: "busy", badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60", dotClass: "bg-emerald-500 animate-ping" };
-    } else if (base.onHoldTasks.length > 0) {
+    } else if (isOnline && base.onHoldTasks.length > 0) {
       availability = { label: "On Break / Paused", status: "paused", badgeClass: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60", dotClass: "bg-amber-500" };
     }
     return { ...base, isOnline, availability };

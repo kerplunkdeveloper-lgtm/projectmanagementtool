@@ -24,12 +24,13 @@ jobs:
             cd /var/www/projectmanagementtool
 
             echo "===== Pull Latest Code ====="
+            git stash
             git pull origin main
 
             echo "===== Backend ====="
             cd backend
             npm install
-            pm2 restart backend
+            pm2 restart backend || pm2 restart server || pm2 restart all
             pm2 save
 
             echo "===== Frontend ====="

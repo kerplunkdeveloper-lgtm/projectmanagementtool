@@ -84,7 +84,22 @@ export const SocketProvider = ({ children }) => {
 
     // Full online list broadcast
     socketInstance.on("online_users_list", (userIds) => {
-      setOnlineUserIds(Array.isArray(userIds) ? userIds.map((id) => id.toString()) : []);
+      const ids = Array.isArray(userIds) ? userIds.map((id) => id.toString()) : [];
+      setOnlineUserIds(ids);
+      setUserPresence((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((uid) => {
+          if (!ids.includes(uid) && next[uid]?.status === "online") {
+            next[uid] = { ...next[uid], status: "offline" };
+          }
+        });
+        ids.forEach((uid) => {
+          if (!next[uid] || next[uid].status !== "online") {
+            next[uid] = { ...next[uid], status: "online", lastSeen: new Date() };
+          }
+        });
+        return next;
+      });
     });
 
     // Full presence snapshot (sent on join)
@@ -135,13 +150,13 @@ export const SocketProvider = ({ children }) => {
         userPresence,
         isOnline: (targetId) => {
           if (!targetId) return false;
-          const idStr = targetId.toString();
+          const idStr = (targetId?._id || targetId?.id || targetId).toString();
           const presenceStatus = userPresence[idStr]?.status;
           // "away" is still treated as online
           return (
-            onlineUserIds.some((id) => id.toString() === idStr) ||
-            presenceStatus === "online" ||
-            presenceStatus === "away"
+            onlineUserIds.some((id) => id.toString() === idStr)
+
+
           );
         },
       }}

@@ -44,6 +44,7 @@ import {
 import { FaMapMarkerAlt } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import TeamActiveDrawer from "../common/TeamActiveDrawer";
+import { useSocketContext } from "../../context/SocketContext";
 
 const ACCENT_NAVBAR_MAP = {
   emerald: {
@@ -144,7 +145,18 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
     skip: !canViewTeamActive,
     pollingInterval: 30000,
   });
-  const teamOnlineCount = teamActivitySummary?.summary?.onlineCount || 0;
+  const { onlineUserIds } = useSocketContext() || {};
+  const teamOnlineCount = useMemo(() => {
+    if (Array.isArray(onlineUserIds) && onlineUserIds.length > 0) {
+      if (teamActivitySummary?.users) {
+        return teamActivitySummary.users.filter((u) =>
+          onlineUserIds.includes(u._id?.toString())
+        ).length;
+      }
+      return onlineUserIds.length;
+    }
+    return teamActivitySummary?.summary?.onlineCount || 0;
+  }, [onlineUserIds, teamActivitySummary]);
   const { profile, loading: profileLoading } = useSelector((state) => state.profile);
   const { clients = [], loading: clientsLoading } = useSelector((state) => state.clients);
   const { theme, setTheme, sidebarLayout, accentColor = "emerald" } = useTheme();

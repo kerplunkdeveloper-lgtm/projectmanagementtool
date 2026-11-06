@@ -12,6 +12,11 @@ import {
   FiCheck,
   FiSliders,
   FiMessageSquare,
+  FiPlay,
+  FiClock,
+  FiPauseCircle,
+  FiBriefcase,
+  FiZap,
 } from "react-icons/fi";
 import { useGetTeamActivityQuery } from "../../features/api/apiSlice";
 import { useSocketContext } from "../../context/SocketContext";
@@ -194,7 +199,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
     return localStorage.getItem("team_active_group_by_dept") !== "false";
   });
 
-  const { socket } = useSocketContext() || {};
+  const { socket, onlineUserIds, isOnline: socketIsOnline } = useSocketContext() || {};
 
   const deptLower = (currentUser?.department || "").toLowerCase();
   const isHr =
@@ -217,6 +222,18 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
     refetchOnMountOrArgChange: true,
   });
 
+  // Helper to determine if a user is online in real-time
+  const checkUserOnline = (user) => {
+    if (!user) return false;
+    const uid = (user._id || user.id || user).toString();
+    if (typeof socketIsOnline === "function") {
+      if (socket?.connected && Array.isArray(onlineUserIds)) {
+        return socketIsOnline(uid);
+      }
+    }
+    return Boolean(user.isOnline);
+  };
+
   // Toggle handlers
   const handleToggleOnlineOnly = () => {
     const nextVal = !showOnlineOnly;
@@ -230,12 +247,16 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
     localStorage.setItem("team_active_group_by_dept", String(nextVal));
   };
 
-  // Socket updates
+  // Socket updates (debounced to avoid multiple rapid REST refetches)
   useEffect(() => {
     if (!socket || !isOpen) return;
 
+    let timer = null;
     const handleUpdate = () => {
-      refetch();
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        refetch();
+      }, 1000);
     };
 
     socket.on("user:presence", handleUpdate);
@@ -243,6 +264,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
     socket.on("team:activity:update", handleUpdate);
 
     return () => {
+      if (timer) clearTimeout(timer);
       socket.off("user:presence", handleUpdate);
       socket.off("online_users_list", handleUpdate);
       socket.off("team:activity:update", handleUpdate);
@@ -263,14 +285,81 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, showSettings, onClose]);
 
-  const categories = data?.categories || [];
-  const summary = data?.summary || { totalUsers: 0, onlineCount: 0, offlineCount: 0 };
+  // Dynamically enrich categories with real-time online status and active work
+  const dynamicCategories = useMemo(() => {
+    return (data?.categories || []).map((cat) => {
+      const updatedUsers = (cat.users || []).map((u) => {
+        const isUserOnline = checkUserOnline(u);
+        const hasActiveTask = Boolean(
+          u.currentTask &&
+          u.currentTask.status === "In Progress" &&
+          !u.currentTask.autoPaused
+        );
+        const isWorkingNow = Boolean(isUserOnline && hasActiveTask);
+        const workStatus = !isUserOnline
+          ? "offline"
+          : isWorkingNow
+          ? "working"
+          : u.currentTask?.isPaused || u.currentTask?.status === "On Hold"
+          ? "paused"
+          : "available";
+
+        return {
+          ...u,
+          isOnline: isUserOnline,
+          status: isUserOnline ? "online" : "offline",
+          isWorking: isWorkingNow,
+          workStatus,
+        };
+      });
+
+      // Sort: Online users first (and within online: working users first), then alphabetically
+      const sortedUsers = [...updatedUsers].sort((a, b) => {
+        if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+        if (a.isWorking !== b.isWorking) return a.isWorking ? -1 : 1;
+        return (a.name || "").localeCompare(b.name || "");
+      });
+
+      const catOnlineCount = sortedUsers.filter((u) => u.isOnline).length;
+
+      return {
+        ...cat,
+        users: sortedUsers,
+        onlineCount: catOnlineCount,
+        totalCount: sortedUsers.length,
+      };
+    });
+  }, [data?.categories, socketIsOnline, onlineUserIds, socket?.connected]);
+
+  // Real-time summary counts
+  const summary = useMemo(() => {
+    let total = 0;
+    let online = 0;
+    let working = 0;
+    dynamicCategories.forEach((cat) => {
+      (cat.users || []).forEach((u) => {
+        const empStatus = (u.employmentStatus || "").toLowerCase();
+        const accStatus = (u.accountStatus || "").toLowerCase();
+        if (empStatus !== "relieved" && accStatus !== "inactive") {
+          total++;
+          if (u.isOnline) online++;
+          if (u.isWorking) working++;
+        }
+      });
+    });
+    return {
+      totalUsers: total || data?.summary?.totalUsers || 0,
+      onlineCount: online,
+      workingCount: working,
+      offlineCount: Math.max(0, (total || data?.summary?.totalUsers || 0) - online),
+    };
+  }, [dynamicCategories, data?.summary]);
 
   // Filtered categories and users
   const filteredCategories = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
-    return categories
+    return dynamicCategories
       .map((cat) => {
         const filteredUsers = (cat.users || []).filter((u) => {
           const empStatus = (u.employmentStatus || "").toLowerCase();
@@ -282,7 +371,9 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
             u.name.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q) ||
             (u.department && u.department.toLowerCase().includes(q)) ||
-            (u.role && u.role.toLowerCase().includes(q))
+            (u.role && u.role.toLowerCase().includes(q)) ||
+            (u.currentTask?.title && u.currentTask.title.toLowerCase().includes(q)) ||
+            (u.currentTask?.client && u.currentTask.client.toLowerCase().includes(q))
           );
         });
 
@@ -296,7 +387,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
         };
       })
       .filter(Boolean);
-  }, [categories, searchQuery, showOnlineOnly]);
+  }, [dynamicCategories, searchQuery, showOnlineOnly]);
 
   // Flat list fallback if groupByDept is toggled off
   const flatUsersList = useMemo(() => {
@@ -360,7 +451,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
                       Our Kerplunk Team
                     </h2>
                     <p className={`text-xs font-bold mt-0.5 ${activeStyle.text}`}>
-                      {summary.totalUsers} members · {summary.onlineCount} online
+                      {summary.totalUsers} members · {summary.onlineCount} online · {summary.workingCount || 0} working
                     </p>
                   </div>
                 </div>
@@ -665,21 +756,71 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
                   }`}
             </p>
 
-            {/* Online / Offline Status */}
-            <div className="flex items-center gap-1.5 text-xs mt-1">
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 ${
-                  user.isOnline ? `${activeStyle.dot} animate-pulse` : "bg-slate-400"
-                }`}
-              />
-              <span
-                className={`font-semibold ${
-                  user.isOnline ? activeStyle.text : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                {user.isOnline ? "Online" : "Offline"}
-              </span>
+            {/* Online / Offline Status & Worked Hours */}
+            <div className="flex items-center gap-2 text-xs mt-1 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    user.isOnline ? `${activeStyle.dot} animate-pulse` : "bg-slate-400"
+                  }`}
+                />
+                <span
+                  className={`font-semibold ${
+                    user.isOnline ? activeStyle.text : "text-slate-500 dark:text-slate-400"
+                  }`}
+                >
+                  {user.isOnline ? "Online" : "Offline"}
+                </span>
+              </div>
+
+              {/* Today's online / active hours */}
+              {user.onlineHoursFormatted && user.onlineHoursFormatted !== "0m" && (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded"
+                  title="Total active time today"
+                >
+                  <FiClock size={10} className="text-slate-400" />
+                  <span>{user.onlineHoursFormatted}</span>
+                </span>
+              )}
             </div>
+
+            {/* Live Work / Task Status Strip */}
+            {user.isOnline && user.isWorking && user.currentTask && (
+              <div
+                className="mt-1.5 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center gap-1.5 text-[11px] text-emerald-800 dark:text-emerald-300 shadow-2xs"
+                title={`Working on: ${user.currentTask.title}`}
+              >
+                <FiPlay size={10} className="text-emerald-500 animate-pulse shrink-0" />
+                <span className="font-extrabold truncate max-w-[170px]">
+                  {user.currentTask.title}
+                </span>
+                {user.currentTask.client && (
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium shrink-0 truncate max-w-[80px]">
+                    • {user.currentTask.client}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {user.isOnline && user.workStatus === "paused" && user.currentTask && (
+              <div
+                className="mt-1.5 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-300 shadow-2xs"
+                title={`Paused: ${user.currentTask.title}`}
+              >
+                <FiPauseCircle size={10} className="text-amber-500 shrink-0" />
+                <span className="font-bold truncate max-w-[220px]">
+                  Paused: {user.currentTask.title}
+                </span>
+              </div>
+            )}
+
+            {user.isOnline && !user.isWorking && user.workStatus !== "paused" && (
+              <div className="mt-1 flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-400 font-medium">
+                <FiZap size={10} className="text-sky-500 shrink-0" />
+                <span>Available</span>
+              </div>
+            )}
           </div>
         </div>
 

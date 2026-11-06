@@ -401,6 +401,8 @@ io.on('connection', (socket) => {
     const userId = socketToUser[socket.id];
     if (!userId) return;
 
+    const previousStatus = userPresence[userId]?.status;
+
     if (userPresence[userId]) {
       userPresence[userId].lastSeen = new Date();
       if (status) {
@@ -408,8 +410,27 @@ io.on('connection', (socket) => {
       }
     }
 
-    if (status) {
+    // Ensure socket is tracked in onlineUsers
+    if (!onlineUsers[userId]) {
+      onlineUsers[userId] = [];
+    }
+    if (!onlineUsers[userId].includes(socket.id)) {
+      onlineUsers[userId].push(socket.id);
+    }
+
+    // Only broadcast full presence change if the status actually changed
+    if (status && status !== previousStatus) {
       await handlePresenceChange(io, userId, status, lastActivityAt ? new Date(lastActivityAt) : new Date());
+      io.emit('online_users_list', Object.keys(onlineUsers));
+    } else {
+      // Quietly update lastSeen without triggering full socket broadcast storms
+      try {
+        await User.findByIdAndUpdate(userId, {
+          $set: { lastSeen: new Date(), lastActivityAt: new Date() },
+        });
+      } catch (err) {
+        // silent
+      }
     }
   });
 
@@ -548,7 +569,7 @@ io.on('connection', (socket) => {
 
       // Only alter presence if this socket was a real user self-login
       if (!wasImpersonating && onlineUsers[userId]) {
-        onlineUsers[userId] = onlineUsers[userId].filter(id => id !== socket.id);
+        onlineUsers[userId] = onlineUsers[userId].filter(id => id !== socket.id && io.sockets.sockets.has(id));
         if (onlineUsers[userId].length === 0) {
           delete onlineUsers[userId];
           

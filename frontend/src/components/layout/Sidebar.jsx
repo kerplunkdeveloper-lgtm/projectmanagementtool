@@ -1261,15 +1261,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 <FiX size={18} className="text-slate-900 dark:text-white" />
               </button>
 
-              {/* Desktop Menu Toggle Button (Collapse to Half View) */}
-              <button
-                type="button"
-                onClick={() => setSidebarOpen(false)}
-                className="hidden lg:flex w-7.5 h-7.5 rounded-xl bg-slate-100/90 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white items-center justify-center transition-all duration-200 cursor-pointer border border-slate-200/80 dark:border-white/10 shadow-2xs hover:scale-105 active:scale-95"
-                title="Collapse Sidebar (Half View)"
-              >
-                <HiOutlineMenuAlt3 size={16} />
-              </button>
+             
             </>
           ) : (
             /* COLLAPSED / HALF (MINI) VIEW */
@@ -1295,7 +1287,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
-                className="hidden lg:flex w-7 h-7 rounded-xl bg-slate-100/90 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white items-center justify-center transition-all duration-200 cursor-pointer border border-slate-200/80 dark:border-white/10 shadow-2xs hover:scale-105 active:scale-95"
+                className="hidden  lg:flex w-7 h-7 rounded-xl bg-slate-100/90 dark:bg-white/5 hover:bg-slate-200/80 dark:hover:bg-white/10 text-slate-600 hover:text-slate-950 dark:text-slate-300 dark:hover:text-white items-center justify-center transition-all duration-200 cursor-pointer border border-slate-200/80 dark:border-white/10 shadow-2xs hover:scale-105 active:scale-95"
                 title="Expand Sidebar (Full View)"
               >
                 <HiOutlineMenuAlt2 size={15} />

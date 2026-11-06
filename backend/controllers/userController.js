@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Task = require('../models/Task');
 const UserDailyActivity = require('../models/UserDailyActivity');
 const { getTodayDateStr } = require('../utils/presenceService');
 const bcrypt = require('bcryptjs');
@@ -567,7 +568,96 @@ exports.getTeamActivity = async (req, res) => {
       activityMap.set(act.user.toString(), act);
     });
 
+    // Fetch active and in-progress tasks to know who is actively working
+    const activeTasks = await Task.find({
+      $or: [
+        { status: { $in: ['In Progress', 'On Hold'] } },
+        { 'subtasks.status': { $in: ['In Progress', 'On Hold'] } },
+      ],
+    })
+      .select('title status autoPaused assignedTo client project subtasks')
+      .populate('client', 'companyName color')
+      .populate('project', 'name')
+      .lean();
+
+    const userActiveTaskMap = new Map();
+    activeTasks.forEach((t) => {
+      const assignees = Array.isArray(t.assignedTo) ? t.assignedTo : [t.assignedTo];
+      assignees.forEach((aId) => {
+        if (!aId) return;
+        const uid = (aId?._id || aId).toString();
+        if (t.status === 'In Progress' && !t.autoPaused) {
+          userActiveTaskMap.set(uid, {
+            _id: t._id,
+            title: t.title,
+            status: 'In Progress',
+            isWorking: true,
+            isPaused: false,
+            project: t.project?.name || null,
+            client: t.client?.companyName || null,
+          });
+        } else if (t.status === 'On Hold' || t.autoPaused) {
+          if (!userActiveTaskMap.has(uid)) {
+            userActiveTaskMap.set(uid, {
+              _id: t._id,
+              title: t.title,
+              status: 'On Hold',
+              isWorking: false,
+              isPaused: true,
+              project: t.project?.name || null,
+              client: t.client?.companyName || null,
+            });
+          }
+        }
+      });
+
+      (t.subtasks || []).forEach((sub) => {
+        if (!sub?.assignedTo) return;
+        const subUid = (sub.assignedTo?._id || sub.assignedTo).toString();
+        if (sub.status === 'In Progress' && !sub.autoPaused) {
+          userActiveTaskMap.set(subUid, {
+            _id: t._id,
+            subtaskId: sub._id,
+            title: `${t.title} (${sub.title})`,
+            status: 'In Progress',
+            isWorking: true,
+            isPaused: false,
+            project: t.project?.name || null,
+            client: t.client?.companyName || null,
+          });
+        } else if (sub.status === 'On Hold' || sub.autoPaused) {
+          if (!userActiveTaskMap.has(subUid)) {
+            userActiveTaskMap.set(subUid, {
+              _id: t._id,
+              subtaskId: sub._id,
+              title: `${t.title} (${sub.title})`,
+              status: 'On Hold',
+              isWorking: false,
+              isPaused: true,
+              project: t.project?.name || null,
+              client: t.client?.companyName || null,
+            });
+          }
+        }
+      });
+    });
+
+    const io = req.app.get('io');
     const onlineUsersMap = req.app.get('onlineUsers') || {};
+
+    // Prune stale/dead socket IDs so inMemoryOnline is 100% accurate
+    if (io && io.sockets && io.sockets.sockets) {
+      Object.keys(onlineUsersMap).forEach((uid) => {
+        const activeSockets = (onlineUsersMap[uid] || []).filter((sid) =>
+          io.sockets.sockets.has(sid)
+        );
+        if (activeSockets.length === 0) {
+          delete onlineUsersMap[uid];
+        } else {
+          onlineUsersMap[uid] = activeSockets;
+        }
+      });
+    }
     const now = new Date();
 
     let onlineCount = 0;
@@ -578,7 +668,23 @@ exports.getTeamActivity = async (req, res) => {
       const inMemoryOnline = Boolean(
         onlineUsersMap[userIdStr] && onlineUsersMap[userIdStr].length > 0
       );
-      const isOnline = inMemoryOnline || u.presenceStatus === 'online';
+      // Ground truth: A user is online if and only if they currently have an active socket connection
+      const isOnline = inMemoryOnline;
+
+      // Self-heal stale DB presence status asynchronously if desynced
+      if (!isOnline && u.presenceStatus === 'online') {
+        User.findByIdAndUpdate(u._id, { $set: { presenceStatus: 'offline', lastSeen: u.lastSeen || now } }).catch(() => {});
+      } else if (isOnline && u.presenceStatus !== 'online') {
+        User.findByIdAndUpdate(u._id, { $set: { presenceStatus: 'online', lastActivityAt: now } }).catch(() => {});
+      }
+
+      const activeTaskInfo = userActiveTaskMap.get(userIdStr) || null;
+      const isWorking = Boolean(isOnline && activeTaskInfo?.isWorking);
+      const workStatus = !isOnline
+        ? 'offline'
+        : (isWorking
+            ? 'working'
+            : (activeTaskInfo?.isPaused ? 'paused' : 'available'));
 
       const activity = activityMap.get(userIdStr);
       let totalOnlineMs = activity?.totalOnlineMs || 0;
@@ -639,6 +745,9 @@ exports.getTeamActivity = async (req, res) => {
         onlineHoursFormatted: formatHoursMins(totalOnlineMs),
         offlineHoursFormatted: hasLoggedToday ? formatHoursMins(totalOfflineMs) : 'Not Logged In',
         category: classification,
+        currentTask: activeTaskInfo,
+        isWorking,
+        workStatus,
       };
     });
 
@@ -685,6 +794,8 @@ exports.getTeamActivity = async (req, res) => {
         totalUsers: enrichedUsers.length,
         onlineCount,
         offlineCount,
+        workingCount: enrichedUsers.filter((u) => u.isWorking).length,
+        availableCount: enrichedUsers.filter((u) => u.isOnline && !u.isWorking).length,
       },
       categories,
       users: enrichedUsers,

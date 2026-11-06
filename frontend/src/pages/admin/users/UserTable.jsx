@@ -949,8 +949,7 @@ const UserTable = React.memo(
               const uid = (user._id || user.id)?.toString();
               const userIsOnline =
                 onlineSet.has(uid) ||
-                (isOnline && isOnline(uid)) ||
-                user.presenceStatus === "online";
+                (isOnline && isOnline(uid));
 
               return (
                 <UserMobileCard
@@ -1047,8 +1046,7 @@ const UserTable = React.memo(
                     const uid = (user._id || user.id)?.toString();
                     const userIsOnline =
                       onlineSet.has(uid) ||
-                      (isOnline && isOnline(uid)) ||
-                      user.presenceStatus === "online";
+                      (isOnline && isOnline(uid));
 
                     return (
                       <UserTableRow
