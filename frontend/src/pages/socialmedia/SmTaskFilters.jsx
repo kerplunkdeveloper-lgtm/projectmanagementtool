@@ -19,6 +19,7 @@ import SearchableDropdown from "../../components/common/SearchableDropdown";
 const DEFAULT_CATEGORIES = [
   "All",
   "Content Calendar",
+  "Content Creation",
   "Ad campaign check",
   "Google review reply",
   "Engagement monitor",
@@ -515,8 +516,8 @@ const SmTaskFilters = ({
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                     selectedContentType === "All"
-                      ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      ? "bg-slate-100 dark:bg-[#182338] text-slate-900 dark:text-white font-bold"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#182338]/60"
                   }`}
                 >
                   <div className="flex items-center gap-2">

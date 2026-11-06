@@ -1,6 +1,7 @@
 const SocialmediaTaskCalendor = require('../models/SocialmediaTaskCalendor');
 const Client = require('../models/Client');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 // Helper to remove any duplicate tasks based on taskTitle + clientName + publishDate (manual endpoint only)
 const cleanDuplicates = async () => {
@@ -43,6 +44,7 @@ exports.getSocialmediaMetadata = async (req, res) => {
         users,
         categories: [
           'Content Calendar',
+          'Content Creation',
           'Ad campaign check',
           'Google review reply',
           'Engagement monitor',
@@ -490,9 +492,9 @@ exports.createSocialmediaTask = async (req, res) => {
     // Category determines commitment & onCalendar rule
     const cat = (body.category || '').trim().toLowerCase();
     const isContentCalendar =
-      cat === 'content calendar' ||
-      cat === 'content calendor' ||
-      cat === 'content';
+      body.commitment === true ||
+      (body.commitment === undefined &&
+        (cat === 'content calendar' || cat === 'content calendor' || cat === 'content'));
 
     if (isContentCalendar) {
       body.commitment = true;
@@ -524,6 +526,83 @@ exports.createSocialmediaTask = async (req, res) => {
       populate: { path: 'profile', select: 'profileImage' },
     });
 
+    // Send Real-time Notifications for SME task to Admin, Operation Manager, Social Media Head & Assignee
+    try {
+      if (!isContentCalendar) {
+        const creatorName = (req.user && req.user.name) || task.createdByName || 'Team member';
+        const clientDisplayName = task.clientName || (task.client && task.client.companyName) || 'General';
+        const taskCategory = task.category || 'SME task';
+        const taskTitle = task.taskTitle;
+
+        const notifMessage = `${creatorName} created a new SME task: "${taskTitle}" [${taskCategory}] for ${clientDisplayName}.`;
+
+        const senderIdStr = (req.user && req.user._id) ? req.user._id.toString() : '';
+
+        const recipients = await User.find({
+          $or: [
+            { role: 'admin' },
+            { role: 'operationmanager' },
+            { role: 'socialmediamanager' },
+            { role: 'socialmediahead' },
+            { department: { $regex: /social media head/i } },
+          ],
+          accountStatus: { $ne: 'inactive' },
+        });
+
+        // Filter out the creator if they are among recipients
+        const recipientMap = new Map();
+        recipients.forEach((u) => {
+          if (u._id.toString() !== senderIdStr) {
+            recipientMap.set(u._id.toString(), u);
+          }
+        });
+
+        // Also include assignee if assigned, active, and not the creator
+        if (task.assignee) {
+          const assigneeIdStr = (typeof task.assignee === 'object' ? task.assignee._id : task.assignee)?.toString();
+          if (assigneeIdStr && assigneeIdStr !== senderIdStr && !recipientMap.has(assigneeIdStr)) {
+            const assigneeUser = await User.findById(assigneeIdStr);
+            if (assigneeUser && assigneeUser.accountStatus !== 'inactive') {
+              recipientMap.set(assigneeIdStr, assigneeUser);
+            }
+          }
+        }
+
+        const finalRecipients = Array.from(recipientMap.values());
+        if (finalRecipients.length > 0) {
+          const notifPromises = finalRecipients.map((r) =>
+            Notification.create({
+              recipient: r._id,
+              sender: (req.user && req.user._id) || r._id,
+              type: 'sm_task_created',
+              message: notifMessage,
+              clientName: clientDisplayName,
+              tab: 'sme',
+              smTaskId: task._id,
+            })
+          );
+
+          const createdNotifs = await Promise.all(notifPromises);
+          const io = req.app ? req.app.get('io') : null;
+          if (io) {
+            for (let i = 0; i < finalRecipients.length; i++) {
+              const r = finalRecipients[i];
+              const notif = createdNotifs[i];
+              const populatedNotification = await Notification.findById(notif._id).populate({
+                path: 'sender',
+                select: 'name profile department role',
+                populate: { path: 'profile', select: 'profileImage' },
+              });
+              io.to(r._id.toString()).emit('notification', populatedNotification);
+              io.to(r._id.toString()).emit('new_notification', populatedNotification);
+            }
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.error('[SocialmediaTaskCalendor] Notification error:', notifErr.message);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Task created successfully',
@@ -553,14 +632,19 @@ exports.updateSocialmediaTask = async (req, res) => {
 
     const body = { ...req.body };
 
-    // Recalculate commitment & onCalendar rule based on category
-    if (body.category !== undefined) {
+    // Recalculate commitment & onCalendar rule based on category or explicit commitment
+    let isContentCalendar = undefined;
+    if (body.commitment !== undefined) {
+      isContentCalendar = Boolean(body.commitment);
+    } else if (body.category !== undefined) {
       const cat = (body.category || '').trim().toLowerCase();
-      const isContentCalendar =
+      isContentCalendar =
         cat === 'content calendar' ||
         cat === 'content calendor' ||
         cat === 'content';
+    }
 
+    if (isContentCalendar !== undefined) {
       if (isContentCalendar) {
         body.commitment = true;
         if (body.publishDate !== undefined) {

@@ -148,16 +148,10 @@ socialmediaTaskCalendorSchema.virtual('isAtRisk').get(function () {
 
 // Pre-save hook: auto-sync commitment, onCalendar and taskCode
 socialmediaTaskCalendorSchema.pre('save', function () {
-  const cat = (this.category || '').trim().toLowerCase();
-  const isContentCalendar =
-    cat === 'content calendar' ||
-    cat === 'content calendor' ||
-    cat === 'content' ||
-    cat === 'calendar';
-
-  if (isContentCalendar) {
-    this.category = 'Content';
-    this.commitment = true;
+  if (this.commitment === true) {
+    if (!this.category || this.category === 'Content Calendar') {
+      this.category = 'Content';
+    }
     if (this.publishDate && !isNaN(new Date(this.publishDate).getTime())) {
       this.onCalendar = true;
     } else {

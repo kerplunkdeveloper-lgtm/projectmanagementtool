@@ -11,7 +11,6 @@ import {
   FiSquare,
   FiUser,
   FiFilter,
-  FiRefreshCw,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
@@ -230,6 +229,14 @@ CallRow.displayName = "CallRow";
 // --- MAIN CLIENT CALLS COMPONENT ---
 const ClientCalls = ({ isEmbedded = false }) => {
   const { user } = useSelector((state) => state.auth);
+  const deptLower = (user?.department || "").toLowerCase();
+  const roleLower = (user?.role || "").toLowerCase();
+  const isSocialMediaManager =
+    roleLower === "socialmediamanager" ||
+    roleLower === "socialmediahead" ||
+    deptLower.includes("social media head");
+  const isTeamUser = user?.role === "team" && !isSocialMediaManager;
+
   const [calls, setCalls] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -308,14 +315,6 @@ const ClientCalls = ({ isEmbedded = false }) => {
   // Optimized Filtered Calls
   const filteredCalls = useMemo(() => {
     const currentUserId = user?._id || user?.id;
-    const deptLower = (user?.department || "").toLowerCase();
-    const roleLower = (user?.role || "").toLowerCase();
-    const isSocialMediaManager =
-      roleLower === "socialmediamanager" ||
-      roleLower === "socialmediahead" ||
-      deptLower.includes("social media head");
-
-    const isTeamUser = user?.role === "team" && !isSocialMediaManager;
 
     return calls.filter((call) => {
       // Role scope restriction
@@ -349,7 +348,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
 
       return true;
     });
-  }, [calls, user, filterDate, filterClient, filterPostedBy]);
+  }, [calls, user, filterDate, filterClient, filterPostedBy, isTeamUser]);
 
   const totalPages = Math.ceil(filteredCalls.length / ITEMS_PER_PAGE) || 1;
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTheme } from "../../context/ThemeContext";
 import {
@@ -63,6 +63,7 @@ import SmPlatformWarningModal from "./SmPlatformWarningModal";
 const CATEGORIES = [
   "All",
   "Content Calendar",
+  "Content Creation",
   "Ad campaign check",
   "Google review reply",
   "Engagement monitor",
@@ -244,7 +245,7 @@ const renderDueDateBadge = (dueDate, status) => {
   return (
     <span
       title={`Due in ${diffDays} days (${dateStr})`}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 border border-slate-200/70 dark:border-slate-700 whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-50 dark:bg-[#162033] text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-[#2b3a55] whitespace-nowrap"
     >
       <FiCalendar size={12} className="text-slate-400 shrink-0" />
       <span>{dateStr}</span>
@@ -303,6 +304,13 @@ const getCategoryStyle = (category) => {
         text: "text-indigo-700 dark:text-indigo-300",
         border: "border-indigo-200/90 dark:border-indigo-800/60",
         dot: "bg-indigo-500",
+      };
+    case "content creation":
+      return {
+        bg: "bg-teal-50 dark:bg-teal-950/40",
+        text: "text-teal-700 dark:text-teal-300",
+        border: "border-teal-200/90 dark:border-teal-800/60",
+        dot: "bg-teal-500",
       };
     case "ad campaign check":
     case "ads":
@@ -405,9 +413,9 @@ const getCategoryStyle = (category) => {
       };
     default:
       return {
-        bg: "bg-slate-100 dark:bg-slate-800",
-        text: "text-slate-700 dark:text-slate-300",
-        border: "border-slate-200 dark:border-slate-700",
+        bg: "bg-slate-100 dark:bg-[#162033]",
+        text: "text-slate-700 dark:text-slate-200",
+        border: "border-slate-200 dark:border-[#2b3a55]",
         dot: "bg-slate-400",
       };
   }
@@ -438,18 +446,11 @@ const getContentTypeConfig = (contentType) => {
     case "others task":
     case "other":
       return {
-        bg: "bg-slate-100 dark:bg-slate-800",
-        text: "text-slate-700 dark:text-slate-300",
-        border: "border-slate-200 dark:border-slate-700",
+        bg: "bg-slate-100 dark:bg-[#162033]",
+        text: "text-slate-700 dark:text-slate-200",
+        border: "border-slate-200 dark:border-[#2b3a55]",
         icon: FiLayers,
-        iconClass: "text-slate-500 dark:text-slate-400",
-      };
-      return {
-        bg: "bg-fuchsia-50 dark:bg-fuchsia-950/40",
-        text: "text-fuchsia-700 dark:text-fuchsia-300",
-        border: "border-fuchsia-250 dark:border-fuchsia-800/60",
-        icon: FiPlay,
-        iconClass: "fill-fuchsia-600 dark:fill-fuchsia-400 text-fuchsia-600 dark:text-fuchsia-400",
+        iconClass: "text-slate-500 dark:text-slate-300",
       };
     case "post":
       return {
@@ -466,14 +467,6 @@ const getContentTypeConfig = (contentType) => {
         border: "border-violet-200 dark:border-violet-800/60",
         icon: FiLayers,
         iconClass: "text-violet-600 dark:text-violet-400",
-      };
-    case "story":
-      return {
-        bg: "bg-amber-50 dark:bg-amber-950/40",
-        text: "text-amber-700 dark:text-amber-300",
-        border: "border-amber-200 dark:border-amber-800/60",
-        icon: FiZap,
-        iconClass: "text-amber-600 dark:text-amber-400 fill-amber-500/20",
       };
     case "youtube":
       return {
@@ -509,11 +502,11 @@ const getContentTypeConfig = (contentType) => {
       };
     default:
       return {
-        bg: "bg-slate-100 dark:bg-slate-800",
-        text: "text-slate-700 dark:text-slate-300",
-        border: "border-slate-200 dark:border-slate-700",
+        bg: "bg-slate-100 dark:bg-[#162033]",
+        text: "text-slate-700 dark:text-slate-200",
+        border: "border-slate-200 dark:border-[#2b3a55]",
         icon: FiGrid,
-        iconClass: "text-slate-500",
+        iconClass: "text-slate-500 dark:text-slate-300",
       };
   }
 };
@@ -584,6 +577,8 @@ const getTableStatusStyle = (status) => {
 const SmTasks = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const role = user?.role || "admin";
   const { theme, accentColor = "emerald" } = useTheme();
@@ -694,14 +689,20 @@ const SmTasks = () => {
     };
   };
 
+  // Query param tab detection (e.g. from notification click: ?tab=sme)
+  const initialTabIsSme =
+    searchParams.get("tab") === "sme" ||
+    searchParams.get("tab") === "sme-tasks" ||
+    location.state?.tab === "sme";
+
   // Filter States
   const [selectedClient, setSelectedClient] = useState("All");
   const [selectedCreatedBy, setSelectedCreatedBy] = useState("All");
-  const [selectedCategory, setSelectedCategory] = useState("Content Calendar");
-  const [selectedContentType, setSelectedContentType] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState(initialTabIsSme ? "All" : "Content Calendar");
+  const [selectedContentType, setSelectedContentType] = useState(initialTabIsSme ? "Others Task" : "All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
-  const [selectedCommitment, setSelectedCommitment] = useState("Yes");
+  const [selectedCommitment, setSelectedCommitment] = useState(initialTabIsSme ? "No" : "Yes");
 
   // Comprehensive Date Filter States
   const [dateFilterPreset, setDateFilterPreset] = useState("All"); // "All", "Today", "Tomorrow", "This Week", "This Month", "Overdue", "Custom"
@@ -721,6 +722,31 @@ const SmTasks = () => {
     targetStatus: "",
   });
   const [activePlatformMenuTaskId, setActivePlatformMenuTaskId] = useState(null);
+
+  // Automatically activate SME tasks tab and open modal if taskId is passed via notification link
+  useEffect(() => {
+    const tabParam = searchParams.get("tab") || location.state?.tab;
+    if (tabParam === "sme" || tabParam === "sme-tasks" || tabParam === "smetasks") {
+      setSelectedCommitment("No");
+      setSelectedCategory("All");
+      setSelectedContentType("Others Task");
+      setCurrentPage(1);
+
+      const targetTaskId = searchParams.get("taskId") || searchParams.get("id");
+      if (targetTaskId && tasks && tasks.length > 0) {
+        const found = tasks.find((t) => t._id === targetTaskId);
+        if (found) {
+          setSelectedTaskForEdit(found);
+          setIsModalOpen(true);
+        }
+      }
+    } else if (tabParam === "commitment") {
+      setSelectedCommitment("Yes");
+      setSelectedCategory("Content Calendar");
+      setSelectedContentType("All");
+      setCurrentPage(1);
+    }
+  }, [searchParams, location.state, tasks]);
 
   useEffect(() => {
     const handleOutside = () => setActivePlatformMenuTaskId(null);
@@ -1291,7 +1317,7 @@ const SmTasks = () => {
     setSelectedPriority("All");
     setSelectedCommitment(selectedCommitment);
     setDateFilterPreset("All");
-    setDateFilterField("any");
+    setDateFieldType("any");
     setCustomStartDate("");
     setCustomEndDate("");
     setAtRiskOnly(false);
@@ -1502,10 +1528,11 @@ const SmTasks = () => {
 
   const renderPlatformSubtasks = (task) => {
     const isCal =
-      (task.category || "").trim().toLowerCase() === "content calendar" ||
-      (task.category || "").trim().toLowerCase() === "content calendor" ||
-      (task.category || "").trim().toLowerCase() === "content" ||
-      Boolean(task.commitment);
+      task.commitment !== undefined
+        ? Boolean(task.commitment)
+        : ((task.category || "").trim().toLowerCase() === "content calendar" ||
+           (task.category || "").trim().toLowerCase() === "content calendor" ||
+           (task.category || "").trim().toLowerCase() === "content");
 
     if (!isCal) {
       return (
@@ -1532,7 +1559,7 @@ const SmTasks = () => {
       <div className="flex flex-col gap-1.5 py-1 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
         {/* Subtask Progress Bar & Badge */}
         <div className="flex items-center justify-between gap-1.5 text-[10px]">
-          <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
             Platforms
           </span>
           <span
@@ -1541,7 +1568,7 @@ const SmTasks = () => {
                 ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
                 : completedCount > 0
                   ? "bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                  : "bg-slate-100 dark:bg-[#162033] text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-[#2b3a55]"
             }`}
           >
             {completedCount}/{totalCount} {allDone ? "✓ All Done" : "Posted"}
@@ -1574,7 +1601,7 @@ const SmTasks = () => {
                 className={`group/plat relative inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all duration-150 cursor-pointer ${
                   isCompleted
                     ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300/90 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100 hover:scale-105"
-                    : "bg-white dark:bg-slate-800/90 border-slate-200 dark:border-slate-700 text-slate-400 hover:border-emerald-400 hover:bg-emerald-50/30 hover:scale-105 shadow-2xs"
+                    : "bg-white dark:bg-[#111827] border-slate-200 dark:border-[#2b3a55] text-slate-400 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-[#1f2937] hover:scale-105 shadow-2xs"
                 } active:scale-95 disabled:cursor-not-allowed`}
               >
                 {/* Tick Checkbox Indicator */}
@@ -1582,7 +1609,7 @@ const SmTasks = () => {
                   className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] transition-colors shrink-0 ${
                     isCompleted
                       ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs"
-                      : "border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 group-hover/plat:border-emerald-400 text-transparent"
+                      : "border-slate-300 dark:border-[#374151] bg-slate-50 dark:bg-[#0b1120] group-hover/plat:border-emerald-400 text-transparent"
                   }`}
                 >
                   <FiCheck className="stroke-[3]" size={10} />
@@ -1609,7 +1636,7 @@ const SmTasks = () => {
                   e.stopPropagation();
                   setActivePlatformMenuTaskId(isMenuOpen ? null : task._id);
                 }}
-                className="w-full h-full min-h-[25px] min-w-[36px] rounded-lg border border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-600 flex items-center justify-center text-[11px] transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                className="w-full h-full min-h-[25px] min-w-[36px] rounded-lg border border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#1e293b] text-slate-400 hover:text-indigo-600 flex items-center justify-center text-[11px] transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                 title="Add or remove platforms from this task"
               >
                 <FiPlus size={12} className="stroke-[2.5]" />
@@ -1618,7 +1645,7 @@ const SmTasks = () => {
               {/* Popover */}
               {isMenuOpen && (
                 <div
-                  className="absolute left-0 top-full mt-1.5 w-48 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-2 space-y-1 animate-in fade-in zoom-in-95"
+                  className="absolute left-0 top-full mt-1.5 w-48 z-50 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-[#2b3a55] rounded-xl shadow-xl p-2 space-y-1 animate-in fade-in zoom-in-95"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-1.5 pb-1 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -1736,6 +1763,28 @@ const SmTasks = () => {
     }
   };
 
+  const handleToggleSmeTaskCompleted = async (task, e) => {
+    e.stopPropagation();
+    if (isReadOnly || !task || !task._id) return;
+    const isCompleted = (task.status || "").trim().toLowerCase() === "completed";
+    const nextStatus = isCompleted ? "Not started" : "Completed";
+    try {
+      await dispatch(
+        updateSocialmediaTask({
+          id: task._id,
+          data: { status: nextStatus },
+        })
+      ).unwrap();
+      toast.success(
+        isCompleted
+          ? `Task marked as "${nextStatus}"`
+          : `✓ Task marked as Completed!`
+      );
+    } catch (err) {
+      toast.error(err?.message || "Failed to update status");
+    }
+  };
+
   const handleDeleteTask = (task, e) => {
     e.stopPropagation();
     if (isReadOnly) return;
@@ -1781,7 +1830,7 @@ const SmTasks = () => {
                 setCurrentPage(1);
               }}
               style={{ paddingLeft: "2.15rem" }}
-              className="appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              className="appearance-none bg-white dark:bg-[#131d31] border border-slate-200 dark:border-white/10 rounded-xl pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
             >
               <option value="all">All Months</option>
               {monthOptions.map((opt) => (
@@ -2047,7 +2096,7 @@ const SmTasks = () => {
                   <tr>
                     <td colSpan={selectedCommitment === "No" ? 10 : 15} className="py-12 text-center">
                       <div className="flex flex-col items-center justify-center py-6">
-                        <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-slate-800 flex items-center justify-center text-blue-500 mb-3">
+                        <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
                           <FiCalendar size={22} />
                         </div>
                         <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
@@ -2075,7 +2124,7 @@ const SmTasks = () => {
                         key={task._id}
                         className={`transition-colors group cursor-pointer ${isOverdue
                             ? "overdue-row-blink border-l-4 border-l-rose-500 hover:border-l-rose-600"
-                            : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                            : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
                           }`}
                         onClick={() => handleEditTask(task)}
                       >
@@ -2084,15 +2133,44 @@ const SmTasks = () => {
                           {(currentPage - 1) * itemsPerPage + index + 1}
                         </td>
 
-                        {/* TASK NAME with Left Accent Line */}
+                        {/* TASK NAME with Left Accent Line & SME Completion Checkbox */}
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
                             <span
                               className="w-1 h-5 rounded-full shrink-0"
                               style={{ backgroundColor: clientColor }}
                             />
+
+                            {/* SME Task Completion Checkbox */}
+                            {(selectedCommitment === "No" || !task.commitment) && (
+                              <button
+                                type="button"
+                                disabled={isReadOnly}
+                                onClick={(e) => handleToggleSmeTaskCompleted(task, e)}
+                                title={
+                                  (task.status || "").trim().toLowerCase() === "completed"
+                                    ? "Completed! Click to mark as Not started"
+                                    : "Click to mark as Completed"
+                                }
+                                className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all shrink-0 cursor-pointer ${
+                                  (task.status || "").trim().toLowerCase() === "completed"
+                                    ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs hover:bg-emerald-600"
+                                    : "border-slate-300 dark:border-[#374151] bg-white dark:bg-[#0b1120] text-transparent hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/20 shadow-2xs"
+                                } active:scale-95 disabled:cursor-not-allowed`}
+                              >
+                                <FiCheck className="stroke-[3]" size={11} />
+                              </button>
+                            )}
+
                             <div className="min-w-0">
-                              <span className="font-bold text-slate-900 dark:text-white leading-snug block">
+                              <span
+                                className={`font-bold leading-snug block transition-colors ${
+                                  (task.status || "").trim().toLowerCase() === "completed" &&
+                                  (selectedCommitment === "No" || !task.commitment)
+                                    ? "text-slate-400 dark:text-slate-500 line-through"
+                                    : "text-slate-900 dark:text-white"
+                                }`}
+                              >
                                 {task.taskTitle}
                               </span>
                             </div>
@@ -2431,6 +2509,7 @@ const SmTasks = () => {
           onClose={() => setIsModalOpen(false)}
           task={selectedTaskForEdit}
           isReadOnly={isReadOnly}
+          initialCommitment={selectedCommitment !== "No"}
         />
 
         {/* Pending Commitment Modal (Detailed Client Breakdown) */}

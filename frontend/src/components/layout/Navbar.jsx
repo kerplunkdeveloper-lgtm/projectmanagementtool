@@ -399,6 +399,14 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
       };
     }
     switch (type) {
+      case "sm_task_created":
+      case "sm_task_assigned":
+      case "sm_task_updated":
+        return {
+          icon: FiCheckSquare,
+          bgColor:
+            "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30",
+        };
       case "message_received":
         return {
           icon: FiMessageSquare,
@@ -1024,7 +1032,10 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
                                     markAsReadTrigger(n._id);
                                   }
                                   setOpenNotifications(false);
-                                  if (n.type === "message_received" || n.chatRoomId) {
+                                  if (n.type === "sm_task_created" || n.type === "sm_task_assigned" || n.type === "sm_task_updated" || (n.message && (n.message.toLowerCase().includes("sme task") || n.tab === "sme"))) {
+                                    const taskId = n.smTaskId || (typeof n.smTask === "object" ? n.smTask?._id : n.smTask);
+                                    navigate(`/${user?.role}/sm-tasks?tab=sme${taskId ? `&taskId=${taskId}` : ""}`);
+                                  } else if (n.type === "message_received" || n.chatRoomId) {
                                     navigate(
                                       `/${user?.role}/chat?id=${n.chatRoomId}`,
                                     );

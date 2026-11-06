@@ -255,6 +255,13 @@ const Notifications = () => {
       };
     }
     switch (type) {
+      case "sm_task_created":
+      case "sm_task_assigned":
+      case "sm_task_updated":
+        return {
+          icon: FiCheckSquare,
+          bgColor: "bg-indigo-50 text-indigo-600 border-indigo-200",
+        };
       case "project_assigned":
         return {
           icon: FiBriefcase,
@@ -451,7 +458,10 @@ const Notifications = () => {
                         if (!n.isRead) {
                           handleMarkAsRead(n._id);
                         }
-                        if (n.type === "message_received" || n.chatRoomId) {
+                        if (n.type === "sm_task_created" || n.type === "sm_task_assigned" || n.type === "sm_task_updated" || (n.message && (n.message.toLowerCase().includes("sme task") || n.tab === "sme"))) {
+                          const taskId = n.smTaskId || (typeof n.smTask === "object" ? n.smTask?._id : n.smTask);
+                          navigate(`/${user?.role}/sm-tasks?tab=sme${taskId ? `&taskId=${taskId}` : ""}`);
+                        } else if (n.type === "message_received" || n.chatRoomId) {
                           navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
                         } else if (
                           n.type === "report_submitted" ||

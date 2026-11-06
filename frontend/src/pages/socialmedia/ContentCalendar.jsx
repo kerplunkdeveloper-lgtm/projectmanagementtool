@@ -95,6 +95,7 @@ const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const CATEGORIES = [
   "All",
   "Content Calendar",
+  "Content Creation",
   "Ad campaign check",
   "Google review reply",
   "Engagement monitor",
@@ -2665,6 +2666,7 @@ const ContentCalendar = () => {
         task={selectedTaskForEdit}
         initialDate={initialDateForCreate}
         isReadOnly={isReadOnly}
+        initialCommitment={true}
       />
 
       {/* Pending Commitment Modal (Detailed Client Breakdown) */}
@@ -2708,10 +2710,11 @@ const ContentCalendar = () => {
         users={users}
         onSuccess={(meta) => {
           if (meta?.targetMonth !== undefined && meta.targetMonth !== currentMonth) {
-            setCurrentMonth(meta.targetMonth);
-            if (meta.targetYear) setCurrentYear(meta.targetYear);
-            dispatch(getSocialmediaTasks({ year: meta.targetYear || currentYear, month: meta.targetMonth + 1 }));
-            dispatch(getSocialmediaStats({ year: meta.targetYear || currentYear, month: meta.targetMonth + 1 }));
+            const nextYear = meta.targetYear || currentYear;
+            const nextMonth = meta.targetMonth;
+            setCurrentDate(new Date(nextYear, nextMonth, 1));
+            dispatch(getSocialmediaTasks({ year: nextYear, month: nextMonth + 1 }));
+            dispatch(getSocialmediaStats({ year: nextYear, month: nextMonth + 1 }));
           } else {
             dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
             dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));

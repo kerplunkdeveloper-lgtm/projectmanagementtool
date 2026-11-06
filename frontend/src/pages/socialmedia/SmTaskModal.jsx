@@ -40,6 +40,25 @@ import {
 
 export const CATEGORIES = [
   "Content Calendar",
+  "Content Creation",
+  "Ad campaign check",
+  "Google review reply",
+  "Engagement monitor",
+  "Platform qc",
+  "Client app",
+  "Influencer",
+  "Client call",
+  "Model arrangement",
+  "Content kt",
+  "Business development",
+  "Competitor analysis",
+  "Trend analysis",
+  "Insight report",
+];
+
+export const SME_CATEGORIES = [
+  "Content Creation",
+  "Content Calendar",
   "Ad campaign check",
   "Google review reply",
   "Engagement monitor",
@@ -137,13 +156,15 @@ const STATUSES = COMMITMENT_STATUSES;
 const PRIORITIES = ["High", "Medium", "Low"];
 const QC_STATUSES = ["-", "Pending", "Passed", "Rejected"];
 
-const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadOnly: isReadOnlyProp = null }) => {
+const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadOnly: isReadOnlyProp = null, initialCommitment = null }) => {
   const dispatch = useDispatch();
   const { user: currentUser } = useSelector((state) => state.auth);
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || [];
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
+
+  const [isCommitment, setIsCommitment] = useState(true);
 
   const userRoleClean = (currentUser?.role?.name || currentUser?.role || "")
     .toString()
@@ -252,10 +273,15 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         currentUser?.name ||
         "Admin";
 
-      const currentCat = task.category || "Content Calendar";
-      const isCal = isContentCalendarCategory(currentCat);
+      const isTaskCommitment =
+        task.commitment !== undefined
+          ? Boolean(task.commitment)
+          : isContentCalendarCategory(task.category);
+      setIsCommitment(isTaskCommitment);
 
-      const initialContentType = isCal
+      const currentCat = task.category || (isTaskCommitment ? "Content Calendar" : "Content Creation");
+
+      const initialContentType = isTaskCommitment
         ? (["Post", "Reels", "Stories", "Reel", "Story"].includes(task.contentType)
             ? (task.contentType === "Reel" ? "Reels" : task.contentType === "Story" ? "Stories" : task.contentType)
             : "Post")
@@ -282,13 +308,19 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         dueDate: dDate,
         publishDate: pDate,
         publishTime: pTime,
-        hasPublishDate: isCal && Boolean(task.publishDate),
+        hasPublishDate: isTaskCommitment && Boolean(task.publishDate),
         status: task.status || "Not started",
         priority: task.priority || "Medium",
         qc: task.qc || "-",
         notes: task.notes || "",
       });
     } else {
+      const defaultIsCommitment =
+        initialCommitment !== null
+          ? Boolean(initialCommitment)
+          : Boolean(initialDate);
+      setIsCommitment(defaultIsCommitment);
+
       const defaultDateStr = initialDate
         ? formatLocalDateKey(initialDate)
         : formatLocalDateKey(new Date());
@@ -300,10 +332,10 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         clientId: defaultClient?._id || "",
         clientName: defaultClient?.companyName || "",
         clientColor: defaultClient?.color || "#6366f1",
-        category: "Content Calendar",
-        contentType: "Post",
-        platform: "Instagram",
-        platforms: ["Instagram"],
+        category: defaultIsCommitment ? "Content Calendar" : "Content Creation",
+        contentType: defaultIsCommitment ? "Post" : "Others Task",
+        platform: defaultIsCommitment ? "Instagram" : "",
+        platforms: defaultIsCommitment ? ["Instagram"] : [],
         createdById: currentUser?._id || "",
         createdByName: currentUser?.name || "Admin",
         assigneeId: currentUser?._id || "",
@@ -311,16 +343,16 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         dueDate: defaultDateStr,
         publishDate: defaultDateStr,
         publishTime: "18:00",
-        hasPublishDate: true,
+        hasPublishDate: defaultIsCommitment,
         status: "Not started",
         priority: "Medium",
         qc: "-",
         notes: "",
       });
     }
-  }, [isOpen, task, initialDate, clients, users, currentUser]);
+  }, [isOpen, task, initialDate, clients, users, currentUser, initialCommitment]);
 
-  const isContentCalendar = isContentCalendarCategory(formData.category);
+  const isContentCalendar = isCommitment;
 
   const contentTypeDropdownRef = useRef(null);
   const [isContentTypeOpen, setIsContentTypeOpen] = useState(false);
@@ -338,6 +370,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
   const handleTabChange = (tab) => {
     if (isReadOnly) return;
     if (tab === "commitment") {
+      setIsCommitment(true);
       setFormData((prev) => ({
         ...prev,
         category: "Content Calendar",
@@ -347,39 +380,16 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         hasPublishDate: true,
       }));
     } else {
-      const nonCalCat = CATEGORIES.find((c) => !isContentCalendarCategory(c)) || "Ad campaign check";
+      setIsCommitment(false);
       setFormData((prev) => ({
         ...prev,
-        category: nonCalCat,
+        category: prev.category && prev.category !== "Content" && SME_CATEGORIES.includes(prev.category) ? prev.category : "Content Creation",
         contentType: "Others Task",
         platform: "",
         platforms: [],
         hasPublishDate: false,
       }));
     }
-  };
-
-  const handleCategoryChange = (val) => {
-    const isCal = isContentCalendarCategory(val);
-    setFormData((prev) => {
-      let nextType = prev.contentType;
-      if (isCal) {
-        if (!CONTENT_CALENDAR_TYPES.includes(nextType)) {
-          nextType = "Post";
-        }
-      } else {
-        nextType = "Others Task";
-      }
-
-      return {
-        ...prev,
-        category: val,
-        contentType: nextType,
-        platform: isCal ? (prev.platform || "Instagram") : "",
-        platforms: isCal ? (prev.platforms?.length ? prev.platforms : ["Instagram"]) : [],
-        hasPublishDate: isCal ? prev.hasPublishDate : false,
-      };
-    });
   };
 
   const handlePlatformSelect = (platId) => {
@@ -501,7 +511,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
 
     setSaving(true);
     try {
-      const isCal = isContentCalendarCategory(formData.category);
+      const isCal = isCommitment;
 
       if (isCal && (!formData.platforms || formData.platforms.length === 0)) {
         toast.error("Please select at least one social media platform");
@@ -557,7 +567,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         client: formData.clientId || null,
         clientName: formData.clientName || "General",
         clientColor: formData.clientColor || "#6366f1",
-        category: isCal ? "Content" : (formData.category === "Content Calendar" ? "Content" : formData.category),
+        category: isCal ? "Content" : formData.category,
         contentType: isCal ? formData.contentType : "Others Task",
         platform: isCal ? formData.platform : "",
         platforms: isCal ? (formData.platforms && formData.platforms.length > 0 ? formData.platforms : [formData.platform].filter(Boolean)) : [],
@@ -571,7 +581,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         onCalendar: isCal && Boolean(finalPublishDate),
         status: formData.status,
         priority: formData.priority,
-        qc: formData.qc,
+        qc: isCal ? formData.qc : "-",
         notes: formData.notes,
       };
 
@@ -605,7 +615,6 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
     }
   };
 
-  const isCommitment = isContentCalendar;
   const targetDateForRisk =
     isCommitment && formData.hasPublishDate && formData.publishDate
       ? parseLocalDateTime(formData.publishDate, formData.publishTime || "18:00")
@@ -818,7 +827,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                       disabled={isReadOnly}
                       className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed truncate"
                     >
-                      {CATEGORIES.filter((cat) => !isContentCalendarCategory(cat)).map((cat) => (
+                      {SME_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat} className="dark:bg-[#131d31] dark:text-white">
                           {cat}
                         </option>
@@ -1097,7 +1106,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
               </div>
 
               {/* Status & QC */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className={`grid ${isCommitment ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                     Status
@@ -1130,23 +1139,25 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    QC Status
-                  </label>
-                  <select
-                    value={formData.qc}
-                    onChange={(e) => setFormData({ ...formData, qc: e.target.value })}
-                    disabled={isReadOnly}
-                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
-                  >
-                    {QC_STATUSES.map((q) => (
-                      <option key={q} value={q} className="dark:bg-[#131d31] dark:text-white">
-                        {q === "-" ? "None (-)" : q}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {isCommitment && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                      QC Status
+                    </label>
+                    <select
+                      value={formData.qc}
+                      onChange={(e) => setFormData({ ...formData, qc: e.target.value })}
+                      disabled={isReadOnly}
+                      className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+                    >
+                      {QC_STATUSES.map((q) => (
+                        <option key={q} value={q} className="dark:bg-[#131d31] dark:text-white">
+                          {q === "-" ? "None (-)" : q}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
           </div>
