@@ -605,20 +605,19 @@ const SmTasks = () => {
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
-  // Role check: Admin, Operation Manager, and Social Media Team (Head, Manager, Executive) can see all users' tasks
+  // Role check: Admin, Operation Manager, and Social Media Manager can see all users' tasks and filter by Created By
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
   const deptLower = (user?.department || "").toLowerCase();
-  const isSocialMediaTeam =
-    userRoleClean === "admin" ||
+  const isSocialMediaManagerRole =
     userRoleClean === "socialmediamanager" ||
     userRoleClean === "socialmediahead" ||
-    userRoleClean === "socialmediaexecutive" ||
-    isSocialMediaManager(user);
+    deptLower.includes("social media head");
 
   const canFilterByCreatedBy =
-    isSocialMediaTeam ||
-    userRoleClean === "operationmanager";
-  const isReadOnly = userRoleClean === "operationmanager";
+    userRoleClean === "admin" ||
+    userRoleClean === "operationmanager" ||
+    isSocialMediaManagerRole;
+  const isReadOnly = userRoleClean === "admin" || userRoleClean === "operationmanager";
 
   // Month & Commitments state (Image 1 style)
   const currentNow = new Date();
@@ -802,12 +801,9 @@ const SmTasks = () => {
       map.set(key, { year: y, month: m, label: `${MONTH_NAMES[m - 1]} ${y}` });
     }
     (tasks || []).forEach((t) => {
-      const isComm = Boolean(t.commitment) || (t.category && ['content calendar', 'content calendor', 'content'].includes(t.category?.toLowerCase().trim()));
-      const primary = isComm
-        ? (t.publishDate || t.dueDate || t.createdAt)
-        : (dateFilterField === "publish" && t.publishDate
-            ? t.publishDate
-            : (t.dueDate || t.publishDate || t.createdAt));
+      const primary = (dateFilterField === "publish" && t.publishDate)
+        ? t.publishDate
+        : (t.dueDate || t.publishDate || t.createdAt);
       if (primary) {
         const d = new Date(primary);
         if (!isNaN(d.getTime())) {
@@ -848,11 +844,11 @@ const SmTasks = () => {
     return ["All", ...Array.from(set)];
   }, [clients, tasks]);
 
-  // Deduplicate tasks strictly by document _id so distinct posts with identical titles are not dropped
+  // Deduplicate tasks by taskTitle + clientName
   const uniqueTasks = useMemo(() => {
     const seen = new Set();
-    return (tasks || []).filter((t) => {
-      const key = (t._id || t.id)?.toString() || JSON.stringify(t);
+    return tasks.filter((t) => {
+      const key = `${(t.taskTitle || '').trim().toLowerCase()}___${(t.clientName || '').trim().toLowerCase()}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -892,12 +888,10 @@ const SmTasks = () => {
       // Top Month Filter: Strictly filter table tasks by selected month & year
       if (selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
         if (dateFilterPreset === "All" && !customStartDate && !customEndDate) {
-          const isComm = Boolean(task.commitment) || (task.category && ['content calendar', 'content calendor', 'content'].includes(task.category?.toLowerCase().trim())) || selectedCommitment !== "No";
-          const primaryDate = isComm
-            ? (task.publishDate || task.dueDate || task.createdAt)
-            : (dateFilterField === "publish" && task.publishDate
-                ? task.publishDate
-                : (task.dueDate || task.publishDate || task.createdAt));
+          const primaryDate =
+            dateFilterField === "publish" && task.publishDate
+              ? task.publishDate
+              : (task.dueDate || task.publishDate || task.createdAt);
 
           if (!primaryDate) return false;
           const d = new Date(primaryDate);
@@ -929,30 +923,22 @@ const SmTasks = () => {
       // Regular users only see tasks created by themselves.
       // Admin and Operation Manager can see all users' tasks and optionally filter.
       if (!canFilterByCreatedBy) {
-        const currentUserId = (user?._id || user?.id)?.toString();
+        const currentUserId = user?._id || user?.id;
         const currentUserNameLower = (user?.name || "").trim().toLowerCase();
 
         const taskCreatorId =
           typeof task.createdBy === "object"
             ? task.createdBy?._id?.toString()
             : task.createdBy?.toString();
-        const taskAssigneeId =
-          typeof task.assignee === "object"
-            ? task.assignee?._id?.toString()
-            : task.assignee?.toString();
         const taskCreatedByNameLower = (task.createdByName || "").trim().toLowerCase();
-        const taskAssigneeNameLower = (task.assigneeName || "").trim().toLowerCase();
 
         const creator = getCreatorInfo(task);
         const resolvedCreatorNameLower = (creator?.name || "").trim().toLowerCase();
 
         const isMine =
-          (currentUserId && (taskCreatorId === currentUserId || taskAssigneeId === currentUserId)) ||
-          (currentUserNameLower && (
-            taskCreatedByNameLower === currentUserNameLower ||
-            taskAssigneeNameLower === currentUserNameLower ||
-            resolvedCreatorNameLower === currentUserNameLower
-          ));
+          (currentUserId && taskCreatorId === currentUserId.toString()) ||
+          (currentUserNameLower && taskCreatedByNameLower === currentUserNameLower) ||
+          (currentUserNameLower && resolvedCreatorNameLower === currentUserNameLower);
 
         if (!isMine) return false;
       } else if (selectedCreatedBy !== "All") {

@@ -3,26 +3,6 @@ const Client = require('../models/Client');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
-// Helper to identify users who can manage (create/update/delete) social media tasks
-const isSocialMediaTeamMember = (user) => {
-  if (!user) return false;
-  const userRole = (user.role || '').toLowerCase().replace(/[\s_]/g, '');
-  const deptLower = (user.department || '').toLowerCase().trim();
-  const desigLower = (user.designation || '').toLowerCase().trim();
-
-  return (
-    userRole === 'admin' ||
-    userRole === 'socialmediamanager' ||
-    userRole === 'socialmediahead' ||
-    userRole === 'socialmediaexecutive' ||
-    deptLower.includes('social media') ||
-    deptLower.includes('social manager') ||
-    deptLower.includes('smm') ||
-    desigLower.includes('social media') ||
-    desigLower.includes('smm')
-  );
-};
-
 // Helper to remove any duplicate tasks based on taskTitle + clientName + publishDate (manual endpoint only)
 const cleanDuplicates = async () => {
   try {
@@ -132,7 +112,11 @@ exports.getSocialmediaTasks = async (req, res) => {
     } = req.query;
 
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    const isSocialMediaManager = isSocialMediaTeamMember(req.user);
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      userRole === 'socialmediamanager' ||
+      userRole === 'socialmediahead' ||
+      deptLower.includes('social media head');
     const isPrivileged =
       userRole === 'admin' ||
       userRole === 'operationmanager' ||
@@ -251,12 +235,10 @@ exports.getSocialmediaTasks = async (req, res) => {
       const start = new Date(y, normalizedMonth, 1 - 10, 0, 0, 0, 0);
       const end = new Date(y, normalizedMonth + 1, 10, 23, 59, 59, 999);
 
-      dateCondition = {
-        $or: [
-          { publishDate: { $gte: start, $lte: end } },
-          { publishDate: null, dueDate: { $gte: start, $lte: end } },
-        ],
-      };
+      query.$or = [
+        { publishDate: { $gte: start, $lte: end } },
+        { publishDate: null, dueDate: { $gte: start, $lte: end } },
+      ];
     }
 
     // Combine any OR conditions safely using $and if multiple exist
@@ -345,7 +327,11 @@ exports.getSocialmediaStats = async (req, res) => {
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    const isSocialMediaManager = isSocialMediaTeamMember(req.user);
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      userRole === 'socialmediamanager' ||
+      userRole === 'socialmediahead' ||
+      deptLower.includes('social media head');
     const isPrivileged =
       userRole === 'admin' ||
       userRole === 'operationmanager' ||
@@ -478,10 +464,10 @@ exports.getSocialmediaTaskById = async (req, res) => {
 exports.createSocialmediaTask = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Operation Manager has read-only access to Content Calendar',
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
       });
     }
 
@@ -650,10 +636,10 @@ exports.createSocialmediaTask = async (req, res) => {
 exports.updateSocialmediaTask = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Operation Manager has read-only access to Content Calendar',
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
       });
     }
 
@@ -721,8 +707,8 @@ exports.updateSocialmediaTask = async (req, res) => {
       }
     }
 
-    // Authorization check for non-social team members
-    if (req.user && !isSocialMediaTeamMember(req.user)) {
+    // Authorization check for regular users
+    if (req.user) {
       const existing = await SocialmediaTaskCalendor.findById(req.params.id);
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Task not found' });
@@ -778,14 +764,14 @@ exports.updateSocialmediaTask = async (req, res) => {
 exports.rescheduleSocialmediaTask = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Operation Manager has read-only access to Content Calendar',
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
       });
     }
 
-    if (req.user && !isSocialMediaTeamMember(req.user)) {
+    if (req.user) {
       const existing = await SocialmediaTaskCalendor.findById(req.params.id);
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Task not found' });
@@ -853,20 +839,25 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
 exports.deleteSocialmediaTask = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Operation Manager has read-only access to Content Calendar',
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
       });
     }
 
-    if (req.user && !isSocialMediaTeamMember(req.user)) {
+    if (req.user) {
       const existing = await SocialmediaTaskCalendor.findById(req.params.id);
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Task not found' });
       }
+      const deptLower = (req.user?.department || '').toLowerCase();
+      const isSocialMediaManager =
+        userRole === 'socialmediamanager' ||
+        userRole === 'socialmediahead' ||
+        deptLower.includes('social media head');
       const isCreator = existing.createdBy && existing.createdBy.toString() === req.user._id.toString();
-      if (!isCreator && existing.createdBy) {
+      if (!isCreator && !isSocialMediaManager && existing.createdBy) {
         return res.status(403).json({ success: false, message: 'Not authorized to delete this task' });
       }
     }
@@ -902,10 +893,10 @@ exports.deleteSocialmediaTask = async (req, res) => {
 exports.bulkDeleteSocialmediaTasks = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Operation Manager has read-only access to Content Calendar',
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
       });
     }
 
@@ -917,10 +908,14 @@ exports.bulkDeleteSocialmediaTasks = async (req, res) => {
       });
     }
 
-    const isAuthorizedTeam = isSocialMediaTeamMember(req.user);
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      userRole === 'socialmediamanager' ||
+      userRole === 'socialmediahead' ||
+      deptLower.includes('social media head');
 
     const filter = { _id: { $in: taskIds } };
-    if (!isAuthorizedTeam && req.user) {
+    if (!isSocialMediaManager && req.user) {
       filter.$or = [
         { createdBy: req.user._id },
         { createdBy: null },
@@ -952,10 +947,10 @@ exports.bulkDeleteSocialmediaTasks = async (req, res) => {
 exports.cleanDuplicateTasks = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Operation Manager has read-only access to Content Calendar',
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
       });
     }
 
