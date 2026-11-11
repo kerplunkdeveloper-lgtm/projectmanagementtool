@@ -896,10 +896,10 @@ const IndustryCombobox = React.memo(({ value, onChange, existingIndustries = [] 
   );
 });
 
-const BranchDropdown = React.memo(({ value = "Pondicherry", onChange }) => {
+const BranchDropdown = React.memo(({ value = "", onChange }) => {
   const isPondiOrChennai = value === "Pondicherry" || value === "Chennai";
   const [selectedOption, setSelectedOption] = useState(
-    isPondiOrChennai ? value : (value ? "Other" : "Pondicherry")
+    isPondiOrChennai ? value : (value ? "Other" : "")
   );
   const [customBranch, setCustomBranch] = useState(
     isPondiOrChennai ? "" : (value || "")
@@ -912,6 +912,9 @@ const BranchDropdown = React.memo(({ value = "Pondicherry", onChange }) => {
     } else if (value) {
       setSelectedOption("Other");
       setCustomBranch(value);
+    } else {
+      setSelectedOption("");
+      setCustomBranch("");
     }
   }, [value]);
 
@@ -942,8 +945,15 @@ const BranchDropdown = React.memo(({ value = "Pondicherry", onChange }) => {
           value={selectedOption}
           onChange={handleSelectChange}
           required
-          className="w-full bg-transparent border-0 outline-none p-0 text-xs font-semibold text-slate-800 dark:text-white cursor-pointer appearance-none [color-scheme:dark]"
+          className={`w-full bg-transparent border-0 outline-none p-0 text-xs cursor-pointer appearance-none [color-scheme:dark] ${
+            !selectedOption
+              ? "text-slate-400 dark:text-slate-400 font-medium"
+              : "text-slate-800 dark:text-white font-semibold"
+          }`}
         >
+          <option value="" disabled className="bg-[#1e293b] text-slate-400 font-semibold py-1">
+            Select the Branch
+          </option>
           <option value="Pondicherry" className="bg-[#1e293b] text-white font-semibold py-1">
             Pondicherry
           </option>
@@ -1000,7 +1010,7 @@ const formatDept = (d) => {
 
 const INITIAL_CLIENT_FORM = {
   companyName: "",
-  branch: "Pondicherry",
+  branch: "",
   industry: "",
   onboardingDate: new Date().toISOString().split("T")[0],
   phoneNumber: "",
@@ -1260,7 +1270,7 @@ const Clients = () => {
   const handleEdit = (client) => {
     setFormData({
       ...client,
-      branch: client.branch || "Pondicherry",
+      branch: client.branch || "",
       color: client.color || "#3b82f6",
       icon: client.icon || "FaRegBuilding",
       status: client.status || "Active",
