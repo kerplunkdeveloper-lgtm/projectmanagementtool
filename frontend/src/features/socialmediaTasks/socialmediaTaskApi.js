@@ -48,6 +48,12 @@ export const deleteSocialmediaTaskAPI = async (id) => {
   return response.data;
 };
 
+// BULK DELETE tasks
+export const bulkDeleteSocialmediaTasksAPI = async (taskIds) => {
+  const response = await axiosInstance.post("/socialmedia-task-calendar/bulk-delete", { taskIds });
+  return response.data;
+};
+
 // BULK IMPORT commitment tasks
 export const bulkImportSocialmediaTasksAPI = async (tasks) => {
   const response = await axiosInstance.post("/socialmedia-task-calendar/bulk-import", { tasks });

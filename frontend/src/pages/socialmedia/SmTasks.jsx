@@ -55,6 +55,7 @@ import {
   getSocialmediaStats,
   updateSocialmediaTask,
   deleteSocialmediaTask,
+  bulkDeleteSocialmediaTasks,
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
@@ -724,6 +725,16 @@ const SmTasks = () => {
 
   const [atRiskOnly, setAtRiskOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Multi-select & Bulk Deletion States (Separated for Commitment and SME tasks)
+  const [selectedCommitmentIds, setSelectedCommitmentIds] = useState([]);
+  const [selectedSmeIds, setSelectedSmeIds] = useState([]);
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    show: false,
+    target: null, // "bulk" or single task object
+    tabName: "Commitment",
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1840,11 +1851,83 @@ const SmTasks = () => {
     }
   };
 
+  // Derived Multi-select Helpers (Dedicated & Separated for Commitment and SME tasks)
+  const isCommitmentTab = selectedCommitment !== "No";
+  const activeSelectedIds = isCommitmentTab ? selectedCommitmentIds : selectedSmeIds;
+  const setActiveSelectedIds = isCommitmentTab ? setSelectedCommitmentIds : setSelectedSmeIds;
+
+  const currentPageTaskIds = useMemo(() => paginatedTasks.map((t) => t._id), [paginatedTasks]);
+  const isAllCurrentPageSelected =
+    currentPageTaskIds.length > 0 &&
+    currentPageTaskIds.every((id) => activeSelectedIds.includes(id));
+  const isSomeCurrentPageSelected =
+    currentPageTaskIds.some((id) => activeSelectedIds.includes(id)) && !isAllCurrentPageSelected;
+
+  const handleToggleSelectAllPage = (checked) => {
+    if (checked) {
+      setActiveSelectedIds((prev) => Array.from(new Set([...prev, ...currentPageTaskIds])));
+    } else {
+      setActiveSelectedIds((prev) => prev.filter((id) => !currentPageTaskIds.includes(id)));
+    }
+  };
+
+  const handleToggleSelectTask = (taskId, checked) => {
+    setActiveSelectedIds((prev) => {
+      if (checked) {
+        return prev.includes(taskId) ? prev : [...prev, taskId];
+      } else {
+        return prev.filter((id) => id !== taskId);
+      }
+    });
+  };
+
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = filteredTasks.map((t) => t._id);
+    setActiveSelectedIds(allFilteredIds);
+  };
+
+  const handleClearSelection = () => {
+    setActiveSelectedIds([]);
+  };
+
+  const handleTriggerBulkDelete = () => {
+    if (isReadOnly || activeSelectedIds.length === 0) return;
+    setDeleteConfirm({
+      show: true,
+      target: "bulk",
+      tabName: isCommitmentTab ? "Commitment" : "SME",
+    });
+  };
+
   const handleDeleteTask = (task, e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     if (isReadOnly) return;
-    if (window.confirm(`Are you sure you want to delete "${task.taskTitle}"?`)) {
-      dispatch(deleteSocialmediaTask(task._id));
+    setDeleteConfirm({
+      show: true,
+      target: task,
+      tabName: isCommitmentTab ? "Commitment" : "SME",
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (isDeleting) return;
+    setIsDeleting(true);
+    try {
+      if (deleteConfirm.target === "bulk") {
+        const idsToDelete = [...activeSelectedIds];
+        await dispatch(bulkDeleteSocialmediaTasks(idsToDelete)).unwrap();
+        setActiveSelectedIds([]);
+      } else if (deleteConfirm.target?._id) {
+        const targetId = deleteConfirm.target._id;
+        await dispatch(deleteSocialmediaTask(targetId)).unwrap();
+        setSelectedCommitmentIds((prev) => prev.filter((id) => id !== targetId));
+        setSelectedSmeIds((prev) => prev.filter((id) => id !== targetId));
+      }
+      setDeleteConfirm({ show: false, target: null, tabName: "" });
+    } catch (err) {
+      console.error("Failed to delete task(s):", err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1966,7 +2049,11 @@ const SmTasks = () => {
                 <FiLock size={13} className="stroke-[2.5]" />
               </div>
               <span>Commitment</span>
-
+              {selectedCommitmentIds.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-black leading-none shadow-xs">
+                  {selectedCommitmentIds.length}
+                </span>
+              )}
             </div>
           </button>
 
@@ -2004,8 +2091,12 @@ const SmTasks = () => {
               >
                 <FiLayers size={13} className="stroke-[2.5]" />
               </div>
-              <span>SME tasks </span>
-
+              <span>SME tasks</span>
+              {selectedSmeIds.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-black leading-none shadow-xs">
+                  {selectedSmeIds.length}
+                </span>
+              )}
             </div>
           </button>
         </div>
@@ -2102,10 +2193,67 @@ const SmTasks = () => {
             <div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse w-full" />
           </div>
         )}
+
+        {/* Table Selection Action Bar (Separated for Commitment and SME tasks) */}
+        {activeSelectedIds.length > 0 && !isReadOnly && (
+          <div className="bg-blue-50/90 dark:bg-[#14233c] border-b border-blue-200/70 dark:border-blue-900/50 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs z-10 relative">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs">
+                {activeSelectedIds.length}
+              </span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">
+                {activeSelectedIds.length} {isCommitmentTab ? "Commitment" : "SME"} task{activeSelectedIds.length > 1 ? "s" : ""} selected
+              </span>
+              {filteredTasks.length > activeSelectedIds.length && (
+                <button
+                  type="button"
+                  onClick={handleSelectAllFiltered}
+                  className="ml-2 text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                >
+                  (Select all {filteredTasks.length} {isCommitmentTab ? "Commitment" : "SME"} tasks in this tab)
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                className="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 font-semibold cursor-pointer transition-colors"
+              >
+                Clear Selection
+              </button>
+              <button
+                type="button"
+                onClick={handleTriggerBulkDelete}
+                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-rose-500/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <FiTrash2 size={13} />
+                <span>Delete Selected ({activeSelectedIds.length})</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-[#131d31] text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                {!isReadOnly && (
+                  <th className="py-3 px-3 text-center w-10">
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        ref={(el) => {
+                          if (el) el.indeterminate = isSomeCurrentPageSelected;
+                        }}
+                        checked={isAllCurrentPageSelected}
+                        onChange={(e) => handleToggleSelectAllPage(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        title={isAllCurrentPageSelected ? "Deselect all" : "Select all on this page"}
+                      />
+                    </div>
+                  </th>
+                )}
                 <th className="py-3 px-3 text-center whitespace-nowrap w-12 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
                 <th className="py-3 px-4 min-w-[200px]">Task</th>
                 <th className="py-3 px-4 whitespace-nowrap">Client</th>
@@ -2138,6 +2286,11 @@ const SmTasks = () => {
                     key={`sm-task-skeleton-${idx}`}
                     className="animate-pulse border-b border-slate-100 dark:border-slate-800/60"
                   >
+                    {!isReadOnly && (
+                      <td className="py-3.5 px-3 text-center">
+                        <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
+                      </td>
+                    )}
                     {/* Sl.No */}
                     <td className="py-3.5 px-3 text-center">
                       <div className="h-3.5 w-5 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
@@ -2233,7 +2386,7 @@ const SmTasks = () => {
                 ))
               ) : paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={selectedCommitment === "No" ? 11 : 14} className="py-12 text-center">
+                  <td colSpan={(selectedCommitment === "No" ? 11 : 14) + (!isReadOnly ? 1 : 0)} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center py-6">
                       <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
                         <FiCalendar size={22} />
@@ -2257,15 +2410,35 @@ const SmTasks = () => {
                 paginatedTasks.map((task, index) => {
                   const clientColor = task.clientColor || "#6366f1";
                   const isOverdue = isTaskOverdue(task);
+                  const isSelected = activeSelectedIds.includes(task._id);
 
                   return (
                     <tr
                       key={task._id}
                       className={`transition-colors group ${isOverdue
                         ? "overdue-row-blink border-l-4 border-l-rose-500 hover:border-l-rose-600"
-                        : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
+                        : isSelected
+                          ? "bg-blue-50/70 dark:bg-blue-950/30 hover:bg-blue-50/90 dark:hover:bg-blue-950/40"
+                          : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
                         }`}
                     >
+                      {/* Checkbox column */}
+                      {!isReadOnly && (
+                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleToggleSelectTask(task._id, e.target.checked);
+                              }}
+                              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                          </div>
+                        </td>
+                      )}
+
                       {/* SL.NO */}
                       <td className="py-3 px-3 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
                         {(currentPage - 1) * itemsPerPage + index + 1}
@@ -2675,6 +2848,106 @@ const SmTasks = () => {
         targetStatus={platformWarningModal.targetStatus}
         onConfirm={handleConfirmPlatformWarning}
       />
+
+      {/* BULK ACTION FLOATING BAR (Separated for Commitment and SME tasks) */}
+      <AnimatePresence>
+        {activeSelectedIds.length > 0 && !isReadOnly && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 50, x: "-50%" }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="fixed bottom-6 left-1/2 z-40 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-2xl flex items-center gap-4"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs">
+                {activeSelectedIds.length}
+              </span>
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
+                {activeSelectedIds.length} {isCommitmentTab ? "Commitment" : "SME"} task{activeSelectedIds.length > 1 ? "s" : ""} selected
+              </span>
+            </div>
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer whitespace-nowrap"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={handleTriggerBulkDelete}
+                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-rose-500/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              >
+                <FiTrash2 size={13} />
+                <span>Delete Selected</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {deleteConfirm.show && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setDeleteConfirm({ show: false, target: null, tabName: "" })}
+              className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-2xl p-6 shadow-2xl border border-slate-200/80 dark:border-white/10 z-10 flex flex-col items-center text-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center mb-4 ring-4 ring-rose-500/10">
+                <FiTrash2 size={22} className="animate-pulse" />
+              </div>
+
+              <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 mb-2">
+                {deleteConfirm.target === "bulk"
+                  ? `Delete ${activeSelectedIds.length} ${deleteConfirm.tabName} Task${activeSelectedIds.length > 1 ? "s" : ""}`
+                  : `Delete ${deleteConfirm.tabName} Task`}
+              </h3>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                {deleteConfirm.target === "bulk"
+                  ? `Are you sure you want to permanently delete the ${activeSelectedIds.length} selected ${deleteConfirm.tabName} task(s)? This action will remove them from the system and cannot be undone.`
+                  : `Are you sure you want to permanently delete "${deleteConfirm.target?.taskTitle}"? This action cannot be undone.`}
+              </p>
+
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setDeleteConfirm({ show: false, target: null, tabName: "" })}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleConfirmDelete}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm hover:shadow-rose-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Yes, Delete"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

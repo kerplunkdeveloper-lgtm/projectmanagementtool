@@ -8,7 +8,8 @@ const isSocialMediaManagerUser = (user) => {
   return (
     role === "socialmediamanager" ||
     role === "socialmediahead" ||
-    dept.includes("social media head")
+    dept.includes("social media head") ||
+    dept.includes("social media manager")
   );
 };
 
@@ -17,8 +18,7 @@ const isPrivilegedClientUser = (user) => {
   if (
     user.role === "admin" ||
     user.role === "operationmanager" ||
-    user.role === "operation manager" ||
-    isSocialMediaManagerUser(user)
+    user.role === "operation manager"
   ) {
     return true;
   }
@@ -38,7 +38,12 @@ const isPrivilegedClientUser = (user) => {
 // @access  Private
 exports.createClient = async (req, res) => {
   try {
-    // Removed admin check to allow other authorized roles to create clients
+    if (isSocialMediaManagerUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "Social Media Head has read-only access to clients",
+      });
+    }
 
     const {
       companyName,
@@ -146,7 +151,9 @@ exports.createClient = async (req, res) => {
 exports.getClients = async (req, res) => {
   try {
     let query = {};
-    if (
+    if (isSocialMediaManagerUser(req.user)) {
+      query.branch = new RegExp("^chennai$", "i");
+    } else if (
       !isPrivilegedClientUser(req.user) ||
       req.query.assignedOnly === "true"
     ) {
@@ -262,6 +269,13 @@ exports.updateClient = async (req, res) => {
       });
     }
 
+    if (isSocialMediaManagerUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "Social Media Head has read-only access to clients",
+      });
+    }
+
     const isAssigned = clientToCheck.assignedTo && (
       Array.isArray(clientToCheck.assignedTo)
         ? clientToCheck.assignedTo.some(id => id.toString() === req.user._id.toString())
@@ -361,6 +375,13 @@ exports.updateClient = async (req, res) => {
 // @access  Private
 exports.deleteClient = async (req, res) => {
   try {
+    if (isSocialMediaManagerUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "Social Media Head has read-only access to clients",
+      });
+    }
+
     const client = await Client.findById(
       req.params.id
     );

@@ -9,6 +9,7 @@ const {
   updateSocialmediaTask,
   rescheduleSocialmediaTask,
   deleteSocialmediaTask,
+  bulkDeleteSocialmediaTasks,
   cleanDuplicateTasks,
   getSocialmediaMetadata,
   bulkImportSocialmediaTasks,
@@ -22,6 +23,7 @@ router.use(protect);
 router.get('/meta', getSocialmediaMetadata);
 router.post('/clean-duplicates', cleanDuplicateTasks);
 router.post('/bulk-import', bulkImportSocialmediaTasks);
+router.post('/bulk-delete', bulkDeleteSocialmediaTasks);
 
 router.route('/')
   .get(getSocialmediaTasks)

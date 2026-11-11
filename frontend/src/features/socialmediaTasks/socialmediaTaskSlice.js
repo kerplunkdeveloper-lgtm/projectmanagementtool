@@ -7,6 +7,7 @@ import {
   updateSocialmediaTaskAPI,
   rescheduleSocialmediaTaskAPI,
   deleteSocialmediaTaskAPI,
+  bulkDeleteSocialmediaTasksAPI,
   getSocialmediaMetadataAPI,
   bulkImportSocialmediaTasksAPI,
 } from "./socialmediaTaskApi";
@@ -97,6 +98,22 @@ export const deleteSocialmediaTask = createAsyncThunk(
       return id;
     } catch (error) {
       const msg = error.response?.data?.message || "Failed to delete task";
+      toast.error(msg);
+      return thunkAPI.rejectWithValue(msg);
+    }
+  }
+);
+
+// BULK DELETE TASKS
+export const bulkDeleteSocialmediaTasks = createAsyncThunk(
+  "socialmediaTasks/bulkDeleteSocialmediaTasks",
+  async (taskIds, thunkAPI) => {
+    try {
+      await bulkDeleteSocialmediaTasksAPI(taskIds);
+      toast.success(`${taskIds.length} task(s) deleted successfully`);
+      return taskIds;
+    } catch (error) {
+      const msg = error.response?.data?.message || "Failed to delete tasks";
       toast.error(msg);
       return thunkAPI.rejectWithValue(msg);
     }
@@ -281,6 +298,14 @@ const socialmediaTaskSlice = createSlice({
       .addCase(deleteSocialmediaTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.filter((t) => t._id !== action.payload);
         state.totalCount = Math.max(0, state.totalCount - 1);
+        recalcStats(state);
+      })
+
+      // BULK DELETE TASKS
+      .addCase(bulkDeleteSocialmediaTasks.fulfilled, (state, action) => {
+        const idsSet = new Set(action.payload);
+        state.tasks = state.tasks.filter((t) => !idsSet.has(t._id));
+        state.totalCount = Math.max(0, state.totalCount - action.payload.length);
         recalcStats(state);
       })
 

@@ -165,7 +165,6 @@ export const sidebarConfig = {
     { name: "Home", path: "/socialmediamanager", icon: FiHome },
     { name: "Sticky Notes", path: "/socialmediamanager/stickynotes", icon: TbPencilHeart },
     { name: "Clients", path: "/socialmediamanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
-    { name: "Projects", path: "/socialmediamanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     {
       name: "Tasks",
       path: "/socialmediamanager/tasks",
@@ -189,7 +188,6 @@ export const sidebarConfig = {
     { name: "Workload", path: "/socialmediamanager/workload", icon: LuActivity },
     { name: "Chat", path: "/socialmediamanager/chat", icon: LuMessagesSquare },
     { name: "MOM / Client Calls", path: "/socialmediamanager/mom-points", icon: LuStickyNote },
-    { name: "Users", path: "/socialmediamanager/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "SM Credentials", path: "/socialmediamanager/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Reports", path: "/socialmediamanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/socialmediamanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },

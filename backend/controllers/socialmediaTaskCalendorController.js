@@ -851,8 +851,13 @@ exports.deleteSocialmediaTask = async (req, res) => {
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Task not found' });
       }
+      const deptLower = (req.user?.department || '').toLowerCase();
+      const isSocialMediaManager =
+        userRole === 'socialmediamanager' ||
+        userRole === 'socialmediahead' ||
+        deptLower.includes('social media head');
       const isCreator = existing.createdBy && existing.createdBy.toString() === req.user._id.toString();
-      if (!isCreator) {
+      if (!isCreator && !isSocialMediaManager && existing.createdBy) {
         return res.status(403).json({ success: false, message: 'Not authorized to delete this task' });
       }
     }
@@ -866,6 +871,8 @@ exports.deleteSocialmediaTask = async (req, res) => {
       });
     }
 
+    await Notification.deleteMany({ smTaskId: req.params.id }).catch(() => {});
+
     res.status(200).json({
       success: true,
       message: 'Task deleted successfully',
@@ -873,6 +880,60 @@ exports.deleteSocialmediaTask = async (req, res) => {
     });
   } catch (error) {
     console.error('[SocialmediaTaskCalendor] deleteSocialmediaTask error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Server error',
+    });
+  }
+};
+
+// @desc    Bulk delete social media tasks
+// @route   POST /api/socialmedia-task-calendar/bulk-delete
+// @access  Private
+exports.bulkDeleteSocialmediaTasks = async (req, res) => {
+  try {
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    if (userRole === 'admin' || userRole === 'operationmanager') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+      });
+    }
+
+    const { taskIds } = req.body;
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No task IDs provided for deletion',
+      });
+    }
+
+    const deptLower = (req.user?.department || '').toLowerCase();
+    const isSocialMediaManager =
+      userRole === 'socialmediamanager' ||
+      userRole === 'socialmediahead' ||
+      deptLower.includes('social media head');
+
+    const filter = { _id: { $in: taskIds } };
+    if (!isSocialMediaManager && req.user) {
+      filter.$or = [
+        { createdBy: req.user._id },
+        { createdBy: null },
+        { createdBy: { $exists: false } },
+      ];
+    }
+
+    const deleteResult = await SocialmediaTaskCalendor.deleteMany(filter);
+    await Notification.deleteMany({ smTaskId: { $in: taskIds } }).catch(() => {});
+
+    res.status(200).json({
+      success: true,
+      message: `${deleteResult.deletedCount} task(s) deleted successfully`,
+      deletedCount: deleteResult.deletedCount,
+      deletedIds: taskIds,
+    });
+  } catch (error) {
+    console.error('[SocialmediaTaskCalendor] bulkDeleteSocialmediaTasks error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Server error',

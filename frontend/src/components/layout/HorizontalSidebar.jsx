@@ -340,6 +340,20 @@ const HorizontalSidebar = ({ role }) => {
         return false;
       }
 
+      // Hide Users and Projects for Social Media Head / Manager
+      if (
+        (item.name === "Users" ||
+          item.path?.includes("/users") ||
+          item.name === "Projects" ||
+          item.path?.includes("/projects")) &&
+        (role === "socialmediamanager" ||
+          role === "socialmediahead" ||
+          (currentUser?.department || "").toLowerCase().includes("social media") ||
+          (currentUser?.role || "").toLowerCase().includes("social media"))
+      ) {
+        return false;
+      }
+
       // Hide Clients for HR department/role
       if (
         item.name === "Clients" &&

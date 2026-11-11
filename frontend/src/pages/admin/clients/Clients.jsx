@@ -1064,13 +1064,23 @@ const Clients = () => {
     roleLower === "socialmediamanager" ||
     roleLower === "socialmediahead" ||
     deptLower.includes("social media head") ||
+    deptLower.includes("social media manager") ||
     location.pathname.includes("/socialmediamanager");
 
-  const canManageClients =
+  const isAdminOrOperationManager =
     roleLower === "admin" ||
     roleLower === "operationmanager" ||
-    isFinance ||
-    isSocialMediaManager;
+    roleLower === "operation manager" ||
+    deptLower.includes("managing partner") ||
+    deptLower.includes("operation manager") ||
+    roleLower.includes("managing partner") ||
+    roleLower.includes("operation manager");
+
+  const canManageClients =
+    (roleLower === "admin" ||
+    roleLower === "operationmanager" ||
+    isFinance) &&
+    !isSocialMediaManager;
 
   const canViewBudget =
     (roleLower === "admin" || roleLower === "operationmanager" || isFinance) &&
@@ -1084,6 +1094,7 @@ const Clients = () => {
   const [serviceFilter, setServiceFilter] = useState("All");
   const [clientNameFilter, setClientNameFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [branchFilter, setBranchFilter] = useState("All");
   const [memberFilter, setMemberFilter] = useState("All");
   const [showMemberFilterDropdown, setShowMemberFilterDropdown] =
     useState(false);
@@ -1363,21 +1374,39 @@ const Clients = () => {
     return map;
   }, [projects]);
 
-  const uniqueClientNames = useMemo(() => {
+  // Filter clients by branch for Social Media Head (Chennai branch only)
+  const scopedClients = useMemo(() => {
     if (!clients) return [];
-    const names = clients.map((c) => c.companyName).filter(Boolean);
+    if (isSocialMediaManager) {
+      return clients.filter(
+        (c) => (c.branch || "").trim().toLowerCase() === "chennai"
+      );
+    }
+    return clients;
+  }, [clients, isSocialMediaManager]);
+
+  const uniqueClientNames = useMemo(() => {
+    const names = (scopedClients || []).map((c) => c.companyName).filter(Boolean);
     return [...new Set(names)].sort((a, b) => a.localeCompare(b));
-  }, [clients]);
+  }, [scopedClients]);
 
   const uniqueIndustries = useMemo(() => {
-    if (!clients) return [];
-    const industries = clients.map((c) => c.industry).filter(Boolean);
+    const industries = (scopedClients || []).map((c) => c.industry).filter(Boolean);
     return [...new Set(industries)].sort((a, b) => a.localeCompare(b));
-  }, [clients]);
+  }, [scopedClients]);
+
+  const uniqueBranches = useMemo(() => {
+    const branches = (scopedClients || clients || [])
+      .map((c) => (c.branch || "").trim())
+      .filter(Boolean);
+    const set = new Set(["Pondicherry", "Chennai"]);
+    branches.forEach((b) => set.add(b));
+    return Array.from(set);
+  }, [scopedClients, clients]);
 
   const filteredClients = useMemo(() => {
     return (
-      (clients || [])
+      (scopedClients || [])
         .filter((client) => {
           const matchesSearch =
             (client.companyName || "")
@@ -1402,6 +1431,12 @@ const Clients = () => {
           const matchesStatus =
             statusFilter === "All" ? true : client.status === statusFilter;
 
+          const matchesBranch =
+            branchFilter === "All"
+              ? true
+              : (client.branch || "").trim().toLowerCase() ===
+                branchFilter.trim().toLowerCase();
+
           const matchesMember =
             memberFilter === "All"
               ? true
@@ -1415,6 +1450,7 @@ const Clients = () => {
             matchesService &&
             matchesClientName &&
             matchesStatus &&
+            matchesBranch &&
             matchesMember
           );
         })
@@ -1426,18 +1462,19 @@ const Clients = () => {
         )
     );
   }, [
-    clients,
+    scopedClients,
     searchTerm,
     serviceFilter,
     clientNameFilter,
     memberFilter,
     statusFilter,
+    branchFilter,
   ]);
 
   // Reset pagination to page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, serviceFilter, clientNameFilter, memberFilter, statusFilter]);
+  }, [searchTerm, serviceFilter, clientNameFilter, memberFilter, statusFilter, branchFilter]);
 
   const totalItems = filteredClients.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -1516,11 +1553,11 @@ const Clients = () => {
     }
   };
 
-  const totalClientsCount = (clients || []).length;
-  const activeClientsCount = (clients || []).filter(
+  const totalClientsCount = (scopedClients || []).length;
+  const activeClientsCount = (scopedClients || []).filter(
     (c) => !c.status || c.status === "Active",
   ).length;
-  const inactiveClientsCount = (clients || []).filter(
+  const inactiveClientsCount = (scopedClients || []).filter(
     (c) => c.status === "Inactive",
   ).length;
 
@@ -1602,26 +1639,27 @@ const Clients = () => {
       </div>
 
       {/* SEARCH + FILTER CONTROLS */}
-      <div className=" mb-6 flex flex-col md:flex-row items-center justify-between ">
+      <div className="mb-6 flex flex-nowrap items-center justify-between gap-2 w-full">
         {/* LEFT: Search & Filter */}
-        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-nowrap items-center gap-2 flex-1 min-w-0">
           {/* SEARCH BOX */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative flex-1 min-w-[130px] max-w-[210px] shrink">
+           
             <input
               type="text"
               placeholder="Search company or industry..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600"
+              className="w-full h-9 pl-8 pr-3 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
 
           {/* CLIENT NAME FILTER */}
-          <div className="relative w-full sm:w-52">
+          <div className="relative w-28 sm:w-32 shrink-0">
             <select
               value={clientNameFilter}
               onChange={(e) => setClientNameFilter(e.target.value)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+              className="w-full h-9 pl-3 pr-7 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none truncate"
             >
               <option value="All">All Clients</option>
               {uniqueClientNames.map((name, idx) => (
@@ -1630,7 +1668,7 @@ const Clients = () => {
                 </option>
               ))}
             </select>
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
@@ -1648,17 +1686,17 @@ const Clients = () => {
           </div>
 
           {/* STATUS FILTER */}
-          <div className="relative w-full sm:w-40">
+          <div className="relative w-24 sm:w-28 shrink-0">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+              className="w-full h-9 pl-3 pr-7 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none truncate"
             >
               <option value="All">All Status</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
@@ -1675,12 +1713,45 @@ const Clients = () => {
             </div>
           </div>
 
+          {/* BRANCH FILTER (Admin & Operation Manager) */}
+          {isAdminOrOperationManager && (
+            <div className="relative w-28 sm:w-32 shrink-0">
+              <select
+                value={branchFilter}
+                onChange={(e) => setBranchFilter(e.target.value)}
+                className="w-full h-9 pl-3 pr-7 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none truncate"
+              >
+                <option value="All">All Branches</option>
+                {uniqueBranches.map((branch, idx) => (
+                  <option key={idx} value={branch}>
+                    {branch}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+          )}
+
           {/* SERVICE FILTER */}
-          <div className="relative w-full sm:w-52">
+          <div className="relative w-28 sm:w-32 shrink-0">
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none  transition-all font-semibold cursor-pointer appearance-none"
+              className="w-full h-9 pl-3 pr-7 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none transition-all font-semibold cursor-pointer appearance-none truncate"
             >
               <option value="All">All Services</option>
               <option value="Digital Marketing">Digital Marketing</option>
@@ -1690,7 +1761,7 @@ const Clients = () => {
               <option value="Video Production">Video Production</option>
               <option value="Others">Others</option>
             </select>
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
@@ -1708,13 +1779,13 @@ const Clients = () => {
           </div>
 
           {/* MEMBERS FILTER */}
-          <div className="relative w-full sm:w-52">
+          <div className="relative w-28 sm:w-32 shrink-0">
             <div
               onClick={() => {
                 setShowMemberFilterDropdown(!showMemberFilterDropdown);
                 if (showMemberFilterDropdown) setMemberSearchQuery("");
               }}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none flex items-center transition-all font-semibold cursor-pointer"
+              className="w-full h-9 pl-3 pr-7 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none flex items-center transition-all font-semibold cursor-pointer truncate"
             >
               {memberFilter === "All"
                 ? "All Members"
@@ -1724,10 +1795,10 @@ const Clients = () => {
                     );
                     if (!selectedUser) return "All Members";
                     return (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 truncate">
                         {renderUserAvatarSmall(
                           selectedUser,
-                          "w-5 h-5 text-[9px] shrink-0",
+                          "w-4 h-4 text-[8px] shrink-0",
                         )}
                         <span className="truncate">
                           {selectedUser.name || selectedUser.email}
@@ -1745,14 +1816,14 @@ const Clients = () => {
                   setMemberFilter("All");
                   setMemberSearchQuery("");
                 }}
-                className="absolute right-7 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="absolute right-6 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                 title="Reset to All Members"
               >
                 <FiX className="w-3.5 h-3.5" />
               </button>
             )}
 
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
@@ -1900,7 +1971,7 @@ const Clients = () => {
         </div>
 
         {/* RIGHT: Add Button */}
-        <div>
+        <div className="shrink-0">
           {hasFullAccess && (
             <button
               onClick={() => {
@@ -1909,9 +1980,9 @@ const Clients = () => {
                 setActiveTab("profile");
                 setShowModal(true);
               }}
-              className="dashboard-btn-primary px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg text-xs font-semibold active:scale-[0.98] transition-all cursor-pointer"
+              className="dashboard-btn-primary h-9 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg text-xs font-semibold active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap"
             >
-              <FiPlus size={15} className="stroke-[3]" />
+              <FiPlus size={14} className="stroke-[3]" />
               Add Client
             </button>
           )}
@@ -4218,35 +4289,39 @@ const Clients = () => {
                                       </div>
                                     ) : (
                                       <div className="flex justify-center">
-                                        {predef.method === "Backup Codes" ? (
-                                          <button
-                                            onClick={() =>
-                                              handleEditRow(idx, currentData)
-                                            }
-                                            className="px-3 py-1.5 rounded-lg border border-purple-200 bg-purple-50 text-purple-600 text-[10px] font-bold hover:bg-purple-100 transition-colors shadow-sm"
-                                          >
-                                            Manage
-                                          </button>
-                                        ) : currentData.status === "Disabled" ||
-                                          currentData.status ===
-                                            "Not Configured" ? (
-                                          <button
-                                            onClick={() =>
-                                              handleEditRow(idx, currentData)
-                                            }
-                                            className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
-                                          >
-                                            <FiEdit2 size={12} />
-                                          </button>
+                                        {hasFullAccess ? (
+                                          predef.method === "Backup Codes" ? (
+                                            <button
+                                              onClick={() =>
+                                                handleEditRow(idx, currentData)
+                                              }
+                                              className="px-3 py-1.5 rounded-lg border border-purple-200 bg-purple-50 text-purple-600 text-[10px] font-bold hover:bg-purple-100 transition-colors shadow-sm"
+                                            >
+                                              Manage
+                                            </button>
+                                          ) : currentData.status === "Disabled" ||
+                                            currentData.status ===
+                                              "Not Configured" ? (
+                                            <button
+                                              onClick={() =>
+                                                handleEditRow(idx, currentData)
+                                              }
+                                              className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
+                                            >
+                                              <FiEdit2 size={12} />
+                                            </button>
+                                          ) : (
+                                            <button
+                                              onClick={() =>
+                                                handleEditRow(idx, currentData)
+                                              }
+                                              className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
+                                            >
+                                              <FiEdit2 size={12} />
+                                            </button>
+                                          )
                                         ) : (
-                                          <button
-                                            onClick={() =>
-                                              handleEditRow(idx, currentData)
-                                            }
-                                            className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm"
-                                          >
-                                            <FiEdit2 size={12} />
-                                          </button>
+                                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold italic">View only</span>
                                         )}
                                       </div>
                                     )}
