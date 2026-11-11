@@ -239,17 +239,23 @@ const ContentCalendar = () => {
   const role = user?.role || "admin";
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
   const deptLower = (user?.department || "").toLowerCase();
-  const isSocialMediaManagerRole =
+  const desigLower = (user?.designation || "").toLowerCase();
+  const isSocialMediaTeam =
+    userRoleClean === "admin" ||
     userRoleClean === "socialmediamanager" ||
     userRoleClean === "socialmediahead" ||
-    deptLower.includes("social media head");
+    userRoleClean === "socialmediaexecutive" ||
+    deptLower.includes("social media") ||
+    deptLower.includes("social manager") ||
+    deptLower.includes("smm") ||
+    desigLower.includes("social media") ||
+    desigLower.includes("smm");
 
   const isPrivileged =
-    userRoleClean === "admin" ||
-    userRoleClean === "operationmanager" ||
-    isSocialMediaManagerRole;
+    isSocialMediaTeam ||
+    userRoleClean === "operationmanager";
   const canFilterBySMM = isPrivileged;
-  const isReadOnly = userRoleClean === "admin" || userRoleClean === "operationmanager";
+  const isReadOnly = userRoleClean === "operationmanager";
 
   const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
   const clientsState = useSelector((state) => state.clients);

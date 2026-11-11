@@ -275,7 +275,8 @@ const socialmediaTaskSlice = createSlice({
       // UPDATE TASK
       .addCase(updateSocialmediaTask.fulfilled, (state, action) => {
         if (action.payload.data) {
-          const index = state.tasks.findIndex((t) => t._id === action.payload.data._id);
+          const targetId = (action.payload.data._id || action.payload.data.id)?.toString();
+          const index = state.tasks.findIndex((t) => (t._id || t.id)?.toString() === targetId);
           if (index !== -1) {
             state.tasks[index] = action.payload.data;
           }
@@ -286,7 +287,8 @@ const socialmediaTaskSlice = createSlice({
       // RESCHEDULE TASK
       .addCase(rescheduleSocialmediaTask.fulfilled, (state, action) => {
         if (action.payload.data) {
-          const index = state.tasks.findIndex((t) => t._id === action.payload.data._id);
+          const targetId = (action.payload.data._id || action.payload.data.id)?.toString();
+          const index = state.tasks.findIndex((t) => (t._id || t.id)?.toString() === targetId);
           if (index !== -1) {
             state.tasks[index] = action.payload.data;
           }
@@ -296,15 +298,16 @@ const socialmediaTaskSlice = createSlice({
 
       // DELETE TASK
       .addCase(deleteSocialmediaTask.fulfilled, (state, action) => {
-        state.tasks = state.tasks.filter((t) => t._id !== action.payload);
+        const deletedId = action.payload?.toString();
+        state.tasks = state.tasks.filter((t) => (t._id || t.id)?.toString() !== deletedId);
         state.totalCount = Math.max(0, state.totalCount - 1);
         recalcStats(state);
       })
 
       // BULK DELETE TASKS
       .addCase(bulkDeleteSocialmediaTasks.fulfilled, (state, action) => {
-        const idsSet = new Set(action.payload);
-        state.tasks = state.tasks.filter((t) => !idsSet.has(t._id));
+        const idsSet = new Set((action.payload || []).map((id) => id?.toString()));
+        state.tasks = state.tasks.filter((t) => !idsSet.has((t._id || t.id)?.toString()));
         state.totalCount = Math.max(0, state.totalCount - action.payload.length);
         recalcStats(state);
       })
