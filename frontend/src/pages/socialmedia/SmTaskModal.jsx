@@ -225,7 +225,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
       activeSessionRef.current.initialDateStr === currentInitialDateStr;
 
     if (alreadyInitialized) {
-      if (!formData.clientId && clients.length > 0 && !task) {
+      if (!formData.clientId && !formData.clientName && clients.length > 0 && !task) {
         setFormData((prev) => ({
           ...prev,
           clientId: prev.clientId || clients[0]._id,
@@ -470,6 +470,15 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
 
   const handleClientSelect = (e) => {
     const val = e.target.value;
+    if (val === "Others") {
+      setFormData((prev) => ({
+        ...prev,
+        clientId: "",
+        clientName: "Others",
+        clientColor: "#64748b",
+      }));
+      return;
+    }
     const clientObj = clients.find((c) => c._id === val || c.companyName === val);
     if (clientObj) {
       setFormData((prev) => ({
@@ -763,12 +772,15 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                     className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     <option value="" className="dark:bg-[#131d31] dark:text-white">Select Client</option>
+                    <option value="Others" className="dark:bg-[#131d31] dark:text-white font-medium text-indigo-600 dark:text-indigo-400">
+                      Others
+                    </option>
                     {clients.map((c) => (
                       <option key={c._id} value={c._id} className="dark:bg-[#131d31] dark:text-white">
                         {c.companyName}
                       </option>
                     ))}
-                    {formData.clientName && !clients.some((c) => c.companyName === formData.clientName) && (
+                    {formData.clientName && formData.clientName !== "Others" && !clients.some((c) => c.companyName === formData.clientName) && (
                       <option value={formData.clientName} className="dark:bg-[#131d31] dark:text-white">{formData.clientName}</option>
                     )}
                   </select>
@@ -1033,32 +1045,26 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                         <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">
                           Publish Date
                         </label>
-                        <div className="relative flex items-center">
-                          <FiCalendar className="absolute left-2 text-slate-400 dark:text-slate-500 pointer-events-none" size={12} />
-                          <input
-                            type="date"
-                            value={formData.publishDate}
-                            onChange={(e) => setFormData({ ...formData, publishDate: e.target.value })}
-                            disabled={isReadOnly}
-                            className="w-full pl-7 pr-1.5 py-1 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 disabled:opacity-85 disabled:cursor-not-allowed"
-                          />
-                        </div>
+                        <input
+                          type="date"
+                          value={formData.publishDate}
+                          onChange={(e) => setFormData({ ...formData, publishDate: e.target.value })}
+                          disabled={isReadOnly}
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+                        />
                       </div>
 
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-0.5">
                           Time
                         </label>
-                        <div className="relative flex items-center">
-                          <FiClock className="absolute left-2 text-slate-400 dark:text-slate-500 pointer-events-none" size={12} />
-                          <input
-                            type="time"
-                            value={formData.publishTime}
-                            onChange={(e) => setFormData({ ...formData, publishTime: e.target.value })}
-                            disabled={isReadOnly}
-                            className="w-full pl-7 pr-1.5 py-1 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 disabled:opacity-85 disabled:cursor-not-allowed"
-                          />
-                        </div>
+                        <input
+                          type="time"
+                          value={formData.publishTime}
+                          onChange={(e) => setFormData({ ...formData, publishTime: e.target.value })}
+                          disabled={isReadOnly}
+                          className="w-full px-2.5 py-1.5 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+                        />
                       </div>
                     </div>
                   )}

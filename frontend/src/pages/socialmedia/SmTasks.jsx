@@ -829,6 +829,7 @@ const SmTasks = () => {
     tasks.forEach((t) => {
       if (t.clientName) set.add(t.clientName);
     });
+    set.add("Others");
     return ["All", ...Array.from(set)];
   }, [clients, tasks]);
 
@@ -872,7 +873,7 @@ const SmTasks = () => {
 
   // Client-side filtering
   const filteredTasks = useMemo(() => {
-    return uniqueTasks.filter((task) => {
+    const list = uniqueTasks.filter((task) => {
       // Top Month Filter: Strictly filter table tasks by selected month & year
       if (selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
         if (dateFilterPreset === "All" && !customStartDate && !customEndDate) {
@@ -1106,6 +1107,53 @@ const SmTasks = () => {
       }
 
       return true;
+    });
+
+    if (selectedCommitment === "No") {
+      return [...list].sort((a, b) => {
+        const timeA = a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : (a._id && typeof a._id === "string" && a._id.length >= 8
+            ? parseInt(a._id.substring(0, 8), 16) * 1000
+            : 0);
+        const timeB = b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : (b._id && typeof b._id === "string" && b._id.length >= 8
+            ? parseInt(b._id.substring(0, 8), 16) * 1000
+            : 0);
+        if (timeB !== timeA) return timeB - timeA;
+        return String(b._id || "").localeCompare(String(a._id || ""));
+      });
+    }
+
+    // Commitment table: Sort from month's last date down to first date (descending date order)
+    return [...list].sort((a, b) => {
+      const getPrimaryTime = (t) => {
+        const dateVal =
+          dateFilterField === "due"
+            ? (t.dueDate || t.publishDate || t.createdAt)
+            : (t.publishDate || t.dueDate || t.createdAt);
+        if (dateVal) {
+          const ms = new Date(dateVal).getTime();
+          if (!isNaN(ms) && ms > 0) return ms;
+        }
+        if (t._id && typeof t._id === "string" && t._id.length >= 8) {
+          const ms = parseInt(t._id.substring(0, 8), 16) * 1000;
+          if (!isNaN(ms) && ms > 0) return ms;
+        }
+        return 0;
+      };
+
+      const timeA = getPrimaryTime(a);
+      const timeB = getPrimaryTime(b);
+
+      if (timeB !== timeA) return timeB - timeA; // Descending: latest date in month first
+
+      const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (createdB !== createdA) return createdB - createdA;
+
+      return String(b._id || "").localeCompare(String(a._id || ""));
     });
   }, [
     uniqueTasks,
