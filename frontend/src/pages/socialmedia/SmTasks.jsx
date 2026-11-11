@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useNavigate, useSearchParams, useLocation, useOutletContext } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../context/ThemeContext";
 import {
   FaInstagram,
@@ -17,6 +17,7 @@ import {
   FiArrowRight,
   FiLock,
   FiEye,
+  FiEdit2,
   FiTrash2,
   FiFilter,
   FiSearch,
@@ -43,6 +44,7 @@ import {
   FiClock,
   FiAlertCircle,
   FiMoreVertical,
+  FiMenu,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import ClientBadge from "../../components/common/ClientBadge";
@@ -64,6 +66,7 @@ const CATEGORIES = [
   "All",
   "Content Calendar",
   "Content Creation",
+  "Meeting",
   "Ad campaign check",
   "Google review reply",
   "Engagement monitor",
@@ -311,6 +314,13 @@ const getCategoryStyle = (category) => {
         text: "text-teal-700 dark:text-teal-300",
         border: "border-teal-200/90 dark:border-teal-800/60",
         dot: "bg-teal-500",
+      };
+    case "meeting":
+      return {
+        bg: "bg-emerald-50 dark:bg-emerald-950/40",
+        text: "text-emerald-700 dark:text-emerald-300",
+        border: "border-emerald-200/90 dark:border-emerald-800/60",
+        dot: "bg-emerald-500",
       };
     case "ad campaign check":
     case "ads":
@@ -579,6 +589,8 @@ const SmTasks = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const outletContext = useOutletContext() || {};
+  const setSidebarOpen = outletContext?.setSidebarOpen;
   const { user } = useSelector((state) => state.auth);
   const role = user?.role || "admin";
   const { theme, accentColor = "emerald" } = useTheme();
@@ -758,13 +770,11 @@ const SmTasks = () => {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [mobileViewMode, setMobileViewMode] = useState("cards");
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Initial fetch of dynamic data
   useEffect(() => {
     dispatch(getSocialmediaTasks());
-    dispatch(getSocialmediaStats());
     if (!clients || clients.length === 0) dispatch(getClients());
     if (!users || users.length === 0) dispatch(getUsers());
   }, [dispatch]);
@@ -1465,7 +1475,7 @@ const SmTasks = () => {
     const currentPlatforms = Array.isArray(task.platforms) && task.platforms.length > 0
       ? task.platforms
       : (task.platform ? [task.platform] : []);
-    
+
     const newPlatforms = currentPlatforms.some((p) => p.toLowerCase() === platformId.toLowerCase())
       ? currentPlatforms
       : [...currentPlatforms, platformId];
@@ -1531,8 +1541,8 @@ const SmTasks = () => {
       task.commitment !== undefined
         ? Boolean(task.commitment)
         : ((task.category || "").trim().toLowerCase() === "content calendar" ||
-           (task.category || "").trim().toLowerCase() === "content calendor" ||
-           (task.category || "").trim().toLowerCase() === "content");
+          (task.category || "").trim().toLowerCase() === "content calendor" ||
+          (task.category || "").trim().toLowerCase() === "content");
 
     if (!isCal) {
       return (
@@ -1563,13 +1573,12 @@ const SmTasks = () => {
             Platforms
           </span>
           <span
-            className={`px-1.5 py-0.2 rounded-md font-extrabold text-[9px] ${
-              allDone
+            className={`px-1.5 py-0.2 rounded-md font-extrabold text-[9px] ${allDone
                 ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
                 : completedCount > 0
                   ? "bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
                   : "bg-slate-100 dark:bg-[#162033] text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-[#2b3a55]"
-            }`}
+              }`}
           >
             {completedCount}/{totalCount} {allDone ? "✓ All Done" : "Posted"}
           </span>
@@ -1598,19 +1607,17 @@ const SmTasks = () => {
                     ? `✓ ${platObj.name} (Posted - Click to uncheck)`
                     : `○ ${platObj.name} (Pending - Click to mark posted)`
                 }
-                className={`group/plat relative inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all duration-150 cursor-pointer ${
-                  isCompleted
+                className={`group/plat relative inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all duration-150 cursor-pointer ${isCompleted
                     ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300/90 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100 hover:scale-105"
                     : "bg-white dark:bg-[#111827] border-slate-200 dark:border-[#2b3a55] text-slate-400 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-[#1f2937] hover:scale-105 shadow-2xs"
-                } active:scale-95 disabled:cursor-not-allowed`}
+                  } active:scale-95 disabled:cursor-not-allowed`}
               >
                 {/* Tick Checkbox Indicator */}
                 <span
-                  className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] transition-colors shrink-0 ${
-                    isCompleted
+                  className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] transition-colors shrink-0 ${isCompleted
                       ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs"
                       : "border-slate-300 dark:border-[#374151] bg-slate-50 dark:bg-[#0b1120] group-hover/plat:border-emerald-400 text-transparent"
-                  }`}
+                    }`}
                 >
                   <FiCheck className="stroke-[3]" size={10} />
                 </span>
@@ -1618,9 +1625,8 @@ const SmTasks = () => {
                 {/* Platform Icon */}
                 <IconComp
                   size={13}
-                  className={`shrink-0 transition-opacity ${
-                    isCompleted ? "opacity-100" : "opacity-75 group-hover/plat:opacity-100"
-                  }`}
+                  className={`shrink-0 transition-opacity ${isCompleted ? "opacity-100" : "opacity-75 group-hover/plat:opacity-100"
+                    }`}
                   style={{ color: platObj.color }}
                 />
               </button>
@@ -1669,11 +1675,10 @@ const SmTasks = () => {
                           key={plat.id}
                           type="button"
                           onClick={() => handleTogglePlatformAssignment(task, plat.id)}
-                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer text-xs font-semibold ${
-                            isAssigned
+                          className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left transition-colors cursor-pointer text-xs font-semibold ${isAssigned
                               ? "bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300"
                               : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-1.5">
                             <IconComp size={12} style={{ color: plat.color }} />
@@ -1720,8 +1725,8 @@ const SmTasks = () => {
         Array.isArray(task.platforms) && task.platforms.length > 0
           ? task.platforms
           : task.platform
-          ? [task.platform]
-          : [];
+            ? [task.platform]
+            : [];
 
       const completedPlatforms = Array.isArray(task.completedPlatforms)
         ? task.completedPlatforms
@@ -1797,16 +1802,26 @@ const SmTasks = () => {
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-3 sm:p-5 space-y-3.5 sm:space-y-6">
       {/* Top Header - Matching Image 1 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <span className="text-[11px] font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-            Social Media Tasks
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Social Media Tasks
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Plan, track and deliver all your social media content in one place.
-          </p>
+        <div className="flex items-center gap-3">
+          {setSidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer shrink-0"
+              title="Open Sidebar"
+            >
+              <FiMenu size={18} />
+            </button>
+          )}
+          <div>
+
+            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Social Media Tasks
+            </h1>
+            <p className="text-xs text-slate-500 italic dark:text-slate-400 mt-0.5">
+              Plan, track and deliver all your social media content in one place.
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
@@ -1848,7 +1863,7 @@ const SmTasks = () => {
           {isReadOnly ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs shadow-2xs">
               <FiLock size={13} />
-              <span>Read Only</span>
+              <span>SME only Access</span>
             </div>
           ) : (
             <button
@@ -1862,29 +1877,8 @@ const SmTasks = () => {
         </div>
       </div>
 
-      {/* Synchronized Banner (Image 1 style) */}
-      <div className="hidden sm:flex bg-[#f0fdf4] dark:bg-emerald-950/30 border border-[#bbf7d0] dark:border-emerald-800/50 rounded-2xl p-4 flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-white flex items-center justify-center shrink-0">
-            <FiRepeat size={16} />
-          </div>
-          <p className="text-xs text-emerald-900 dark:text-white font-medium">
-            <span className="font-bold">Every row here is also a calendar card.</span> Give a task a publish date and
-            it drops onto the content calendar in that slot — no second entry, no "add to calendar" step.
-          </p>
-        </div>
-
-        <button
-          onClick={handleOpenCalendar}
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 transition-colors shrink-0 whitespace-nowrap self-end md:self-auto cursor-pointer"
-        >
-          <span>Open calendar</span>
-          <FiArrowRight size={14} />
-        </button>
-      </div>
-
-      {/* Premium Segmented Tab Navigation: Commitment vs SME tasks  */}
-      <div className="bg-white/95 dark:bg-[#0c1220] backdrop-blur-md rounded-2xl p-2.5 shadow-sm border border-slate-200/80 dark:border-white/10 flex items-center justify-between flex-wrap gap-3">
+      {/* Segmented Tab Navigation: Commitment vs SME tasks */}
+      <div className=" flex items-center justify-between gap-3">
         {/* Sleek Segmented Switcher */}
         <div className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex items-center p-1.5 bg-slate-100/90 dark:bg-[#131d31] rounded-2xl border border-slate-200/70 dark:border-white/10 gap-1.5 shadow-inner relative">
           {/* Tab 1: Commitment */}
@@ -1896,11 +1890,10 @@ const SmTasks = () => {
               setSelectedContentType("All");
               setCurrentPage(1);
             }}
-            className={`group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${
-              selectedCommitment === "Yes"
+            className={`group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${selectedCommitment === "Yes"
                 ? (isLightAccent ? "text-slate-950 font-black" : "text-white")
                 : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             {selectedCommitment === "Yes" && (
               <motion.div
@@ -1915,28 +1908,19 @@ const SmTasks = () => {
             )}
             <div className="relative z-10 flex items-center gap-2">
               <div
-                className={`p-1 rounded-lg transition-colors ${
-                  selectedCommitment === "Yes"
+                className={`p-1 rounded-lg transition-colors ${selectedCommitment === "Yes"
                     ? "bg-white/20 text-current"
                     : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300/80 dark:group-hover:bg-white/20"
-                }`}
+                  }`}
               >
                 <FiLock size={13} className="stroke-[2.5]" />
               </div>
               <span>Commitment</span>
-              <span
-                className={`text-[11px] px-2 py-0.5 rounded-full font-black transition-all ${
-                  selectedCommitment === "Yes"
-                    ? (isLightAccent ? "bg-black/15 text-slate-950" : "bg-white/25 text-white backdrop-blur-xs")
-                    : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/10"
-                }`}
-              >
-                {totalCommitmentsCount}
-              </span>
+
             </div>
           </button>
 
-          {/* Tab 2: SME tasks  */}
+          {/* Tab 2: SME tasks */}
           <button
             type="button"
             onClick={() => {
@@ -1945,11 +1929,10 @@ const SmTasks = () => {
               setSelectedContentType("Others Task");
               setCurrentPage(1);
             }}
-            className={`group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${
-              selectedCommitment === "No"
+            className={`group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${selectedCommitment === "No"
                 ? (isLightAccent ? "text-slate-950 font-black" : "text-white")
                 : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-            }`}
+              }`}
           >
             {selectedCommitment === "No" && (
               <motion.div
@@ -1964,46 +1947,51 @@ const SmTasks = () => {
             )}
             <div className="relative z-10 flex items-center gap-2">
               <div
-                className={`p-1 rounded-lg transition-colors ${
-                  selectedCommitment === "No"
-                    ? "bg-white/20 text-current"
+                className={`p-1 rounded-lg transition-colors ${selectedCommitment === "No"
+                    ? "bg-white/20 text-black"
                     : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300/80 dark:group-hover:bg-white/20"
-                }`}
+                  }`}
               >
                 <FiLayers size={13} className="stroke-[2.5]" />
               </div>
               <span>SME tasks </span>
-              <span
-                className={`text-[11px] px-2 py-0.5 rounded-full font-black transition-all ${
-                  selectedCommitment === "No"
-                    ? (isLightAccent ? "bg-black/15 text-slate-950" : "bg-white/25 text-white backdrop-blur-xs")
-                    : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 border border-slate-300/60 dark:border-white/10"
-                }`}
-              >
-                {totalNonCommitmentsCount}
-              </span>
+
             </div>
           </button>
         </div>
 
-        {/* Live Filter Indicator Pill */}
-        <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10">
-          <span
-            className="w-2 h-2 rounded-full animate-pulse"
-            style={{ backgroundColor: "var(--accent-color, #10b981)" }}
-          />
-          <span className="text-slate-700 dark:text-slate-200">
-            {selectedCommitment === "Yes" ? (
-              <>
-                Showing <strong style={{ color: "var(--accent-color, #10b981)" }} className="font-bold">{filteredTasks.length}</strong> Content Calendar Commitments
-              </>
-            ) : (
-              <>
-                Showing <strong style={{ color: "var(--accent-color, #3b82f6)" }} className="font-bold">{filteredTasks.length}</strong> Non-commitment &amp; Ad-hoc Tasks
-              </>
-            )}
-          </span>
-        </div>
+        {/* Right Action: Open Calendar (Hidden when SME tasks tab is active) */}
+        <AnimatePresence>
+          {selectedCommitment === "Yes" && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.15 }}
+              type="button"
+              onClick={handleOpenCalendar}
+              className="group relative p-[1.5px] overflow-hidden rounded-xl shrink-0 cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-transform"
+              title="Open Social Media Calendar"
+            >
+              {/* Spinning Neon Border Beam */}
+              <span
+                className="absolute -inset-[150%] animate-spin pointer-events-none"
+                style={{
+                  animationDuration: "3s",
+                  background:
+                    "conic-gradient(from 0deg, transparent 0%, #10b981 25%, transparent 50%, #34d399 75%, transparent 100%)",
+                }}
+              />
+
+              {/* Inner Button Content */}
+              <span className="relative z-10 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10.5px] bg-emerald-50 dark:bg-[#072518] text-xs font-bold text-emerald-700 dark:text-emerald-300 group-hover:bg-emerald-100 dark:group-hover:bg-[#0c3826] transition-colors whitespace-nowrap">
+                <FiCalendar size={13} className="text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
+                <span>Open calendar</span>
+                <FiArrowRight size={13} className="text-emerald-600 dark:text-emerald-400 stroke-[2.2] group-hover:translate-x-0.5 transition-transform" />
+              </span>
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Reference Matching Filter UI Container */}
@@ -2057,495 +2045,588 @@ const SmTasks = () => {
       />
 
       {/* Main Table Container */}
-      <div className="bg-white dark:bg-[#0c1220] rounded-2xl shadow-sm border border-slate-200/80 dark:border-white/10 overflow-hidden">
+      <div className="bg-white dark:bg-[#0c1220] rounded-2xl shadow-sm border border-slate-200/80 dark:border-white/10 overflow-hidden relative">
+        {/* Shimmer loading bar when refetching */}
+        {loading && tasks.length > 0 && (
+          <div className="absolute top-0 inset-x-0 h-1 bg-slate-100 dark:bg-slate-800 overflow-hidden z-20">
+            <div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse w-full" />
+          </div>
+        )}
         <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-[#131d31] text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                  <th className="py-3 px-3 text-center whitespace-nowrap w-12 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
-                  <th className="py-3 px-4 min-w-[200px]">Task</th>
-                  <th className="py-3 px-4 whitespace-nowrap">Client</th>
-                  <th className="py-3 px-3 whitespace-nowrap">Category</th>
-                  <th className="py-3 px-3 whitespace-nowrap">Content Type</th>
-                  {selectedCommitment !== "No" && (
-                    <th className="py-3 px-3.5 font-bold whitespace-nowrap">Platforms</th>
-                  )}
-                  <th className="py-3 px-4 whitespace-nowrap">Created by</th>
-                  <th className="py-3 px-3 whitespace-nowrap">Due Date</th>
-                  <th className="py-3 px-3 whitespace-nowrap">Status</th>
-                  <th className="py-3 px-3 whitespace-nowrap">Priority</th>
-                  {selectedCommitment !== "No" && (
-                    <>
-                      <th className="py-3 px-3 whitespace-nowrap">QC</th>
-                      <th className="py-3 px-4 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
-                      <th className="py-3 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Commitment</th>
-                      <th className="py-3 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Calendar</th>
-                    </>
-                  )}
-                  <th className="py-3 px-3 text-center whitespace-nowrap">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                {loading && tasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={selectedCommitment === "No" ? 10 : 15} className="py-12 text-center text-slate-400 italic">
-                      Loading social media tasks...
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-[#131d31] text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                <th className="py-3 px-3 text-center whitespace-nowrap w-12 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
+                <th className="py-3 px-4 min-w-[200px]">Task</th>
+                <th className="py-3 px-4 whitespace-nowrap">Client</th>
+                <th className="py-3 px-3 whitespace-nowrap">Category</th>
+                <th className="py-3 px-3 whitespace-nowrap">Content Type</th>
+                {selectedCommitment !== "No" && (
+                  <th className="py-3 px-3.5 font-bold whitespace-nowrap">Platforms</th>
+                )}
+                <th className="py-3 px-4 whitespace-nowrap">Created by</th>
+                <th className="py-3 px-3 whitespace-nowrap">Due Date</th>
+                <th className="py-3 px-3 whitespace-nowrap">Status</th>
+                <th className="py-3 px-3 whitespace-nowrap">Priority</th>
+                {selectedCommitment === "No" && (
+                  <th className="py-3 px-4 min-w-[180px] max-w-[260px] whitespace-nowrap">Notes &amp; Brief</th>
+                )}
+                {selectedCommitment !== "No" && (
+                  <>
+                    <th className="py-3 px-4 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
+                    <th className="py-3 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Commitment</th>
+                    <th className="py-3 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Calendar</th>
+                  </>
+                )}
+                <th className="py-3 px-3 text-center whitespace-nowrap">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+              {loading && tasks.length === 0 ? (
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr
+                    key={`sm-task-skeleton-${idx}`}
+                    className="animate-pulse border-b border-slate-100 dark:border-slate-800/60"
+                  >
+                    {/* Sl.No */}
+                    <td className="py-3.5 px-3 text-center">
+                      <div className="h-3.5 w-5 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
                     </td>
-                  </tr>
-                ) : paginatedTasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={selectedCommitment === "No" ? 10 : 15} className="py-12 text-center">
-                      <div className="flex flex-col items-center justify-center py-6">
-                        <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
-                          <FiCalendar size={22} />
+
+                    {/* Task */}
+                    <td className="py-3.5 px-4">
+                      <div className="space-y-1.5">
+                        <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-44" />
+                        <div className="h-2.5 bg-slate-200 dark:bg-slate-700/40 rounded w-28" />
+                      </div>
+                    </td>
+
+                    {/* Client */}
+                    <td className="py-3.5 px-4">
+                      <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
+                    </td>
+
+                    {/* Category */}
+                    <td className="py-3.5 px-3">
+                      <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-20" />
+                    </td>
+
+                    {/* Content Type */}
+                    <td className="py-3.5 px-3">
+                      <div className="h-5 w-16 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
+                    </td>
+
+                    {/* Platforms (if Commitment) */}
+                    {selectedCommitment !== "No" && (
+                      <td className="py-3.5 px-3.5">
+                        <div className="flex gap-1">
+                          <div className="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700/60" />
+                          <div className="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700/60" />
+                          <div className="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700/60" />
                         </div>
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
-                          No social media tasks found
-                        </p>
-                        <p className="text-xs text-slate-400 mb-4 max-w-sm text-center">
-                          Create your first social media task or plan directly on the Content Calendar.
-                        </p>
-                        <button
-                          onClick={handleCreateNew}
-                          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
-                        >
-                          + Create First Task
-                        </button>
+                      </td>
+                    )}
+
+                    {/* Created by */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700/60 shrink-0" />
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
+                      </div>
+                    </td>
+
+                    {/* Due Date */}
+                    <td className="py-3.5 px-3">
+                      <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-3.5 px-3">
+                      <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700/60 rounded-lg" />
+                    </td>
+
+                    {/* Priority */}
+                    <td className="py-3.5 px-3">
+                      <div className="h-5 w-14 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
+                    </td>
+
+                    {/* Notes & Brief Skeleton for SME tasks */}
+                    {selectedCommitment === "No" && (
+                      <td className="py-3.5 px-4">
+                        <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-32" />
+                      </td>
+                    )}
+
+                    {/* Publish Date, Commitment, Calendar */}
+                    {selectedCommitment !== "No" && (
+                      <>
+                        <td className="py-3.5 px-4 bg-slate-100/30 dark:bg-[#182338]/30">
+                          <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
+                        </td>
+                        <td className="py-3.5 px-3 text-center bg-slate-100/30 dark:bg-[#182338]/30">
+                          <div className="h-5 w-12 bg-slate-200 dark:bg-slate-700/60 rounded-full mx-auto" />
+                        </td>
+                        <td className="py-3.5 px-3 text-center bg-slate-100/30 dark:bg-[#182338]/30">
+                          <div className="h-5 w-10 bg-slate-200 dark:bg-slate-700/60 rounded-full mx-auto" />
+                        </td>
+                      </>
+                    )}
+
+                    {/* Action */}
+                    <td className="py-3.5 px-3 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <div className="w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700/60" />
+                        <div className="w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700/60" />
                       </div>
                     </td>
                   </tr>
-                ) : (
-                  paginatedTasks.map((task, index) => {
-                    const clientColor = task.clientColor || "#6366f1";
-                    const isOverdue = isTaskOverdue(task);
-
-                    return (
-                      <tr
-                        key={task._id}
-                        className={`transition-colors group cursor-pointer ${isOverdue
-                            ? "overdue-row-blink border-l-4 border-l-rose-500 hover:border-l-rose-600"
-                            : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
-                          }`}
-                        onClick={() => handleEditTask(task)}
+                ))
+              ) : paginatedTasks.length === 0 ? (
+                <tr>
+                  <td colSpan={selectedCommitment === "No" ? 11 : 14} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
+                        <FiCalendar size={22} />
+                      </div>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
+                        No social media tasks found
+                      </p>
+                      <p className="text-xs text-slate-400 mb-4 max-w-sm text-center">
+                        Create your first social media task or plan directly on the Content Calendar.
+                      </p>
+                      <button
+                        onClick={handleCreateNew}
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
                       >
-                        {/* SL.NO */}
-                        <td className="py-3 px-3 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
-                          {(currentPage - 1) * itemsPerPage + index + 1}
-                        </td>
+                        + Create First Task
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedTasks.map((task, index) => {
+                  const clientColor = task.clientColor || "#6366f1";
+                  const isOverdue = isTaskOverdue(task);
 
-                        {/* TASK NAME with Left Accent Line & SME Completion Checkbox */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <span
-                              className="w-1 h-5 rounded-full shrink-0"
-                              style={{ backgroundColor: clientColor }}
-                            />
+                  return (
+                    <tr
+                      key={task._id}
+                      className={`transition-colors group ${isOverdue
+                        ? "overdue-row-blink border-l-4 border-l-rose-500 hover:border-l-rose-600"
+                        : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
+                        }`}
+                    >
+                      {/* SL.NO */}
+                      <td className="py-3 px-3 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
+                        {(currentPage - 1) * itemsPerPage + index + 1}
+                      </td>
 
-                            {/* SME Task Completion Checkbox */}
-                            {(selectedCommitment === "No" || !task.commitment) && (
-                              <button
-                                type="button"
-                                disabled={isReadOnly}
-                                onClick={(e) => handleToggleSmeTaskCompleted(task, e)}
-                                title={
-                                  (task.status || "").trim().toLowerCase() === "completed"
-                                    ? "Completed! Click to mark as Not started"
-                                    : "Click to mark as Completed"
-                                }
-                                className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all shrink-0 cursor-pointer ${
-                                  (task.status || "").trim().toLowerCase() === "completed"
-                                    ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs hover:bg-emerald-600"
-                                    : "border-slate-300 dark:border-[#374151] bg-white dark:bg-[#0b1120] text-transparent hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/20 shadow-2xs"
-                                } active:scale-95 disabled:cursor-not-allowed`}
-                              >
-                                <FiCheck className="stroke-[3]" size={11} />
-                              </button>
-                            )}
+                      {/* TASK NAME with Left Accent Line & SME Completion Checkbox */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="w-1 h-5 rounded-full shrink-0"
+                            style={{ backgroundColor: clientColor }}
+                          />
 
-                            <div className="min-w-0">
-                              <span
-                                className={`font-bold leading-snug block transition-colors ${
-                                  (task.status || "").trim().toLowerCase() === "completed" &&
-                                  (selectedCommitment === "No" || !task.commitment)
-                                    ? "text-slate-400 dark:text-slate-500 line-through"
-                                    : "text-slate-900 dark:text-white"
-                                }`}
-                              >
-                                {task.taskTitle}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* CLIENT */}
-                        <td className="py-3 px-4">
-                          {(() => {
-                            const clientObj = getClientObject(task);
-                            return (
-                              <ClientBadge
-                                client={clientObj}
-                                size="md"
-                                className="!text-[11px] !py-1 !px-2.5 rounded-lg font-bold shadow-2xs whitespace-nowrap [&>span]:!max-w-none"
-                              />
-                            );
-                          })()}
-                        </td>
-
-                        {/* CATEGORY (Sleek Tag Badge with Dot) */}
-                        <td className="py-3 px-3">
-                          {(() => {
-                            const catStyle = getCategoryStyle(task.category);
-                            return (
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
-                              >
-                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
-                                <span className="whitespace-nowrap">{task.category || "Content"}</span>
-                              </span>
-                            );
-                          })()}
-                        </td>
-
-                        {/* CONTENT TYPE (Pill Badge with Format Micro-Icon) */}
-                        <td className="py-3 px-3">
-                          {(() => {
-                            const typeCfg = getContentTypeConfig(task.contentType);
-                            const TypeIcon = typeCfg.icon;
-                            return (
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border shadow-2xs transition-colors ${typeCfg.bg} ${typeCfg.text} ${typeCfg.border}`}
-                              >
-                                <TypeIcon className={`w-3 h-3 shrink-0 ${typeCfg.iconClass}`} />
-                                <span className="whitespace-nowrap">{task.contentType || "Post"}</span>
-                              </span>
-                            );
-                          })()}
-                        </td>
-
-                        {/* PLATFORMS SUB-TASKS (Checklist with ticks) */}
-                        {selectedCommitment !== "No" && (
-                          <td className="py-3 px-3">
-                            {renderPlatformSubtasks(task)}
-                          </td>
-                        )}
-
-                        {/* CREATED BY */}
-                        <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
-                          {(() => {
-                            const creator = getCreatorInfo(task);
-                            return (
-                              <div className="flex items-center gap-2.5">
-                                <div className="relative shrink-0 w-6 h-6">
-                                  {creator.avatarUrl ? (
-                                    <img
-                                      src={creator.avatarUrl}
-                                      alt={creator.name}
-                                      className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
-                                      loading="lazy"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = "none";
-                                        const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
-                                        if (fallback) fallback.style.display = "flex";
-                                      }}
-                                    />
-                                  ) : null}
-                                  <div
-                                    className="avatar-fallback w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[10px] items-center justify-center uppercase shadow-2xs"
-                                    style={{ display: creator.avatarUrl ? "none" : "flex" }}
-                                  >
-                                    {creator.initials}
-                                  </div>
-                                </div>
-                                <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap" title={creator.name}>
-                                  {creator.name}
-                                </span>
-                              </div>
-                            );
-                          })()}
-                        </td>
-
-                        {/* DUE DATE */}
-                        <td className="py-3 px-3">
-                          {renderDueDateBadge(task.dueDate, task.status)}
-                        </td>
-
-                        {/* STATUS - Interactive quick-change dropdown */}
-                        <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
-                          {(() => {
-                            const isComm = Boolean(task.commitment) || selectedCommitment === "Yes";
-                            const currentDisplayStatus = getDisplayStatusForTask(task, selectedCommitment);
-                            const options = isComm ? COMMITMENT_STATUS_OPTIONS : NON_COMMITMENT_STATUS_OPTIONS;
-                            return (
-                              <select
-                                value={currentDisplayStatus}
-                                disabled={isReadOnly}
-                                onChange={(e) => handleQuickStatusChange(task, e.target.value)}
-                                className={`table-status-select ${isReadOnly ? "cursor-default opacity-90" : "cursor-pointer"} focus:ring-1 focus:ring-indigo-500 shadow-2xs font-semibold ${getTableStatusStyle(currentDisplayStatus)}`}
-                              >
-                                {options.map((st) => (
-                                  <option key={st} value={st}>
-                                    {st}
-                                  </option>
-                                ))}
-                              </select>
-                            );
-                          })()}
-                        </td>
-
-                        {/* PRIORITY */}
-                        <td className="py-3 px-3 font-bold">
-                          {task.priority === "High" && <span className="text-rose-600 dark:text-rose-400">High</span>}
-                          {task.priority === "Medium" && <span className="text-amber-600 dark:text-amber-400">Medium</span>}
-                          {task.priority === "Low" && <span className="text-slate-500 dark:text-slate-400">Low</span>}
-                        </td>
-
-                        {/* Columns visible only in Commitment: QC, Publish Date, Commitment, Calendar */}
-                        {selectedCommitment !== "No" && (
-                          <>
-                            {/* QC */}
-                            <td className="py-3 px-3 whitespace-nowrap">
-                              {task.qc === "Pending" && (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/50">
-                                  Pending
-                                </span>
-                              )}
-                              {task.qc === "Passed" && (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/50">
-                                  Passed
-                                </span>
-                              )}
-                              {task.qc === "Rejected" && (
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
-                                  Rejected
-                                </span>
-                              )}
-                              {(!task.qc || task.qc === "-") && <span className="text-slate-400">-</span>}
-                            </td>
-
-                            {/* PUBLISH DATE (Shaded column) */}
-                            <td className="py-3 px-4 bg-slate-50/60 dark:bg-[#131d31]/50 font-mono text-[11px] text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap">
-                              {formatPublishDateTime(task.publishDate)}
-                            </td>
-
-                            {/* COMMITMENT (Shaded column) */}
-                            <td className="py-3 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 whitespace-nowrap">
-                              {task.commitment ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
-                                  <FiLock size={10} className="shrink-0" />
-                                  <span>Yes</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-slate-100 dark:bg-[#182338] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                                  No
-                                </span>
-                              )}
-                            </td>
-
-                            {/* CALENDAR (Shaded column) */}
-                            <td className="py-3 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 whitespace-nowrap">
-                              {task.onCalendar ? (
-                                <span
-                                  className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenCalendar();
-                                  }}
-                                >
-                                  On calendar
-                                </span>
-                              ) : (
-                                <span className="text-slate-400">Not shown</span>
-                              )}
-                            </td>
-                          </>
-                        )}
-
-                        {/* ACTIONS */}
-                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-1">
+                          {/* SME Task Completion Checkbox */}
+                          {(selectedCommitment === "No" || !task.commitment) && (
                             <button
                               type="button"
-                              onClick={() => handleEditTask(task)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                              title={isReadOnly ? "View Task" : "Edit Task"}
+                              disabled={isReadOnly}
+                              onClick={(e) => handleToggleSmeTaskCompleted(task, e)}
+                              title={
+                                (task.status || "").trim().toLowerCase() === "completed"
+                                  ? "Completed! Click to mark as Not started"
+                                  : "Click to mark as Completed"
+                              }
+                              className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all shrink-0 cursor-pointer ${(task.status || "").trim().toLowerCase() === "completed"
+                                  ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs hover:bg-emerald-600"
+                                  : "border-slate-300 dark:border-[#374151] bg-white dark:bg-[#0b1120] text-transparent hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/20 shadow-2xs"
+                                } active:scale-95 disabled:cursor-not-allowed`}
                             >
-                              <FiEye size={15} />
+                              <FiCheck className="stroke-[3]" size={11} />
                             </button>
-                            {!isReadOnly && (
-                              <button
-                                type="button"
-                                onClick={(e) => handleDeleteTask(task, e)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                                title="Delete Task"
-                              >
-                                <FiTrash2 size={14} />
-                              </button>
-                            )}
+                          )}
+
+                          <div className="min-w-0">
+                            <span
+                              className={`font-bold leading-snug block transition-colors ${(task.status || "").trim().toLowerCase() === "completed" &&
+                                  (selectedCommitment === "No" || !task.commitment)
+                                  ? "text-slate-400 dark:text-slate-500 line-through"
+                                  : "text-slate-900 dark:text-white"
+                                }`}
+                            >
+                              {task.taskTitle}
+                            </span>
                           </div>
+                        </div>
+                      </td>
+
+                      {/* CLIENT */}
+                      <td className="py-3 px-4">
+                        {(() => {
+                          const clientObj = getClientObject(task);
+                          return (
+                            <ClientBadge
+                              client={clientObj}
+                              size="md"
+                              className="!text-[11px] !py-1 !px-2.5 rounded-lg font-bold shadow-2xs whitespace-nowrap [&>span]:!max-w-none"
+                            />
+                          );
+                        })()}
+                      </td>
+
+                      {/* CATEGORY (Sleek Tag Badge with Dot) */}
+                      <td className="py-3 px-3">
+                        {(() => {
+                          const catStyle = getCategoryStyle(task.category);
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
+                              <span className="whitespace-nowrap">{task.category || "Content"}</span>
+                            </span>
+                          );
+                        })()}
+                      </td>
+
+                      {/* CONTENT TYPE (Pill Badge with Format Micro-Icon) */}
+                      <td className="py-3 px-3">
+                        {(() => {
+                          const typeCfg = getContentTypeConfig(task.contentType);
+                          const TypeIcon = typeCfg.icon;
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border shadow-2xs transition-colors ${typeCfg.bg} ${typeCfg.text} ${typeCfg.border}`}
+                            >
+                              <TypeIcon className={`w-3 h-3 shrink-0 ${typeCfg.iconClass}`} />
+                              <span className="whitespace-nowrap">{task.contentType || "Post"}</span>
+                            </span>
+                          );
+                        })()}
+                      </td>
+
+                      {/* PLATFORMS SUB-TASKS (Checklist with ticks) */}
+                      {selectedCommitment !== "No" && (
+                        <td className="py-3 px-3">
+                          {renderPlatformSubtasks(task)}
                         </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                      )}
 
-          {/* Footer Note, Entries Info, Page Size & Pagination */}
-          <div className="px-5 py-4 bg-slate-50/90 dark:bg-[#0c1220] border-t border-slate-200/80 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-300">
-            {/* Left: Row range & Items per page dropdown */}
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                Showing{" "}
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {filteredTasks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
-                </span>{" "}
-                to{" "}
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {Math.min(currentPage * itemsPerPage, filteredTasks.length)}
-                </span>{" "}
-                of{" "}
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {filteredTasks.length}
-                </span>{" "}
-                tasks
-              </span>
+                      {/* CREATED BY */}
+                      <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                        {(() => {
+                          const creator = getCreatorInfo(task);
+                          return (
+                            <div className="flex items-center gap-2.5">
+                              <div className="relative shrink-0 w-6 h-6">
+                                {creator.avatarUrl ? (
+                                  <img
+                                    src={creator.avatarUrl}
+                                    alt={creator.name}
+                                    className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
+                                    loading="lazy"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none";
+                                      const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
+                                      if (fallback) fallback.style.display = "flex";
+                                    }}
+                                  />
+                                ) : null}
+                                <div
+                                  className="avatar-fallback w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[10px] items-center justify-center uppercase shadow-2xs"
+                                  style={{ display: creator.avatarUrl ? "none" : "flex" }}
+                                >
+                                  {creator.initials}
+                                </div>
+                              </div>
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap" title={creator.name}>
+                                {creator.name}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </td>
 
-              <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-700">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Show</span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => {
-                    setItemsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-2.5 py-1 bg-white dark:bg-[#131d31] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer shadow-2xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">per page</span>
-              </div>
-            </div>
+                      {/* DUE DATE */}
+                      <td className="py-3 px-3">
+                        {renderDueDateBadge(task.dueDate, task.status)}
+                      </td>
 
-            {/* Right: Page Navigation with Numbers & Prev/Next */}
-            <div className="flex items-center gap-1.5">
-              {/* First Page */}
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(1)}
-                title="First Page"
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
-              >
-                <FiChevronsLeft size={14} />
-              </button>
+                      {/* STATUS - Interactive quick-change dropdown */}
+                      <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const isComm = Boolean(task.commitment) || selectedCommitment === "Yes";
+                          const currentDisplayStatus = getDisplayStatusForTask(task, selectedCommitment);
+                          const options = isComm ? COMMITMENT_STATUS_OPTIONS : NON_COMMITMENT_STATUS_OPTIONS;
+                          return (
+                            <select
+                              value={currentDisplayStatus}
+                              disabled={isReadOnly}
+                              onChange={(e) => handleQuickStatusChange(task, e.target.value)}
+                              className={`table-status-select ${isReadOnly ? "cursor-default opacity-90" : "cursor-pointer"} focus:ring-1 focus:ring-indigo-500 shadow-2xs font-semibold ${getTableStatusStyle(currentDisplayStatus)}`}
+                            >
+                              {options.map((st) => (
+                                <option key={st} value={st}>
+                                  {st}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })()}
+                      </td>
 
-              {/* Previous Page */}
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                title="Previous Page"
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
-              >
-                <FiChevronLeft size={14} />
-              </button>
+                      {/* PRIORITY */}
+                      <td className="py-3 px-3 font-bold">
+                        {task.priority === "High" && <span className="text-rose-600 dark:text-rose-400">High</span>}
+                        {task.priority === "Medium" && <span className="text-amber-600 dark:text-amber-400">Medium</span>}
+                        {task.priority === "Low" && <span className="text-slate-500 dark:text-slate-400">Low</span>}
+                      </td>
 
-              {/* Page Numbers */}
-              <div className="flex items-center gap-1 px-1">
-                {pageNumbers.map((p, idx) => {
-                  if (p === "...") {
-                    return (
-                      <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 font-bold select-none">
-                        …
-                      </span>
-                    );
-                  }
-                  const isActive = p === currentPage;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => setCurrentPage(p)}
-                      style={isActive ? { background: "var(--color-brand-gradient, var(--accent-gradient))" } : {}}
-                      className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        isActive
-                          ? (isLightAccent ? "text-slate-950 font-black shadow-sm ring-1 ring-black/20" : "text-white shadow-sm ring-1 ring-white/20")
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e2a40] border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d31]"
-                      }`}
-                    >
-                      {p}
-                    </button>
+                      {/* Notes & Brief - Visible in SME tasks tab */}
+                      {selectedCommitment === "No" && (
+                        <td className="py-3 px-4 max-w-[260px]">
+                          {task.notes && task.notes.trim() ? (
+                            <span
+                              className="text-slate-600 dark:text-slate-300 text-xs line-clamp-2 leading-relaxed block"
+                              title={task.notes}
+                            >
+                              {task.notes}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500 italic text-[11px]">-</span>
+                          )}
+                        </td>
+                      )}
+
+                      {/* Columns visible only in Commitment: Publish Date, Commitment, Calendar */}
+                      {selectedCommitment !== "No" && (
+                        <>
+                          {/* PUBLISH DATE (Shaded column) */}
+                          <td className="py-3 px-4 bg-slate-50/60 dark:bg-[#131d31]/50 font-mono text-[11px] text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap">
+                            {formatPublishDateTime(task.publishDate)}
+                          </td>
+
+                          {/* COMMITMENT (Shaded column) */}
+                          <td className="py-3 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 whitespace-nowrap">
+                            {task.commitment ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
+                                <FiLock size={10} className="shrink-0" />
+                                <span>Yes</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-slate-100 dark:bg-[#182338] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                                No
+                              </span>
+                            )}
+                          </td>
+
+                          {/* CALENDAR (Shaded column) */}
+                          <td className="py-3 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 whitespace-nowrap">
+                            {task.onCalendar ? (
+                              <span
+                                className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenCalendar();
+                                }}
+                              >
+                                On calendar
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">Not shown</span>
+                            )}
+                          </td>
+                        </>
+                      )}
+
+                      {/* ACTIONS */}
+                      <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleEditTask(task)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            title={isReadOnly ? "View Task" : "Edit Task"}
+                          >
+                            <FiEdit2 size={14} />
+                          </button>
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteTask(task, e)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                              title="Delete Task"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   );
-                })}
-              </div>
-
-              {/* Next Page */}
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                title="Next Page"
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
-              >
-                <FiChevronRight size={14} />
-              </button>
-
-              {/* Last Page */}
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage(totalPages)}
-                title="Last Page"
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
-              >
-                <FiChevronsRight size={14} />
-              </button>
-            </div>
-          </div>
+                })
+              )}
+            </tbody>
+          </table>
         </div>
 
-        {/* Task Creation / Edit Modal */}
-        <SmTaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          task={selectedTaskForEdit}
-          isReadOnly={isReadOnly}
-          initialCommitment={selectedCommitment !== "No"}
-        />
+        {/* Footer Note, Entries Info, Page Size & Pagination */}
+        <div className="px-5 py-4 bg-slate-50/90 dark:bg-[#0c1220] border-t border-slate-200/80 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-300">
+          {/* Left: Row range & Items per page dropdown */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+              Showing{" "}
+              <span className="font-bold text-slate-900 dark:text-white">
+                {filteredTasks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+              </span>{" "}
+              to{" "}
+              <span className="font-bold text-slate-900 dark:text-white">
+                {Math.min(currentPage * itemsPerPage, filteredTasks.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-bold text-slate-900 dark:text-white">
+                {filteredTasks.length}
+              </span>{" "}
+              tasks
+            </span>
 
-        {/* Pending Commitment Modal (Detailed Client Breakdown) */}
-        <PendingCommitmentModal
-          isOpen={isPendingCommitmentOpen}
-          onClose={() => setIsPendingCommitmentOpen(false)}
-          clients={clients}
-          tasks={tasks}
-          currentMonth={selectedMonth}
-          currentYear={selectedYear}
-          onSelectClient={(clientName) => {
-            setSelectedClient(clientName);
-            setCurrentPage(1);
-          }}
-          onCreateTaskForClient={isReadOnly ? null : (clientObj) => {
-            setSelectedTaskForEdit({
-              client: clientObj?._id,
-              clientName: clientObj?.companyName,
-              clientColor: clientObj?.color,
-            });
-            setIsModalOpen(true);
-          }}
-        />
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200 dark:border-slate-700">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-2.5 py-1 bg-white dark:bg-[#131d31] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer shadow-2xs focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">per page</span>
+            </div>
+          </div>
 
-        {/* Platform Verification Warning Modal */}
-        <SmPlatformWarningModal
-          isOpen={platformWarningModal.isOpen}
-          onClose={() =>
-            setPlatformWarningModal({ isOpen: false, task: null, targetStatus: "" })
-          }
-          task={platformWarningModal.task}
-          targetStatus={platformWarningModal.targetStatus}
-          onConfirm={handleConfirmPlatformWarning}
-        />
+          {/* Right: Page Navigation with Numbers & Prev/Next */}
+          <div className="flex items-center gap-1.5">
+            {/* First Page */}
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(1)}
+              title="First Page"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+            >
+              <FiChevronsLeft size={14} />
+            </button>
+
+            {/* Previous Page */}
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              title="Previous Page"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+            >
+              <FiChevronLeft size={14} />
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1 px-1">
+              {pageNumbers.map((p, idx) => {
+                if (p === "...") {
+                  return (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 font-bold select-none">
+                      …
+                    </span>
+                  );
+                }
+                const isActive = p === currentPage;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setCurrentPage(p)}
+                    style={isActive ? { background: "var(--color-brand-gradient, var(--accent-gradient))" } : {}}
+                    className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${isActive
+                        ? (isLightAccent ? "text-slate-950 font-black shadow-sm ring-1 ring-black/20" : "text-white shadow-sm ring-1 ring-white/20")
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e2a40] border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d31]"
+                      }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next Page */}
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              title="Next Page"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+            >
+              <FiChevronRight size={14} />
+            </button>
+
+            {/* Last Page */}
+            <button
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage(totalPages)}
+              title="Last Page"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-[#182338] shadow-2xs transition-all cursor-pointer disabled:cursor-not-allowed"
+            >
+              <FiChevronsRight size={14} />
+            </button>
+          </div>
+        </div>
       </div>
-      );
+
+      {/* Task Creation / Edit Modal */}
+      <SmTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        task={selectedTaskForEdit}
+        isReadOnly={isReadOnly}
+        initialCommitment={selectedCommitment !== "No"}
+      />
+
+      {/* Pending Commitment Modal (Detailed Client Breakdown) */}
+      <PendingCommitmentModal
+        isOpen={isPendingCommitmentOpen}
+        onClose={() => setIsPendingCommitmentOpen(false)}
+        clients={clients}
+        tasks={tasks}
+        currentMonth={selectedMonth}
+        currentYear={selectedYear}
+        onSelectClient={(clientName) => {
+          setSelectedClient(clientName);
+          setCurrentPage(1);
+        }}
+        onCreateTaskForClient={isReadOnly ? null : (clientObj) => {
+          setSelectedTaskForEdit({
+            client: clientObj?._id,
+            clientName: clientObj?.companyName,
+            clientColor: clientObj?.color,
+          });
+          setIsModalOpen(true);
+        }}
+      />
+
+      {/* Platform Verification Warning Modal */}
+      <SmPlatformWarningModal
+        isOpen={platformWarningModal.isOpen}
+        onClose={() =>
+          setPlatformWarningModal({ isOpen: false, task: null, targetStatus: "" })
+        }
+        task={platformWarningModal.task}
+        targetStatus={platformWarningModal.targetStatus}
+        onConfirm={handleConfirmPlatformWarning}
+      />
+    </div>
+  );
 };
 
-      export default React.memo(SmTasks);
+export default React.memo(SmTasks);

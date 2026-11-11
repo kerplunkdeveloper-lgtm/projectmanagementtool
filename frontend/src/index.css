@@ -2333,6 +2333,60 @@ td:first-child {
   color: #ffffff;
 }
 
+/* Spinning Border Button */
+.spinning-border-btn {
+  position: relative;
+  padding: 1.5px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinning-border-btn::before {
+  content: '';
+  position: absolute;
+  width: 250%;
+  height: 250%;
+  background: conic-gradient(from 0deg, transparent 0%, #10b981 50%, transparent 100%);
+  animation: spin-border 3s linear infinite;
+}
+
+.dark .spinning-border-btn::before {
+  background: conic-gradient(from 0deg, transparent 0%, #34d399 50%, transparent 100%);
+}
+
+.spinning-border-btn-inner {
+  position: relative;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: calc(0.75rem - 1.5px);
+  background-color: rgba(236, 253, 245, 0.95);
+  color: #047857;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.dark .spinning-border-btn-inner {
+  background-color: rgba(6, 78, 59, 0.65);
+  color: #6ee7b7;
+}
+
+.spinning-border-btn:hover .spinning-border-btn-inner {
+  background-color: rgba(209, 250, 229, 0.95);
+}
+
+.dark .spinning-border-btn:hover .spinning-border-btn-inner {
+  background-color: rgba(6, 78, 59, 0.85);
+}
+
 
 /* ===================================================
    NEW ACCENT COLOR CSS VARIABLE OVERRIDES

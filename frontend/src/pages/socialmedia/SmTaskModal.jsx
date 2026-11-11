@@ -41,6 +41,7 @@ import {
 export const CATEGORIES = [
   "Content Calendar",
   "Content Creation",
+  "Meeting",
   "Ad campaign check",
   "Google review reply",
   "Engagement monitor",
@@ -58,6 +59,7 @@ export const CATEGORIES = [
 
 export const SME_CATEGORIES = [
   "Content Creation",
+  "Meeting",
   "Content Calendar",
   "Ad campaign check",
   "Google review reply",
@@ -984,20 +986,22 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                 </div>
               )}
 
-              {/* Notes / Caption Brief / Instructions */}
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Notes &amp; Caption Brief
-                </label>
-                <textarea
-                  rows={isContentCalendar ? 2 : 3}
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  disabled={isReadOnly}
-                  placeholder="Add reel concept details, visual reference links, copy, hashtags..."
-                  className="w-full px-3 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] resize-none font-medium leading-relaxed disabled:opacity-85 disabled:cursor-not-allowed"
-                />
-              </div>
+              {/* Notes & Brief - Hidden on Commitment tab, visible on SME tasks tab */}
+              {!isContentCalendar && (
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Notes &amp; Brief
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    disabled={isReadOnly}
+                    placeholder="Add task notes, details, reference links..."
+                    className="w-full px-3 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] resize-none font-medium leading-relaxed disabled:opacity-85 disabled:cursor-not-allowed"
+                  />
+                </div>
+              )}
             </div>
 
             {/* RIGHT COLUMN: Schedule, Commitment & Workflow (5 of 12 cols) */}
@@ -1103,61 +1107,6 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                     ))}
                   </select>
                 </div>
-              </div>
-
-              {/* Status & QC */}
-              <div className={`grid ${isCommitment ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={
-                      isCommitment
-                        ? (["Live", "Published", "Published Live"].includes(formData.status)
-                            ? "Published Live"
-                            : ["In QC", "QC"].includes(formData.status)
-                              ? "QC"
-                              : ["In progress", "Inprogress"].includes(formData.status)
-                                ? "Inprogress"
-                                : (formData.status || "").toLowerCase().includes("client approval")
-                                  ? "Completed and wait CLient Approval"
-                                  : formData.status || "Not started")
-                        : (["In progress", "Inprogress"].includes(formData.status)
-                            ? "Inprogress"
-                            : formData.status || "Not started")
-                    }
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    disabled={isReadOnly}
-                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed truncate"
-                  >
-                    {(isCommitment ? COMMITMENT_STATUSES : NON_COMMITMENT_STATUSES).map((st) => (
-                      <option key={st} value={st} className="dark:bg-[#131d31] dark:text-white">
-                        {st}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {isCommitment && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                      QC Status
-                    </label>
-                    <select
-                      value={formData.qc}
-                      onChange={(e) => setFormData({ ...formData, qc: e.target.value })}
-                      disabled={isReadOnly}
-                      className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
-                    >
-                      {QC_STATUSES.map((q) => (
-                        <option key={q} value={q} className="dark:bg-[#131d31] dark:text-white">
-                          {q === "-" ? "None (-)" : q}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
             </div>
           </div>

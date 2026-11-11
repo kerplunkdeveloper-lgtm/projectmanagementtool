@@ -29,7 +29,10 @@ const DashboardLayoutInner = ({ role }) => {
   const isContentCalendarPage =
     location.pathname.includes("/content-calendar") ||
     location.pathname.includes("/content-calendor");
-  const hideNavbar = isChatPage || isContentCalendarPage;
+  const isSmTaskPage =
+    location.pathname.includes("/sm-task") ||
+    location.pathname.includes("/sm-tasks");
+  const hideNavbar = isChatPage || isContentCalendarPage || isSmTaskPage;
   const [sidebarOpen, setSidebarOpen] = useState(
     () => window.innerWidth >= 1024,
   );

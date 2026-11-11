@@ -98,6 +98,7 @@ const CATEGORIES = [
   "All",
   "Content Calendar",
   "Content Creation",
+  "Meeting",
   "Ad campaign check",
   "Google review reply",
   "Engagement monitor",
@@ -614,8 +615,8 @@ const ContentCalendar = () => {
     dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }))
       .finally(() => setInitialLoading(false));
     dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
-    dispatch(getClients());
-    dispatch(getUsers());
+    if (!clients || clients.length === 0) dispatch(getClients());
+    if (!users || users.length === 0) dispatch(getUsers());
   }, [dispatch, currentYear, currentMonth]);
 
   const isCalendarLoading = loading || initialLoading;
@@ -1456,7 +1457,7 @@ const ContentCalendar = () => {
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100  p-3 space-y-3.5 sm:space-y-6 relative">
       {/* Full Page Centered Loading Animation */}
       <AnimatePresence>
-        {isCalendarLoading && (
+        {initialLoading && (!tasks || tasks.length === 0) && (
           <FullPageCalendarLoader
             monthName={MONTH_NAMES[currentMonth]}
             year={currentYear}
@@ -1897,7 +1898,13 @@ const ContentCalendar = () => {
       <div className="space-y-4">
         {/* 1. MONTH VIEW (Full Width View) */}
         {viewMode === "Month" && (
-          <div className="w-full bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-3xl shadow-sm overflow-hidden">
+          <div className="w-full bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-3xl shadow-sm overflow-hidden relative">
+            {/* Shimmer loading progress bar */}
+            {isCalendarLoading && (
+              <div className="absolute top-0 inset-x-0 h-1 bg-slate-100 dark:bg-slate-800 overflow-hidden z-20">
+                <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-pulse w-full" />
+              </div>
+            )}
             <div className="overflow-x-auto scrollbar-thin">
               <div className="min-w-[1050px] 2xl:min-w-full">
                 {/* Days of Week Header (Sun to Sat matching Image 2) */}
@@ -1908,6 +1915,23 @@ const ContentCalendar = () => {
                 </div>
 
                 {/* Days Grid Cells */}
+                {isCalendarLoading && (!tasks || tasks.length === 0) ? (
+                  <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-[#1a2438] border-b border-slate-200 dark:border-[#1e2a40] animate-pulse">
+                    {Array.from({ length: 35 }).map((_, idx) => (
+                      <div key={`cal-skel-${idx}`} className="min-h-[175px] sm:min-h-[195px] p-2.5 flex flex-col justify-between bg-white dark:bg-[#0b101d]">
+                        <div className="flex items-center justify-between">
+                          <div className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800/80" />
+                          <div className="w-8 h-4 rounded bg-slate-100 dark:bg-slate-800/50" />
+                        </div>
+                        <div className="space-y-2 my-auto">
+                          <div className="h-6 rounded-xl bg-slate-100 dark:bg-slate-800/60 w-full" />
+                          <div className="h-6 rounded-xl bg-slate-100 dark:bg-slate-800/40 w-5/6" />
+                        </div>
+                        <div className="w-12 h-3 rounded bg-slate-100 dark:bg-slate-800/50 self-end" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
                 <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-[#1a2438] border-b border-slate-200 dark:border-[#1e2a40]">
                   {calendarDays.map((dayItem, index) => {
                     const dateKey = dayItem.dateKey;
@@ -2174,6 +2198,7 @@ const ContentCalendar = () => {
                     );
                   })}
                 </div>
+                )}
               </div>
             </div>
           </div>
@@ -2241,7 +2266,48 @@ const ContentCalendar = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-[#182338] font-medium">
-                {tablePaginatedTasks.length === 0 ? (
+                {isCalendarLoading && tablePaginatedTasks.length === 0 ? (
+                  Array.from({ length: 6 }).map((_, idx) => (
+                    <tr key={`cal-table-skel-${idx}`} className="animate-pulse">
+                      <td className="py-3 px-4">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-36" />
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-24" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-16" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-14" />
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-16" />
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-full w-20" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-12" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-10" />
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-10" />
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <div className="h-6 w-12 bg-slate-200 dark:bg-slate-800 rounded mx-auto" />
+                      </td>
+                    </tr>
+                  ))
+                ) : tablePaginatedTasks.length === 0 ? (
                   <tr>
                     <td colSpan={12} className="py-12 text-center text-slate-400 italic">
                       No posts found matching the criteria.

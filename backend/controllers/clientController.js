@@ -42,6 +42,7 @@ exports.createClient = async (req, res) => {
 
     const {
       companyName,
+      branch,
       industry,
       onboardingDate,
       phoneNumber,
@@ -62,12 +63,20 @@ exports.createClient = async (req, res) => {
       icon,
     } = req.body;
 
+    if (!branch || !branch.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Branch is required",
+      });
+    }
+
     const totalBudget =
       Number(budget) +
       (Number(budget) * Number(gst)) / 100;
 
     const client = await Client.create({
       companyName,
+      branch: branch.trim(),
       industry,
       onboardingDate,
       phoneNumber,
@@ -263,6 +272,13 @@ exports.updateClient = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to perform CRUD operations on this client",
+      });
+    }
+
+    if (req.body.branch !== undefined && (!req.body.branch || !req.body.branch.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Branch is required",
       });
     }
 

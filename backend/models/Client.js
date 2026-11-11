@@ -8,6 +8,13 @@ const clientSchema = new mongoose.Schema(
       trim: true,
     },
 
+    branch: {
+      type: String,
+      required: [true, "Branch is required"],
+      trim: true,
+      default: "Pondicherry",
+    },
+
     industry: {
       type: String,
       required: true,

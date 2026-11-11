@@ -253,7 +253,10 @@ exports.getSocialmediaTasks = async (req, res) => {
       query.$and = andClauses;
     }
 
-    let tasks = await SocialmediaTaskCalendor.find(query)
+    const baseCountFilter = userCreatorCondition || {};
+
+    const [rawTasks, totalCount, commitmentsCount] = await Promise.all([
+      SocialmediaTaskCalendor.find(query)
       .populate('client', 'companyName color icon industry posts reels story')
       .populate({
         path: 'assignee',
@@ -265,27 +268,35 @@ exports.getSocialmediaTasks = async (req, res) => {
         select: 'name email role profile',
         populate: { path: 'profile', select: 'profileImage' },
       })
-      .sort({ publishDate: 1, dueDate: 1, createdAt: -1 });
+      .sort({ publishDate: 1, dueDate: 1, createdAt: -1 })
+      .lean(),
+      SocialmediaTaskCalendor.countDocuments(baseCountFilter),
+      SocialmediaTaskCalendor.countDocuments({
+        ...baseCountFilter,
+        commitment: true,
+      }),
+    ]);
+
+    const now = new Date();
+    let tasks = rawTasks.map((t) => {
+      let isAtRisk = false;
+      if (
+        t.commitment &&
+        !['Completed', 'Live', 'Published', 'Published Live', 'Completed and wait CLient Approval', 'Completed and wait Client Approval'].includes(t.status)
+      ) {
+        const targetDate = t.publishDate || t.dueDate;
+        if (targetDate) {
+          const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
+          isAtRisk = diffHours >= 0 && diffHours <= 24;
+        }
+      }
+      return { ...t, isAtRisk };
+    });
 
     // Filter "atRisk" if requested (diffHours >= 0 && diffHours <= 24)
     if (atRisk === 'true' || atRisk === true) {
-      const now = new Date();
-      tasks = tasks.filter((t) => {
-        if (!t.commitment) return false;
-        if (['Completed', 'Live', 'Published', 'Published Live', 'Completed and wait CLient Approval', 'Completed and wait Client Approval'].includes(t.status)) return false;
-        const targetDate = t.publishDate || t.dueDate;
-        if (!targetDate) return false;
-        const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
-        return diffHours >= 0 && diffHours <= 24;
-      });
+      tasks = tasks.filter((t) => t.isAtRisk);
     }
-
-    const baseCountFilter = userCreatorCondition || {};
-    const totalCount = await SocialmediaTaskCalendor.countDocuments(baseCountFilter);
-    const commitmentsCount = await SocialmediaTaskCalendor.countDocuments({
-      ...baseCountFilter,
-      commitment: true,
-    });
 
     res.status(200).json({
       success: true,
@@ -340,8 +351,10 @@ exports.getSocialmediaStats = async (req, res) => {
       ];
     }
 
-    // Dynamic Commitments planned this month from DB
-    const monthlyCommitments = await SocialmediaTaskCalendor.find(commitmentsQuery);
+    // Dynamic Commitments planned this month from DB (lean + projection for maximum speed)
+    const monthlyCommitments = await SocialmediaTaskCalendor.find(commitmentsQuery)
+      .select('status publishDate dueDate commitment clientName')
+      .lean();
 
     const totalCommitments = monthlyCommitments.length;
 

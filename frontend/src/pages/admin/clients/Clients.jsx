@@ -37,6 +37,7 @@ import {
   FiMessageSquare,
   FiPhoneCall,
   FiLock,
+  FiMapPin,
 } from "react-icons/fi";
 import { FaRegBuilding } from "react-icons/fa";
 import {
@@ -895,6 +896,92 @@ const IndustryCombobox = React.memo(({ value, onChange, existingIndustries = [] 
   );
 });
 
+const BranchDropdown = React.memo(({ value = "Pondicherry", onChange }) => {
+  const isPondiOrChennai = value === "Pondicherry" || value === "Chennai";
+  const [selectedOption, setSelectedOption] = useState(
+    isPondiOrChennai ? value : (value ? "Other" : "Pondicherry")
+  );
+  const [customBranch, setCustomBranch] = useState(
+    isPondiOrChennai ? "" : (value || "")
+  );
+
+  useEffect(() => {
+    if (value === "Pondicherry" || value === "Chennai") {
+      setSelectedOption(value);
+      setCustomBranch("");
+    } else if (value) {
+      setSelectedOption("Other");
+      setCustomBranch(value);
+    }
+  }, [value]);
+
+  const handleSelectChange = (e) => {
+    const val = e.target.value;
+    setSelectedOption(val);
+    if (val === "Other") {
+      onChange(customBranch || "");
+    } else {
+      onChange(val);
+    }
+  };
+
+  const handleCustomInputChange = (e) => {
+    const text = e.target.value;
+    setCustomBranch(text);
+    onChange(text);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="client-modal-input-wrap flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-[#334155] bg-slate-50/80 dark:bg-[#1e293b]/70 rounded-xl focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 dark:focus-within:border-emerald-400 hover:border-slate-300 dark:hover:border-[#475569] transition-all duration-200 shadow-2xs group relative">
+        <FiMapPin
+          size={13}
+          className="text-slate-400 dark:text-slate-400 mr-2.5 shrink-0 group-focus-within:text-emerald-500 dark:group-focus-within:text-emerald-400 transition-colors"
+        />
+        <select
+          value={selectedOption}
+          onChange={handleSelectChange}
+          required
+          className="w-full bg-transparent border-0 outline-none p-0 text-xs font-semibold text-slate-800 dark:text-white cursor-pointer appearance-none [color-scheme:dark]"
+        >
+          <option value="Pondicherry" className="bg-[#1e293b] text-white font-semibold py-1">
+            Pondicherry
+          </option>
+          <option value="Chennai" className="bg-[#1e293b] text-white font-semibold py-1">
+            Chennai
+          </option>
+          <option value="Other" className="bg-[#1e293b] text-emerald-400 font-bold py-1">
+            + Manual Entry / Other...
+          </option>
+        </select>
+        <div className="pointer-events-none text-slate-400 dark:text-slate-400 absolute right-3">
+          <FiChevronDown size={14} />
+        </div>
+      </div>
+
+      {/* Manual text entry when 'Other' is chosen */}
+      {selectedOption === "Other" && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="client-modal-input-wrap flex items-center w-full h-10 px-3.5 border border-emerald-300 dark:border-emerald-700/80 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl focus-within:bg-white dark:focus-within:bg-[#1e293b] focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all duration-200 shadow-2xs group"
+        >
+          <FiEdit2 size={12} className="text-emerald-600 dark:text-emerald-400 mr-2.5 shrink-0" />
+          <input
+            type="text"
+            placeholder="Type branch location (e.g. Madurai, Bangalore)..."
+            value={customBranch}
+            onChange={handleCustomInputChange}
+            required
+            autoFocus
+            className="w-full bg-transparent border-0 outline-none p-0 text-xs font-bold text-slate-800 dark:text-white placeholder:text-slate-400 placeholder:font-normal"
+          />
+        </motion.div>
+      )}
+    </div>
+  );
+});
+
 const formatDept = (d) => {
   if (!d) return "";
   const str = d.trim();
@@ -913,6 +1000,7 @@ const formatDept = (d) => {
 
 const INITIAL_CLIENT_FORM = {
   companyName: "",
+  branch: "Pondicherry",
   industry: "",
   onboardingDate: new Date().toISOString().split("T")[0],
   phoneNumber: "",
@@ -989,6 +1077,7 @@ const Clients = () => {
   const [memberFilter, setMemberFilter] = useState("All");
   const [showMemberFilterDropdown, setShowMemberFilterDropdown] =
     useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [clientToDelete, setClientToDelete] = useState(null);
   const [viewClient, setViewClient] = useState(null);
   const [showViewOffcanvas, setShowViewOffcanvas] = useState(false);
@@ -1083,6 +1172,11 @@ const Clients = () => {
       toast.error("Company Name is required");
       return;
     }
+
+    if (!formData.branch || formData.branch.trim() === "") {
+      toast.error("Branch is required");
+      return;
+    }
     
     if (!formData.industry || formData.industry.trim() === "") {
       toast.error("Industry is required");
@@ -1141,6 +1235,10 @@ const Clients = () => {
         toast.error("Company Name is required");
         return;
       }
+      if (!formData.branch || formData.branch.trim() === "") {
+        toast.error("Branch is required");
+        return;
+      }
       if (!formData.industry || formData.industry.trim() === "") {
         toast.error("Industry Sector is required");
         return;
@@ -1162,6 +1260,7 @@ const Clients = () => {
   const handleEdit = (client) => {
     setFormData({
       ...client,
+      branch: client.branch || "Pondicherry",
       color: client.color || "#3b82f6",
       icon: client.icon || "FaRegBuilding",
       status: client.status || "Active",
@@ -1601,9 +1700,10 @@ const Clients = () => {
           {/* MEMBERS FILTER */}
           <div className="relative w-full sm:w-52">
             <div
-              onClick={() =>
-                setShowMemberFilterDropdown(!showMemberFilterDropdown)
-              }
+              onClick={() => {
+                setShowMemberFilterDropdown(!showMemberFilterDropdown);
+                if (showMemberFilterDropdown) setMemberSearchQuery("");
+              }}
               className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none flex items-center transition-all font-semibold cursor-pointer"
             >
               {memberFilter === "All"
@@ -1627,7 +1727,22 @@ const Clients = () => {
                   })()}
             </div>
 
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            {memberFilter !== "All" && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMemberFilter("All");
+                  setMemberSearchQuery("");
+                }}
+                className="absolute right-7 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                title="Reset to All Members"
+              >
+                <FiX className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
@@ -1647,63 +1762,127 @@ const Clients = () => {
               <>
                 <div
                   className="fixed inset-0 z-40"
-                  onClick={() => setShowMemberFilterDropdown(false)}
+                  onClick={() => {
+                    setShowMemberFilterDropdown(false);
+                    setMemberSearchQuery("");
+                  }}
                 />
-                <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto no-scrollbar">
-                  <div
-                    className={`px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${memberFilter === "All" ? "text-blue-600 bg-blue-50 dark:bg-blue-900/20" : "text-slate-700 dark:text-slate-300"}`}
-                    onClick={() => {
-                      setMemberFilter("All");
-                      setShowMemberFilterDropdown(false);
-                    }}
-                  >
-                    All Members
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 flex flex-col overflow-hidden">
+                  {/* Search Bar with Search Button / Icon */}
+                  <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        placeholder="Search member..."
+                        value={memberSearchQuery}
+                        onChange={(e) => setMemberSearchQuery(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full bg-slate-50 dark:bg-slate-800 text-xs pl-8 pr-7 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 outline-none focus:border-blue-500 text-slate-800 dark:text-white transition-colors"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute left-2.5 text-slate-400 hover:text-blue-500 transition-colors"
+                        title="Search"
+                      >
+                       
+                      </button>
+                      {memberSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMemberSearchQuery("");
+                          }}
+                          className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
+                          title="Clear"
+                        >
+                          <FiX size={12} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  {(() => {
-                    const depts = {};
-                    allUsers.forEach((u) => {
-                      const dept = u.department || "Other";
-                      if (!depts[dept]) depts[dept] = [];
-                      depts[dept].push(u);
-                    });
+                  <div className="max-h-64 overflow-y-auto no-scrollbar">
+                    <div
+                      className={`px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${memberFilter === "All" ? "text-blue-600 bg-blue-50 dark:bg-blue-900/20" : "text-slate-700 dark:text-slate-300"}`}
+                      onClick={() => {
+                        setMemberFilter("All");
+                        setShowMemberFilterDropdown(false);
+                        setMemberSearchQuery("");
+                      }}
+                    >
+                      All Members
+                    </div>
 
-                    const sortedDepts = Object.keys(depts).sort();
+                    {(() => {
+                      const filtered = allUsers.filter((u) => {
+                        if (!memberSearchQuery.trim()) return true;
+                        const q = memberSearchQuery.toLowerCase().trim();
+                        const name = (u.name || "").toLowerCase();
+                        const email = (u.email || "").toLowerCase();
+                        const dept = (u.department || "").toLowerCase();
+                        return (
+                          name.includes(q) ||
+                          email.includes(q) ||
+                          dept.includes(q)
+                        );
+                      });
 
-                    return sortedDepts.map((dept) => (
-                      <div key={dept}>
-                        <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider sticky top-0 border-y border-slate-100 dark:border-slate-800/50 z-10 backdrop-blur-sm">
-                          {dept}
-                        </div>
-                        {depts[dept]
-                          .sort((a, b) =>
-                            (a.name || a.email).localeCompare(
-                              b.name || b.email,
-                            ),
-                          )
-                          .map((u) => (
-                            <div
-                              key={u._id}
-                              className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${memberFilter === u._id ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}
-                              onClick={() => {
-                                setMemberFilter(u._id);
-                                setShowMemberFilterDropdown(false);
-                              }}
-                            >
-                              {renderUserAvatarSmall(
-                                u,
-                                "w-6 h-6 text-[10px] shrink-0",
-                              )}
-                              <span
-                                className={`truncate ${memberFilter === u._id ? "text-blue-700 dark:text-blue-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}
+                      const depts = {};
+                      filtered.forEach((u) => {
+                        const dept = u.department || "Other";
+                        if (!depts[dept]) depts[dept] = [];
+                        depts[dept].push(u);
+                      });
+
+                      const sortedDepts = Object.keys(depts).sort();
+
+                      if (sortedDepts.length === 0) {
+                        return (
+                          <div className="px-3 py-4 text-center text-xs text-slate-400 dark:text-slate-500">
+                            No members found
+                          </div>
+                        );
+                      }
+
+                      return sortedDepts.map((dept) => (
+                        <div key={dept}>
+                          <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider sticky top-0 border-y border-slate-100 dark:border-slate-800/50 z-10 backdrop-blur-sm">
+                            {dept}
+                          </div>
+                          {depts[dept]
+                            .sort((a, b) =>
+                              (a.name || a.email).localeCompare(
+                                b.name || b.email,
+                              ),
+                            )
+                            .map((u) => (
+                              <div
+                                key={u._id}
+                                className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${memberFilter === u._id ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}
+                                onClick={() => {
+                                  setMemberFilter(u._id);
+                                  setShowMemberFilterDropdown(false);
+                                  setMemberSearchQuery("");
+                                }}
                               >
-                                {u.name || u.email}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    ));
-                  })()}
+                                {renderUserAvatarSmall(
+                                  u,
+                                  "w-6 h-6 text-[10px] shrink-0",
+                                )}
+                                <span
+                                  className={`truncate ${memberFilter === u._id ? "text-blue-700 dark:text-blue-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}
+                                >
+                                  {u.name || u.email}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      ));
+                    })()}
+                  </div>
                 </div>
               </>
             )}
@@ -1870,29 +2049,48 @@ const Clients = () => {
                                 );
                               })()}
                               <div className="min-w-[110px]">
-                                <h2
-                                  className={`font-bold transition-colors text-[12.5px] text-slate-900 dark:text-white truncate max-w-[200px] ${
-                                    hasFullAccess ||
-                                    (user?.department || "")
-                                      .toLowerCase()
-                                      .includes("social media")
-                                      ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
-                                      : ""
-                                  }`}
-                                  onClick={() => {
-                                    if (
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <h2
+                                    className={`font-bold transition-colors text-[12.5px] text-slate-900 dark:text-white truncate max-w-[200px] ${
                                       hasFullAccess ||
                                       (user?.department || "")
                                         .toLowerCase()
                                         .includes("social media")
-                                    ) {
-                                      setViewClient(client);
-                                      setShowViewOffcanvas(true);
-                                    }
-                                  }}
-                                >
-                                  {client.companyName}
-                                </h2>
+                                        ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                                        : ""
+                                    }`}
+                                    onClick={() => {
+                                      if (
+                                        hasFullAccess ||
+                                        (user?.department || "")
+                                          .toLowerCase()
+                                          .includes("social media")
+                                      ) {
+                                        setViewClient(client);
+                                        setShowViewOffcanvas(true);
+                                      }
+                                    }}
+                                  >
+                                    {client.companyName}
+                                  </h2>
+
+                                  {/* Branch Badge with border */}
+                                  {client.branch && (
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-bold border transition-colors shadow-2xs ${
+                                        (client.branch || "").toLowerCase().includes("pondi")
+                                          ? "bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-700/80"
+                                          : (client.branch || "").toLowerCase().includes("chennai")
+                                            ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700/80"
+                                            : "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700/80"
+                                      }`}
+                                      title={`Branch: ${client.branch}`}
+                                    >
+                                      <FiMapPin size={9} className="shrink-0" />
+                                      <span>{client.branch}</span>
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-1.5 mt-0.5">
                                   <span className="text-[9px] text-slate-600 dark:text-slate-300 font-semibold bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-white/10">
                                     {client.industry}
@@ -2523,6 +2721,24 @@ const Clients = () => {
                                 required
                               />
                             </div>
+                          </div>
+
+                          {/* Branch Location */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1 ml-1">
+                              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                Branch Location <span className="text-rose-500">*</span>
+                              </label>
+                              <span className="text-[10px] font-semibold text-rose-500">
+                                Required
+                              </span>
+                            </div>
+                            <BranchDropdown
+                              value={formData.branch}
+                              onChange={(val) =>
+                                setFormData((prev) => ({ ...prev, branch: val }))
+                              }
+                            />
                           </div>
 
                           {/* Industry Sector (Combobox) */}
@@ -3529,6 +3745,17 @@ const Clients = () => {
                                 </span>
                                 <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
                                   {viewClient.industry || "-"}
+                                </span>
+                              </div>
+
+                              {/* Branch */}
+                              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                  Branch
+                                </span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs flex items-center gap-1">
+                                  <FiMapPin size={11} className="text-emerald-500 shrink-0" />
+                                  <span>{viewClient.branch || "Pondicherry"}</span>
                                 </span>
                               </div>
 

@@ -178,5 +178,9 @@ socialmediaTaskCalendorSchema.index({ status: 1 });
 socialmediaTaskCalendorSchema.index({ commitment: 1 });
 socialmediaTaskCalendorSchema.index({ category: 1 });
 socialmediaTaskCalendorSchema.index({ clientName: 1 });
+socialmediaTaskCalendorSchema.index({ commitment: 1, publishDate: 1 });
+socialmediaTaskCalendorSchema.index({ clientName: 1, commitment: 1, publishDate: 1 });
+socialmediaTaskCalendorSchema.index({ createdBy: 1, commitment: 1 });
+socialmediaTaskCalendorSchema.index({ assignee: 1, commitment: 1 });
 
 module.exports = mongoose.model('SocialmediaTaskCalendor', socialmediaTaskCalendorSchema);
