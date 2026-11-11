@@ -268,7 +268,7 @@ exports.getSocialmediaTasks = async (req, res) => {
         select: 'name email role profile',
         populate: { path: 'profile', select: 'profileImage' },
       })
-      .sort({ publishDate: -1, dueDate: -1, createdAt: -1 })
+      .sort({ publishDate: 1, dueDate: 1, createdAt: -1 })
       .lean(),
       SocialmediaTaskCalendor.countDocuments(baseCountFilter),
       SocialmediaTaskCalendor.countDocuments({

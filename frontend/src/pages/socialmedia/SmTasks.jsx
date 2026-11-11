@@ -1126,7 +1126,7 @@ const SmTasks = () => {
       });
     }
 
-    // Commitment table: Sort from month's last date down to first date (descending date order)
+    // Commitment table: Sort date-wise from first date to last date (ascending date order)
     return [...list].sort((a, b) => {
       const getPrimaryTime = (t) => {
         const dateVal =
@@ -1147,13 +1147,15 @@ const SmTasks = () => {
       const timeA = getPrimaryTime(a);
       const timeB = getPrimaryTime(b);
 
-      if (timeB !== timeA) return timeB - timeA; // Descending: latest date in month first
+      if (timeA === 0 && timeB !== 0) return 1;
+      if (timeB === 0 && timeA !== 0) return -1;
+      if (timeA !== timeB) return timeA - timeB; // Ascending: first date of month to last date
 
       const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (createdB !== createdA) return createdB - createdA;
+      if (createdA !== createdB) return createdA - createdB;
 
-      return String(b._id || "").localeCompare(String(a._id || ""));
+      return String(a._id || "").localeCompare(String(b._id || ""));
     });
   }, [
     uniqueTasks,
