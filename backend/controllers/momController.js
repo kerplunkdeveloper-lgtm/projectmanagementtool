@@ -8,81 +8,84 @@ const Mom = require('../models/Mom');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
-const sendMomNotification = async (req, mom, isNew) => {
+// Optimized non-blocking notification dispatcher
+const sendMomNotification = async (app, userId, mom, isNew) => {
   try {
-    const io = req.app.get('io');
-    const sender = await User.findById(req.user.id).select('name role department profile');
+    const io = app ? app.get('io') : null;
+    const sender = await User.findById(userId)
+      .select('name role department profile')
+      .populate('profile', 'profileImage')
+      .lean();
     const senderName = sender?.name || 'Someone';
 
-    let assignedUser = null;
-    if (mom.assignedTo) {
-      assignedUser = await User.findById(mom.assignedTo).select('name email role department');
+    const assignedToId = mom.assignedTo?._id
+      ? mom.assignedTo._id.toString()
+      : (mom.assignedTo ? mom.assignedTo.toString() : null);
+
+    let assignedUserName = mom.assignedTo?.name;
+    if (!assignedUserName && assignedToId) {
+      const assignedUser = await User.findById(assignedToId).select('name email role department').lean();
+      assignedUserName = assignedUser?.name;
     }
 
     const managementUsers = await User.find({
       role: { $in: ['admin', 'operationmanager'] },
       accountStatus: { $ne: 'inactive' },
       employmentStatus: { $ne: 'relieved' },
-    }).select('_id');
+    }).select('_id').lean();
+
+    const notificationsToCreate = [];
 
     // 1. Notify Assigned User if assigned to someone other than sender
-    if (mom.assignedTo && mom.assignedTo.toString() !== req.user.id) {
-      const recipientId = mom.assignedTo.toString();
-      const assignMessage = `${senderName} assigned a MOM point to you: "${mom.title}"`;
-
-      const notification = await Notification.create({
-        recipient: recipientId,
-        sender: req.user.id,
+    if (assignedToId && assignedToId !== userId.toString()) {
+      notificationsToCreate.push({
+        recipient: assignedToId,
+        sender: userId,
         type: 'mom_assigned',
-        message: assignMessage,
+        message: `${senderName} assigned a MOM point to you: "${mom.title}"`,
         mom: mom._id,
       });
-
-      if (io) {
-        const populatedNotification = await Notification.findById(notification._id)
-          .populate('sender', 'name email profile department role');
-        io.to(recipientId).emit('new_notification', populatedNotification || notification);
-      }
     }
 
     // 2. Notify Management Users (Admin & Operation Manager)
+    const notifType = isNew ? 'mom_created' : 'mom_updated';
+    let adminMessage = '';
+    if (isNew) {
+      adminMessage = assignedUserName
+        ? `${senderName} posted a new MOM point: "${mom.title}" (Assigned to: ${assignedUserName})`
+        : `${senderName} posted a new MOM point: "${mom.title}"`;
+    } else {
+      adminMessage = assignedUserName
+        ? `${senderName} assigned MOM point: "${mom.title}" to ${assignedUserName}`
+        : `${senderName} updated MOM point: "${mom.title}"`;
+    }
+
     for (const mUser of managementUsers) {
       const mUserId = mUser._id.toString();
-
-      // Don't send duplicate notification if admin is the sender or the assigned recipient
-      if (mUserId === req.user.id || (mom.assignedTo && mUserId === mom.assignedTo.toString())) {
+      if (mUserId === userId.toString() || (assignedToId && mUserId === assignedToId)) {
         continue;
       }
-
-      let adminMessage = '';
-      let notifType = isNew ? 'mom_created' : 'mom_updated';
-
-      if (isNew) {
-        if (assignedUser) {
-          adminMessage = `${senderName} posted a new MOM point: "${mom.title}" (Assigned to: ${assignedUser.name})`;
-        } else {
-          adminMessage = `${senderName} posted a new MOM point: "${mom.title}"`;
-        }
-      } else {
-        if (assignedUser) {
-          adminMessage = `${senderName} assigned MOM point: "${mom.title}" to ${assignedUser.name}`;
-        } else {
-          adminMessage = `${senderName} updated MOM point: "${mom.title}"`;
-        }
-      }
-
-      const notification = await Notification.create({
+      notificationsToCreate.push({
         recipient: mUserId,
-        sender: req.user.id,
+        sender: userId,
         type: notifType,
         message: adminMessage,
         mom: mom._id,
       });
+    }
+
+    if (notificationsToCreate.length > 0) {
+      const createdList = await Promise.all(
+        notificationsToCreate.map((n) => Notification.create(n).catch((e) => null))
+      );
 
       if (io) {
-        const populatedNotification = await Notification.findById(notification._id)
-          .populate('sender', 'name email profile department role');
-        io.to(mUserId).emit('new_notification', populatedNotification || notification);
+        createdList.forEach((notif) => {
+          if (!notif) return;
+          const notifObj = notif.toObject ? notif.toObject() : notif;
+          notifObj.sender = sender;
+          io.to(notif.recipient.toString()).emit('new_notification', notifObj);
+        });
       }
     }
   } catch (err) {
@@ -117,12 +120,13 @@ exports.getMoms = async (req, res, next) => {
       };
     }
 
-    const query = Mom.find(queryOptions)
+    const moms = await Mom.find(queryOptions)
       .populate('client', 'companyName name')
       .populate({ path: 'createdBy', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
-      .populate({ path: 'assignedTo', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } });
+      .populate({ path: 'assignedTo', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    const moms = await query.sort({ createdAt: -1 });
     moms.forEach((m) => {
       sanitizeUserDept(m.createdBy);
       sanitizeUserDept(m.assignedTo);
@@ -146,7 +150,8 @@ exports.getMom = async (req, res, next) => {
     const mom = await Mom.findById(req.params.id)
       .populate('client', 'companyName name')
       .populate({ path: 'createdBy', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
-      .populate({ path: 'assignedTo', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } });
+      .populate({ path: 'assignedTo', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
+      .lean();
 
     if (!mom) {
       return res.status(404).json({ success: false, message: `MOM not found with id of ${req.params.id}` });
@@ -174,10 +179,23 @@ exports.createMom = async (req, res, next) => {
       req.body.isRead = false;
     }
 
-    const mom = await Mom.create(req.body);
+    const createdMom = await Mom.create(req.body);
 
-    // Always send notification when a MOM point is posted
-    await sendMomNotification(req, mom, true);
+    const mom = await Mom.findById(createdMom._id)
+      .populate('client', 'companyName name')
+      .populate({ path: 'createdBy', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
+      .populate({ path: 'assignedTo', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
+      .lean();
+
+    sanitizeUserDept(mom.createdBy);
+    sanitizeUserDept(mom.assignedTo);
+
+    // Send notifications in the background - do NOT block response
+    const app = req.app;
+    const userId = req.user.id;
+    setImmediate(() => {
+      sendMomNotification(app, userId, mom, true);
+    });
 
     res.status(201).json({
       success: true,
@@ -225,18 +243,29 @@ exports.updateMom = async (req, res, next) => {
       req.body.isRead = false;
     }
 
-    mom = await Mom.findByIdAndUpdate(req.params.id, req.body, {
+    const updatedMom = await Mom.findByIdAndUpdate(req.params.id, req.body, {
       returnDocument: 'after',
       runValidators: true,
-    });
+    })
+      .populate('client', 'companyName name')
+      .populate({ path: 'createdBy', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
+      .populate({ path: 'assignedTo', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
+      .lean();
+
+    sanitizeUserDept(updatedMom.createdBy);
+    sanitizeUserDept(updatedMom.assignedTo);
 
     if (isAssignmentChanged) {
-      await sendMomNotification(req, mom, false);
+      const app = req.app;
+      const userId = req.user.id;
+      setImmediate(() => {
+        sendMomNotification(app, userId, updatedMom, false);
+      });
     }
 
     res.status(200).json({
       success: true,
-      data: mom,
+      data: updatedMom,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -269,7 +298,10 @@ exports.deleteMom = async (req, res, next) => {
       return res.status(401).json({ success: false, message: `User not authorized to delete this MOM` });
     }
 
-    await mom.deleteOne(); // Mongoose 7+ uses deleteOne instead of remove
+    await mom.deleteOne();
+
+    // Clean up notifications in background asynchronously
+    Notification.deleteMany({ mom: req.params.id }).catch(() => {});
 
     res.status(200).json({
       success: true,

@@ -78,4 +78,12 @@ const momSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for high performance querying and sorting
+momSchema.index({ createdAt: -1 });
+momSchema.index({ createdBy: 1, createdAt: -1 });
+momSchema.index({ assignedTo: 1, createdAt: -1 });
+momSchema.index({ client: 1 });
+momSchema.index({ status: 1 });
+momSchema.index({ endDate: 1, overdueNotified: 1, status: 1 });
+
 module.exports = mongoose.model('Mom', momSchema);

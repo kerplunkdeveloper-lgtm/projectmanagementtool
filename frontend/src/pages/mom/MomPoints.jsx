@@ -188,11 +188,17 @@ const MomPoints = () => {
 
   const [loading, setLoading] = useState(true);
 
-  // Auto-mark MOM notifications as read when viewing MOM points
+  // Auto-mark MOM notifications as read without triggering endless re-render loops
+  const markedNotifsRef = useRef(new Set());
   useEffect(() => {
     if (notifications && notifications.length > 0) {
       notifications.forEach((n) => {
-        if (!n.isRead && ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)) {
+        if (
+          !n.isRead &&
+          !markedNotifsRef.current.has(n._id) &&
+          ["mom_created", "mom_assigned", "mom_updated", "mom_overdue"].includes(n.type)
+        ) {
+          markedNotifsRef.current.add(n._id);
           dispatch(markAsRead(n._id));
         }
       });
@@ -221,12 +227,13 @@ const MomPoints = () => {
   const [inlineTitle, setInlineTitle] = useState("");
   const inlineInputRef = useRef(null);
 
+  // Initial load: fetch all 3 once
   useEffect(() => {
-    fetchData();
+    fetchInitialData();
   }, []);
 
-  const fetchData = async (showLoading = true) => {
-    if (showLoading) setLoading(true);
+  const fetchInitialData = async () => {
+    setLoading(true);
     try {
       const [momsRes, clientsRes, usersRes] = await Promise.all([
         axiosInstance.get("/moms"),
@@ -240,7 +247,17 @@ const MomPoints = () => {
       console.error("Error fetching data:", error);
       toast.error("Failed to load data");
     } finally {
-      if (showLoading) setLoading(false);
+      setLoading(false);
+    }
+  };
+
+  // Lightweight refresh for MOMs only (clients & users are cached in state)
+  const fetchMomsOnly = async () => {
+    try {
+      const res = await axiosInstance.get("/moms");
+      setMoms(res.data.data || []);
+    } catch (error) {
+      console.error("Error refreshing MOMs:", error);
     }
   };
 
@@ -289,7 +306,10 @@ const MomPoints = () => {
       optimisticValue = users.find((u) => u._id === value) || value;
     }
 
-    setMoms(moms.map((m) => (m._id === id ? { ...m, [field]: optimisticValue } : m)));
+    // Instant optimistic update
+    setMoms((prev) =>
+      prev.map((m) => (m._id === id ? { ...m, [field]: optimisticValue } : m))
+    );
 
     try {
       let payload = { [field]: value };
@@ -298,9 +318,12 @@ const MomPoints = () => {
           if (field === "client") return;
         }
       }
-      await axiosInstance.put(`/moms/${id}`, payload);
-      if (field === "client" || field === "assignedTo") {
-        fetchData(false);
+      const res = await axiosInstance.put(`/moms/${id}`, payload);
+      // Immediately sync with populated response without extra GET queries
+      if (res.data?.data) {
+        setMoms((prev) =>
+          prev.map((m) => (m._id === id ? res.data.data : m))
+        );
       }
     } catch (error) {
       toast.error("Failed to update");
@@ -311,24 +334,28 @@ const MomPoints = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this MOM point?"))
       return;
+    const previousMoms = [...moms];
+    // Instant optimistic deletion from UI
+    setMoms((prev) => prev.filter((m) => m._id !== id));
     try {
       await axiosInstance.delete(`/moms/${id}`);
       toast.success("MOM point deleted");
-      setMoms(moms.filter((m) => m._id !== id));
     } catch (error) {
       toast.error("Failed to delete MOM point");
+      setMoms(previousMoms);
     }
   };
 
   const handleInlineAddSubmit = async (e) => {
-    e.preventDefault();
-    if (!inlineTitle.trim()) {
+    if (e && e.preventDefault) e.preventDefault();
+    const title = inlineTitle.trim();
+    if (!title) {
       setInlineAdding(false);
       return;
     }
 
     const payload = {
-      title: inlineTitle,
+      title,
       momType: "Task / Action",
       priority: "Medium",
       status: "Not Started",
@@ -338,13 +365,38 @@ const MomPoints = () => {
       payload.assignedTo = user?._id || user?.id;
     }
 
+    // Generate temporary ID for instant optimistic appearance
+    const tempId = `temp-${Date.now()}`;
+    const assignedUserObj = payload.assignedTo
+      ? users.find((u) => u._id === payload.assignedTo) || user
+      : null;
+
+    const optimisticMom = {
+      _id: tempId,
+      ...payload,
+      createdBy: user,
+      assignedTo: assignedUserObj,
+      createdAt: new Date().toISOString(),
+      isRead: true,
+    };
+
+    // Instant appearance in the list
+    setMoms((prev) => [optimisticMom, ...prev]);
+    setInlineTitle("");
+    setInlineAdding(false);
+
     try {
       const res = await axiosInstance.post("/moms", payload);
       toast.success("MOM point created");
-      setInlineTitle("");
-      fetchData(); // reload
+      if (res.data?.data) {
+        // Replace temp item with real populated server response
+        setMoms((prev) =>
+          prev.map((m) => (m._id === tempId ? res.data.data : m))
+        );
+      }
     } catch (err) {
       toast.error("Failed to create MOM point");
+      setMoms((prev) => prev.filter((m) => m._id !== tempId));
     }
   };
 
