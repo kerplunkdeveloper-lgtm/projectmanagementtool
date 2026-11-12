@@ -168,10 +168,18 @@ const Project = () => {
   }, [dispatch]);
 
   const deptLower = (currentUser?.department || "").toLowerCase();
-  const isSocialMediaManager =
-    currentUser?.role === "socialmediamanager" ||
+  const roleLower = (currentUser?.role || "").toLowerCase();
+  const isSocialMediaHead =
     currentUser?.role === "socialmediahead" ||
     deptLower.includes("social media head");
+  const isSocialMediaManager =
+    currentUser?.role === "socialmediamanager" ||
+    isSocialMediaHead;
+  const isSocialMediaExecutive =
+    !isSocialMediaHead &&
+    (deptLower.includes("social media") ||
+      deptLower.includes("smm") ||
+      roleLower.includes("social"));
 
   const isAdmin =
     currentUser?.role === "admin" ||
@@ -187,6 +195,18 @@ const Project = () => {
   // Filter projects
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
+      // For Social Media Executive, strictly ensure project belongs to their clients
+      if (isSocialMediaExecutive) {
+        if (!clients || clients.length === 0) return false;
+        const clientIds = new Set(
+          clients.map((c) => (c._id || c.id || c).toString())
+        );
+        const projClientId = (project.client?._id || project.client)?.toString();
+        if (!projClientId || !clientIds.has(projClientId)) {
+          return false;
+        }
+      }
+
       const matchesSearch = project.name
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase());
@@ -202,7 +222,7 @@ const Project = () => {
         project.client === clientFilter;
       return matchesSearch && matchesStatus && matchesCreatedBy && matchesClient;
     });
-  }, [projects, searchTerm, statusFilter, createdByFilter, clientFilter]);
+  }, [projects, clients, isSocialMediaExecutive, searchTerm, statusFilter, createdByFilter, clientFilter]);
 
   const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
   const paginatedProjects = useMemo(() => {

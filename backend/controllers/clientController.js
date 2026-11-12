@@ -5,6 +5,7 @@ const isSocialMediaManagerUser = (user) => {
   if (!user) return false;
   const dept = (user.department || "").toLowerCase();
   const role = (user.role || "").toLowerCase();
+  if (dept.includes("social media executive") || dept.includes("executive")) return false;
   return (
     role === "socialmediamanager" ||
     role === "socialmediahead" ||
@@ -157,7 +158,10 @@ exports.getClients = async (req, res) => {
       !isPrivilegedClientUser(req.user) ||
       req.query.assignedOnly === "true"
     ) {
-      query.assignedTo = req.user._id;
+      query.$or = [
+        { assignedTo: req.user._id },
+        { createdBy: req.user._id },
+      ];
     }
 
     const clients = await Client.find(query)

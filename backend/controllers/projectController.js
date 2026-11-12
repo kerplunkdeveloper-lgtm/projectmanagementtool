@@ -10,34 +10,44 @@ exports.getProjects = async (req, res) => {
   try {
     let query = {};
     const deptLower = (req.user?.department || "").toLowerCase();
-    const isSocialMediaManager =
-      req.user?.role === "socialmediamanager" ||
-      req.user?.role === "socialmediahead" ||
+    const roleLower = (req.user?.role || "").toLowerCase();
+    const isSocialMediaHead =
+      roleLower === "socialmediahead" ||
       deptLower.includes("social media head");
     const isSocialMedia =
-      isSocialMediaManager ||
+      isSocialMediaHead ||
+      roleLower === "socialmediamanager" ||
       deptLower.includes("social media") ||
-      (req.user?.role || "").toLowerCase().includes("social");
+      deptLower.includes("smm") ||
+      roleLower.includes("social");
 
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      if (isSocialMedia) {
-        // Find all Social Media Executive users
-        const smUsers = await User.find({
+      if (isSocialMediaHead) {
+        // Social Media Head: Chennai branch clients or assigned/created clients
+        const headClients = await Client.find({
           $or: [
-            { department: { $regex: /social media/i } },
-            { role: { $regex: /social/i } },
-            { designation: { $regex: /social media/i } },
+            { branch: new RegExp("^chennai$", "i") },
+            { assignedTo: req.user._id },
+            { createdBy: req.user._id },
           ],
         }).select("_id").lean();
-        const smUserIds = smUsers.map((u) => u._id);
+        const headClientIds = headClients.map((c) => c._id);
 
         query = {
+          client: { $in: headClientIds },
+        };
+      } else if (isSocialMedia) {
+        // Social Media Executive: strictly only show projects for their assigned or created clients
+        const userClients = await Client.find({
           $or: [
-            { createdBy: { $in: smUserIds } },
+            { assignedTo: req.user._id },
             { createdBy: req.user._id },
-            { access: "Public" },
-            { access: { $exists: false } },
           ],
+        }).select("_id").lean();
+        const userClientIds = userClients.map((c) => c._id);
+
+        query = {
+          client: { $in: userClientIds },
         };
       } else {
         const userClients = await Client.find({ assignedTo: req.user._id }).select("_id").lean();
@@ -165,9 +175,42 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    const isSM = req.user?.role === "socialmediamanager" || req.user?.role === "socialmediahead" || (req.user?.department || "").toLowerCase().includes("social media head");
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isSM && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: "You are not authorized to edit this private project" });
+    const deptLower = (req.user?.department || "").toLowerCase();
+    const roleLower = (req.user?.role || "").toLowerCase();
+    const isSocialMediaHead =
+      roleLower === "socialmediahead" ||
+      deptLower.includes("social media head");
+    const isSocialMedia =
+      isSocialMediaHead ||
+      roleLower === "socialmediamanager" ||
+      deptLower.includes("social media") ||
+      deptLower.includes("smm") ||
+      roleLower.includes("social");
+
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+      if (isSocialMedia && !isSocialMediaHead) {
+        // Social Media Executive can only manage projects of their assigned clients
+        const userClients = await Client.find({
+          $or: [
+            { assignedTo: req.user._id },
+            { createdBy: req.user._id },
+          ],
+        }).select("_id").lean();
+        const userClientIds = userClients.map((c) => c._id.toString());
+        const projClientId = project.client ? project.client.toString() : null;
+
+        if (!projClientId || !userClientIds.includes(projClientId)) {
+          return res.status(403).json({
+            success: false,
+            message: "You are not authorized to edit projects outside your assigned clients",
+          });
+        }
+      } else if (!isSocialMedia && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to edit this private project",
+        });
+      }
     }
 
     project = await Project.findByIdAndUpdate(req.params.id, req.body, {
@@ -200,9 +243,42 @@ exports.deleteProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    const isSM = req.user?.role === "socialmediamanager" || req.user?.role === "socialmediahead" || (req.user?.department || "").toLowerCase().includes("social media head");
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isSM && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: "You are not authorized to delete this private project" });
+    const deptLower = (req.user?.department || "").toLowerCase();
+    const roleLower = (req.user?.role || "").toLowerCase();
+    const isSocialMediaHead =
+      roleLower === "socialmediahead" ||
+      deptLower.includes("social media head");
+    const isSocialMedia =
+      isSocialMediaHead ||
+      roleLower === "socialmediamanager" ||
+      deptLower.includes("social media") ||
+      deptLower.includes("smm") ||
+      roleLower.includes("social");
+
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+      if (isSocialMedia && !isSocialMediaHead) {
+        // Social Media Executive can only delete projects of their assigned clients
+        const userClients = await Client.find({
+          $or: [
+            { assignedTo: req.user._id },
+            { createdBy: req.user._id },
+          ],
+        }).select("_id").lean();
+        const userClientIds = userClients.map((c) => c._id.toString());
+        const projClientId = project.client ? project.client.toString() : null;
+
+        if (!projClientId || !userClientIds.includes(projClientId)) {
+          return res.status(403).json({
+            success: false,
+            message: "You are not authorized to delete projects outside your assigned clients",
+          });
+        }
+      } else if (!isSocialMedia && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to delete this private project",
+        });
+      }
     }
 
     await Task.deleteMany({ project: req.params.id });
