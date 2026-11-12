@@ -431,6 +431,29 @@ exports.getTasks = async (req, res) => {
 
     const andConditions = [];
 
+    const deptLower = (req.user?.department || "").toLowerCase().trim();
+    const roleLower = (req.user?.role || "").toLowerCase().trim();
+    const isSocialMediaManager =
+      roleLower === "socialmediamanager" ||
+      roleLower === "socialmediahead" ||
+      roleLower === "socialmediaexecutive" ||
+      roleLower.includes("social") ||
+      deptLower.includes("social") ||
+      deptLower.includes("smm");
+
+    const isPrivileged =
+      roleLower === "admin" ||
+      roleLower.includes("admin") ||
+      roleLower === "operationmanager" ||
+      roleLower === "operation manager" ||
+      roleLower.includes("operation") ||
+      deptLower.includes("operation") ||
+      deptLower.includes("managing partner") ||
+      deptLower.includes("admin") ||
+      isSocialMediaManager ||
+      req.query.all === "true" ||
+      req.query.status_overview === "true";
+
     if (req.query.my_tasks === "true" || req.query.myTasks === "true") {
       andConditions.push({
         $or: [
@@ -453,16 +476,6 @@ exports.getTasks = async (req, res) => {
       }
     } else if (req.query.project && req.query.project !== "all") {
       andConditions.push({ project: req.query.project });
-      const deptLower = (req.user?.department || '').toLowerCase();
-      const isSocialMediaManager =
-        req.user?.role === 'socialmediamanager' ||
-        req.user?.role === 'socialmediahead' ||
-        deptLower.includes('social media');
-      const isPrivileged =
-        req.user?.role === 'admin' ||
-        req.user?.role === 'operationmanager' ||
-        isSocialMediaManager;
-
       if (!isPrivileged) {
         andConditions.push({
           $or: [
@@ -474,16 +487,6 @@ exports.getTasks = async (req, res) => {
         });
       }
     } else {
-      const deptLower = (req.user?.department || '').toLowerCase();
-      const isSocialMediaManager =
-        req.user?.role === 'socialmediamanager' ||
-        req.user?.role === 'socialmediahead' ||
-        deptLower.includes('social media');
-      const isPrivileged =
-        req.user?.role === 'admin' ||
-        req.user?.role === 'operationmanager' ||
-        isSocialMediaManager;
-
       if (!isPrivileged) {
       const Client = require("../models/Client");
       const [assignedClients, usersInSameDept] = await Promise.all([
@@ -523,14 +526,14 @@ exports.getTasks = async (req, res) => {
 
     if (req.query.department) {
       const deptStr = req.query.department.trim();
-      const isGraphic = /graphic/i.test(deptStr);
-      const isCinema = /cinema|video/i.test(deptStr);
+      const isGraphic = /graphic|design/i.test(deptStr);
+      const isCinema = /cinema|video|edit/i.test(deptStr);
       let userDeptQuery;
       if (isGraphic) {
         userDeptQuery = {
           $or: [
-            { department: { $regex: /graphic|design/i } },
-            { role: { $regex: /graphic|design/i } }
+            { department: { $regex: /graphic|design|ui|ux/i } },
+            { role: { $regex: /graphic|design|ui|ux/i } }
           ]
         };
       } else if (isCinema) {
@@ -554,7 +557,8 @@ exports.getTasks = async (req, res) => {
 
       const deptOr = [
         { assignedTo: { $in: userIds } },
-        { "subtasks.assignedTo": { $in: userIds } }
+        { "subtasks.assignedTo": { $in: userIds } },
+        { department: { $regex: isGraphic ? /graphic|design/i : isCinema ? /cinema|video|edit/i : deptStr, $options: "i" } }
       ];
       if (req.query.include_unassigned === 'true') {
         deptOr.push({ assignedTo: null }, { assignedTo: { $exists: false } });
@@ -636,19 +640,20 @@ exports.getTasks = async (req, res) => {
             select: "companyName color icon",
           },
         })
+        .populate("client", "companyName color icon")
         .populate({
           path: "assignedTo",
-          select: "name email department role profile",
+          select: "name email department role designation profile",
           populate: { path: "profile", select: "profileImage" },
         })
         .populate({
           path: "createdBy",
-          select: "name email department role profile",
+          select: "name email department role designation profile",
           populate: { path: "profile", select: "profileImage" },
         })
         .populate({
           path: "subtasks.assignedTo",
-          select: "name email department role",
+          select: "name email department role designation",
         });
 
       if (req.query.full === "true") {

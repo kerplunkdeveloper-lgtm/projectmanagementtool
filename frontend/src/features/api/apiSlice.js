@@ -140,6 +140,8 @@ export const apiSlice = createApi({
         if (params.include_unassigned) queryParams.append('include_unassigned', params.include_unassigned);
         if (params.my_tasks) queryParams.append('my_tasks', params.my_tasks);
         if (params.assignedTo) queryParams.append('assignedTo', params.assignedTo);
+        if (params.all) queryParams.append('all', params.all);
+        if (params.status_overview) queryParams.append('status_overview', params.status_overview);
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],

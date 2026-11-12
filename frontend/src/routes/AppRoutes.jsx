@@ -99,6 +99,9 @@ const ContentCalendar = lazyWithRetry(
 const HrTasks = lazyWithRetry(
   () => import("../pages/hrTasks/HrTasks.jsx"),
 );
+const StatusOverview = lazyWithRetry(
+  () => import("../pages/tasks/StatusOverview.jsx"),
+);
 
 // Dictionary of route preloading functions for hover-intent preloading
 export const routePreloaders = {
@@ -126,6 +129,7 @@ export const routePreloaders = {
   smTasks: () => import("../pages/socialmedia/SmTasks.jsx"),
   contentCalendar: () => import("../pages/socialmedia/ContentCalendar.jsx"),
   hrTasks: () => import("../pages/hrTasks/HrTasks.jsx"),
+  statusOverview: () => import("../pages/tasks/StatusOverview.jsx"),
 };
 
 export const preloadRoute = (path) => {
@@ -134,6 +138,7 @@ export const preloadRoute = (path) => {
   if (p.endsWith("/projects")) routePreloaders.projects?.();
   else if (p.endsWith("/designer-tasks")) routePreloaders.designerTasks?.();
   else if (p.endsWith("/cinematographer-tasks")) routePreloaders.cinematographerTasks?.();
+  else if (p.endsWith("/status-overview")) routePreloaders.statusOverview?.();
   else if (p.endsWith("/sm-tasks") || p.endsWith("/sm-task")) routePreloaders.smTasks?.();
   else if (p.endsWith("/content-calendar") || p.endsWith("/content-calendor")) routePreloaders.contentCalendar?.();
   else if (p.endsWith("/hr-tasks") || p.endsWith("/hr-task")) routePreloaders.hrTasks?.();
@@ -300,6 +305,15 @@ const AppRoutes = () => {
           />
 
           <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute>
+                <StatusOverview />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="cinematographer-tasks"
             element={
               <ProtectedRoute requiredPermission="manage_projects">
@@ -446,6 +460,15 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requiredPermission="manage_projects">
                 <DesignerTasks />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute>
+                <StatusOverview />
               </ProtectedRoute>
             }
           />
@@ -612,6 +635,15 @@ const AppRoutes = () => {
           />
 
           <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute>
+                <StatusOverview />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="cinematographer-tasks"
             element={
               <ProtectedRoute requiredPermission="manage_projects">
@@ -762,6 +794,15 @@ const AppRoutes = () => {
           />
 
           <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute>
+                <StatusOverview />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="cinematographer-tasks"
             element={
               <ProtectedRoute requiredPermission="manage_projects">
@@ -879,6 +920,15 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requiredPermission="manage_projects">
                 <DesignerTasks />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="status-overview"
+            element={
+              <ProtectedRoute>
+                <StatusOverview />
               </ProtectedRoute>
             }
           />

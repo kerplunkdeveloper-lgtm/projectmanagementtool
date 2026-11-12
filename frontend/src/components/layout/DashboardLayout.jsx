@@ -32,7 +32,12 @@ const DashboardLayoutInner = ({ role }) => {
   const isSmTaskPage =
     location.pathname.includes("/sm-task") ||
     location.pathname.includes("/sm-tasks");
-  const hideNavbar = isChatPage || isContentCalendarPage || isSmTaskPage;
+  const isStatusOverviewPage = location.pathname.includes("/status-overview");
+  const hideNavbar =
+    isChatPage ||
+    isContentCalendarPage ||
+    isSmTaskPage ||
+    isStatusOverviewPage;
   const [sidebarOpen, setSidebarOpen] = useState(
     () => window.innerWidth >= 1024,
   );

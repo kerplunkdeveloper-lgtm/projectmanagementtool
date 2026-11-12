@@ -1,7 +1,15 @@
 import axiosInstance from "../../services/axiosInstance";
 
-export const getTasksAPI = async (projectId) => {
-  const url = projectId ? `/tasks?project=${projectId}` : "/tasks";
+export const getTasksAPI = async (projectId, params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (projectId && projectId !== "all") queryParams.append("project", projectId);
+  if (params && typeof params === "object") {
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && k !== "project") queryParams.append(k, v);
+    });
+  }
+  const qs = queryParams.toString();
+  const url = qs ? `/tasks?${qs}` : "/tasks";
   const response = await axiosInstance.get(url);
   return response.data;
 };

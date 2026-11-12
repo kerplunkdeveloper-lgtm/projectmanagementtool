@@ -241,6 +241,16 @@ const HorizontalSidebar = ({ role }) => {
             );
           }
 
+          // Status Overview: Only visible to Admin, Operation Manager, Social Media Head, and Social Media Executive
+          if (
+            subItem.name === "Status Overview" ||
+            subItem.path?.includes("status-overview")
+          ) {
+            if (!isAdmin && !isOperationManager && !isSocialMedia) {
+              return false;
+            }
+          }
+
           if (
             subItem.name === "Content Calendar" ||
             subItem.path?.includes("content-calendar")

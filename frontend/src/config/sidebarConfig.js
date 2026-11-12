@@ -17,6 +17,7 @@ import {
   LuBriefcase,
   LuCalendarRange,
   LuListTodo,
+  LuListChecks,
 } from "react-icons/lu";
 import { TbPencilHeart } from "react-icons/tb";
 import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings, FiFileText, FiKey } from "react-icons/fi";
@@ -32,6 +33,7 @@ export const sidebarConfig = {
       path: "/admin/tasks",
       icon: LuListTodo,
       children: [
+        { name: "Status Overview", path: "/admin/status-overview", icon: LuListChecks },
         { name: "HR Tasks", path: "/admin/hr-tasks", icon: LuBriefcase, permissionKey: "manage_tasks" },
         { name: "SM Tasks", path: "/admin/sm-tasks", icon: LuListTodo },
         { name: "Designer Tasks", path: "/admin/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
@@ -71,6 +73,7 @@ export const sidebarConfig = {
       path: "/operationmanager/tasks",
       icon: LuListTodo,
       children: [
+        { name: "Status Overview", path: "/operationmanager/status-overview", icon: LuListChecks },
         { name: "HR Tasks", path: "/operationmanager/hr-tasks", icon: LuBriefcase, permissionKey: "manage_tasks" },
         { name: "SM Tasks", path: "/operationmanager/sm-tasks", icon: LuListTodo },
         { name: "Designer Tasks", path: "/operationmanager/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
@@ -109,6 +112,7 @@ export const sidebarConfig = {
       path: "/team/tasks",
       icon: LuListTodo,
       children: [
+        { name: "Status Overview", path: "/team/status-overview", icon: LuListChecks },
         { name: "SM Tasks", path: "/team/sm-tasks", icon: LuListTodo },
         { name: "Designer Tasks", path: "/team/designer-tasks", icon: LuPalette, permissionKey: "manage_projects" },
         { name: "Cinematographer Tasks", path: "/team/cinematographer-tasks", icon: LuVideo, permissionKey: "manage_projects" },
@@ -171,6 +175,7 @@ export const sidebarConfig = {
       path: "/socialmediamanager/tasks",
       icon: LuListTodo,
       children: [
+        { name: "Status Overview", path: "/socialmediamanager/status-overview", icon: LuListChecks },
         { name: "SM Tasks", path: "/socialmediamanager/sm-tasks", icon: LuListTodo },
         { name: "Designer Tasks", path: "/socialmediamanager/designer-tasks", icon: LuPalette },
         { name: "Cinematographer Tasks", path: "/socialmediamanager/cinematographer-tasks", icon: LuVideo },
