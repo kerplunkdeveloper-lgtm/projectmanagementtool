@@ -12,11 +12,6 @@ import {
   FiCheck,
   FiSliders,
   FiMessageSquare,
-  FiPlay,
-  FiClock,
-  FiPauseCircle,
-  FiBriefcase,
-  FiZap,
 } from "react-icons/fi";
 import { useGetTeamActivityQuery } from "../../features/api/apiSlice";
 import { useSocketContext } from "../../context/SocketContext";
@@ -772,55 +767,7 @@ const TeamActiveDrawer = ({ isOpen, onClose }) => {
                   {user.isOnline ? "Online" : "Offline"}
                 </span>
               </div>
-
-              {/* Today's online / active hours */}
-              {user.onlineHoursFormatted && user.onlineHoursFormatted !== "0m" && (
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded"
-                  title="Total active time today"
-                >
-                  <FiClock size={10} className="text-slate-400" />
-                  <span>{user.onlineHoursFormatted}</span>
-                </span>
-              )}
             </div>
-
-            {/* Live Work / Task Status Strip */}
-            {user.isOnline && user.isWorking && user.currentTask && (
-              <div
-                className="mt-1.5 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 flex items-center gap-1.5 text-[11px] text-emerald-800 dark:text-emerald-300 shadow-2xs"
-                title={`Working on: ${user.currentTask.title}`}
-              >
-                <FiPlay size={10} className="text-emerald-500 animate-pulse shrink-0" />
-                <span className="font-extrabold truncate max-w-[170px]">
-                  {user.currentTask.title}
-                </span>
-                {user.currentTask.client && (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium shrink-0 truncate max-w-[80px]">
-                    • {user.currentTask.client}
-                  </span>
-                )}
-              </div>
-            )}
-
-            {user.isOnline && user.workStatus === "paused" && user.currentTask && (
-              <div
-                className="mt-1.5 px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 flex items-center gap-1.5 text-[11px] text-amber-800 dark:text-amber-300 shadow-2xs"
-                title={`Paused: ${user.currentTask.title}`}
-              >
-                <FiPauseCircle size={10} className="text-amber-500 shrink-0" />
-                <span className="font-bold truncate max-w-[220px]">
-                  Paused: {user.currentTask.title}
-                </span>
-              </div>
-            )}
-
-            {user.isOnline && !user.isWorking && user.workStatus !== "paused" && (
-              <div className="mt-1 flex items-center gap-1 text-[11px] text-sky-600 dark:text-sky-400 font-medium">
-                <FiZap size={10} className="text-sky-500 shrink-0" />
-                <span>Available</span>
-              </div>
-            )}
           </div>
         </div>
 

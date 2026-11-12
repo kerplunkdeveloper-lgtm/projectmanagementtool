@@ -69,7 +69,10 @@ const ProtectedRoute = ({
     const isSocialMedia =
       deptLower.includes("social media") ||
       (user?.role || "").toLowerCase().includes("social");
-    if (requiredPermission === "manage_projects" && isSocialMedia) {
+    if (
+      (requiredPermission === "manage_projects" || requiredPermission === "manage_tasks") &&
+      isSocialMedia
+    ) {
       return children;
     }
     const perm =

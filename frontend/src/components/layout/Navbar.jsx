@@ -537,14 +537,6 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
         : "Projects Management";
     }
 
-    if (
-      path.includes("task-overview") ||
-      path.includes("taskoverview") ||
-      path.includes("status-overview") ||
-      path.includes("statusoverview")
-    ) {
-      return "Status Overview";
-    }
     if (path.includes("sm-tasks") || path.includes("sm-task")) return "SM Tasks";
     if (path.includes("content-calendar") || path.includes("content-calendor")) return "Content Calendar";
     if (path.includes("tasks")) return "Assigned Tasks";
@@ -1306,7 +1298,7 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
               theme-border theme-bg-card hover:theme-bg-main ${activeAccent.hoverBorder}
               hover:shadow-xs group relative
             `}
-            title="View Active Team Members & Online Hours"
+            title="View Active Team Members"
           >
             <div className="relative flex items-center justify-center">
               <FiUsers

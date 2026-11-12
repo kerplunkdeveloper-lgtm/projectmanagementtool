@@ -457,7 +457,7 @@ exports.getTasks = async (req, res) => {
       const isSocialMediaManager =
         req.user?.role === 'socialmediamanager' ||
         req.user?.role === 'socialmediahead' ||
-        deptLower.includes('social media head');
+        deptLower.includes('social media');
       const isPrivileged =
         req.user?.role === 'admin' ||
         req.user?.role === 'operationmanager' ||
@@ -478,7 +478,7 @@ exports.getTasks = async (req, res) => {
       const isSocialMediaManager =
         req.user?.role === 'socialmediamanager' ||
         req.user?.role === 'socialmediahead' ||
-        deptLower.includes('social media head');
+        deptLower.includes('social media');
       const isPrivileged =
         req.user?.role === 'admin' ||
         req.user?.role === 'operationmanager' ||
