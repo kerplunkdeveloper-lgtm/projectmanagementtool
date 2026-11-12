@@ -14,9 +14,13 @@ exports.getProjects = async (req, res) => {
       req.user?.role === "socialmediamanager" ||
       req.user?.role === "socialmediahead" ||
       deptLower.includes("social media head");
+    const isSocialMedia =
+      isSocialMediaManager ||
+      deptLower.includes("social media") ||
+      (req.user?.role || "").toLowerCase().includes("social");
 
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      if (isSocialMediaManager) {
+      if (isSocialMedia) {
         // Find all Social Media Executive users
         const smUsers = await User.find({
           $or: [

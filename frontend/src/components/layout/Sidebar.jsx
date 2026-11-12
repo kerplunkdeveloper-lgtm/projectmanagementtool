@@ -441,16 +441,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           return item.children.length > 0;
         }
 
-        // Hide Projects Overview for Social Media Executive department
-        if (
-          item.name === "Projects Overview" &&
-          (currentUser?.department === "Social Media Manager" ||
-            currentUser?.department === "Social Media Executive" ||
-            currentUser?.department === "Social Media Executive")
-        ) {
-          return false;
-        }
-
         // Hide My Reports for Social Media Executive department and HR department/role
         if (
           item.name === "My Reports" &&
@@ -464,12 +454,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           return false;
         }
 
-        // Hide Users and Projects for Social Media Head / Manager
+        // Hide Users for Social Media Head / Manager / Executive
         if (
           (item.name === "Users" ||
-            item.path?.includes("/users") ||
-            item.name === "Projects" ||
-            item.path?.includes("/projects")) &&
+            item.path?.includes("/users")) &&
           (role === "socialmediamanager" ||
             role === "socialmediahead" ||
             (currentUser?.department || "").toLowerCase().includes("social media") ||
@@ -667,6 +655,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           (currentUser?.role || "").toLowerCase().includes("social media manager");
         if (role === "admin" || role === "operationmanager" || role === "operation manager" || isSocialMediaHeadOrManager) return true;
         if (item.permissionKey === "manage_clients") return true;
+        const deptLower = (currentUser?.department || "").toLowerCase();
+        const isSocialMedia =
+          deptLower.includes("social media") ||
+          (currentUser?.role || "").toLowerCase().includes("social");
+        if (
+          (item.permissionKey === "manage_projects" || item.name === "Projects") &&
+          isSocialMedia
+        ) {
+          return true;
+        }
         if (!item.permissionKey) return true;
         const perm = currentUser?.permissions?.[item.permissionKey];
         if (perm === true) return true; // legacy

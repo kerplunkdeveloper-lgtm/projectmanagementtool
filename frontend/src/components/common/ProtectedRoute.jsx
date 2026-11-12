@@ -65,6 +65,13 @@ const ProtectedRoute = ({
     if (requiredPermission === "manage_clients") {
       return children;
     }
+    const deptLower = (user?.department || "").toLowerCase();
+    const isSocialMedia =
+      deptLower.includes("social media") ||
+      (user?.role || "").toLowerCase().includes("social");
+    if (requiredPermission === "manage_projects" && isSocialMedia) {
+      return children;
+    }
     const perm =
       requiredPermission === "manage_shoots"
         ? user.permissions?.manage_shoots || user.permissions?.shoot_calendar

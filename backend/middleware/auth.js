@@ -69,9 +69,14 @@ exports.authorize = (...roles) => {
       return next();
     }
 
-    // Social Media Manager has full managerial access for tasks, shoots, calendar-events, projects, clients, and social media
+    const isSocialMedia =
+      isSocialMediaManager ||
+      deptLower.includes('social media') ||
+      roleLower.includes('social');
+
+    // Social Media Manager / Executive has managerial access for tasks, shoots, calendar-events, projects, clients, and social media
     const url = req.originalUrl || '';
-    if (isSocialMediaManager) {
+    if (isSocialMedia) {
       if (
         url.includes('/tasks') ||
         url.includes('/shoots') ||

@@ -165,6 +165,7 @@ export const sidebarConfig = {
     { name: "Home", path: "/socialmediamanager", icon: FiHome },
     { name: "Sticky Notes", path: "/socialmediamanager/stickynotes", icon: TbPencilHeart },
     { name: "Clients", path: "/socialmediamanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
+    { name: "Projects", path: "/socialmediamanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     {
       name: "Tasks",
       path: "/socialmediamanager/tasks",
