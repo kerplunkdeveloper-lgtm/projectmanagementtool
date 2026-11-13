@@ -18,6 +18,7 @@ import { useSocketContext } from "../../../context/SocketContext";
 import toast from "react-hot-toast";
 import { getDesignerEodReports } from "../../../features/eodReports/designerEodReportSlice";
 import LiveTaskBoard from "./LiveTaskBoard";
+import GraphicDesignerDashboardSkeleton from "./GraphicDesignerDashboardSkeleton";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -1449,139 +1450,13 @@ const getPriorityStyle = (priority) => {
   return "bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
 };
 
-const GraphicDesignerDashboardSkeleton = ({ targetDept = "Graphic Designer" }) => {
-  return (
-    <div className="w-full space-y-6 animate-pulse select-none">
-      {/* Top Header Skeleton */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 shadow-sm backdrop-blur-xl">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 dark:bg-indigo-500/30 flex items-center justify-center">
-              <div className="w-4 h-4 rounded-md bg-indigo-500/40" />
-            </div>
-            <div className="h-6 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg" />
-            <div className="h-5 w-24 bg-indigo-100 dark:bg-indigo-950/60 rounded-full" />
-          </div>
-          <div className="h-3.5 w-64 bg-slate-100 dark:bg-slate-800/60 rounded-md" />
-        </div>
+export { GraphicDesignerDashboardSkeleton };
 
-        {/* Date Filter Skeletons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="h-9 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-          <div className="h-9 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-          <div className="h-9 w-9 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-        </div>
-      </div>
-
-      {/* KPI Cards Skeleton (4 columns) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { color: "from-blue-500/10 to-indigo-500/10", border: "border-blue-500/20" },
-          { color: "from-amber-500/10 to-orange-500/10", border: "border-amber-500/20" },
-          { color: "from-violet-500/10 to-purple-500/10", border: "border-violet-500/20" },
-          { color: "from-emerald-500/10 to-teal-500/10", border: "border-emerald-500/20" },
-        ].map((item, idx) => (
-          <div
-            key={idx}
-            className={`p-4 rounded-2xl bg-gradient-to-br ${item.color} bg-white dark:bg-slate-900/80 border ${item.border} dark:border-slate-800 shadow-sm relative overflow-hidden flex flex-col justify-between h-28`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="h-3.5 w-24 bg-slate-200 dark:bg-slate-700/60 rounded" />
-              <div className="w-8 h-8 rounded-xl bg-slate-200/80 dark:bg-slate-800" />
-            </div>
-            <div className="space-y-1.5 mt-auto">
-              <div className="h-7 w-16 bg-slate-300 dark:bg-slate-700 rounded-lg" />
-              <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full w-2/3 bg-slate-300/60 dark:bg-slate-700/60 rounded-full" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Team Performance Table Skeleton */}
-      <div className="rounded-2xl bg-white/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden backdrop-blur-xl">
-        {/* Table Header Controls */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-lg bg-indigo-500/20" />
-            <div className="h-5 w-44 bg-slate-200 dark:bg-slate-800 rounded" />
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-28 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-            <div className="h-8 w-8 bg-slate-200 dark:bg-slate-800 rounded-xl" />
-          </div>
-        </div>
-
-        {/* Table Rows Skeleton */}
-        <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-          {[1, 2, 3, 4, 5].map((row) => (
-            <div key={row} className="p-4 flex items-center justify-between gap-4">
-              {/* User Info */}
-              <div className="flex items-center gap-3 w-48 shrink-0">
-                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
-                <div className="space-y-1.5 min-w-0 flex-1">
-                  <div className="h-4 w-28 bg-slate-200 dark:bg-slate-750 rounded" />
-                  <div className="h-3 w-16 bg-slate-100 dark:bg-slate-800 rounded" />
-                </div>
-              </div>
-
-              {/* Status Columns Skeletons */}
-              <div className="hidden sm:flex items-center gap-3 flex-1 justify-around">
-                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
-                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
-                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
-                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
-                <div className="h-7 w-16 bg-slate-100 dark:bg-slate-800/80 rounded-lg" />
-              </div>
-
-              {/* Right Stats & Eye Icon */}
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="h-7 w-20 bg-slate-100 dark:bg-slate-800 rounded-lg" />
-                <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Live Board Columns Skeleton */}
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
-        {[1, 2, 3, 4, 5].map((col) => (
-          <div
-            key={col}
-            className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 space-y-3"
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-800">
-              <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
-              <div className="h-5 w-7 bg-slate-200 dark:bg-slate-800 rounded-full" />
-            </div>
-            <div className="space-y-2.5">
-              {[1, 2].map((card) => (
-                <div
-                  key={card}
-                  className="p-3 bg-white dark:bg-slate-800/60 rounded-xl border border-slate-150 dark:border-slate-750 shadow-2xs space-y-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
-                    <div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded" />
-                  </div>
-                  <div className="h-4 w-3/4 bg-slate-300 dark:bg-slate-650 rounded" />
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="h-3 w-20 bg-slate-100 dark:bg-slate-800 rounded" />
-                    <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer", parentTasks = null }) => {
+const GraphicDesignerDashboard = ({
+  targetDept = "Graphic Designer",
+  parentTasks = null,
+  parentLoading = false,
+}) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const performanceTableRef = useRef(null);
@@ -3114,7 +2989,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer", parentTasks
     return counts;
   }, [activeModalTasksList]);
 
-  if (isLoading && (!allTasks || allTasks.length === 0)) {
+  const isDataLoading =
+    Boolean(parentLoading) ||
+    Boolean(isTasksQueryLoading) ||
+    (Boolean(designerEodState?.loading) && (!designerEodReports || designerEodReports.length === 0));
+
+  if ((isDataLoading || isLoading) && (!allTasks || allTasks.length === 0)) {
     return <GraphicDesignerDashboardSkeleton targetDept={targetDept} />;
   }
 

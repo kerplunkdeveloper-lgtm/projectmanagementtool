@@ -45,6 +45,14 @@ const Project = () => {
   const { portfolios = [] } = useSelector((state) => state.portfolios);
   const { user: currentUser } = useSelector((state) => state.auth);
 
+  const userMap = useMemo(() => {
+    const map = new Map();
+    (users || []).forEach((u) => {
+      if (u?._id) map.set(u._id.toString(), u);
+    });
+    return map;
+  }, [users]);
+
   // Local State
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -199,6 +207,24 @@ const Project = () => {
   // Filter projects
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
+      // Hide projects belonging to inactive clients
+      const clientId = (project.client?._id || project.client)?.toString();
+      if (clientId) {
+        const clientObj = clients?.find(
+          (c) => (c._id || c.id)?.toString() === clientId,
+        );
+        if (clientObj && (clientObj.status || "").toLowerCase() === "inactive") {
+          return false;
+        }
+      }
+      if (
+        project.client &&
+        typeof project.client === "object" &&
+        (project.client.status || "").toLowerCase() === "inactive"
+      ) {
+        return false;
+      }
+
       // For Social Media Executive, strictly ensure project belongs to their clients
       if (isSocialMediaExecutive) {
         if (!clients || clients.length === 0) return false;
@@ -423,15 +449,17 @@ const Project = () => {
             <option value="All" className="dark:bg-[#111111]">
               All Clients
             </option>
-            {clients?.map((client) => (
-              <option
-                key={client._id}
-                value={client._id}
-                className="dark:bg-[#111111]"
-              >
-                {client.companyName}
-              </option>
-            ))}
+            {clients
+              ?.filter((c) => (c.status || "active").toLowerCase() !== "inactive")
+              .map((client) => (
+                <option
+                  key={client._id}
+                  value={client._id}
+                  className="dark:bg-[#111111]"
+                >
+                  {client.companyName}
+                </option>
+              ))}
           </select>
           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
             <FiChevronDown size={14} />
@@ -511,6 +539,9 @@ const Project = () => {
                 </th>
                 <th className="px-4 py-2">
                   Project created by
+                </th>
+                <th className="px-4 py-2">
+                  Client Handle SME
                 </th>
 
                 <th className="px-4 py-2">
@@ -641,6 +672,150 @@ const Project = () => {
                           )}
                         </div>
                       </div>
+                    </td>
+
+                    <td className="px-4 py-2">
+                      {(() => {
+                        const clientId = project.client?._id || project.client;
+                        const clientObj =
+                          clients?.find((c) => String(c._id) === String(clientId)) ||
+                          (typeof project.client === "object" ? project.client : null);
+
+                        const rawAssignees = clientObj?.assignedTo
+                          ? Array.isArray(clientObj.assignedTo)
+                            ? clientObj.assignedTo
+                            : [clientObj.assignedTo]
+                          : [];
+
+                        // Map assignees to full user objects
+                        const allAssignees = rawAssignees
+                          .map((item) => {
+                            if (typeof item === "object" && item !== null && item.name) {
+                              const userFromMap = userMap.get(String(item._id));
+                              return { ...item, ...(userFromMap || {}) };
+                            }
+                            const id =
+                              typeof item === "object" && item !== null
+                                ? item._id
+                                : item;
+                            return userMap.get(String(id)) || null;
+                          })
+                          .filter(Boolean);
+
+                        const isSme = (u) => {
+                          if (!u) return false;
+                          const dept = (u.department || "").toLowerCase();
+                          const role = (u.role?.name || u.role || "").toLowerCase();
+                          return (
+                            dept.includes("social media executive") ||
+                            dept.includes("social media manager") ||
+                            dept.includes("social media head") ||
+                            dept.includes("social media") ||
+                            dept.includes("sme") ||
+                            dept.includes("smm") ||
+                            role.includes("socialmediaexecutive") ||
+                            role.includes("socialmediamanager") ||
+                            role.includes("socialmediahead") ||
+                            role.includes("social")
+                          );
+                        };
+
+                        // Prioritize Social Media Executive assignees
+                        let smeList = allAssignees.filter(isSme);
+
+                        // If no SME in assignedTo, check clientObj.createdBy
+                        if (smeList.length === 0 && clientObj?.createdBy) {
+                          const creatorUser =
+                            typeof clientObj.createdBy === "object" && clientObj.createdBy.name
+                              ? { ...clientObj.createdBy, ...(userMap.get(String(clientObj.createdBy._id)) || {}) }
+                              : userMap.get(String(clientObj.createdBy));
+                          if (creatorUser && isSme(creatorUser)) {
+                            smeList = [creatorUser];
+                          }
+                        }
+
+                        // Fallback: If still empty, use allAssignees
+                        if (smeList.length === 0 && allAssignees.length > 0) {
+                          smeList = allAssignees;
+                        }
+
+                        if (smeList.length === 0) {
+                          return (
+                            <span className="text-slate-400 dark:text-slate-500 text-[10px] italic">
+                              Unassigned
+                            </span>
+                          );
+                        }
+
+                        return (
+                          <div className="flex flex-col gap-2">
+                            {smeList.map((sme, idx) => {
+                              const avatarUrl =
+                                (typeof sme?.profile?.profileImage === "object"
+                                  ? sme?.profile?.profileImage?.url
+                                  : sme?.profile?.profileImage) ||
+                                (typeof sme?.profileImage === "object"
+                                  ? sme?.profileImage?.url
+                                  : sme?.profileImage) ||
+                                sme?.profilePic ||
+                                sme?.avatar ||
+                                sme?.profile?.profilePic ||
+                                sme?.profile?.avatar;
+
+                              const initials = (sme?.name || "U")
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .substring(0, 2)
+                                .toUpperCase();
+
+                              const AVATAR_COLORS = [
+                                "from-emerald-500 to-teal-600",
+                                "from-violet-500 to-indigo-600",
+                                "from-cyan-500 to-blue-600",
+                                "from-orange-500 to-amber-600",
+                                "from-pink-500 to-rose-600",
+                              ];
+                              const colorClass =
+                                AVATAR_COLORS[
+                                  ((sme?.name || "U").charCodeAt(0) || 0) %
+                                    AVATAR_COLORS.length
+                                ];
+
+                              const deptLabel =
+                                sme?.department && sme.department.toLowerCase() === "social media manager"
+                                  ? "Social Media Executive"
+                                  : sme?.department || "Social Media Executive";
+
+                              return (
+                                <div key={sme._id || idx} className="flex items-center gap-2">
+                                  {avatarUrl ? (
+                                    <img
+                                      src={avatarUrl}
+                                      alt={sme?.name || "SME"}
+                                      className="w-6 h-6 rounded-full object-cover shadow-sm shrink-0 border border-slate-200 dark:border-slate-700"
+                                    />
+                                  ) : (
+                                    <div
+                                      className={`w-6 h-6 rounded-full bg-gradient-to-tr ${colorClass} flex items-center justify-center text-white text-[9px] font-black shadow-inner shrink-0`}
+                                    >
+                                      {initials}
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col">
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] whitespace-nowrap">
+                                      {sme?.name || "N/A"}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 px-1.5 py-0.5 rounded flex items-center justify-center w-max mt-0.5 shadow-xs">
+                                      {deptLabel}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     <td className="px-4 py-2 ">
@@ -834,7 +1009,9 @@ const Project = () => {
                         <option value="" className="dark:bg-[#111111]">
                           Select a client
                         </option>
-                        {clients?.map((c) => (
+                        {clients
+                          ?.filter((c) => (c.status || "active").toLowerCase() !== "inactive")
+                          .map((c) => (
                           <option
                             key={c._id}
                             value={c._id}

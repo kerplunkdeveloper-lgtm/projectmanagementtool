@@ -6,6 +6,7 @@ import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
 import DashboardCards from "./cards/DashboardCards";
 import ShootCalendarOverview from "./cards/ShootCalendarOverview";
 import ContentCalendarOverview from "./cards/ContentCalendarOverview";
+import GraphicDesignerDashboardSkeleton from "./cards/GraphicDesignerDashboardSkeleton";
 const GraphicDesignerDashboard = React.lazy(
   () => import("./cards/GraphicDesignerDashboard"),
 );
@@ -2757,12 +2758,9 @@ const Dashboardmain = () => {
           </div>
 
           {/* Tab Content */}
-          {/* Tab Content */}
           <React.Suspense
             fallback={
-              <div className="flex justify-center py-10">
-                <div className="animate-spin h-8 w-8 border-2 border-blue-500 rounded-full border-t-transparent"></div>
-              </div>
+              <GraphicDesignerDashboardSkeleton targetDept={activeDeptTab} />
             }
           >
             {(["Graphic Designer", "VideoGrapher", "Cinematographer"].some(
@@ -2773,7 +2771,11 @@ const Dashboardmain = () => {
               activeDeptTab?.toLowerCase().includes("video")) &&
               !isSocialMediaManager &&
               !isSocialMediaExecutive && (
-              <GraphicDesignerDashboard targetDept={activeDeptTab} parentTasks={tasks} />
+              <GraphicDesignerDashboard
+                targetDept={activeDeptTab}
+                parentTasks={tasks}
+                parentLoading={tasksLoading}
+              />
             )}
             {activeDeptTab?.toLowerCase().includes("web") && (
               <WebDeveloperDashboard targetDept={activeDeptTab} parentTasks={tasks} />
@@ -2802,7 +2804,11 @@ const Dashboardmain = () => {
               !activeDeptTab?.toLowerCase().includes("performance") &&
               !isSocialMediaManager &&
               !isSocialMediaExecutive && (
-                <GraphicDesignerDashboard targetDept={activeDeptTab} parentTasks={tasks} />
+                <GraphicDesignerDashboard
+                  targetDept={activeDeptTab}
+                  parentTasks={tasks}
+                  parentLoading={tasksLoading}
+                />
               )}
           </React.Suspense>
         </div>

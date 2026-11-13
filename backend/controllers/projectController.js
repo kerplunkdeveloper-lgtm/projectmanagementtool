@@ -81,7 +81,7 @@ exports.getProjects = async (req, res) => {
         .select("name client status")
         .populate({
           path: "client",
-          select: "companyName color icon",
+          select: "companyName color icon status",
         })
         .lean();
 
@@ -95,7 +95,12 @@ exports.getProjects = async (req, res) => {
     const projects = await Project.find(query)
       .populate({
         path: "client",
-        select: "companyName color icon",
+        select: "companyName color icon status assignedTo",
+        populate: {
+          path: "assignedTo",
+          select: "name email role department profile profileImage profilePic avatar",
+          populate: { path: "profile" }
+        }
       })
       .populate({
         path: "createdBy",
