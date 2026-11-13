@@ -2,6 +2,7 @@ const Task = require("../models/Task");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const Project = require("../models/Project");
+const Client = require("../models/Client");
 const { calculateBusinessMs, checkWithinBusinessHours } = require("../utils/businessHours");
 
 
@@ -454,6 +455,43 @@ exports.getTasks = async (req, res) => {
       req.query.all === "true" ||
       req.query.status_overview === "true";
 
+    const isSocialMediaHeadUser =
+      !deptLower.includes("executive") &&
+      !roleLower.includes("executive") &&
+      (roleLower === "socialmediahead" ||
+        roleLower === "socialmediamanager" ||
+        deptLower.includes("social media head") ||
+        deptLower.includes("social media manager") ||
+        deptLower.includes("smm head"));
+
+    const isSocialMediaExecutiveUser =
+      !deptLower.includes("head") &&
+      !roleLower.includes("head") &&
+      (deptLower.includes("social media executive") ||
+        (deptLower.includes("social") && deptLower.includes("executive")) ||
+        (roleLower.includes("social") && roleLower.includes("executive")) ||
+        (deptLower.includes("smm") && deptLower.includes("executive")));
+
+    // If Social Media Head is querying status overview, restrict strictly to Chennai branch clients
+    if (isSocialMediaHeadUser && req.query.status_overview === "true") {
+      const chennaiClients = await Client.find({ branch: new RegExp("^chennai$", "i") }).select("_id").lean();
+      const chennaiClientIds = chennaiClients.map((c) => c._id);
+      const chennaiProjects = await Project.find({ client: { $in: chennaiClientIds } }).select("_id").lean();
+      const chennaiProjectIds = chennaiProjects.map((p) => p._id);
+
+      andConditions.push({
+        $or: [
+          { client: { $in: chennaiClientIds } },
+          { project: { $in: chennaiProjectIds } },
+        ],
+      });
+    }
+
+    // If Social Media Executive is querying status overview, restrict strictly to tasks created by them
+    if (isSocialMediaExecutiveUser && req.query.status_overview === "true") {
+      andConditions.push({ createdBy: req.user._id });
+    }
+
     if (req.query.my_tasks === "true" || req.query.myTasks === "true") {
       andConditions.push({
         $or: [
@@ -612,10 +650,10 @@ exports.getTasks = async (req, res) => {
           select: "name client",
           populate: {
             path: "client",
-            select: "companyName color icon assignedTo",
+            select: "companyName color icon assignedTo branch",
           },
         })
-        .populate("client", "companyName color icon assignedTo")
+        .populate("client", "companyName color icon assignedTo branch")
         .populate({
           path: "createdBy",
           select: "name email department role profile",
@@ -637,10 +675,10 @@ exports.getTasks = async (req, res) => {
           select: "name client",
           populate: {
             path: "client",
-            select: "companyName color icon",
+            select: "companyName color icon branch",
           },
         })
-        .populate("client", "companyName color icon")
+        .populate("client", "companyName color icon branch")
         .populate({
           path: "assignedTo",
           select: "name email department role designation profile",

@@ -27,7 +27,6 @@ import {
   FiAlertCircle,
   FiAlertTriangle,
   FiRefreshCw,
-  FiArrowUpRight,
   FiLayers,
   FiEye,
   FiTrendingUp,
@@ -283,7 +282,7 @@ const StatusOverview = () => {
     isLoading: isGdActiveLoading,
     refetch: refetchGdActive,
   } = useGetTasksQuery(
-    { active_only: true, department: "Graphic Designer" },
+    { active_only: true, department: "Graphic Designer", status_overview: "true" },
     { refetchOnMountOrArgChange: true }
   );
 
@@ -292,7 +291,7 @@ const StatusOverview = () => {
     isLoading: isGdAllLoading,
     refetch: refetchGdAll,
   } = useGetTasksQuery(
-    { department: "Graphic Designer" },
+    { department: "Graphic Designer", status_overview: "true" },
     { refetchOnMountOrArgChange: true }
   );
 
@@ -301,7 +300,7 @@ const StatusOverview = () => {
     isLoading: isCinemaActiveLoading,
     refetch: refetchCinemaActive,
   } = useGetTasksQuery(
-    { active_only: true, department: "Cinematographer" },
+    { active_only: true, department: "Cinematographer", status_overview: "true" },
     { refetchOnMountOrArgChange: true }
   );
 
@@ -310,7 +309,7 @@ const StatusOverview = () => {
     isLoading: isCinemaAllLoading,
     refetch: refetchCinemaAll,
   } = useGetTasksQuery(
-    { department: "Cinematographer" },
+    { department: "Cinematographer", status_overview: "true" },
     { refetchOnMountOrArgChange: true }
   );
 
@@ -319,7 +318,7 @@ const StatusOverview = () => {
     isLoading: isDashboardLoading,
     refetch: refetchDashboard,
   } = useGetTasksQuery(
-    { active_only: true },
+    { active_only: true, status_overview: "true" },
     { refetchOnMountOrArgChange: true }
   );
 
@@ -327,7 +326,7 @@ const StatusOverview = () => {
     data: rtkAllTasks = [],
     isLoading: isAllTasksLoading,
     refetch: refetchAllTasks,
-  } = useGetTasksQuery(undefined, { refetchOnMountOrArgChange: true });
+  } = useGetTasksQuery({ status_overview: "true" }, { refetchOnMountOrArgChange: true });
 
   const {
     data: rtkStatusOverviewTasks = [],
@@ -377,11 +376,253 @@ const StatusOverview = () => {
   const { users = [] } = useSelector((state) => state.users || {});
   const { user: currentUser } = useSelector((state) => state.auth || {});
 
+  // Determine if current user is Social Media Head
+  const isSocialMediaHead = useMemo(() => {
+    if (!currentUser) return false;
+    const dept = (currentUser.department || currentUser.profile?.department || "").toLowerCase().trim();
+    const role = (currentUser.role || "").toLowerCase().trim();
+    if (dept.includes("executive") || role.includes("executive")) return false;
+    return (
+      dept.includes("social media head") ||
+      dept.includes("smm head") ||
+      role === "socialmediahead" ||
+      role === "socialmediamanager"
+    );
+  }, [currentUser]);
+
+  // Determine if current user is Social Media Executive
+  const isSocialMediaExecutive = useMemo(() => {
+    if (!currentUser) return false;
+    const dept = (currentUser.department || currentUser.profile?.department || "").toLowerCase().trim();
+    const role = (currentUser.role || "").toLowerCase().trim();
+    const desig = (currentUser.designation || "").toLowerCase().trim();
+    if (dept.includes("head") || role.includes("head")) return false;
+    return (
+      dept.includes("social media executive") ||
+      dept === "social media executive" ||
+      (dept.includes("social") && dept.includes("executive")) ||
+      (role.includes("social") && role.includes("executive")) ||
+      desig.includes("social media executive") ||
+      (dept.includes("smm") && dept.includes("executive"))
+    );
+  }, [currentUser]);
+
+  const currentUserId = useMemo(() => {
+    return String(currentUser?._id || currentUser?.id || "");
+  }, [currentUser]);
+
   // Determine current base path for routing
   const basePath = useMemo(() => {
     const parts = (location.pathname || "").split("/").filter(Boolean);
     return parts[0] || "admin";
   }, [location.pathname]);
+
+  // Maps for fast lookups
+  const clientsMap = useMemo(() => {
+    const m = new Map();
+    (clients || []).forEach((c) => {
+      if (c?._id) m.set(String(c._id), c);
+      if (c?.id) m.set(String(c.id), c);
+    });
+    return m;
+  }, [clients]);
+
+  const projectsMap = useMemo(() => {
+    const m = new Map();
+    (projects || []).forEach((p) => {
+      if (p?._id) m.set(String(p._id), p);
+      if (p?.id) m.set(String(p.id), p);
+    });
+    return m;
+  }, [projects]);
+
+  const usersMap = useMemo(() => {
+    const m = new Map();
+    (users || []).forEach((u) => {
+      if (u?._id) m.set(String(u._id), u);
+      if (u?.id) m.set(String(u.id), u);
+    });
+    return m;
+  }, [users]);
+
+  // Set of Chennai client IDs & names for Social Media Head filtering
+  const { chennaiClientIdSet, chennaiClientNameSet } = useMemo(() => {
+    const idSet = new Set();
+    const nameSet = new Set();
+    (clients || []).forEach((c) => {
+      if (!c) return;
+      const b = (c.branch || "").trim().toLowerCase();
+      // For Social Media Head, clients from /api/clients are already Chennai branch; otherwise check branch === 'chennai'
+      if (b === "chennai" || isSocialMediaHead) {
+        if (c._id) idSet.add(String(c._id));
+        if (c.id) idSet.add(String(c.id));
+        const name = (c.companyName || c.name || "").trim().toLowerCase();
+        if (name) nameSet.add(name);
+      }
+    });
+    return { chennaiClientIdSet: idSet, chennaiClientNameSet: nameSet };
+  }, [clients, isSocialMediaHead]);
+
+  // Robust helper to resolve client for ANY task
+  const getTaskClient = useCallback(
+    (t) => {
+      if (!t) return null;
+      let resolved = null;
+
+      // 1. Direct populated client on task
+      if (t.client && typeof t.client === "object" && (t.client.companyName || t.client.name)) {
+        const cId = String(t.client._id || t.client.id || "");
+        const fromMap = cId ? clientsMap.get(cId) : null;
+        resolved = fromMap
+          ? { ...fromMap, ...t.client, branch: t.client.branch || fromMap.branch }
+          : t.client;
+      }
+      // 2. Client on populated project
+      else if (t.project && typeof t.project === "object") {
+        if (
+          t.project.client &&
+          typeof t.project.client === "object" &&
+          (t.project.client.companyName || t.project.client.name)
+        ) {
+          const cId = String(t.project.client._id || t.project.client.id || "");
+          const fromMap = cId ? clientsMap.get(cId) : null;
+          resolved = fromMap
+            ? { ...fromMap, ...t.project.client, branch: t.project.client.branch || fromMap.branch }
+            : t.project.client;
+        } else if (t.project.client) {
+          const c = clientsMap.get(String(t.project.client?._id || t.project.client));
+          if (c) resolved = c;
+        }
+      }
+      // 3. Client ID string on task
+      else if (t.client) {
+        const cId = typeof t.client === "object" ? t.client._id || t.client.id : t.client;
+        const c = clientsMap.get(String(cId));
+        if (c) resolved = c;
+      }
+      // 4. Project ID lookup in projectsMap
+      else if (t.project) {
+        const pId = typeof t.project === "object" ? t.project._id || t.project.id : t.project;
+        const p = projectsMap.get(String(pId));
+        if (p?.client) {
+          const c =
+            typeof p.client === "object"
+              ? p.client
+              : clientsMap.get(String(p.client?._id || p.client));
+          if (c) resolved = c;
+        }
+      }
+      // 5. Check subtasks client
+      if (!resolved && Array.isArray(t.subtasks)) {
+        for (const sub of t.subtasks) {
+          if (sub?.client) {
+            const subCId = String(sub.client?._id || sub.client?.id || sub.client || "");
+            const fromMap = subCId ? clientsMap.get(subCId) : null;
+            const subC =
+              typeof sub.client === "object" && (sub.client.companyName || sub.client.name)
+                ? (fromMap ? { ...fromMap, ...sub.client, branch: sub.client.branch || fromMap.branch } : sub.client)
+                : fromMap;
+            if (subC) {
+              resolved = subC;
+              break;
+            }
+          }
+        }
+      }
+      // 6. Project fallback (if no direct client entity exists, use project name)
+      if (!resolved) {
+        const pId = typeof t.project === "object" ? t.project?._id : t.project;
+        const projObj = (typeof t.project === "object" ? t.project : null) || projectsMap.get(String(pId));
+        if (projObj?.name) {
+          resolved = { companyName: projObj.name, name: projObj.name, isProjectFallback: true };
+        }
+      }
+      return resolved;
+    },
+    [clientsMap, projectsMap]
+  );
+
+  // Helper to check if task belongs to a Chennai branch client
+  const isTaskFromChennaiClient = useCallback(
+    (t) => {
+      if (!t) return false;
+      const client = getTaskClient(t);
+      if (!client) return false;
+      if (client.isProjectFallback) return false;
+
+      // 1. Direct branch property on resolved client
+      const b = (client.branch || "").trim().toLowerCase();
+      if (b === "chennai") return true;
+      if (b && b !== "chennai") return false;
+
+      // 2. Client ID match in chennaiClientIdSet or clientsMap
+      const cId = String(client._id || client.id || "");
+      if (cId) {
+        if (chennaiClientIdSet.has(cId)) return true;
+        const mapped = clientsMap.get(cId);
+        if (mapped) {
+          const mb = (mapped.branch || "").trim().toLowerCase();
+          if (mb === "chennai") return true;
+          if (mb && mb !== "chennai") return false;
+          if (isSocialMediaHead) return true;
+        }
+      }
+
+      // 3. Client Name match
+      const cName = (client.companyName || client.name || "").trim().toLowerCase();
+      if (cName && chennaiClientNameSet.has(cName)) return true;
+
+      // 4. Project's client check
+      if (t.project) {
+        const pId = typeof t.project === "object" ? t.project?._id : t.project;
+        const proj = (typeof t.project === "object" ? t.project : null) || projectsMap.get(String(pId));
+        if (proj?.client) {
+          const projCId = String(proj.client?._id || proj.client?.id || proj.client);
+          if (chennaiClientIdSet.has(projCId)) return true;
+          const projCObj = typeof proj.client === "object" ? proj.client : clientsMap.get(projCId);
+          if (projCObj) {
+            const pb = (projCObj.branch || "").trim().toLowerCase();
+            if (pb === "chennai") return true;
+            if (pb && pb !== "chennai") return false;
+            if (isSocialMediaHead) return true;
+          }
+        }
+      }
+
+      return false;
+    },
+    [getTaskClient, chennaiClientIdSet, chennaiClientNameSet, clientsMap, projectsMap, isSocialMediaHead]
+  );
+
+  // Helper to resolve creator object for any task
+  const getTaskCreator = useCallback(
+    (t) => {
+      if (!t) return null;
+      const creatorRaw = typeof t.createdBy === "object" ? t.createdBy : null;
+      const creatorFromMap = usersMap.get(String(creatorRaw?._id || t.createdBy));
+      return creatorFromMap
+        ? { ...creatorRaw, ...creatorFromMap }
+        : creatorRaw || creatorFromMap || null;
+    },
+    [usersMap]
+  );
+
+  // Helper to check if task was created by the logged-in user
+  const isTaskCreatedByCurrentUser = useCallback(
+    (t) => {
+      if (!t || !currentUserId) return false;
+      const creatorRaw = typeof t.createdBy === "object" ? t.createdBy?._id || t.createdBy?.id : t.createdBy;
+      const creatorId = String(creatorRaw || "");
+      if (creatorId && creatorId === currentUserId) return true;
+
+      const creatorObj = getTaskCreator(t);
+      const mappedCreatorId = String(creatorObj?._id || creatorObj?.id || "");
+      if (mappedCreatorId && mappedCreatorId === currentUserId) return true;
+
+      return false;
+    },
+    [currentUserId, getTaskCreator]
+  );
 
   // Initial fetch
   useEffect(() => {
@@ -431,7 +672,14 @@ const StatusOverview = () => {
     addList(rtkAllTasks);
     addList(fallbackTasks);
 
-    return Array.from(map.values());
+    const consolidated = Array.from(map.values());
+    if (isSocialMediaExecutive) {
+      return consolidated.filter((t) => isTaskCreatedByCurrentUser(t));
+    }
+    if (isSocialMediaHead) {
+      return consolidated.filter((t) => isTaskFromChennaiClient(t));
+    }
+    return consolidated;
   }, [
     rtkGdAllTasks,
     rtkCinemaAllTasks,
@@ -441,6 +689,10 @@ const StatusOverview = () => {
     rtkDashboardTasks,
     rtkAllTasks,
     fallbackTasks,
+    isSocialMediaExecutive,
+    isTaskCreatedByCurrentUser,
+    isSocialMediaHead,
+    isTaskFromChennaiClient,
   ]);
 
   const tasksLoading =
@@ -450,34 +702,6 @@ const StatusOverview = () => {
       isDashboardLoading ||
       isAllTasksLoading ||
       fallbackLoading);
-
-  // Maps for fast lookups
-  const clientsMap = useMemo(() => {
-    const m = new Map();
-    (clients || []).forEach((c) => {
-      if (c?._id) m.set(String(c._id), c);
-      if (c?.id) m.set(String(c.id), c);
-    });
-    return m;
-  }, [clients]);
-
-  const projectsMap = useMemo(() => {
-    const m = new Map();
-    (projects || []).forEach((p) => {
-      if (p?._id) m.set(String(p._id), p);
-      if (p?.id) m.set(String(p.id), p);
-    });
-    return m;
-  }, [projects]);
-
-  const usersMap = useMemo(() => {
-    const m = new Map();
-    (users || []).forEach((u) => {
-      if (u?._id) m.set(String(u._id), u);
-      if (u?.id) m.set(String(u.id), u);
-    });
-    return m;
-  }, [users]);
 
   // Sets of users belonging to Graphic Design and Cinematography
   const { gdUserIdsSet, cinemaUserIdsSet } = useMemo(() => {
@@ -521,81 +745,6 @@ const StatusOverview = () => {
 
     return { gdUserIdsSet: gdSet, cinemaUserIdsSet: cinemaSet };
   }, [users]);
-
-  // Robust helper to resolve client for ANY task
-  const getTaskClient = useCallback(
-    (t) => {
-      // 1. Direct populated client on task
-      if (t.client && typeof t.client === "object" && (t.client.companyName || t.client.name)) {
-        return t.client;
-      }
-      // 2. Client on populated project
-      if (t.project && typeof t.project === "object") {
-        if (
-          t.project.client &&
-          typeof t.project.client === "object" &&
-          (t.project.client.companyName || t.project.client.name)
-        ) {
-          return t.project.client;
-        }
-        if (t.project.client) {
-          const c = clientsMap.get(String(t.project.client?._id || t.project.client));
-          if (c) return c;
-        }
-      }
-      // 3. Client ID string on task
-      if (t.client) {
-        const cId = typeof t.client === "object" ? t.client._id || t.client.id : t.client;
-        const c = clientsMap.get(String(cId));
-        if (c) return c;
-      }
-      // 4. Project ID lookup in projectsMap
-      if (t.project) {
-        const pId = typeof t.project === "object" ? t.project._id || t.project.id : t.project;
-        const p = projectsMap.get(String(pId));
-        if (p?.client) {
-          const c =
-            typeof p.client === "object"
-              ? p.client
-              : clientsMap.get(String(p.client?._id || p.client));
-          if (c) return c;
-        }
-      }
-      // 5. Check subtasks client
-      if (Array.isArray(t.subtasks)) {
-        for (const sub of t.subtasks) {
-          if (sub?.client) {
-            const subC =
-              typeof sub.client === "object" && (sub.client.companyName || sub.client.name)
-                ? sub.client
-                : clientsMap.get(String(sub.client?._id || sub.client));
-            if (subC) return subC;
-          }
-        }
-      }
-      // 6. Project fallback (if no direct client entity exists, use project name)
-      const pId = typeof t.project === "object" ? t.project?._id : t.project;
-      const projObj = (typeof t.project === "object" ? t.project : null) || projectsMap.get(String(pId));
-      if (projObj?.name) {
-        return { companyName: projObj.name, name: projObj.name, isProjectFallback: true };
-      }
-      return null;
-    },
-    [clientsMap, projectsMap]
-  );
-
-  // Helper to resolve creator object for any task
-  const getTaskCreator = useCallback(
-    (t) => {
-      if (!t) return null;
-      const creatorRaw = typeof t.createdBy === "object" ? t.createdBy : null;
-      const creatorFromMap = usersMap.get(String(creatorRaw?._id || t.createdBy));
-      return creatorFromMap
-        ? { ...creatorRaw, ...creatorFromMap }
-        : creatorRaw || creatorFromMap || null;
-    },
-    [usersMap]
-  );
 
   // Helper to resolve assignee object for any task (checking top-level and subtasks)
   const getTaskAssignee = useCallback(
@@ -886,16 +1035,24 @@ const StatusOverview = () => {
   const clientFilterOptions = useMemo(() => {
     const map = new Map();
 
-    // 1. All clients registered in the system
-    (clients || []).forEach((c) => {
-      const name = c?.companyName || c?.name;
-      if (name && name.trim()) {
-        map.set(name.trim().toLowerCase(), name.trim());
-      }
-    });
+    // 1. All clients registered in the system (filtered for Social Media Head / Executive)
+    if (!isSocialMediaExecutive) {
+      (clients || []).forEach((c) => {
+        if (isSocialMediaHead) {
+          const b = (c?.branch || "").trim().toLowerCase();
+          if (b && b !== "chennai") return;
+        }
+        const name = c?.companyName || c?.name;
+        if (name && name.trim()) {
+          map.set(name.trim().toLowerCase(), name.trim());
+        }
+      });
+    }
 
     // 2. Any clients referenced in current tasks pool
     currentTabPool.forEach((t) => {
+      if (isSocialMediaExecutive && !isTaskCreatedByCurrentUser(t)) return;
+      if (isSocialMediaHead && !isTaskFromChennaiClient(t)) return;
       const c = getTaskClient(t);
       const name = c?.companyName || c?.name;
       if (name && name.trim()) {
@@ -904,7 +1061,15 @@ const StatusOverview = () => {
     });
 
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
-  }, [clients, currentTabPool, getTaskClient]);
+  }, [
+    clients,
+    currentTabPool,
+    getTaskClient,
+    isSocialMediaHead,
+    isSocialMediaExecutive,
+    isTaskFromChennaiClient,
+    isTaskCreatedByCurrentUser,
+  ]);
 
   // Unique creator options for filter (from current task pool)
   const creatorFilterOptions = useMemo(() => {
@@ -1223,7 +1388,11 @@ const StatusOverview = () => {
               Status Overview
             </h1>
             <p className="text-xs sm:text-sm italic text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-              Live status tracking of all Designer and Cinematographer tasks across all clients
+              {isSocialMediaHead
+                ? "Live status tracking of Designer & Cinematographer tasks (Chennai Branch)"
+                : isSocialMediaExecutive
+                ? "Live status tracking of your created Designer & Cinematographer tasks"
+                : "Live status tracking of all Designer and Cinematographer tasks across all clients"}
             </p>
           </div>
         </div>
@@ -1269,15 +1438,7 @@ const StatusOverview = () => {
               <TbPencilHeart size={14} />
             </div>
             <span>All Designer Tasks</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
-                activeTab === "designer"
-                  ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300"
-                  : "bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-              }`}
-            >
-              {allDesignerTasks.length}
-            </span>
+           
           </button>
 
           {/* Tab 2: All Cinematographer Tasks */}
@@ -1303,15 +1464,7 @@ const StatusOverview = () => {
               <LuVideo size={14} />
             </div>
             <span>All Cinematographer Tasks</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
-                activeTab === "cinematographer"
-                  ? "bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300"
-                  : "bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-              }`}
-            >
-              {allCinematographerTasks.length}
-            </span>
+           
           </button>
         </div>
 
@@ -1419,7 +1572,7 @@ const StatusOverview = () => {
       </div>
 
       {/* FILTER BAR */}
-      <div className="bg-white dark:bg-[#111827] p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-3">
+      <div className="bg-white dark:bg-[#111827] space-y-3">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -1593,13 +1746,12 @@ const StatusOverview = () => {
                 <th className="py-2.5 px-3 min-w-[160px]">Start Date & End Date</th>
                 <th className="py-2.5 px-3 min-w-[150px]">Total Productivity</th>
                 <th className="py-2.5 px-3 min-w-[120px]">Status</th>
-                <th className="py-2.5 px-2.5 w-12 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-[11px] font-medium">
               {tasksLoading && paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center">
+                  <td colSpan={8} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <FiRefreshCw size={26} className="animate-spin text-indigo-500" />
                       <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
@@ -1610,7 +1762,7 @@ const StatusOverview = () => {
                 </tr>
               ) : paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center">
+                  <td colSpan={8} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
                         <LuListChecks size={24} />
@@ -1904,18 +2056,6 @@ const StatusOverview = () => {
                           <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dotClass}`} />
                           <span>{statusBadge.label}</span>
                         </span>
-                      </td>
-
-                      {/* 9. Action */}
-                      <td className="py-2 px-2.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleViewTaskInBoard(t)}
-                          className="inline-flex items-center justify-center p-1 rounded-md text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                          title="Open in Task Board"
-                        >
-                          <FiArrowUpRight size={14} />
-                        </button>
                       </td>
                     </tr>
                   );
