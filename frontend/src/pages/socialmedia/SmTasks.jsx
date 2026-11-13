@@ -55,6 +55,7 @@ import {
   getSocialmediaStats,
   updateSocialmediaTask,
   deleteSocialmediaTask,
+  bulkDeleteSocialmediaTasks,
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
@@ -751,6 +752,24 @@ const SmTasks = () => {
     tabName: "Commitment",
   });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
+  // Clear selections when switching tab or major filters
+  useEffect(() => {
+    setSelectedTaskIds([]);
+  }, [
+    selectedCommitment,
+    selectedMonth,
+    selectedYear,
+    selectedCategory,
+    selectedContentType,
+    selectedStatus,
+    selectedClient,
+    selectedCreatedBy,
+    dateFilterPreset,
+    searchQuery,
+  ]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1210,6 +1229,56 @@ const SmTasks = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredTasks.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTasks, currentPage, itemsPerPage]);
+
+  const canDeleteTasks =
+    !isReadOnly && !(isSocialMediaHead && selectedCommitment !== "No");
+
+  const selectableTaskIds = useMemo(() => {
+    if (!canDeleteTasks) return [];
+    return (paginatedTasks || []).map((t) => t._id).filter(Boolean);
+  }, [canDeleteTasks, paginatedTasks]);
+
+  const isAllSelected =
+    selectableTaskIds.length > 0 &&
+    selectableTaskIds.every((id) => selectedTaskIds.includes(id));
+
+  const isSomeSelected =
+    selectableTaskIds.some((id) => selectedTaskIds.includes(id)) && !isAllSelected;
+
+  const handleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedTaskIds((prev) =>
+        prev.filter((id) => !selectableTaskIds.includes(id))
+      );
+    } else {
+      setSelectedTaskIds((prev) =>
+        Array.from(new Set([...prev, ...selectableTaskIds]))
+      );
+    }
+  };
+
+  const handleToggleSelect = (taskId, e) => {
+    if (e) e.stopPropagation();
+    setSelectedTaskIds((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId]
+    );
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (isDeleting || selectedTaskIds.length === 0) return;
+    setIsDeleting(true);
+    try {
+      await dispatch(bulkDeleteSocialmediaTasks(selectedTaskIds)).unwrap();
+      setSelectedTaskIds([]);
+      setBulkDeleteConfirm(false);
+    } catch (err) {
+      console.error("Failed to bulk delete tasks:", err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / itemsPerPage));
 
@@ -2060,38 +2129,54 @@ const SmTasks = () => {
           </button>
         </div>
 
-        {/* Right Action: Open Calendar (Hidden when SME tasks tab is active) */}
-        <AnimatePresence>
-          {selectedCommitment === "Yes" && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.15 }}
-              type="button"
-              onClick={handleOpenCalendar}
-              className="group relative p-[1.5px] overflow-hidden rounded-xl shrink-0 cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-transform"
-              title="Open Social Media Calendar"
-            >
-              {/* Spinning Neon Border Beam */}
-              <span
-                className="absolute -inset-[150%] animate-spin pointer-events-none"
-                style={{
-                  animationDuration: "3s",
-                  background:
-                    "conic-gradient(from 0deg, transparent 0%, #10b981 25%, transparent 50%, #34d399 75%, transparent 100%)",
-                }}
-              />
+        {/* Right Actions: Delete Selected button & Open Calendar */}
+        <div className="flex items-center gap-2">
+          <AnimatePresence>
+            {canDeleteTasks && selectedTaskIds.length > 0 && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                type="button"
+                onClick={() => setBulkDeleteConfirm(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
+                title="Delete Selected Tasks"
+              >
+                <FiTrash2 size={13} className="stroke-[2.5]" />
+                <span>Delete Selected ({selectedTaskIds.length})</span>
+              </motion.button>
+            )}
+            {selectedCommitment === "Yes" && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.15 }}
+                type="button"
+                onClick={handleOpenCalendar}
+                className="group relative p-[1.5px] overflow-hidden rounded-xl shrink-0 cursor-pointer shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                title="Open Social Media Calendar"
+              >
+                {/* Spinning Neon Border Beam */}
+                <span
+                  className="absolute -inset-[150%] animate-spin pointer-events-none"
+                  style={{
+                    animationDuration: "3s",
+                    background:
+                      "conic-gradient(from 0deg, transparent 0%, #10b981 25%, transparent 50%, #34d399 75%, transparent 100%)",
+                  }}
+                />
 
-              {/* Inner Button Content */}
-              <span className="relative z-10 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10.5px] bg-emerald-50 dark:bg-[#072518] text-xs font-bold text-emerald-700 dark:text-emerald-300 group-hover:bg-emerald-100 dark:group-hover:bg-[#0c3826] transition-colors whitespace-nowrap">
-                <FiCalendar size={13} className="text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
-                <span>Open calendar</span>
-                <FiArrowRight size={13} className="text-emerald-600 dark:text-emerald-400 stroke-[2.2] group-hover:translate-x-0.5 transition-transform" />
-              </span>
-            </motion.button>
-          )}
-        </AnimatePresence>
+                {/* Inner Button Content */}
+                <span className="relative z-10 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10.5px] bg-emerald-50 dark:bg-[#072518] text-xs font-bold text-emerald-700 dark:text-emerald-300 group-hover:bg-emerald-100 dark:group-hover:bg-[#0c3826] transition-colors whitespace-nowrap">
+                  <FiCalendar size={13} className="text-emerald-600 dark:text-emerald-400 stroke-[2.2]" />
+                  <span>Open calendar</span>
+                  <FiArrowRight size={13} className="text-emerald-600 dark:text-emerald-400 stroke-[2.2] group-hover:translate-x-0.5 transition-transform" />
+                </span>
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Reference Matching Filter UI Container */}
@@ -2154,10 +2239,55 @@ const SmTasks = () => {
         )}
 
 
+        {/* Bulk Selection Action Bar */}
+        {canDeleteTasks && selectedTaskIds.length > 0 && (
+          <div className="bg-rose-50/90 dark:bg-rose-950/40 border-b border-rose-200/80 dark:border-rose-900/50 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="text-xs font-bold text-rose-800 dark:text-rose-200">
+                <span className="font-black text-rose-600 dark:text-rose-400">{selectedTaskIds.length}</span> task{selectedTaskIds.length > 1 ? "s" : ""} selected
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <button
+                type="button"
+                onClick={() => setSelectedTaskIds([])}
+                className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300 hover:underline cursor-pointer"
+              >
+                Deselect all
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBulkDeleteConfirm(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
+            >
+              <FiTrash2 size={13} className="stroke-[2.5]" />
+              <span>Delete Selected ({selectedTaskIds.length})</span>
+            </button>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[11px] leading-tight">
             <thead>
               <tr className="border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-[#131d31] text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                {/* Select All Checkbox */}
+                {canDeleteTasks && (
+                  <th className="py-2.5 px-2.5 text-center w-8">
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = isSomeSelected;
+                        }}
+                        onChange={handleSelectAll}
+                        className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                        title={isAllSelected ? "Deselect all on this page" : "Select all on this page"}
+                      />
+                    </div>
+                  </th>
+                )}
                 <th className="py-2.5 px-2 text-center whitespace-nowrap w-10 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
                 <th className="py-2.5 px-3 min-w-[180px]">Task</th>
                 <th className="py-2.5 px-3 whitespace-nowrap">Client</th>
@@ -2188,6 +2318,12 @@ const SmTasks = () => {
                     key={`sm-task-skeleton-${idx}`}
                     className="animate-pulse border-b border-slate-100 dark:border-slate-800/60"
                   >
+                    {/* Checkbox Skeleton */}
+                    {canDeleteTasks && (
+                      <td className="py-2 px-2.5 text-center">
+                        <div className="w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-700/60 mx-auto" />
+                      </td>
+                    )}
                     {/* Sl.No */}
                     <td className="py-2 px-2 text-center">
                       <div className="h-3 w-4 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
@@ -2277,7 +2413,7 @@ const SmTasks = () => {
                 ))
               ) : paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={selectedCommitment === "No" ? 11 : (hideCommitmentAction ? 11 : 12)} className="py-12 text-center">
+                  <td colSpan={(canDeleteTasks ? 1 : 0) + (selectedCommitment === "No" ? 11 : (hideCommitmentAction ? 11 : 12))} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center py-6">
                       <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
                         <FiCalendar size={22} />
@@ -2307,11 +2443,27 @@ const SmTasks = () => {
                   return (
                     <tr
                       key={task._id}
-                      className={`transition-colors group ${isOverdue
-                        ? "overdue-row-blink border-l-4 border-l-rose-500 hover:border-l-rose-600"
-                        : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
-                        }`}
+                      className={`transition-colors group ${
+                        selectedTaskIds.includes(task._id)
+                          ? "bg-blue-50/70 dark:bg-blue-950/30"
+                          : isOverdue
+                          ? "overdue-row-blink border-l-4 border-l-rose-500 hover:border-l-rose-600"
+                          : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
+                      }`}
                     >
+                      {/* Checkbox */}
+                      {canDeleteTasks && (
+                        <td className="py-2 px-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedTaskIds.includes(task._id)}
+                              onChange={(e) => handleToggleSelect(task._id, e)}
+                              className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                            />
+                          </div>
+                        </td>
+                      )}
                       {/* SL.NO */}
                       <td className="py-2 px-2 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[10px] whitespace-nowrap">
                         {(currentPage - 1) * itemsPerPage + index + 1}
@@ -2787,6 +2939,65 @@ const SmTasks = () => {
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     "Yes, Delete"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* BULK DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {bulkDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setBulkDeleteConfirm(false)}
+              className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-2xl p-6 shadow-2xl border border-slate-200/80 dark:border-white/10 z-10 flex flex-col items-center text-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center mb-4 ring-4 ring-rose-500/10">
+                <FiTrash2 size={22} className="animate-pulse" />
+              </div>
+
+              <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 mb-2">
+                Delete {selectedTaskIds.length} Selected Tasks
+              </h3>
+
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                Are you sure you want to permanently delete these <strong>{selectedTaskIds.length}</strong> selected tasks from {selectedCommitment !== "No" ? "Commitment" : "SME"} tasks? This action cannot be undone.
+              </p>
+
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => setBulkDeleteConfirm(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleConfirmBulkDelete}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm hover:shadow-rose-500/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <FiTrash2 size={13} />
+                      <span>Yes, Delete ({selectedTaskIds.length})</span>
+                    </>
                   )}
                 </button>
               </div>
