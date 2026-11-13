@@ -238,18 +238,36 @@ const ContentCalendar = () => {
   const { user } = useSelector((state) => state.auth);
   const role = user?.role || "admin";
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
-  const deptLower = (user?.department || "").toLowerCase();
+  const deptLower = (user?.department || user?.profile?.department || "").toLowerCase();
+
+  const isSocialMediaHead = useMemo(() => {
+    if (!user) return false;
+    const dept = (user.department || user.profile?.department || "").toLowerCase().trim();
+    const r = (user.role || "").toLowerCase().trim();
+    if (dept.includes("executive") || r.includes("executive")) return false;
+    return (
+      r === "socialmediahead" ||
+      r === "socialmediamanager" ||
+      dept.includes("social media head") ||
+      dept.includes("social media manager") ||
+      dept.includes("social media")
+    );
+  }, [user]);
+
   const isSocialMediaManagerRole =
     userRoleClean === "socialmediamanager" ||
     userRoleClean === "socialmediahead" ||
-    deptLower.includes("social media head");
+    isSocialMediaHead;
 
   const isPrivileged =
     userRoleClean === "admin" ||
     userRoleClean === "operationmanager" ||
     isSocialMediaManagerRole;
   const canFilterBySMM = isPrivileged;
-  const isReadOnly = userRoleClean === "admin" || userRoleClean === "operationmanager";
+  const isReadOnly =
+    userRoleClean === "admin" ||
+    userRoleClean === "operationmanager" ||
+    isSocialMediaHead;
 
   const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
   const clientsState = useSelector((state) => state.clients);
@@ -632,18 +650,54 @@ const ContentCalendar = () => {
     });
   }, [tasks]);
 
-  // Dynamic client options (alphabetically sorted)
+  // Sets of Chennai branch client IDs and Names for Social Media Head filtering
+  const { chennaiClientIdSet, chennaiClientNameSet } = useMemo(() => {
+    const idSet = new Set();
+    const nameSet = new Set();
+    (clients || []).forEach((c) => {
+      if (!c) return;
+      const b = (c.branch || "").trim().toLowerCase();
+      if (b === "chennai" || isSocialMediaHead) {
+        if (c._id) idSet.add(String(c._id));
+        if (c.id) idSet.add(String(c.id));
+        const name = (c.companyName || c.name || "").trim().toLowerCase();
+        if (name) nameSet.add(name);
+      }
+    });
+    return { chennaiClientIdSet: idSet, chennaiClientNameSet: nameSet };
+  }, [clients, isSocialMediaHead]);
+
+  const isTaskFromChennaiClient = useCallback(
+    (t) => {
+      if (!t) return false;
+      const cId = (t.client?._id || t.client)?.toString();
+      if (cId && chennaiClientIdSet.has(cId)) return true;
+      const cName = (t.clientName || t.client?.companyName || "").trim().toLowerCase();
+      if (cName && chennaiClientNameSet.has(cName)) return true;
+      const b = (t.client?.branch || "").trim().toLowerCase();
+      if (b === "chennai") return true;
+      return false;
+    },
+    [chennaiClientIdSet, chennaiClientNameSet]
+  );
+
+  // Dynamic client options (alphabetically sorted, filtered to Chennai branch for Social Media Head)
   const clientOptions = useMemo(() => {
     const set = new Set();
-    clients.forEach((c) => {
+    (clients || []).forEach((c) => {
+      if (isSocialMediaHead) {
+        const b = (c.branch || "").trim().toLowerCase();
+        if (b && b !== "chennai") return;
+      }
       if (c.companyName) set.add(c.companyName.trim());
     });
     uniqueTasks.forEach((t) => {
+      if (isSocialMediaHead && !isTaskFromChennaiClient(t)) return;
       if (t.clientName) set.add(t.clientName.trim());
     });
     const sorted = Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
     return ["All", ...sorted];
-  }, [clients, uniqueTasks]);
+  }, [clients, uniqueTasks, isSocialMediaHead, isTaskFromChennaiClient]);
 
   // Helper to identify Social Media Executives
   const isSocialMediaManager = useCallback((u) => {
@@ -708,6 +762,9 @@ const ContentCalendar = () => {
       // Must be a commitment (Yes) and have a publishDate or dueDate to be shown on the calendar!
       if (!task.commitment) return false;
       if (!task.publishDate && !task.dueDate) return false;
+
+      // Social Media Head: strictly restrict to Chennai branch clients
+      if (isSocialMediaHead && !isTaskFromChennaiClient(task)) return false;
 
       // Regular users see tasks created by OR assigned to themselves.
       // Admin and Operation Manager can see all users' tasks.
@@ -820,17 +877,29 @@ const ContentCalendar = () => {
     selectedAssignee,
     selectedPriority,
     atRiskOnly,
+    isSocialMediaHead,
+    isTaskFromChennaiClient,
   ]);
 
-    const relevantClients = useMemo(() => {
-    if (selectedClient === "All") return clients;
-    return (clients || []).filter(
+  const relevantClients = useMemo(() => {
+    let list = clients || [];
+    if (isSocialMediaHead) {
+      list = list.filter((c) => {
+        const b = (c.branch || "").trim().toLowerCase();
+        return b === "chennai" || !b;
+      });
+    }
+    if (selectedClient === "All") return list;
+    return list.filter(
       (c) => (c.companyName || "").trim().toLowerCase() === selectedClient.trim().toLowerCase()
     );
-  }, [clients, selectedClient]);
+  }, [clients, selectedClient, isSocialMediaHead]);
 
   const tasksForCommitments = useMemo(() => {
     let list = uniqueTasks || [];
+    if (isSocialMediaHead) {
+      list = list.filter((t) => isTaskFromChennaiClient(t));
+    }
     if (selectedClient !== "All") {
       list = list.filter((t) => t.clientName === selectedClient);
     }
@@ -848,7 +917,7 @@ const ContentCalendar = () => {
       });
     }
     return list;
-  }, [uniqueTasks, selectedClient, isPrivileged, selectedAssignee, getCreatorInfo]);
+  }, [uniqueTasks, selectedClient, isPrivileged, selectedAssignee, getCreatorInfo, isSocialMediaHead, isTaskFromChennaiClient]);
 
   // Compute live commitments across all clients (posts, reels, deliverables) - 2nd Reference Image
   const commitmentOverview = useMemo(() => {

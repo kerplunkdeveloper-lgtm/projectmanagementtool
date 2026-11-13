@@ -402,11 +402,18 @@ const MomPoints = () => {
 
 
   const filteredMoms = useMemo(() => moms.filter((mom) => {
+    if (isCurrentUserSocialMediaManager && mom.client) {
+      const clientId = (typeof mom.client === "object" ? mom.client?._id : mom.client)?.toString();
+      if (clientId && clients.length > 0) {
+        const isChennaiClient = clients.some((c) => c._id?.toString() === clientId);
+        if (!isChennaiClient) return false;
+      }
+    }
     if (filterCreatedBy && (mom.createdBy?._id || mom.createdBy) !== filterCreatedBy) return false;
     if (filterAssignedTo && (mom.assignedTo?._id || mom.assignedTo) !== filterAssignedTo) return false;
     if (filterStatus && mom.status !== filterStatus) return false;
     return true;
-  }), [moms, filterCreatedBy, filterAssignedTo, filterStatus]);
+  }), [moms, clients, isCurrentUserSocialMediaManager, filterCreatedBy, filterAssignedTo, filterStatus]);
 
   const totalPages = Math.ceil(filteredMoms.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;

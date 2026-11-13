@@ -173,9 +173,31 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
     .toLowerCase()
     .replace(/[\s_]/g, "")
     .trim();
-  const isReadOnly = isReadOnlyProp !== null
-    ? Boolean(isReadOnlyProp)
-    : (userRoleClean === "admin" || userRoleClean === "operationmanager");
+
+  const isSocialMediaHead = useMemo(() => {
+    const role = (currentUser?.role?.name || currentUser?.role || "").toString().toLowerCase().trim();
+    const desig = (currentUser?.designation || "").toString().toLowerCase().trim();
+    const dept = (currentUser?.department || "").toString().toLowerCase().trim();
+    return (
+      role.includes("social media head") ||
+      desig.includes("social media head") ||
+      dept.includes("social media head") ||
+      (dept.includes("social media") && (role.includes("head") || desig.includes("head")))
+    );
+  }, [currentUser]);
+
+  const isExistingTaskCommitment = Boolean(
+    task &&
+    (task.commitment !== undefined
+      ? Boolean(task.commitment)
+      : isContentCalendarCategory(task.category))
+  );
+
+  const isReadOnly = (isSocialMediaHead && isExistingTaskCommitment) || (
+    isReadOnlyProp !== null
+      ? Boolean(isReadOnlyProp)
+      : (userRoleClean === "admin" || userRoleClean === "operationmanager")
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -279,7 +301,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         task.commitment !== undefined
           ? Boolean(task.commitment)
           : isContentCalendarCategory(task.category);
-      setIsCommitment(isTaskCommitment);
+      setIsCommitment(isSocialMediaHead ? false : isTaskCommitment);
 
       const currentCat = task.category || (isTaskCommitment ? "Content Calendar" : "Content Creation");
 
@@ -317,10 +339,11 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         notes: task.notes || "",
       });
     } else {
-      const defaultIsCommitment =
-        initialCommitment !== null
+      const defaultIsCommitment = isSocialMediaHead
+        ? false
+        : (initialCommitment !== null
           ? Boolean(initialCommitment)
-          : Boolean(initialDate);
+          : Boolean(initialDate));
       setIsCommitment(defaultIsCommitment);
 
       const defaultDateStr = initialDate
@@ -354,7 +377,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
     }
   }, [isOpen, task, initialDate, clients, users, currentUser, initialCommitment]);
 
-  const isContentCalendar = isCommitment;
+  const isContentCalendar = isSocialMediaHead ? false : isCommitment;
 
   const contentTypeDropdownRef = useRef(null);
   const [isContentTypeOpen, setIsContentTypeOpen] = useState(false);
@@ -370,7 +393,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
   }, []);
 
   const handleTabChange = (tab) => {
-    if (isReadOnly) return;
+    if (isReadOnly || isSocialMediaHead) return;
     if (tab === "commitment") {
       setIsCommitment(true);
       setFormData((prev) => ({
@@ -700,20 +723,22 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         {/* Commitment vs SME tasks  Mode Tabs */}
         <div className="px-5 py-2.5 bg-slate-50/70 dark:bg-[#0f172a] border-b border-slate-100 dark:border-[#1e2a40] flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 dark:bg-[#162033] rounded-xl border border-slate-200 dark:border-[#22324f]">
-            <button
-              type="button"
-              disabled={isReadOnly}
-              onClick={() => handleTabChange("commitment")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                isContentCalendar
-                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-300/80 dark:border-emerald-500/40 shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-transparent border border-transparent"
-              }`}
-            >
-              <FiLock size={12} className={isContentCalendar ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"} />
-              <span>Commitment</span>
-              {isContentCalendar && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-            </button>
+            {!isSocialMediaHead && (
+              <button
+                type="button"
+                disabled={isReadOnly}
+                onClick={() => handleTabChange("commitment")}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  isContentCalendar
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-300/80 dark:border-emerald-500/40 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-transparent border border-transparent"
+                }`}
+              >
+                <FiLock size={12} className={isContentCalendar ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"} />
+                <span>Commitment</span>
+                {isContentCalendar && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+              </button>
+            )}
 
             <button
               type="button"
@@ -732,7 +757,11 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
           </div>
 
           <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">
-            {isContentCalendar ? "Content Calendar Task (Locked Commitment)" : "Ad-hoc / Non-commitment Task"}
+            {isSocialMediaHead
+              ? "SME Task (Ad-hoc / Non-commitment)"
+              : isContentCalendar
+                ? "Content Calendar Task (Locked Commitment)"
+                : "Ad-hoc / Non-commitment Task"}
           </span>
         </div>
 

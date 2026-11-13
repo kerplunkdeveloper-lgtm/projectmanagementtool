@@ -3,6 +3,31 @@ const Client = require('../models/Client');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
+// Helper to determine if a user belongs to Social Media Head department
+const isSocialMediaHeadUser = (user) => {
+  if (!user) return false;
+  const role = (user.role || '').toLowerCase().replace(/[\s_]/g, '');
+  const dept = (user.department || '').toLowerCase().trim();
+  if (role.includes('executive') || dept.includes('executive')) return false;
+  return (
+    role === 'socialmediamanager' ||
+    role === 'socialmediahead' ||
+    dept.includes('social media head') ||
+    dept.includes('social media manager') ||
+    dept.includes('social media')
+  );
+};
+
+// Helper to determine if a task is a Commitment task
+const isCommitmentTask = (bodyOrDoc) => {
+  if (!bodyOrDoc) return false;
+  if (bodyOrDoc.commitment !== undefined && bodyOrDoc.commitment !== null) {
+    return Boolean(bodyOrDoc.commitment);
+  }
+  const cat = (bodyOrDoc.category || '').trim().toLowerCase();
+  return cat === 'content calendar' || cat === 'content calendor' || cat === 'content';
+};
+
 // Helper to remove any duplicate tasks based on taskTitle + clientName + publishDate (manual endpoint only)
 const cleanDuplicates = async () => {
   try {
@@ -34,7 +59,10 @@ const cleanDuplicates = async () => {
 // @access  Private
 exports.getSocialmediaMetadata = async (req, res) => {
   try {
-    const clients = await Client.find({}).select('companyName color industry posts reels story').sort({ companyName: 1 });
+    const clientQuery = isSocialMediaHeadUser(req.user)
+      ? { branch: new RegExp('^chennai$', 'i') }
+      : {};
+    const clients = await Client.find(clientQuery).select('companyName color industry posts reels story branch').sort({ companyName: 1 });
     const users = await User.find({ accountStatus: { $ne: 'inactive' } }).select('name role department email').sort({ name: 1 });
 
     res.status(200).json({
@@ -241,11 +269,26 @@ exports.getSocialmediaTasks = async (req, res) => {
       ];
     }
 
+    // Restrict strictly to Chennai branch clients for Social Media Head
+    let chennaiBranchCondition = null;
+    if (isSocialMediaHeadUser(req.user)) {
+      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i') }).select('_id companyName').lean();
+      const chennaiClientIds = chennaiClients.map((c) => c._id);
+      const chennaiClientNames = chennaiClients.map((c) => c.companyName).filter(Boolean);
+      chennaiBranchCondition = {
+        $or: [
+          { client: { $in: chennaiClientIds } },
+          { clientName: { $in: chennaiClientNames.map((n) => new RegExp(`^${n}$`, 'i')) } },
+        ],
+      };
+    }
+
     // Combine any OR conditions safely using $and if multiple exist
     const andClauses = [];
     if (userCreatorCondition) andClauses.push(userCreatorCondition);
     if (searchCondition) andClauses.push(searchCondition);
     if (dateCondition) andClauses.push(dateCondition);
+    if (chennaiBranchCondition) andClauses.push(chennaiBranchCondition);
 
     if (andClauses.length === 1) {
       Object.assign(query, andClauses[0]);
@@ -253,7 +296,10 @@ exports.getSocialmediaTasks = async (req, res) => {
       query.$and = andClauses;
     }
 
-    const baseCountFilter = userCreatorCondition || {};
+    const baseCountFilter = {
+      ...(userCreatorCondition || {}),
+      ...(chennaiBranchCondition || {}),
+    };
 
     const [rawTasks, totalCount, commitmentsCount] = await Promise.all([
       SocialmediaTaskCalendor.find(query)
@@ -349,6 +395,24 @@ exports.getSocialmediaStats = async (req, res) => {
         { assignee: req.user._id },
         { assigneeName: req.user.name },
       ];
+    }
+
+    if (isSocialMediaHeadUser(req.user)) {
+      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i') }).select('_id companyName').lean();
+      const chennaiClientIds = chennaiClients.map((c) => c._id);
+      const chennaiClientNames = chennaiClients.map((c) => c.companyName).filter(Boolean);
+      const chennaiCondition = {
+        $or: [
+          { client: { $in: chennaiClientIds } },
+          { clientName: { $in: chennaiClientNames.map((n) => new RegExp(`^${n}$`, 'i')) } },
+        ],
+      };
+      if (commitmentsQuery.$or) {
+        commitmentsQuery.$and = [{ $or: commitmentsQuery.$or }, chennaiCondition];
+        delete commitmentsQuery.$or;
+      } else {
+        commitmentsQuery.$or = chennaiCondition.$or;
+      }
     }
 
     // Dynamic Commitments planned this month from DB (lean + projection for maximum speed)
@@ -467,8 +531,17 @@ exports.createSocialmediaTask = async (req, res) => {
     if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+        message: 'You have read-only access to Content Calendar',
       });
+    }
+
+    if (isSocialMediaHeadUser(req.user)) {
+      if (isCommitmentTask(req.body)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Social Media Head has read-only access to Content Calendar and can only create SME tasks',
+        });
+      }
     }
 
     const body = { ...req.body };
@@ -639,8 +712,22 @@ exports.updateSocialmediaTask = async (req, res) => {
     if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+        message: 'You have read-only access to Content Calendar',
       });
+    }
+
+    const existing = await SocialmediaTaskCalendor.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    if (isSocialMediaHeadUser(req.user)) {
+      if (isCommitmentTask(existing) || isCommitmentTask(req.body)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Social Media Head has read-only access to Commitment tasks and can only update SME tasks',
+        });
+      }
     }
 
     const body = { ...req.body };
@@ -764,10 +851,10 @@ exports.updateSocialmediaTask = async (req, res) => {
 exports.rescheduleSocialmediaTask = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'admin' || userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager' || isSocialMediaHeadUser(req.user)) {
       return res.status(403).json({
         success: false,
-        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+        message: 'You have read-only access to Content Calendar',
       });
     }
 
@@ -842,15 +929,25 @@ exports.deleteSocialmediaTask = async (req, res) => {
     if (userRole === 'admin' || userRole === 'operationmanager') {
       return res.status(403).json({
         success: false,
-        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+        message: 'You have read-only access to Content Calendar',
       });
     }
 
-    if (req.user) {
-      const existing = await SocialmediaTaskCalendor.findById(req.params.id);
-      if (!existing) {
-        return res.status(404).json({ success: false, message: 'Task not found' });
+    const existing = await SocialmediaTaskCalendor.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    if (isSocialMediaHeadUser(req.user)) {
+      if (isCommitmentTask(existing)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Social Media Head has read-only access to Commitment tasks and can only delete SME tasks',
+        });
       }
+    }
+
+    if (req.user) {
       const deptLower = (req.user?.department || '').toLowerCase();
       const isSocialMediaManager =
         userRole === 'socialmediamanager' ||
@@ -893,10 +990,10 @@ exports.deleteSocialmediaTask = async (req, res) => {
 exports.bulkDeleteSocialmediaTasks = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'admin' || userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager' || isSocialMediaHeadUser(req.user)) {
       return res.status(403).json({
         success: false,
-        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+        message: 'You have read-only access to Content Calendar',
       });
     }
 
@@ -947,10 +1044,10 @@ exports.bulkDeleteSocialmediaTasks = async (req, res) => {
 exports.cleanDuplicateTasks = async (req, res) => {
   try {
     const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'admin' || userRole === 'operationmanager') {
+    if (userRole === 'admin' || userRole === 'operationmanager' || isSocialMediaHeadUser(req.user)) {
       return res.status(403).json({
         success: false,
-        message: 'Admin and Operation Manager have read-only access to Content Calendar',
+        message: 'You have read-only access to Content Calendar',
       });
     }
 
@@ -1047,6 +1144,13 @@ function parseSmartDate(dateInput, timeInput) {
 // @access  Private
 exports.bulkImportSocialmediaTasks = async (req, res) => {
   try {
+    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
+    if (userRole === 'admin' || userRole === 'operationmanager' || isSocialMediaHeadUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You have read-only access to Content Calendar',
+      });
+    }
     const tasksRaw = Array.isArray(req.body) ? req.body : req.body.tasks;
     if (!tasksRaw || !Array.isArray(tasksRaw) || tasksRaw.length === 0) {
       return res.status(400).json({

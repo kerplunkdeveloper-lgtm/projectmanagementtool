@@ -6,7 +6,21 @@ const sanitizeUserDept = (u) => {
 };
 const Mom = require('../models/Mom');
 const User = require('../models/User');
+const Client = require('../models/Client');
 const Notification = require('../models/Notification');
+
+const isSocialMediaHeadUser = (user) => {
+  if (!user) return false;
+  const dept = (user.department || '').toLowerCase();
+  const role = (user.role || '').toLowerCase();
+  if (dept.includes('social media executive') || dept.includes('executive')) return false;
+  return (
+    role === 'socialmediamanager' ||
+    role === 'socialmediahead' ||
+    dept.includes('social media head') ||
+    dept.includes('social media manager')
+  );
+};
 
 // Optimized non-blocking notification dispatcher
 const sendMomNotification = async (app, userId, mom, isNew) => {
@@ -100,24 +114,34 @@ exports.getMoms = async (req, res, next) => {
   try {
     let queryOptions = {};
 
-    const deptLower = (req.user.department || '').toLowerCase();
-    const isSocialMediaManager =
-      req.user.role === 'socialmediamanager' ||
-      req.user.role === 'socialmediahead' ||
-      deptLower.includes('social media head');
+    if (isSocialMediaHeadUser(req.user)) {
+      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i') }).select('_id').lean();
+      const chennaiClientIds = chennaiClients.map((c) => c._id);
+      const chennaiUsers = await User.find({ location: new RegExp('^chennai$', 'i') }).select('_id').lean();
+      const chennaiUserIds = chennaiUsers.map((u) => u._id);
+      const myId = req.user.id || req.user._id;
 
-    const isCurrentUserAdminOrOp =
-      req.user.role === 'admin' ||
-      req.user.role === 'operationmanager' ||
-      isSocialMediaManager;
-
-    if (!isCurrentUserAdminOrOp) {
       queryOptions = {
         $or: [
-          { createdBy: req.user.id },
-          { assignedTo: req.user.id }
-        ]
+          { client: { $in: chennaiClientIds } },
+          { createdBy: { $in: [...chennaiUserIds, myId].filter(Boolean) } },
+          { assignedTo: { $in: [...chennaiUserIds, myId].filter(Boolean) } },
+          { client: null },
+        ],
       };
+    } else {
+      const isCurrentUserAdminOrOp =
+        req.user.role === 'admin' ||
+        req.user.role === 'operationmanager';
+
+      if (!isCurrentUserAdminOrOp) {
+        queryOptions = {
+          $or: [
+            { createdBy: req.user.id },
+            { assignedTo: req.user.id }
+          ]
+        };
+      }
     }
 
     const moms = await Mom.find(queryOptions)
@@ -148,13 +172,20 @@ exports.getMoms = async (req, res, next) => {
 exports.getMom = async (req, res, next) => {
   try {
     const mom = await Mom.findById(req.params.id)
-      .populate('client', 'companyName name')
+      .populate('client', 'companyName name branch')
       .populate({ path: 'createdBy', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
       .populate({ path: 'assignedTo', select: 'name email department profile', populate: { path: 'profile', select: 'profileImage' } })
       .lean();
 
     if (!mom) {
       return res.status(404).json({ success: false, message: `MOM not found with id of ${req.params.id}` });
+    }
+
+    if (isSocialMediaHeadUser(req.user) && mom.client) {
+      const clientObj = await Client.findById(mom.client).select('branch').lean();
+      if (clientObj && clientObj.branch && !/^chennai$/i.test(clientObj.branch)) {
+        return res.status(403).json({ success: false, message: 'Not authorized to access MOM points outside Chennai branch' });
+      }
     }
 
     sanitizeUserDept(mom.createdBy);
@@ -174,6 +205,13 @@ exports.getMom = async (req, res, next) => {
 exports.createMom = async (req, res, next) => {
   try {
     req.body.createdBy = req.user.id; // From auth middleware
+
+    if (isSocialMediaHeadUser(req.user) && req.body.client) {
+      const clientObj = await Client.findById(req.body.client).lean();
+      if (!clientObj || !clientObj.branch || !/^chennai$/i.test(clientObj.branch)) {
+        return res.status(403).json({ success: false, message: 'Social Media Head can only assign MOM points to Chennai branch clients' });
+      }
+    }
 
     if (req.body.assignedTo && req.body.assignedTo !== req.user.id) {
       req.body.isRead = false;
@@ -233,6 +271,21 @@ exports.updateMom = async (req, res, next) => {
     // Allow admin, operationmanager, creator, assigned user, or social media executive to update
     if (!isCreator && !isAdminOrOp && !isAssigned && !isSocialMedia) {
       return res.status(401).json({ success: false, message: `User not authorized to update this MOM` });
+    }
+
+    if (isSocialMediaHeadUser(req.user)) {
+      if (mom.client) {
+        const clientObj = await Client.findById(mom.client).select('branch').lean();
+        if (clientObj && clientObj.branch && !/^chennai$/i.test(clientObj.branch)) {
+          return res.status(403).json({ success: false, message: 'Not authorized to update MOM points outside Chennai branch' });
+        }
+      }
+      if (req.body.client) {
+        const newClientObj = await Client.findById(req.body.client).select('branch').lean();
+        if (newClientObj && newClientObj.branch && !/^chennai$/i.test(newClientObj.branch)) {
+          return res.status(403).json({ success: false, message: 'Social Media Head can only assign MOM points to Chennai branch clients' });
+        }
+      }
     }
 
     const oldAssignedTo = mom.assignedTo ? mom.assignedTo.toString() : null;
@@ -296,6 +349,13 @@ exports.deleteMom = async (req, res, next) => {
       !isSocialMediaManagerDel
     ) {
       return res.status(401).json({ success: false, message: `User not authorized to delete this MOM` });
+    }
+
+    if (isSocialMediaHeadUser(req.user) && mom.client) {
+      const clientObj = await Client.findById(mom.client).select('branch').lean();
+      if (clientObj && clientObj.branch && !/^chennai$/i.test(clientObj.branch)) {
+        return res.status(403).json({ success: false, message: 'Not authorized to delete MOM points outside Chennai branch' });
+      }
     }
 
     await mom.deleteOne();

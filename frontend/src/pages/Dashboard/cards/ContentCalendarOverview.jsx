@@ -285,7 +285,53 @@ const ContentCalendarOverview = () => {
   const isSuperOrAdmin =
     userRole === "admin" ||
     userRole === "operationmanager";
-  const isReadOnly = isSuperOrAdmin;
+
+  const isSocialMediaHead = useMemo(() => {
+    if (!currentUser) return false;
+    const dept = (currentUser.department || currentUser.profile?.department || "").toLowerCase().trim();
+    const r = (currentUser.role?.name || currentUser.role || "").toLowerCase().trim();
+    if (dept.includes("executive") || r.includes("executive")) return false;
+    return (
+      r === "socialmediahead" ||
+      r === "socialmediamanager" ||
+      dept.includes("social media head") ||
+      dept.includes("social media manager") ||
+      dept.includes("social media")
+    );
+  }, [currentUser]);
+
+  const isReadOnly = isSuperOrAdmin || isSocialMediaHead;
+
+  // Chennai branch clients sets and checker for Social Media Head
+  const { chennaiClientIdSet, chennaiClientNameSet } = useMemo(() => {
+    const idSet = new Set();
+    const nameSet = new Set();
+    (clientsFromStore || []).forEach((c) => {
+      if (!c) return;
+      const b = (c.branch || "").trim().toLowerCase();
+      if (b === "chennai" || isSocialMediaHead) {
+        if (c._id) idSet.add(String(c._id));
+        if (c.id) idSet.add(String(c.id));
+        const name = (c.companyName || c.name || "").trim().toLowerCase();
+        if (name) nameSet.add(name);
+      }
+    });
+    return { chennaiClientIdSet: idSet, chennaiClientNameSet: nameSet };
+  }, [clientsFromStore, isSocialMediaHead]);
+
+  const isTaskFromChennaiClient = useCallback(
+    (t) => {
+      if (!t) return false;
+      const cId = (t.client?._id || t.client)?.toString();
+      if (cId && chennaiClientIdSet.has(cId)) return true;
+      const cName = (t.clientName || t.client?.companyName || "").trim().toLowerCase();
+      if (cName && chennaiClientNameSet.has(cName)) return true;
+      const b = (t.client?.branch || "").trim().toLowerCase();
+      if (b === "chennai") return true;
+      return false;
+    },
+    [chennaiClientIdSet, chennaiClientNameSet]
+  );
 
   const deptNorm = (
     currentUser?.department ||
@@ -331,6 +377,7 @@ const ContentCalendarOverview = () => {
         (t) =>
           (t.commitment === true || t.commitment === "true" || t.commitment === "Yes") &&
           isAllowedContentType(t.contentType) &&
+          (!isSocialMediaHead || isTaskFromChennaiClient(t)) &&
           (() => {
             const dateStr = t.publishDate || t.dueDate;
             if (!dateStr) return false;
@@ -348,7 +395,7 @@ const ContentCalendarOverview = () => {
     } finally {
       setLoading(false);
     }
-  }, [isCinematographer, selectedMonthDate]);
+  }, [isCinematographer, selectedMonthDate, isSocialMediaHead, isTaskFromChennaiClient]);
 
   useEffect(() => {
     if (!isCinematographer) {
@@ -356,15 +403,20 @@ const ContentCalendarOverview = () => {
     }
   }, [fetchTasks, isCinematographer]);
 
-  // Clients list for filter dropdown
+  // Clients list for filter dropdown (filtered to Chennai branch for Social Media Head)
   const clientOptions = useMemo(() => {
     const map = new Map();
     clientsFromStore.forEach((c) => {
+      if (isSocialMediaHead) {
+        const b = (c.branch || "").trim().toLowerCase();
+        if (b && b !== "chennai") return;
+      }
       if (c.companyName) {
         map.set(c.companyName.trim().toLowerCase(), c.companyName.trim());
       }
     });
     tasks.forEach((t) => {
+      if (isSocialMediaHead && !isTaskFromChennaiClient(t)) return;
       if (t.clientName) {
         map.set(t.clientName.trim().toLowerCase(), t.clientName.trim());
       }
@@ -373,7 +425,7 @@ const ContentCalendarOverview = () => {
       }
     });
     return Array.from(map.values()).sort();
-  }, [clientsFromStore, tasks]);
+  }, [clientsFromStore, tasks, isSocialMediaHead, isTaskFromChennaiClient]);
 
   // Content types list for filter dropdown - strictly Post, Reels, Stories
   const contentTypeOptions = useMemo(() => ["Post", "Reels", "Stories"], []);
@@ -424,6 +476,7 @@ const ContentCalendarOverview = () => {
     let list = tasks.filter(
       (t) =>
         (t.commitment === true || t.commitment === "true" || t.commitment === "Yes") &&
+        (!isSocialMediaHead || isTaskFromChennaiClient(t)) &&
         (() => {
           const dateStr = t.publishDate || t.dueDate;
           if (!dateStr) return false;
@@ -484,7 +537,7 @@ const ContentCalendarOverview = () => {
     });
 
     return list;
-  }, [tasks, selectedClient, selectedContentType, searchQuery, selectedMonthDate]);
+  }, [tasks, selectedClient, selectedContentType, searchQuery, selectedMonthDate, isSocialMediaHead, isTaskFromChennaiClient]);
 
   const hasActiveFilters =
     !isCurrentMonthSelected ||

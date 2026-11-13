@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import toast from "react-hot-toast";
+import { FiArrowLeft } from "react-icons/fi";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import useSocket from "../../hooks/useSocket.jsx";
@@ -19,11 +20,43 @@ const DashboardLayoutInner = ({ role }) => {
   const { socket: sharedSocket } = useSocketContext() || {};
   const notifSocket = useSocket(sharedSocket);      // handles notifications, task_updated etc. on shared single socket
   const { user, originalAdminUser } = useSelector((state) => state.auth);
+  const { profile } = useSelector((state) => state.profile || {});
+  const { users } = useSelector((state) => state.users || {});
   // usePresence uses sharedSocket so heartbeat goes on the correct connection
   usePresence(sharedSocket, user?._id || user?.id);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const getAvatarUrl = (targetUser, targetProfile) => {
+    if (targetProfile?.profileImage?.url) return targetProfile.profileImage.url;
+    if (targetUser?.profileImage?.url) return targetUser.profileImage.url;
+    if (typeof targetUser?.profileImage === "string") return targetUser.profileImage;
+    if (targetUser?.profile?.profileImage?.url) return targetUser.profile.profileImage.url;
+    if (typeof targetUser?.profile?.profileImage === "string") return targetUser.profile.profileImage;
+    if (users && users.length > 0 && targetUser) {
+      const match = users.find(
+        (u) =>
+          (targetUser._id && (u._id === targetUser._id || u.id === targetUser._id)) ||
+          (targetUser.id && (u._id === targetUser.id || u.id === targetUser.id)) ||
+          (targetUser.email && u.email === targetUser.email)
+      );
+      if (match?.profile?.profileImage?.url) return match.profile.profileImage.url;
+      if (match?.profileImage?.url) return match.profileImage.url;
+      if (typeof match?.profileImage === "string") return match.profileImage;
+    }
+    return null;
+  };
+
+  const currentUserAvatar = getAvatarUrl(user, profile);
+  const adminUserAvatar = getAvatarUrl(originalAdminUser, null);
   const isChatPage =
     location.pathname.endsWith("/chat") || location.pathname.includes("/chat");
   const isContentCalendarPage =
@@ -105,30 +138,71 @@ const DashboardLayoutInner = ({ role }) => {
       >
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (
-          <div className="bg-blue-500 dark:bg-[#3b82f6]  px-4 py-2 text-[0.625rem] flex items-center justify-between gap-5 shadow-md z-50">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 dark:bg-red-500   animate-pulse" />
-              <span className="dark:text-black">
-                Viewing as{" "}
-                <strong className="text-yellow-400 dark:text-black font-bold">
-                  {user?.name}
-                </strong>{" "}
-                <span className="font-medium text-yellow-400 dark:text-black">
-                  {" "}
-                  ({role})
-                </span>{" "}
-                in Original account:{" "}
-                <strong className="text-yellow-400 dark:text-black font-bold">
-                  {originalAdminUser.name}
-                </strong>
-                .
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 dark:from-[#1d4ed8] dark:via-[#1e40af] dark:to-[#172554] text-white px-4 py-2 text-xs flex items-center justify-between gap-4 shadow-md z-50 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/25 border border-white/20 text-[10px] font-extrabold tracking-wider uppercase shrink-0 text-white shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                Viewing as
               </span>
+
+              {/* Impersonated User Profile Badge */}
+              <div className="inline-flex items-center gap-2 bg-white/15 dark:bg-black/30 border border-white/20 px-2.5 py-1 rounded-full shadow-2xs shrink-0">
+                <div className="w-5 h-5 rounded-full overflow-hidden bg-white/20 ring-1 ring-white/50 shrink-0 flex items-center justify-center text-[9px] font-black text-white shadow-2xs">
+                  {currentUserAvatar ? (
+                    <img
+                      src={currentUserAvatar}
+                      alt={user?.name || "User"}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <span>{getInitials(user?.name)}</span>
+                  )}
+                </div>
+                <span className="font-extrabold text-[11.5px] text-white tracking-tight">
+                  {user?.name}
+                </span>
+                <span className="text-[10px] font-bold text-blue-100 bg-white/15 px-1.5 py-0.5 rounded-md">
+                  ({role || user?.role})
+                </span>
+              </div>
+
+              <span className="text-[11px] text-blue-100/90 font-medium shrink-0">
+                in Original account:
+              </span>
+
+              {/* Original Admin Account Badge */}
+              <div className="inline-flex items-center gap-2 bg-amber-400/20 dark:bg-amber-950/40 border border-amber-300/40 px-2.5 py-1 rounded-full shadow-2xs shrink-0">
+                <div className="w-5 h-5 rounded-full overflow-hidden bg-amber-400/30 ring-1 ring-amber-300/60 shrink-0 flex items-center justify-center text-[9px] font-black text-amber-200 shadow-2xs">
+                  {adminUserAvatar ? (
+                    <img
+                      src={adminUserAvatar}
+                      alt={originalAdminUser?.name || "Admin"}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <span>{getInitials(originalAdminUser?.name)}</span>
+                  )}
+                </div>
+                <span className="font-extrabold text-[11.5px] text-amber-200">
+                  {originalAdminUser?.name}
+                </span>
+              </div>
             </div>
+
             <button
+              type="button"
               onClick={handleSwitchBack}
-              className=" bg-yellow-500 dark:bg-black text-white dark:text-white  font-bold cursor-pointer  px-3 py-1 rounded text-xs uppercase tracking-wider transition-all"
+              className="bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-blue-700 dark:text-blue-300 active:scale-95 text-[11px] font-extrabold px-3 py-1.5 rounded-lg shadow-sm transition-all duration-150 cursor-pointer flex items-center gap-1.5 shrink-0 uppercase tracking-wider"
+              title={`Return to ${originalAdminUser?.name}`}
             >
-              Switch Back
+              <FiArrowLeft size={13} className="stroke-[3]" />
+              <span>Switch Back</span>
             </button>
           </div>
         )}

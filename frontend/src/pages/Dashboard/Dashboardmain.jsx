@@ -2703,47 +2703,9 @@ const Dashboardmain = () => {
           user?.role === "operationmanager" ||
           isHr;
 
-        return canViewFullCards ? (
+        return (
           <div className="mb-4 md:p-4">
             <DashboardCards />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 p-4 gap-3 md:gap-4 mb-4 items-start">
-            <div className="col-span-1">
-              <DashboardCards />
-            </div>
-
-            <div className="col-span-1 theme-bg-card border theme-border rounded-full px-5 py-2 flex items-center h-[48px] overflow-hidden">
-              <div className="flex flex-wrap gap-2 overflow-y-auto max-h-[30px] w-full scrollbar-thin">
-                {clients && clients.length > 0 ? (
-                  clients.map((client) => (
-                    <div
-                      key={client._id}
-                      onClick={() =>
-                        navigate(`/${user?.role}/clients?id=${client._id}`)
-                      }
-                      className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-800/40 hover:border-blue-500/30 hover:bg-slate-100/50 dark:hover:bg-slate-800/80 transition-all duration-150 group cursor-pointer"
-                    >
-                      <div
-                        className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[7px] font-black shrink-0"
-                        style={{ backgroundColor: client.color || "#3b82f6" }}
-                      >
-                        {getInitials(client.companyName)}
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-350 group-hover:text-blue-500 transition-colors">
-                        {client.companyName}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="w-full flex items-center justify-center py-2 text-slate-400 opacity-60">
-                    <span className="text-[10px] font-semibold">
-                      No clients assigned
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         );
       })()}

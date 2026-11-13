@@ -125,7 +125,7 @@ exports.impersonateUser = async (req, res, next) => {
   try {
     const { userId } = req.body;
 
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).populate('profile');
     if (user && user.department && user.department.toLowerCase().includes('social media head')) {
       if (user.role !== 'socialmediamanager') {
         user.role = 'socialmediamanager';
@@ -182,6 +182,8 @@ const sendTokenResponse = (user, statusCode, res) => {
           department: (user.department && user.department.toLowerCase() === 'social media manager' ? 'Social Media Executive' : user.department),
           location: user.location,
           permissions: user.permissions || {},
+          profileImage: user.profile?.profileImage?.url || null,
+          profile: user.profile || null,
         },
       },
     });

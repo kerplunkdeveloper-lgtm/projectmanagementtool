@@ -1135,6 +1135,12 @@ select.table-status-select {
   cursor: pointer !important;
 }
 
+select.table-status-select:disabled {
+  background-image: none !important;
+  padding-right: 0.55rem !important;
+  cursor: default !important;
+}
+
 /* Card gradients for dashboard widgets */
 .dashboard-gradient-card {
   background: var(--color-card-gradient) !important;

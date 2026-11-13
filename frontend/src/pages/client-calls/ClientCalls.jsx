@@ -317,6 +317,15 @@ const ClientCalls = ({ isEmbedded = false }) => {
     const currentUserId = user?._id || user?.id;
 
     return calls.filter((call) => {
+      // Social Media Head restriction: Chennai branch users or Chennai branch clients
+      if (isSocialMediaManager) {
+        const isChennaiUser = (call.createdBy?.location || "").toLowerCase() === "chennai";
+        const clientId = (typeof call.client === "object" ? call.client?._id : call.client)?.toString();
+        const isChennaiClient = clientId ? clients.some((c) => c._id?.toString() === clientId) : false;
+        const isMe = (call.createdBy?._id || call.createdBy?.id || call.createdBy)?.toString() === currentUserId?.toString();
+        if (!isChennaiUser && !isChennaiClient && !isMe) return false;
+      }
+
       // Role scope restriction
       if (isTeamUser) {
         const creatorId = call.createdBy?._id || call.createdBy?.id || call.createdBy;
@@ -543,7 +552,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
               setTimeMode("timer");
               setShowAddForm(true);
             }}
-            className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold cursor-pointer"
+            className="flex items-center mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold cursor-pointer"
           >
             <FiPlus className="mr-2" /> Log New Call
           </button>

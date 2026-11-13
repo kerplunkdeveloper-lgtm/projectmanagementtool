@@ -55,7 +55,6 @@ import {
   getSocialmediaStats,
   updateSocialmediaTask,
   deleteSocialmediaTask,
-  bulkDeleteSocialmediaTasks,
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
@@ -171,13 +170,13 @@ const renderDueDateBadge = (dueDate, status) => {
   const isWaiting = s === "qc" || s === "in qc" || s.includes("client approval");
   if (isWaiting) {
     return (
-      <div className="flex flex-col items-start gap-1">
-        <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+      <div className="flex flex-col items-start gap-0.5">
+        <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
           {dateStr}
         </span>
         <span
           title={`Status: ${status} • Waiting`}
-          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9.5px] font-extrabold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/60 shadow-2xs whitespace-nowrap"
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/60 shadow-2xs whitespace-nowrap"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
           <span>Waiting</span>
@@ -199,11 +198,11 @@ const renderDueDateBadge = (dueDate, status) => {
     return (
       <span
         title={`Due: ${dateStr} • Status is ${status}`}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs whitespace-nowrap"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs whitespace-nowrap"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
         <span>{dateStr}</span>
-        <span className="text-[9.5px] font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-400 pl-0.5">
+        <span className="text-[9px] font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-400 pl-0.5">
           • {["Live", "Published", "Published Live"].includes(status) ? "Published Live" : "Done"}
         </span>
       </span>
@@ -217,11 +216,11 @@ const renderDueDateBadge = (dueDate, status) => {
     return (
       <span
         title={`Due: ${dateStr} • Overdue by ${overdueDays} ${overdueDays === 1 ? "day" : "days"}`}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
         <span>{dateStr}</span>
-        <span className="text-[9.5px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
+        <span className="text-[9px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
           • {dayLabel}
         </span>
       </span>
@@ -233,11 +232,11 @@ const renderDueDateBadge = (dueDate, status) => {
     return (
       <span
         title={`Due today (${dateStr}) • Status is ${status || "Pending"}`}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
         <span>{dateStr}</span>
-        <span className="text-[9.5px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
+        <span className="text-[9px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
           • Due today
         </span>
       </span>
@@ -249,11 +248,11 @@ const renderDueDateBadge = (dueDate, status) => {
   return (
     <span
       title={`Due in ${diffDays} days (${dateStr})`}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-50 dark:bg-[#162033] text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-[#2b3a55] whitespace-nowrap"
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-50 dark:bg-[#162033] text-slate-700 dark:text-slate-200 border border-slate-200/70 dark:border-[#2b3a55] whitespace-nowrap"
     >
-      <FiCalendar size={12} className="text-slate-400 shrink-0" />
+      <FiCalendar size={11} className="text-slate-400 shrink-0" />
       <span>{dateStr}</span>
-      <span className="text-[10px] text-slate-400 font-medium pl-0.5">
+      <span className="text-[9px] text-slate-400 font-medium pl-0.5">
         • {dayLabel}
       </span>
     </span>
@@ -613,6 +612,18 @@ const SmTasks = () => {
     userRoleClean === "socialmediahead" ||
     deptLower.includes("social media head");
 
+  const isSocialMediaHead = useMemo(() => {
+    const r = (user?.role?.name || user?.role || "").toString().toLowerCase().trim();
+    const desig = (user?.designation || "").toString().toLowerCase().trim();
+    const dept = (user?.department || "").toString().toLowerCase().trim();
+    return (
+      r.includes("social media head") ||
+      desig.includes("social media head") ||
+      dept.includes("social media head") ||
+      (dept.includes("social media") && (r.includes("head") || desig.includes("head")))
+    );
+  }, [user]);
+
   const canFilterByCreatedBy =
     userRoleClean === "admin" ||
     userRoleClean === "operationmanager" ||
@@ -726,12 +737,9 @@ const SmTasks = () => {
   const [atRiskOnly, setAtRiskOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Multi-select & Bulk Deletion States (Separated for Commitment and SME tasks)
-  const [selectedCommitmentIds, setSelectedCommitmentIds] = useState([]);
-  const [selectedSmeIds, setSelectedSmeIds] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState({
     show: false,
-    target: null, // "bulk" or single task object
+    target: null, // single task object
     tabName: "Commitment",
   });
   const [isDeleting, setIsDeleting] = useState(false);
@@ -1508,7 +1516,7 @@ const SmTasks = () => {
   };
 
   const handleCreateNew = () => {
-    if (isReadOnly) return;
+    if (isReadOnly || (isSocialMediaHead && selectedCommitment !== "No")) return;
     setSelectedTaskForEdit(null);
     setIsModalOpen(true);
   };
@@ -1524,7 +1532,7 @@ const SmTasks = () => {
 
   const handleTogglePlatformSubtask = async (task, platformId, e) => {
     if (e) e.stopPropagation();
-    if (!task || !task._id || isReadOnly) return;
+    if (!task || !task._id || isReadOnly || isSocialMediaHead) return;
 
     const currentCompleted = Array.isArray(task.completedPlatforms) ? task.completedPlatforms : [];
     const isCompleted = currentCompleted.some((p) => p.toLowerCase() === platformId.toLowerCase());
@@ -1563,7 +1571,7 @@ const SmTasks = () => {
   };
 
   const handleTogglePlatformAssignment = async (task, platformId) => {
-    if (!task || !task._id || isReadOnly) return;
+    if (!task || !task._id || isReadOnly || isSocialMediaHead) return;
 
     const currentPlatforms = Array.isArray(task.platforms) && task.platforms.length > 0
       ? task.platforms
@@ -1627,14 +1635,14 @@ const SmTasks = () => {
     const isMenuOpen = activePlatformMenuTaskId === task._id;
 
     return (
-      <div className="flex flex-col gap-1.5 py-1 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+      <div className="flex flex-col gap-1 py-0.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
         {/* Subtask Progress Bar & Badge */}
-        <div className="flex items-center justify-between gap-1.5 text-[10px]">
-          <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
+        <div className="flex items-center justify-between gap-1 text-[9.5px]">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400">
             Platforms
           </span>
           <span
-            className={`px-1.5 py-0.2 rounded-md font-extrabold text-[9px] ${allDone
+            className={`px-1.5 py-0.2 rounded-md font-extrabold text-[8.5px] ${allDone
                 ? "bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
                 : completedCount > 0
                   ? "bg-blue-100 dark:bg-blue-950/70 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700"
@@ -1646,7 +1654,7 @@ const SmTasks = () => {
         </div>
 
         {/* Interactive Checkbox Chips (Tick & Icon Only - Better UI/UX) */}
-        <div className="grid grid-cols-3 gap-1.5 w-fit">
+        <div className="grid grid-cols-3 gap-1 w-fit">
           {targetPlatforms.map((platId) => {
             const platObj = ALL_PLATFORMS_LIST.find((p) => p.id.toLowerCase() === platId.toLowerCase()) || {
               id: platId,
@@ -1661,31 +1669,31 @@ const SmTasks = () => {
               <button
                 key={platId}
                 type="button"
-                disabled={isReadOnly}
+                disabled={isReadOnly || isSocialMediaHead}
                 onClick={(e) => handleTogglePlatformSubtask(task, platObj.id, e)}
                 title={
                   isCompleted
                     ? `✓ ${platObj.name} (Posted - Click to uncheck)`
                     : `○ ${platObj.name} (Pending - Click to mark posted)`
                 }
-                className={`group/plat relative inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all duration-150 cursor-pointer ${isCompleted
+                className={`group/plat relative inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border transition-all duration-150 cursor-pointer ${isCompleted
                     ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300/90 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 shadow-2xs hover:bg-emerald-100 hover:scale-105"
                     : "bg-white dark:bg-[#111827] border-slate-200 dark:border-[#2b3a55] text-slate-400 hover:border-emerald-400 dark:hover:border-emerald-500 hover:bg-emerald-50/30 dark:hover:bg-[#1f2937] hover:scale-105 shadow-2xs"
                   } active:scale-95 disabled:cursor-not-allowed`}
               >
                 {/* Tick Checkbox Indicator */}
                 <span
-                  className={`w-3.5 h-3.5 rounded flex items-center justify-center border text-[9px] transition-colors shrink-0 ${isCompleted
+                  className={`w-3 h-3 rounded flex items-center justify-center border text-[8px] transition-colors shrink-0 ${isCompleted
                       ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs"
                       : "border-slate-300 dark:border-[#374151] bg-slate-50 dark:bg-[#0b1120] group-hover/plat:border-emerald-400 text-transparent"
                     }`}
                 >
-                  <FiCheck className="stroke-[3]" size={10} />
+                  <FiCheck className="stroke-[3]" size={9} />
                 </span>
 
                 {/* Platform Icon */}
                 <IconComp
-                  size={13}
+                  size={12}
                   className={`shrink-0 transition-opacity ${isCompleted ? "opacity-100" : "opacity-75 group-hover/plat:opacity-100"
                     }`}
                   style={{ color: platObj.color }}
@@ -1695,7 +1703,7 @@ const SmTasks = () => {
           })}
 
           {/* Quick Add Platform Subtask Button */}
-          {!isReadOnly && (
+          {!isReadOnly && !isSocialMediaHead && (
             <div className="relative">
               <button
                 type="button"
@@ -1703,10 +1711,10 @@ const SmTasks = () => {
                   e.stopPropagation();
                   setActivePlatformMenuTaskId(isMenuOpen ? null : task._id);
                 }}
-                className="w-full h-full min-h-[25px] min-w-[36px] rounded-lg border border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#1e293b] text-slate-400 hover:text-indigo-600 flex items-center justify-center text-[11px] transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                className="w-full h-full min-h-[22px] min-w-[30px] rounded-md border border-dashed border-slate-300 dark:border-slate-600 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-[#1e293b] text-slate-400 hover:text-indigo-600 flex items-center justify-center text-[10px] transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                 title="Add or remove platforms from this task"
               >
-                <FiPlus size={12} className="stroke-[2.5]" />
+                <FiPlus size={11} className="stroke-[2.5]" />
               </button>
 
               {/* Popover */}
@@ -1762,14 +1770,14 @@ const SmTasks = () => {
   };
 
   const handleQuickStatusChange = (task, newStatus) => {
-    if (isReadOnly || !task || !task._id) return;
-
     const isComm =
-      Boolean(task.commitment) ||
+      Boolean(task?.commitment) ||
       selectedCommitment === "Yes" ||
-      (task.category || "").trim().toLowerCase() === "content calendar" ||
-      (task.category || "").trim().toLowerCase() === "content calendor" ||
-      (task.category || "").trim().toLowerCase() === "content";
+      (task?.category || "").trim().toLowerCase() === "content calendar" ||
+      (task?.category || "").trim().toLowerCase() === "content calendor" ||
+      (task?.category || "").trim().toLowerCase() === "content";
+
+    if (isReadOnly || (isSocialMediaHead && isComm) || !task || !task._id) return;
 
     // Verification required for: QC, Completed and wait CLient Approval, Published Live
     const s = (newStatus || "").trim().toLowerCase();
@@ -1851,57 +1859,18 @@ const SmTasks = () => {
     }
   };
 
-  // Derived Multi-select Helpers (Dedicated & Separated for Commitment and SME tasks)
   const isCommitmentTab = selectedCommitment !== "No";
-  const activeSelectedIds = isCommitmentTab ? selectedCommitmentIds : selectedSmeIds;
-  const setActiveSelectedIds = isCommitmentTab ? setSelectedCommitmentIds : setSelectedSmeIds;
-
-  const currentPageTaskIds = useMemo(() => paginatedTasks.map((t) => t._id), [paginatedTasks]);
-  const isAllCurrentPageSelected =
-    currentPageTaskIds.length > 0 &&
-    currentPageTaskIds.every((id) => activeSelectedIds.includes(id));
-  const isSomeCurrentPageSelected =
-    currentPageTaskIds.some((id) => activeSelectedIds.includes(id)) && !isAllCurrentPageSelected;
-
-  const handleToggleSelectAllPage = (checked) => {
-    if (checked) {
-      setActiveSelectedIds((prev) => Array.from(new Set([...prev, ...currentPageTaskIds])));
-    } else {
-      setActiveSelectedIds((prev) => prev.filter((id) => !currentPageTaskIds.includes(id)));
-    }
-  };
-
-  const handleToggleSelectTask = (taskId, checked) => {
-    setActiveSelectedIds((prev) => {
-      if (checked) {
-        return prev.includes(taskId) ? prev : [...prev, taskId];
-      } else {
-        return prev.filter((id) => id !== taskId);
-      }
-    });
-  };
-
-  const handleSelectAllFiltered = () => {
-    const allFilteredIds = filteredTasks.map((t) => t._id);
-    setActiveSelectedIds(allFilteredIds);
-  };
-
-  const handleClearSelection = () => {
-    setActiveSelectedIds([]);
-  };
-
-  const handleTriggerBulkDelete = () => {
-    if (isReadOnly || activeSelectedIds.length === 0) return;
-    setDeleteConfirm({
-      show: true,
-      target: "bulk",
-      tabName: isCommitmentTab ? "Commitment" : "SME",
-    });
-  };
 
   const handleDeleteTask = (task, e) => {
     if (e) e.stopPropagation();
-    if (isReadOnly) return;
+    const isComm =
+      Boolean(task?.commitment) ||
+      selectedCommitment === "Yes" ||
+      (task?.category || "").trim().toLowerCase() === "content calendar" ||
+      (task?.category || "").trim().toLowerCase() === "content calendor" ||
+      (task?.category || "").trim().toLowerCase() === "content";
+
+    if (isReadOnly || (isSocialMediaHead && isComm)) return;
     setDeleteConfirm({
       show: true,
       target: task,
@@ -1910,22 +1879,14 @@ const SmTasks = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (isDeleting) return;
+    if (isDeleting || !deleteConfirm.target?._id) return;
     setIsDeleting(true);
     try {
-      if (deleteConfirm.target === "bulk") {
-        const idsToDelete = [...activeSelectedIds];
-        await dispatch(bulkDeleteSocialmediaTasks(idsToDelete)).unwrap();
-        setActiveSelectedIds([]);
-      } else if (deleteConfirm.target?._id) {
-        const targetId = deleteConfirm.target._id;
-        await dispatch(deleteSocialmediaTask(targetId)).unwrap();
-        setSelectedCommitmentIds((prev) => prev.filter((id) => id !== targetId));
-        setSelectedSmeIds((prev) => prev.filter((id) => id !== targetId));
-      }
+      const targetId = deleteConfirm.target._id;
+      await dispatch(deleteSocialmediaTask(targetId)).unwrap();
       setDeleteConfirm({ show: false, target: null, tabName: "" });
     } catch (err) {
-      console.error("Failed to delete task(s):", err);
+      console.error("Failed to delete task:", err);
     } finally {
       setIsDeleting(false);
     }
@@ -1993,10 +1954,10 @@ const SmTasks = () => {
             />
           </div>
 
-          {isReadOnly ? (
+          {isReadOnly || (isSocialMediaHead && selectedCommitment !== "No") ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs shadow-2xs">
               <FiLock size={13} />
-              <span>SME only Access</span>
+              <span>Read-only View</span>
             </div>
           ) : (
             <button
@@ -2049,11 +2010,6 @@ const SmTasks = () => {
                 <FiLock size={13} className="stroke-[2.5]" />
               </div>
               <span>Commitment</span>
-              {selectedCommitmentIds.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-black leading-none shadow-xs">
-                  {selectedCommitmentIds.length}
-                </span>
-              )}
             </div>
           </button>
 
@@ -2092,11 +2048,6 @@ const SmTasks = () => {
                 <FiLayers size={13} className="stroke-[2.5]" />
               </div>
               <span>SME tasks</span>
-              {selectedSmeIds.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-black leading-none shadow-xs">
-                  {selectedSmeIds.length}
-                </span>
-              )}
             </div>
           </button>
         </div>
@@ -2194,89 +2145,32 @@ const SmTasks = () => {
           </div>
         )}
 
-        {/* Table Selection Action Bar (Separated for Commitment and SME tasks) */}
-        {activeSelectedIds.length > 0 && !isReadOnly && (
-          <div className="bg-blue-50/90 dark:bg-[#14233c] border-b border-blue-200/70 dark:border-blue-900/50 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs z-10 relative">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs">
-                {activeSelectedIds.length}
-              </span>
-              <span className="font-bold text-slate-800 dark:text-slate-200">
-                {activeSelectedIds.length} {isCommitmentTab ? "Commitment" : "SME"} task{activeSelectedIds.length > 1 ? "s" : ""} selected
-              </span>
-              {filteredTasks.length > activeSelectedIds.length && (
-                <button
-                  type="button"
-                  onClick={handleSelectAllFiltered}
-                  className="ml-2 text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
-                >
-                  (Select all {filteredTasks.length} {isCommitmentTab ? "Commitment" : "SME"} tasks in this tab)
-                </button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleClearSelection}
-                className="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 font-semibold cursor-pointer transition-colors"
-              >
-                Clear Selection
-              </button>
-              <button
-                type="button"
-                onClick={handleTriggerBulkDelete}
-                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-rose-500/20 active:scale-95 transition-all cursor-pointer"
-              >
-                <FiTrash2 size={13} />
-                <span>Delete Selected ({activeSelectedIds.length})</span>
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-[11px] leading-tight">
             <thead>
-              <tr className="border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-[#131d31] text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                {!isReadOnly && (
-                  <th className="py-3 px-3 text-center w-10">
-                    <div className="flex items-center justify-center">
-                      <input
-                        type="checkbox"
-                        ref={(el) => {
-                          if (el) el.indeterminate = isSomeCurrentPageSelected;
-                        }}
-                        checked={isAllCurrentPageSelected}
-                        onChange={(e) => handleToggleSelectAllPage(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        title={isAllCurrentPageSelected ? "Deselect all" : "Select all on this page"}
-                      />
-                    </div>
-                  </th>
-                )}
-                <th className="py-3 px-3 text-center whitespace-nowrap w-12 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
-                <th className="py-3 px-4 min-w-[200px]">Task</th>
-                <th className="py-3 px-4 whitespace-nowrap">Client</th>
-                <th className="py-3 px-3 whitespace-nowrap">Category</th>
-                <th className="py-3 px-3 whitespace-nowrap">Content Type</th>
+              <tr className="border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-[#131d31] text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">
+                <th className="py-2.5 px-2 text-center whitespace-nowrap w-10 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
+                <th className="py-2.5 px-3 min-w-[180px]">Task</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Client</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Category</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Content Type</th>
                 {selectedCommitment !== "No" && (
-                  <th className="py-3 px-3.5 font-bold whitespace-nowrap">Platforms</th>
+                  <th className="py-2.5 px-2.5 font-bold whitespace-nowrap">Platforms</th>
                 )}
-                <th className="py-3 px-4 whitespace-nowrap">Created by</th>
-                <th className="py-3 px-3 whitespace-nowrap">Due Date</th>
-                <th className="py-3 px-3 whitespace-nowrap">Status</th>
-                <th className="py-3 px-3 whitespace-nowrap">Priority</th>
+                <th className="py-2.5 px-3 whitespace-nowrap">Created by</th>
+                <th className="py-2.5 px-2.5 whitespace-nowrap">Due Date</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap w-[90px]">Status</th>
+                <th className="py-2.5 px-2 text-center whitespace-nowrap">Priority</th>
                 {selectedCommitment === "No" && (
-                  <th className="py-3 px-4 min-w-[180px] max-w-[260px] whitespace-nowrap">Notes &amp; Brief</th>
+                  <th className="py-2.5 px-3 min-w-[160px] max-w-[240px] whitespace-nowrap">Notes &amp; Brief</th>
                 )}
                 {selectedCommitment !== "No" && (
-                  <>
-                    <th className="py-3 px-4 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
-                    <th className="py-3 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Commitment</th>
-                    <th className="py-3 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Calendar</th>
-                  </>
+                  <th className="py-2.5 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
                 )}
-                <th className="py-3 px-3 text-center whitespace-nowrap">Action</th>
+                {!(isSocialMediaHead && selectedCommitment !== "No") && (
+                  <th className="py-2.5 px-2 text-center whitespace-nowrap">Action</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
@@ -2286,107 +2180,96 @@ const SmTasks = () => {
                     key={`sm-task-skeleton-${idx}`}
                     className="animate-pulse border-b border-slate-100 dark:border-slate-800/60"
                   >
-                    {!isReadOnly && (
-                      <td className="py-3.5 px-3 text-center">
-                        <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
-                      </td>
-                    )}
                     {/* Sl.No */}
-                    <td className="py-3.5 px-3 text-center">
-                      <div className="h-3.5 w-5 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
+                    <td className="py-2 px-2 text-center">
+                      <div className="h-3 w-4 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
                     </td>
 
                     {/* Task */}
-                    <td className="py-3.5 px-4">
-                      <div className="space-y-1.5">
-                        <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-44" />
-                        <div className="h-2.5 bg-slate-200 dark:bg-slate-700/40 rounded w-28" />
+                    <td className="py-2 px-3">
+                      <div className="space-y-1">
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-36" />
+                        <div className="h-2 bg-slate-200 dark:bg-slate-700/40 rounded w-24" />
                       </div>
                     </td>
 
                     {/* Client */}
-                    <td className="py-3.5 px-4">
-                      <div className="h-5 w-24 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
+                    <td className="py-2 px-3">
+                      <div className="h-4.5 w-20 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
                     </td>
 
                     {/* Category */}
-                    <td className="py-3.5 px-3">
-                      <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-20" />
+                    <td className="py-2 px-2.5">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
                     </td>
 
                     {/* Content Type */}
-                    <td className="py-3.5 px-3">
-                      <div className="h-5 w-16 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
+                    <td className="py-2 px-2.5">
+                      <div className="h-4 w-14 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
                     </td>
 
                     {/* Platforms (if Commitment) */}
                     {selectedCommitment !== "No" && (
-                      <td className="py-3.5 px-3.5">
+                      <td className="py-2 px-2.5">
                         <div className="flex gap-1">
-                          <div className="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700/60" />
-                          <div className="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700/60" />
-                          <div className="w-5 h-5 rounded bg-slate-200 dark:bg-slate-700/60" />
+                          <div className="w-4 h-4 rounded bg-slate-200 dark:bg-slate-700/60" />
+                          <div className="w-4 h-4 rounded bg-slate-200 dark:bg-slate-700/60" />
+                          <div className="w-4 h-4 rounded bg-slate-200 dark:bg-slate-700/60" />
                         </div>
                       </td>
                     )}
 
                     {/* Created by */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700/60 shrink-0" />
-                        <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4.5 h-4.5 rounded-full bg-slate-200 dark:bg-slate-700/60 shrink-0" />
+                        <div className="h-2.5 bg-slate-200 dark:bg-slate-700/60 rounded w-14" />
                       </div>
                     </td>
 
                     {/* Due Date */}
-                    <td className="py-3.5 px-3">
-                      <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
+                    <td className="py-2 px-2.5">
+                      <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-14" />
                     </td>
 
                     {/* Status */}
-                    <td className="py-3.5 px-3">
-                      <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700/60 rounded-lg" />
+                    <td className="py-2 px-2.5">
+                      <div className="h-5 w-20 bg-slate-200 dark:bg-slate-700/60 rounded-md" />
                     </td>
 
                     {/* Priority */}
-                    <td className="py-3.5 px-3">
-                      <div className="h-5 w-14 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
+                    <td className="py-2 px-2">
+                      <div className="h-4 w-10 bg-slate-200 dark:bg-slate-700/60 rounded-full mx-auto" />
                     </td>
 
                     {/* Notes & Brief Skeleton for SME tasks */}
                     {selectedCommitment === "No" && (
-                      <td className="py-3.5 px-4">
-                        <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-32" />
+                      <td className="py-2 px-3">
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-28" />
                       </td>
                     )}
 
-                    {/* Publish Date, Commitment, Calendar */}
+                    {/* Publish Date */}
                     {selectedCommitment !== "No" && (
-                      <>
-                        <td className="py-3.5 px-4 bg-slate-100/30 dark:bg-[#182338]/30">
-                          <div className="h-3.5 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
-                        </td>
-                        <td className="py-3.5 px-3 text-center bg-slate-100/30 dark:bg-[#182338]/30">
-                          <div className="h-5 w-12 bg-slate-200 dark:bg-slate-700/60 rounded-full mx-auto" />
-                        </td>
-                        <td className="py-3.5 px-3 text-center bg-slate-100/30 dark:bg-[#182338]/30">
-                          <div className="h-5 w-10 bg-slate-200 dark:bg-slate-700/60 rounded-full mx-auto" />
-                        </td>
-                      </>
+                      <td className="py-2 px-3 bg-slate-100/30 dark:bg-[#182338]/30">
+                        <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-14" />
+                      </td>
                     )}
 
                     {/* Action */}
-                    <td className="py-3.5 px-3 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <div className="w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700/60" />
-                        <div className="w-6 h-6 rounded-md bg-slate-200 dark:bg-slate-700/60" />
-                      </div>
-                    </td>
+                    {!(isSocialMediaHead && selectedCommitment !== "No") && (
+                      <td className="py-2 px-2 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <div className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700/60" />
+                          <div className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700/60" />
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={(selectedCommitment === "No" ? 11 : 14) + (!isReadOnly ? 1 : 0)} className="py-12 text-center">
+                  <td colSpan={selectedCommitment === "No" ? 11 : (isSocialMediaHead ? 11 : 12)} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center py-6">
                       <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
                         <FiCalendar size={22} />
@@ -2397,12 +2280,14 @@ const SmTasks = () => {
                       <p className="text-xs text-slate-400 mb-4 max-w-sm text-center">
                         Create your first social media task or plan directly on the Content Calendar.
                       </p>
-                      <button
-                        onClick={handleCreateNew}
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
-                      >
-                        + Create First Task
-                      </button>
+                      {(!isReadOnly && (!isSocialMediaHead || selectedCommitment === "No")) && (
+                        <button
+                          onClick={handleCreateNew}
+                          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
+                        >
+                          + Create First Task
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -2410,45 +2295,25 @@ const SmTasks = () => {
                 paginatedTasks.map((task, index) => {
                   const clientColor = task.clientColor || "#6366f1";
                   const isOverdue = isTaskOverdue(task);
-                  const isSelected = activeSelectedIds.includes(task._id);
 
                   return (
                     <tr
                       key={task._id}
                       className={`transition-colors group ${isOverdue
                         ? "overdue-row-blink border-l-4 border-l-rose-500 hover:border-l-rose-600"
-                        : isSelected
-                          ? "bg-blue-50/70 dark:bg-blue-950/30 hover:bg-blue-50/90 dark:hover:bg-blue-950/40"
-                          : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
+                        : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
                         }`}
                     >
-                      {/* Checkbox column */}
-                      {!isReadOnly && (
-                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                handleToggleSelectTask(task._id, e.target.checked);
-                              }}
-                              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            />
-                          </div>
-                        </td>
-                      )}
-
                       {/* SL.NO */}
-                      <td className="py-3 px-3 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[11px] whitespace-nowrap">
+                      <td className="py-2 px-2 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[10px] whitespace-nowrap">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </td>
 
                       {/* TASK NAME with Left Accent Line & SME Completion Checkbox */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
+                      <td className="py-2 px-3">
+                        <div className="flex items-center gap-2">
                           <span
-                            className="w-1 h-5 rounded-full shrink-0"
+                            className="w-1 h-4 rounded-full shrink-0"
                             style={{ backgroundColor: clientColor }}
                           />
 
@@ -2463,18 +2328,18 @@ const SmTasks = () => {
                                   ? "Completed! Click to mark as Not started"
                                   : "Click to mark as Completed"
                               }
-                              className={`w-4.5 h-4.5 rounded-md flex items-center justify-center border transition-all shrink-0 cursor-pointer ${(task.status || "").trim().toLowerCase() === "completed"
+                              className={`w-4 h-4 rounded-md flex items-center justify-center border transition-all shrink-0 cursor-pointer ${(task.status || "").trim().toLowerCase() === "completed"
                                   ? "bg-emerald-500 border-emerald-600 text-white shadow-2xs hover:bg-emerald-600"
                                   : "border-slate-300 dark:border-[#374151] bg-white dark:bg-[#0b1120] text-transparent hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/20 shadow-2xs"
                                 } active:scale-95 disabled:cursor-not-allowed`}
                             >
-                              <FiCheck className="stroke-[3]" size={11} />
+                              <FiCheck className="stroke-[3]" size={10} />
                             </button>
                           )}
 
                           <div className="min-w-0">
                             <span
-                              className={`font-bold leading-snug block transition-colors ${(task.status || "").trim().toLowerCase() === "completed" &&
+                              className={`font-bold leading-tight block text-[11px] transition-colors ${(task.status || "").trim().toLowerCase() === "completed" &&
                                   (selectedCommitment === "No" || !task.commitment)
                                   ? "text-slate-400 dark:text-slate-500 line-through"
                                   : "text-slate-900 dark:text-white"
@@ -2487,26 +2352,26 @@ const SmTasks = () => {
                       </td>
 
                       {/* CLIENT */}
-                      <td className="py-3 px-4">
+                      <td className="py-2 px-3">
                         {(() => {
                           const clientObj = getClientObject(task);
                           return (
                             <ClientBadge
                               client={clientObj}
-                              size="md"
-                              className="!text-[11px] !py-1 !px-2.5 rounded-lg font-bold shadow-2xs whitespace-nowrap [&>span]:!max-w-none"
+                              size="sm"
+                              className="!text-[9.5px] !py-0.5 !px-2 rounded-md font-bold shadow-2xs whitespace-nowrap [&>span]:!max-w-none"
                             />
                           );
                         })()}
                       </td>
 
                       {/* CATEGORY (Sleek Tag Badge with Dot) */}
-                      <td className="py-3 px-3">
+                      <td className="py-2 px-2.5">
                         {(() => {
                           const catStyle = getCategoryStyle(task.category);
                           return (
                             <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
                               <span className="whitespace-nowrap">{task.category || "Content"}</span>
@@ -2516,15 +2381,15 @@ const SmTasks = () => {
                       </td>
 
                       {/* CONTENT TYPE (Pill Badge with Format Micro-Icon) */}
-                      <td className="py-3 px-3">
+                      <td className="py-2 px-2.5">
                         {(() => {
                           const typeCfg = getContentTypeConfig(task.contentType);
                           const TypeIcon = typeCfg.icon;
                           return (
                             <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold border shadow-2xs transition-colors ${typeCfg.bg} ${typeCfg.text} ${typeCfg.border}`}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9.5px] font-extrabold border shadow-2xs transition-colors ${typeCfg.bg} ${typeCfg.text} ${typeCfg.border}`}
                             >
-                              <TypeIcon className={`w-3 h-3 shrink-0 ${typeCfg.iconClass}`} />
+                              <TypeIcon className={`w-2.5 h-2.5 shrink-0 ${typeCfg.iconClass}`} />
                               <span className="whitespace-nowrap">{task.contentType || "Post"}</span>
                             </span>
                           );
@@ -2533,23 +2398,23 @@ const SmTasks = () => {
 
                       {/* PLATFORMS SUB-TASKS (Checklist with ticks) */}
                       {selectedCommitment !== "No" && (
-                        <td className="py-3 px-3">
+                        <td className="py-2 px-2.5">
                           {renderPlatformSubtasks(task)}
                         </td>
                       )}
 
                       {/* CREATED BY */}
-                      <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                      <td className="py-2 px-3 text-slate-700 dark:text-slate-300">
                         {(() => {
                           const creator = getCreatorInfo(task);
                           return (
-                            <div className="flex items-center gap-2.5">
-                              <div className="relative shrink-0 w-6 h-6">
+                            <div className="flex items-center gap-2">
+                              <div className="relative shrink-0 w-5 h-5">
                                 {creator.avatarUrl ? (
                                   <img
                                     src={creator.avatarUrl}
                                     alt={creator.name}
-                                    className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
+                                    className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shadow-2xs"
                                     loading="lazy"
                                     onError={(e) => {
                                       e.currentTarget.style.display = "none";
@@ -2559,13 +2424,13 @@ const SmTasks = () => {
                                   />
                                 ) : null}
                                 <div
-                                  className="avatar-fallback w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[10px] items-center justify-center uppercase shadow-2xs"
+                                  className="avatar-fallback w-5 h-5 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-[9px] items-center justify-center uppercase shadow-2xs"
                                   style={{ display: creator.avatarUrl ? "none" : "flex" }}
                                 >
                                   {creator.initials}
                                 </div>
                               </div>
-                              <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap" title={creator.name}>
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap text-[10px]" title={creator.name}>
                                 {creator.name}
                               </span>
                             </div>
@@ -2574,22 +2439,65 @@ const SmTasks = () => {
                       </td>
 
                       {/* DUE DATE */}
-                      <td className="py-3 px-3">
+                      <td className="py-2 px-2.5">
                         {renderDueDateBadge(task.dueDate, task.status)}
                       </td>
 
-                      {/* STATUS - Interactive quick-change dropdown */}
-                      <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
+                      {/* STATUS - Interactive quick-change dropdown or Compact Read-only badge */}
+                      <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                         {(() => {
                           const isComm = Boolean(task.commitment) || selectedCommitment === "Yes";
                           const currentDisplayStatus = getDisplayStatusForTask(task, selectedCommitment);
                           const options = isComm ? COMMITMENT_STATUS_OPTIONS : NON_COMMITMENT_STATUS_OPTIONS;
+                          const isStatusDisabled = isReadOnly || (isSocialMediaHead && isComm);
+
+                          if (isStatusDisabled) {
+                            const s = (currentDisplayStatus || "").trim();
+                            let line1 = s;
+                            let line2 = "";
+
+                            const sLower = s.toLowerCase();
+                            if (sLower.includes("client approval")) {
+                              line1 = "Client approval";
+                              line2 = "Pending";
+                            } else if (sLower.includes("waiting for response") || sLower.includes("response")) {
+                              line1 = "Waiting for";
+                              line2 = "Response";
+                            } else if (sLower.includes("published live") || sLower.includes("published")) {
+                              line1 = "Published";
+                              line2 = "Live";
+                            } else if (sLower.includes("not started")) {
+                              line1 = "Not";
+                              line2 = "Started";
+                            } else if (sLower.includes("in progress") || sLower === "inprogress") {
+                              line1 = "In";
+                              line2 = "Progress";
+                            }
+
+                            return (
+                              <div
+                                className={`inline-flex flex-col items-center justify-center text-center px-2 py-0.5 rounded-md border shadow-2xs cursor-default mx-auto ${getTableStatusStyle(currentDisplayStatus)}`}
+                                style={{ minWidth: "70px", maxWidth: "105px" }}
+                                title={currentDisplayStatus}
+                              >
+                                <span className="text-[9px] font-bold leading-tight whitespace-nowrap">
+                                  {line1}
+                                </span>
+                                {line2 && (
+                                  <span className="text-[8px] font-extrabold leading-tight opacity-90 whitespace-nowrap uppercase tracking-wider">
+                                    {line2}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          }
+
                           return (
                             <select
                               value={currentDisplayStatus}
-                              disabled={isReadOnly}
+                              disabled={isStatusDisabled}
                               onChange={(e) => handleQuickStatusChange(task, e.target.value)}
-                              className={`table-status-select ${isReadOnly ? "cursor-default opacity-90" : "cursor-pointer"} focus:ring-1 focus:ring-indigo-500 shadow-2xs font-semibold ${getTableStatusStyle(currentDisplayStatus)}`}
+                              className={`table-status-select ${isStatusDisabled ? "cursor-default opacity-90" : "cursor-pointer"} text-[9.5px] py-1 px-1.5 max-w-[110px] rounded-md border focus:ring-1 focus:ring-indigo-500 shadow-2xs font-semibold ${getTableStatusStyle(currentDisplayStatus)}`}
                             >
                               {options.map((st) => (
                                 <option key={st} value={st}>
@@ -2602,7 +2510,7 @@ const SmTasks = () => {
                       </td>
 
                       {/* PRIORITY */}
-                      <td className="py-3 px-3 font-bold">
+                      <td className="py-2 px-2 text-center font-bold text-[10px]">
                         {task.priority === "High" && <span className="text-rose-600 dark:text-rose-400">High</span>}
                         {task.priority === "Medium" && <span className="text-amber-600 dark:text-amber-400">Medium</span>}
                         {task.priority === "Low" && <span className="text-slate-500 dark:text-slate-400">Low</span>}
@@ -2610,84 +2518,58 @@ const SmTasks = () => {
 
                       {/* Notes & Brief - Visible in SME tasks tab */}
                       {selectedCommitment === "No" && (
-                        <td className="py-3 px-4 max-w-[260px]">
+                        <td className="py-2 px-3 max-w-[240px]">
                           {task.notes && task.notes.trim() ? (
                             <span
-                              className="text-slate-600 dark:text-slate-300 text-xs line-clamp-2 leading-relaxed block"
+                              className="text-slate-600 dark:text-slate-300 text-[10px] line-clamp-2 leading-relaxed block"
                               title={task.notes}
                             >
                               {task.notes}
                             </span>
                           ) : (
-                            <span className="text-slate-400 dark:text-slate-500 italic text-[11px]">-</span>
+                            <span className="text-slate-400 dark:text-slate-500 italic text-[10px]">-</span>
                           )}
                         </td>
                       )}
 
-                      {/* Columns visible only in Commitment: Publish Date, Commitment, Calendar */}
+                      {/* Columns visible only in Commitment: Publish Date */}
                       {selectedCommitment !== "No" && (
-                        <>
-                          {/* PUBLISH DATE (Shaded column) */}
-                          <td className="py-3 px-4 bg-slate-50/60 dark:bg-[#131d31]/50 font-mono text-[11px] text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap">
-                            {formatPublishDateTime(task.publishDate)}
-                          </td>
-
-                          {/* COMMITMENT (Shaded column) */}
-                          <td className="py-3 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 whitespace-nowrap">
-                            {task.commitment ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
-                                <FiLock size={10} className="shrink-0" />
-                                <span>Yes</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-slate-100 dark:bg-[#182338] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10">
-                                No
-                              </span>
-                            )}
-                          </td>
-
-                          {/* CALENDAR (Shaded column) */}
-                          <td className="py-3 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 whitespace-nowrap">
-                            {task.onCalendar ? (
-                              <span
-                                className="text-blue-600 dark:text-blue-400 font-bold hover:underline cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenCalendar();
-                                }}
-                              >
-                                On calendar
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">Not shown</span>
-                            )}
-                          </td>
-                        </>
+                        <td className="py-2 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 font-mono text-[10px] text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap">
+                          {formatPublishDateTime(task.publishDate)}
+                        </td>
                       )}
 
                       {/* ACTIONS */}
-                      <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleEditTask(task)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                            title={isReadOnly ? "View Task" : "Edit Task"}
-                          >
-                            <FiEdit2 size={14} />
-                          </button>
-                          {!isReadOnly && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleDeleteTask(task, e)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
-                              title="Delete Task"
-                            >
-                              <FiTrash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                      {!(isSocialMediaHead && selectedCommitment !== "No") && (
+                        <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                          {(() => {
+                            const isComm = Boolean(task.commitment) || selectedCommitment === "Yes";
+                            const isRowReadOnly = isReadOnly || (isSocialMediaHead && isComm);
+                            return (
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditTask(task)}
+                                  className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                  title={isRowReadOnly ? "View Task" : "Edit Task"}
+                                >
+                                  <FiEdit2 size={13} />
+                                </button>
+                                {!isRowReadOnly && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDeleteTask(task, e)}
+                                    className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                                    title="Delete Task"
+                                  >
+                                    <FiTrash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -2812,8 +2694,8 @@ const SmTasks = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         task={selectedTaskForEdit}
-        isReadOnly={isReadOnly}
-        initialCommitment={selectedCommitment !== "No"}
+        isReadOnly={isReadOnly || (isSocialMediaHead && Boolean(selectedTaskForEdit?.commitment))}
+        initialCommitment={isSocialMediaHead ? false : selectedCommitment !== "No"}
       />
 
       {/* Pending Commitment Modal (Detailed Client Breakdown) */}
@@ -2828,7 +2710,7 @@ const SmTasks = () => {
           setSelectedClient(clientName);
           setCurrentPage(1);
         }}
-        onCreateTaskForClient={isReadOnly ? null : (clientObj) => {
+        onCreateTaskForClient={isReadOnly || isSocialMediaHead ? null : (clientObj) => {
           setSelectedTaskForEdit({
             client: clientObj?._id,
             clientName: clientObj?.companyName,
@@ -2848,46 +2730,6 @@ const SmTasks = () => {
         targetStatus={platformWarningModal.targetStatus}
         onConfirm={handleConfirmPlatformWarning}
       />
-
-      {/* BULK ACTION FLOATING BAR (Separated for Commitment and SME tasks) */}
-      <AnimatePresence>
-        {activeSelectedIds.length > 0 && !isReadOnly && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: 50, x: "-50%" }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="fixed bottom-6 left-1/2 z-40 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md px-5 py-3 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-2xl flex items-center gap-4"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-extrabold text-[10px] flex items-center justify-center shadow-xs">
-                {activeSelectedIds.length}
-              </span>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                {activeSelectedIds.length} {isCommitmentTab ? "Commitment" : "SME"} task{activeSelectedIds.length > 1 ? "s" : ""} selected
-              </span>
-            </div>
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleClearSelection}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer whitespace-nowrap"
-              >
-                Clear
-              </button>
-              <button
-                type="button"
-                onClick={handleTriggerBulkDelete}
-                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:shadow-rose-500/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
-              >
-                <FiTrash2 size={13} />
-                <span>Delete Selected</span>
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* DELETE CONFIRMATION MODAL */}
       <AnimatePresence>
@@ -2911,15 +2753,11 @@ const SmTasks = () => {
               </div>
 
               <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 mb-2">
-                {deleteConfirm.target === "bulk"
-                  ? `Delete ${activeSelectedIds.length} ${deleteConfirm.tabName} Task${activeSelectedIds.length > 1 ? "s" : ""}`
-                  : `Delete ${deleteConfirm.tabName} Task`}
+                Delete {deleteConfirm.tabName} Task
               </h3>
 
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
-                {deleteConfirm.target === "bulk"
-                  ? `Are you sure you want to permanently delete the ${activeSelectedIds.length} selected ${deleteConfirm.tabName} task(s)? This action will remove them from the system and cannot be undone.`
-                  : `Are you sure you want to permanently delete "${deleteConfirm.target?.taskTitle}"? This action cannot be undone.`}
+                Are you sure you want to permanently delete "{deleteConfirm.target?.taskTitle}"? This action cannot be undone.
               </p>
 
               <div className="flex items-center gap-3 w-full">

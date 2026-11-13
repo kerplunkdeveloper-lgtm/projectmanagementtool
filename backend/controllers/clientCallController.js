@@ -1,6 +1,20 @@
 const ClientCall = require('../models/ClientCall');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const Client = require('../models/Client');
+
+const isSocialMediaHeadUser = (user) => {
+  if (!user) return false;
+  const dept = (user.department || '').toLowerCase();
+  const role = (user.role || '').toLowerCase();
+  if (dept.includes('social media executive') || dept.includes('executive')) return false;
+  return (
+    role === 'socialmediamanager' ||
+    role === 'socialmediahead' ||
+    dept.includes('social media head') ||
+    dept.includes('social media manager')
+  );
+};
 
 // @desc    Create a new client call
 // @route   POST /api/client-calls
@@ -15,6 +29,16 @@ exports.createCall = async (req, res) => {
         success: false,
         message: 'Please provide all required fields',
       });
+    }
+
+    if (isSocialMediaHeadUser(req.user) && client) {
+      const clientObj = await Client.findById(client).lean();
+      if (!clientObj || !clientObj.branch || !/^chennai$/i.test(clientObj.branch)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Social Media Head can only log calls for Chennai branch clients',
+        });
+      }
     }
 
     const clientCall = await ClientCall.create({
@@ -80,11 +104,27 @@ exports.createCall = async (req, res) => {
 // @access  Private
 exports.getCalls = async (req, res) => {
   try {
-    const calls = await ClientCall.find()
-      .populate('client', 'companyName status')
+    let query = {};
+    if (isSocialMediaHeadUser(req.user)) {
+      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i') }).select('_id').lean();
+      const chennaiClientIds = chennaiClients.map((c) => c._id);
+      const chennaiUsers = await User.find({ location: new RegExp('^chennai$', 'i') }).select('_id').lean();
+      const chennaiUserIds = chennaiUsers.map((u) => u._id);
+      const myId = req.user.id || req.user._id;
+
+      query = {
+        $or: [
+          { client: { $in: chennaiClientIds } },
+          { createdBy: { $in: [...chennaiUserIds, myId].filter(Boolean) } },
+        ],
+      };
+    }
+
+    const calls = await ClientCall.find(query)
+      .populate('client', 'companyName status branch')
       .populate({
         path: 'createdBy',
-        select: 'name email department profile',
+        select: 'name email department profile location',
         populate: { path: 'profile', select: 'profileImage' },
       })
       .sort({ date: -1, createdAt: -1 })
@@ -118,6 +158,18 @@ exports.deleteCall = async (req, res) => {
       });
     }
 
+    if (isSocialMediaHeadUser(req.user)) {
+      if (call.client) {
+        const clientObj = await Client.findById(call.client).select('branch').lean();
+        if (clientObj && clientObj.branch && !/^chennai$/i.test(clientObj.branch)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Not authorized to delete calls outside Chennai branch',
+          });
+        }
+      }
+    }
+
     await call.deleteOne();
 
     res.status(200).json({
@@ -147,15 +199,36 @@ exports.updateCall = async (req, res) => {
       });
     }
 
+    if (isSocialMediaHeadUser(req.user)) {
+      if (call.client) {
+        const clientObj = await Client.findById(call.client).select('branch').lean();
+        if (clientObj && clientObj.branch && !/^chennai$/i.test(clientObj.branch)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Not authorized to update calls outside Chennai branch',
+          });
+        }
+      }
+      if (req.body.client) {
+        const newClientObj = await Client.findById(req.body.client).select('branch').lean();
+        if (newClientObj && newClientObj.branch && !/^chennai$/i.test(newClientObj.branch)) {
+          return res.status(403).json({
+            success: false,
+            message: 'Social Media Head can only assign calls to Chennai branch clients',
+          });
+        }
+      }
+    }
+
     call = await ClientCall.findByIdAndUpdate(
       req.params.id,
       req.body,
       { returnDocument: 'after', runValidators: true }
     )
-      .populate('client', 'companyName')
+      .populate('client', 'companyName branch')
       .populate({
         path: 'createdBy',
-        select: 'name email department profile',
+        select: 'name email department profile location',
         populate: { path: 'profile', select: 'profileImage' },
       });
 
