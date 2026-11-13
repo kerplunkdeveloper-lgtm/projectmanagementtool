@@ -735,7 +735,7 @@ const SmTasks = () => {
   const [selectedCommitment, setSelectedCommitment] = useState(initialTabIsSme ? "No" : "Yes");
 
   const hideCommitmentAction =
-    selectedCommitment !== "No" && (isSocialMediaHead || isAdminOrOpManager);
+    isAdminOrOpManager || (selectedCommitment !== "No" && isSocialMediaHead);
 
   // Comprehensive Date Filter States
   const [dateFilterPreset, setDateFilterPreset] = useState("All"); // "All", "Today", "Tomorrow", "This Week", "This Month", "Overdue", "Custom"
@@ -1232,6 +1232,11 @@ const SmTasks = () => {
 
   const canDeleteTasks =
     !isReadOnly && !(isSocialMediaHead && selectedCommitment !== "No");
+
+  const allFilteredTaskIds = useMemo(() => {
+    if (!canDeleteTasks) return [];
+    return (filteredTasks || []).map((t) => t._id).filter(Boolean);
+  }, [canDeleteTasks, filteredTasks]);
 
   const selectableTaskIds = useMemo(() => {
     if (!canDeleteTasks) return [];
@@ -2247,6 +2252,18 @@ const SmTasks = () => {
               <span className="text-xs font-bold text-rose-800 dark:text-rose-200">
                 <span className="font-black text-rose-600 dark:text-rose-400">{selectedTaskIds.length}</span> task{selectedTaskIds.length > 1 ? "s" : ""} selected
               </span>
+              {allFilteredTaskIds.length > selectedTaskIds.length && (
+                <>
+                  <span className="text-slate-300 dark:text-slate-700">|</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTaskIds(allFilteredTaskIds)}
+                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    Select all {allFilteredTaskIds.length} tasks in this list
+                  </button>
+                </>
+              )}
               <span className="text-slate-300 dark:text-slate-700">|</span>
               <button
                 type="button"
@@ -2413,7 +2430,7 @@ const SmTasks = () => {
                 ))
               ) : paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={(canDeleteTasks ? 1 : 0) + (selectedCommitment === "No" ? 11 : (hideCommitmentAction ? 11 : 12))} className="py-12 text-center">
+                  <td colSpan={(canDeleteTasks ? 1 : 0) + (selectedCommitment === "No" ? (hideCommitmentAction ? 10 : 11) : (hideCommitmentAction ? 11 : 12))} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center py-6">
                       <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
                         <FiCalendar size={22} />

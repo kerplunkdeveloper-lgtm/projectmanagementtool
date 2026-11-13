@@ -42,6 +42,8 @@ import {
   FiTarget,
   FiArrowRight,
   FiUpload,
+  FiCheckSquare,
+  FiSquare,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -51,6 +53,7 @@ import {
   rescheduleSocialmediaTask,
   deleteSocialmediaTask,
   updateSocialmediaTask,
+  bulkDeleteSocialmediaTasks,
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
@@ -424,6 +427,12 @@ const ContentCalendar = () => {
   const [tableSearch, setTableSearch] = useState("");
   const [tablePage, setTablePage] = useState(1);
   const itemsPerPage = 15;
+
+  // Multi-Select & Bulk Delete State
+  const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   const formatPublishDateTime = (dateVal) => {
     if (!dateVal) return "-";
@@ -1064,6 +1073,80 @@ const ContentCalendar = () => {
     return tableFilteredTasks.slice(start, start + itemsPerPage);
   }, [tableFilteredTasks, tablePage]);
 
+  // Selectable tasks based on active view mode
+  const selectableTasks = useMemo(() => {
+    if (viewMode === "Table") return tableFilteredTasks;
+    return calendarTasks;
+  }, [viewMode, tableFilteredTasks, calendarTasks]);
+
+  const selectableIds = useMemo(() => {
+    return (selectableTasks || []).map((t) => t._id).filter(Boolean);
+  }, [selectableTasks]);
+
+  const isAllSelected = useMemo(() => {
+    return (
+      selectableIds.length > 0 &&
+      selectableIds.every((id) => selectedTaskIds.includes(id))
+    );
+  }, [selectableIds, selectedTaskIds]);
+
+  const isSomeSelected = useMemo(() => {
+    return (
+      selectableIds.some((id) => selectedTaskIds.includes(id)) && !isAllSelected
+    );
+  }, [selectableIds, selectedTaskIds, isAllSelected]);
+
+  const handleSelectAll = useCallback(() => {
+    if (isAllSelected) {
+      setSelectedTaskIds((prev) =>
+        prev.filter((id) => !selectableIds.includes(id))
+      );
+    } else {
+      setSelectedTaskIds((prev) =>
+        Array.from(new Set([...prev, ...selectableIds]))
+      );
+      setIsSelectMode(true);
+    }
+  }, [isAllSelected, selectableIds]);
+
+  const handleToggleSelect = useCallback((taskId, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    setSelectedTaskIds((prev) => {
+      const next = prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId];
+      if (next.length > 0) setIsSelectMode(true);
+      return next;
+    });
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedTaskIds([]);
+    setIsSelectMode(false);
+  }, []);
+
+  const handleConfirmBulkDelete = async () => {
+    if (isBulkDeleting || selectedTaskIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      await dispatch(bulkDeleteSocialmediaTasks(selectedTaskIds)).unwrap();
+      setSelectedTaskIds([]);
+      setBulkDeleteModalOpen(false);
+      setIsSelectMode(false);
+      dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
+      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+    } catch (err) {
+      console.error("Bulk delete failed:", err);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Reset selectedTaskIds on major filter change
+  useEffect(() => {
+    setSelectedTaskIds([]);
+  }, [currentMonth, currentYear, selectedClient, selectedCategory, selectedContentType, selectedStatus, selectedAssignee, selectedPriority]);
+
   // Calendar month grid calculation (Sunday start matching Image 2)
   const calendarDays = useMemo(() => {
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
@@ -1617,7 +1700,7 @@ const ContentCalendar = () => {
 
           {/* View Mode Switcher (Matching 2nd Reference Image) */}
           <div className="flex items-center bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-[#1e2a40] rounded-xl p-1 shadow-xs">
-            {["Month", "Week", "List"].map((mode) => (
+            {["Month", "Week", "List", "Table"].map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
@@ -1648,6 +1731,29 @@ const ContentCalendar = () => {
                 <FiUpload size={14} />
                 <span>Import Excel</span>
               </button>
+              {calendarTasks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isSelectMode && selectedTaskIds.length === 0) {
+                      setIsSelectMode(false);
+                    } else if (!isSelectMode && selectedTaskIds.length === 0) {
+                      setIsSelectMode(true);
+                    } else {
+                      setIsSelectMode(!isSelectMode);
+                    }
+                  }}
+                  className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                    isSelectMode || selectedTaskIds.length > 0
+                      ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-2xs"
+                      : "border-slate-200 dark:border-[#1e2a40] bg-white dark:bg-[#0c1220] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-[#182338]"
+                  }`}
+                  title="Toggle Selection Mode for bulk delete"
+                >
+                  <FiCheckSquare size={14} className={isSelectMode || selectedTaskIds.length > 0 ? "text-indigo-600 dark:text-indigo-400" : ""} />
+                  <span>{selectedTaskIds.length > 0 ? `Selected (${selectedTaskIds.length})` : "Select Posts"}</span>
+                </button>
+              )}
               <button
                 onClick={() => handleAddPostOnDate(new Date())}
                 className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer"
@@ -1701,6 +1807,76 @@ const ContentCalendar = () => {
         setCurrentPage={setTablePage}
       />
       </div>
+
+      {/* Bulk Selection Bar */}
+      <AnimatePresence>
+        {!isReadOnly && (selectedTaskIds.length > 0 || isSelectMode) && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="bg-gradient-to-r from-indigo-50/95 via-purple-50/95 to-pink-50/95 dark:from-[#0f172a] dark:via-[#131d33] dark:to-[#171c35] border border-indigo-200 dark:border-indigo-900/60 rounded-2xl p-3 shadow-md flex flex-wrap items-center justify-between gap-3 relative z-20"
+          >
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = isSomeSelected;
+                  }}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                  id="cal-select-all-banner"
+                />
+                <label htmlFor="cal-select-all-banner" className="text-xs font-bold text-slate-800 dark:text-slate-100 cursor-pointer select-none">
+                  {isAllSelected ? "Deselect All" : `Select All (${selectableIds.length})`}
+                </label>
+              </div>
+              <span className="text-slate-300 dark:text-slate-700">|</span>
+              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                {selectedTaskIds.length} {selectedTaskIds.length === 1 ? "post" : "posts"} selected
+              </span>
+              {selectedTaskIds.length > 0 && (
+                <>
+                  <span className="text-slate-300 dark:text-slate-700">|</span>
+                  <button
+                    type="button"
+                    onClick={handleClearSelection}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 underline cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {selectedTaskIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-98 text-white text-xs font-bold shadow-md shadow-rose-600/25 transition-all cursor-pointer"
+                >
+                  <FiTrash2 size={13} className="stroke-[2.5]" />
+                  <span>Delete Selected ({selectedTaskIds.length})</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSelectMode(false);
+                  setSelectedTaskIds([]);
+                }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800 cursor-pointer"
+                title="Exit Select Mode"
+              >
+                <FiX size={15} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filter Bar */}
       <div className="bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3 relative z-30">
@@ -2050,9 +2226,30 @@ const ContentCalendar = () => {
                             </span>
 
                             {postsForDay.length > 0 && dayItem.isCurrentMonth && (
-                              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
-                                {postsForDay.length} {postsForDay.length === 1 ? "post" : "posts"}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                {!isReadOnly && (isSelectMode || selectedTaskIds.length > 0) && (
+                                  <input
+                                    type="checkbox"
+                                    checked={postsForDay.every((p) => selectedTaskIds.includes(p._id))}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      const dayIds = postsForDay.map((p) => p._id).filter(Boolean);
+                                      const allDaySel = dayIds.every((id) => selectedTaskIds.includes(id));
+                                      if (allDaySel) {
+                                        setSelectedTaskIds((prev) => prev.filter((id) => !dayIds.includes(id)));
+                                      } else {
+                                        setSelectedTaskIds((prev) => Array.from(new Set([...prev, ...dayIds])));
+                                        setIsSelectMode(true);
+                                      }
+                                    }}
+                                    className="w-3 h-3 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                                    title="Select all posts on this day"
+                                  />
+                                )}
+                                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">
+                                  {postsForDay.length} {postsForDay.length === 1 ? "post" : "posts"}
+                                </span>
+                              </div>
                             )}
                           </div>
 
@@ -2090,15 +2287,32 @@ const ContentCalendar = () => {
                                 onDragStart={!isReadOnly ? (e) => handleDragStart(e, post._id) : undefined}
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (isSelectMode) {
+                                    handleToggleSelect(post._id, e);
+                                    return;
+                                  }
                                   setSelectedCalendarDateKey(dayItem.dateKey);
                                   handleCardClick(post, e);
                                 }}
-                                className={`p-2 rounded-xl border ${statusStyle.card} hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1.5 shadow-2xs`}
+                                className={`p-2 rounded-xl border ${statusStyle.card} hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1.5 shadow-2xs ${
+                                  selectedTaskIds.includes(post._id)
+                                    ? "ring-2 ring-indigo-500 shadow-md bg-indigo-50/60 dark:bg-indigo-950/50"
+                                    : ""
+                                }`}
                                 style={{ borderLeftWidth: "3.5px", borderLeftColor: clientColor }}
                               >
-                                {/* Top Row: Time + Content Type Pill */}
+                                {/* Top Row: Checkbox + Time + Content Type Pill */}
                                 <div className="flex items-center justify-between gap-1 text-[10px] leading-tight">
                                   <div className="flex items-center gap-1 min-w-0">
+                                    {!isReadOnly && (isSelectMode || selectedTaskIds.length > 0) && (
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedTaskIds.includes(post._id)}
+                                        onChange={(e) => handleToggleSelect(post._id, e)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0 mr-0.5"
+                                      />
+                                    )}
                                     <span className="font-mono font-bold text-slate-700 dark:text-slate-300 text-[10px] shrink-0">
                                       {formatCardTime(post.publishDate)}
                                     </span>
@@ -2304,22 +2518,48 @@ const ContentCalendar = () => {
               </span>
             </div>
 
-            {!isReadOnly && (
-              <button
-                type="button"
-                onClick={() => handleAddPostOnDate(new Date())}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer self-start sm:self-auto"
-              >
-                <FiPlus size={14} />
-                <span>Create Post</span>
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {selectedTaskIds.length > 0 && !isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  <FiTrash2 size={13} />
+                  <span>Delete Selected ({selectedTaskIds.length})</span>
+                </button>
+              )}
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => handleAddPostOnDate(new Date())}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer self-start sm:self-auto"
+                >
+                  <FiPlus size={14} />
+                  <span>Create Post</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-[#1e2a40]">
             <table className="w-full text-left text-xs whitespace-nowrap">
               <thead>
                 <tr className="border-b border-slate-200/80 dark:border-[#1e2a40] bg-slate-50 dark:bg-[#0c1220] text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  {!isReadOnly && (
+                    <th className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = isSomeSelected;
+                        }}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                        title={isAllSelected ? "Deselect All" : `Select All (${selectableIds.length})`}
+                      />
+                    </th>
+                  )}
                   <th className="py-3 px-4">Task</th>
                   <th className="py-3 px-4">Client</th>
                   <th className="py-3 px-3">Category</th>
@@ -2338,6 +2578,11 @@ const ContentCalendar = () => {
                 {isCalendarLoading && tablePaginatedTasks.length === 0 ? (
                   Array.from({ length: 6 }).map((_, idx) => (
                     <tr key={`cal-table-skel-${idx}`} className="animate-pulse">
+                      {!isReadOnly && (
+                        <td className="py-3 px-3 text-center">
+                          <div className="w-4 h-4 bg-slate-200 dark:bg-slate-800 rounded mx-auto" />
+                        </td>
+                      )}
                       <td className="py-3 px-4">
                         <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-36" />
                       </td>
@@ -2378,7 +2623,7 @@ const ContentCalendar = () => {
                   ))
                 ) : tablePaginatedTasks.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="py-12 text-center text-slate-400 italic">
+                    <td colSpan={!isReadOnly ? 13 : 12} className="py-12 text-center text-slate-400 italic">
                       No posts found matching the criteria.
                     </td>
                   </tr>
@@ -2391,8 +2636,20 @@ const ContentCalendar = () => {
                       <tr
                         key={t._id}
                         onClick={() => handleCardClick(t)}
-                        className="hover:bg-slate-50/80 dark:hover:bg-[#101726] transition-colors cursor-pointer group"
+                        className={`hover:bg-slate-50/80 dark:hover:bg-[#101726] transition-colors cursor-pointer group ${
+                          selectedTaskIds.includes(t._id) ? "bg-indigo-50/70 dark:bg-indigo-950/40" : ""
+                        }`}
                       >
+                        {!isReadOnly && (
+                          <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedTaskIds.includes(t._id)}
+                              onChange={(e) => handleToggleSelect(t._id, e)}
+                              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                            />
+                          </td>
+                        )}
                         {/* Task Title */}
                         <td className="py-3 px-4 max-w-[200px]">
                           <div className="flex items-center gap-2">
@@ -2648,12 +2905,30 @@ const ContentCalendar = () => {
                           key={p._id}
                           draggable={!isReadOnly}
                           onDragStart={!isReadOnly ? (e) => handleDragStart(e, p._id) : undefined}
-                          onClick={(e) => handleCardClick(p, e)}
-                          className={`p-2 rounded-xl border ${statusStyle.card} text-xs shadow-2xs hover:shadow-md transition-all cursor-pointer space-y-1.5`}
+                          onClick={(e) => {
+                            if (isSelectMode) {
+                              e.stopPropagation();
+                              handleToggleSelect(p._id, e);
+                              return;
+                            }
+                            handleCardClick(p, e);
+                          }}
+                          className={`p-2 rounded-xl border ${statusStyle.card} text-xs shadow-2xs hover:shadow-md transition-all cursor-pointer space-y-1.5 ${
+                            selectedTaskIds.includes(p._id) ? "ring-2 ring-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/50" : ""
+                          }`}
                           style={{ borderLeftWidth: "3.5px", borderLeftColor: p.clientColor || "#6366f1" }}
                         >
                           <div className="flex items-center justify-between gap-1 text-[10px]">
                             <div className="flex items-center gap-1 min-w-0">
+                              {!isReadOnly && (isSelectMode || selectedTaskIds.length > 0) && (
+                                <input
+                                  type="checkbox"
+                                  checked={selectedTaskIds.includes(p._id)}
+                                  onChange={(e) => handleToggleSelect(p._id, e)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0 mr-0.5"
+                                />
+                              )}
                               <span className="font-mono font-bold text-slate-600 dark:text-slate-300">
                                 {formatCardTime(p.publishDate)}
                               </span>
@@ -2731,18 +3006,41 @@ const ContentCalendar = () => {
       {/* 4. LIST VIEW */}
       {viewMode === "List" && (
         <div className="bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl shadow-sm p-4 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              All Planned Social Media Posts ({calendarTasks.length})
-            </h3>
-            {!isReadOnly && (
-              <button
-                onClick={() => handleAddPostOnDate(new Date())}
-                className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
-              >
-                <FiPlus size={14} /> Add Post
-              </button>
-            )}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                All Planned Social Media Posts ({calendarTasks.length})
+              </h3>
+              {!isReadOnly && calendarTasks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                >
+                  {isAllSelected ? "Deselect All" : `Select All (${calendarTasks.length})`}
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedTaskIds.length > 0 && !isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                >
+                  <FiTrash2 size={13} />
+                  <span>Delete Selected ({selectedTaskIds.length})</span>
+                </button>
+              )}
+              {!isReadOnly && (
+                <button
+                  onClick={() => handleAddPostOnDate(new Date())}
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
+                >
+                  <FiPlus size={14} /> Add Post
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -2766,11 +3064,30 @@ const ContentCalendar = () => {
                 return (
                   <div
                     key={task._id}
-                    onClick={(e) => handleCardClick(task, e)}
-                    className={`p-3.5 rounded-xl border ${statusStyle.card} hover:shadow-xs transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3`}
+                    onClick={(e) => {
+                      if (isSelectMode) {
+                        e.stopPropagation();
+                        handleToggleSelect(task._id, e);
+                        return;
+                      }
+                      handleCardClick(task, e);
+                    }}
+                    className={`p-3.5 rounded-xl border ${statusStyle.card} hover:shadow-xs transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                      selectedTaskIds.includes(task._id) ? "ring-2 ring-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40" : ""
+                    }`}
                     style={{ borderLeftWidth: "4px", borderLeftColor: task.clientColor || "#6366f1" }}
                   >
                     <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                      {!isReadOnly && (
+                        <div className="shrink-0 flex items-center pr-1" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedTaskIds.includes(task._id)}
+                            onChange={(e) => handleToggleSelect(task._id, e)}
+                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                          />
+                        </div>
+                      )}
                       <div className="w-14 text-center shrink-0">
                         <div className="font-mono text-xs font-extrabold text-slate-800 dark:text-slate-200">
                           {formatCardTime(task.publishDate)}
@@ -2868,12 +3185,34 @@ const ContentCalendar = () => {
                   {selectedDayPosts.date.getFullYear()}
                 </h3>
               </div>
-              <button
-                onClick={() => setSelectedDayPosts(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <FiX size={16} />
-              </button>
+              <div className="flex items-center gap-2">
+                {!isReadOnly && selectedDayPosts.posts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dayIds = selectedDayPosts.posts.map((p) => p._id).filter(Boolean);
+                      const allDaySel = dayIds.every((id) => selectedTaskIds.includes(id));
+                      if (allDaySel) {
+                        setSelectedTaskIds((prev) => prev.filter((id) => !dayIds.includes(id)));
+                      } else {
+                        setSelectedTaskIds((prev) => Array.from(new Set([...prev, ...dayIds])));
+                        setIsSelectMode(true);
+                      }
+                    }}
+                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  >
+                    {selectedDayPosts.posts.every((p) => selectedTaskIds.includes(p._id))
+                      ? "Deselect Day"
+                      : "Select Day"}
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedDayPosts(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <FiX size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
@@ -2893,14 +3232,32 @@ const ContentCalendar = () => {
                   <div
                     key={post._id}
                     onClick={(e) => {
+                      if (isSelectMode) {
+                        e.stopPropagation();
+                        handleToggleSelect(post._id, e);
+                        return;
+                      }
                       setSelectedDayPosts(null);
                       handleCardClick(post, e);
                     }}
-                    className={`p-3 rounded-xl border ${statusStyle.card} hover:shadow-xs transition-all cursor-pointer space-y-2`}
+                    className={`p-3 rounded-xl border ${statusStyle.card} hover:shadow-xs transition-all cursor-pointer space-y-2 ${
+                      selectedTaskIds.includes(post._id)
+                        ? "ring-2 ring-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40"
+                        : ""
+                    }`}
                     style={{ borderLeftWidth: "4px", borderLeftColor: post.clientColor || "#6366f1" }}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
+                        {!isReadOnly && (
+                          <input
+                            type="checkbox"
+                            checked={selectedTaskIds.includes(post._id)}
+                            onChange={(e) => handleToggleSelect(post._id, e)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0"
+                          />
+                        )}
                         <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">
                           {formatCardTime(post.publishDate)}
                         </span>
@@ -2949,8 +3306,22 @@ const ContentCalendar = () => {
               })}
             </div>
 
-            {!isReadOnly && (
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              {!isReadOnly && selectedTaskIds.filter((id) => selectedDayPosts.posts.some((p) => p._id === id)).length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <FiTrash2 size={13} />
+                  <span>
+                    Delete Selected ({selectedTaskIds.filter((id) => selectedDayPosts.posts.some((p) => p._id === id)).length})
+                  </span>
+                </button>
+              ) : (
+                <div />
+              )}
+              {!isReadOnly && (
                 <button
                   type="button"
                   onClick={() => {
@@ -2962,8 +3333,8 @@ const ContentCalendar = () => {
                 >
                   <FiPlus size={14} /> Add new post
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -3036,6 +3407,61 @@ const ContentCalendar = () => {
           setSelectedContentType("All");
         }}
       />
+
+      {/* BULK DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {bulkDeleteModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-[#060a14]/90 backdrop-blur-sm animate-fadeIn">
+            <div
+              className="fixed inset-0"
+              onClick={() => !isBulkDeleting && setBulkDeleteModalOpen(false)}
+            />
+            <div className="relative bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+                <FiTrash2 size={24} />
+              </div>
+
+              <div className="text-center space-y-1.5">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Delete {selectedTaskIds.length} Selected Posts
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Are you sure you want to permanently delete these <strong className="text-rose-600 dark:text-rose-400 font-extrabold">{selectedTaskIds.length}</strong> selected posts from Content Calendar? This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={isBulkDeleting}
+                  onClick={() => setBulkDeleteModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700/80 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isBulkDeleting}
+                  onClick={handleConfirmBulkDelete}
+                  className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-98 text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {isBulkDeleting ? (
+                    <>
+                      <FiRefreshCw size={14} className="animate-spin" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FiTrash2 size={14} />
+                      <span>Yes, Delete ({selectedTaskIds.length})</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

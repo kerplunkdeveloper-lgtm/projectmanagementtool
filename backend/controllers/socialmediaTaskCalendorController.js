@@ -18,6 +18,19 @@ const isSocialMediaHeadUser = (user) => {
   );
 };
 
+// Helper to determine if a user belongs to Social Media Executive department
+const isSocialMediaExecutiveUser = (user) => {
+  if (!user) return false;
+  const role = (user.role || '').toLowerCase().replace(/[\s_]/g, '');
+  const dept = (user.department || user.profile?.department || '').toLowerCase().trim();
+  return (
+    dept.includes('social media executive') ||
+    (dept.includes('social') && dept.includes('executive')) ||
+    (role.includes('social') && role.includes('executive')) ||
+    dept.includes('sme')
+  );
+};
+
 // Helper to determine if a task is a Commitment task
 const isCommitmentTask = (bodyOrDoc) => {
   if (!bodyOrDoc) return false;
@@ -953,8 +966,9 @@ exports.deleteSocialmediaTask = async (req, res) => {
         userRole === 'socialmediamanager' ||
         userRole === 'socialmediahead' ||
         deptLower.includes('social media head');
+      const isSocialMediaExecutive = isSocialMediaExecutiveUser(req.user);
       const isCreator = existing.createdBy && existing.createdBy.toString() === req.user._id.toString();
-      if (!isCreator && !isSocialMediaManager && existing.createdBy) {
+      if (!isCreator && !isSocialMediaManager && !isSocialMediaExecutive && existing.createdBy) {
         return res.status(403).json({ success: false, message: 'Not authorized to delete this task' });
       }
     }
@@ -1010,9 +1024,10 @@ exports.bulkDeleteSocialmediaTasks = async (req, res) => {
       userRole === 'socialmediamanager' ||
       userRole === 'socialmediahead' ||
       deptLower.includes('social media head');
+    const isSocialMediaExecutive = isSocialMediaExecutiveUser(req.user);
 
     const filter = { _id: { $in: taskIds } };
-    if (!isSocialMediaManager && req.user) {
+    if (!isSocialMediaManager && !isSocialMediaExecutive && req.user) {
       filter.$or = [
         { createdBy: req.user._id },
         { createdBy: null },
