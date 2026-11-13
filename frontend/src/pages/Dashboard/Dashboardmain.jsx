@@ -1080,6 +1080,21 @@ const Dashboardmain = () => {
     img.src = supermanImg;
   }, []);
 
+  const getClientObjectForProject = React.useCallback((proj) => {
+    if (!proj || !proj.client) return null;
+    if (typeof proj.client === "object" && proj.client.companyName) {
+      return proj.client;
+    }
+    const clientId =
+      typeof proj.client === "object" ? proj.client._id : proj.client;
+    const matched = clients?.find((c) => String(c._id) === String(clientId));
+    if (matched) return matched;
+    if (typeof proj.client === "string") return { companyName: proj.client };
+    if (proj.client?.companyName || proj.client?.name)
+      return { companyName: proj.client.companyName || proj.client.name };
+    return null;
+  }, [clients]);
+
   const [projectPage, setProjectPage] = useState(1);
 
   const userProjects = React.useMemo(() => {
@@ -1087,27 +1102,22 @@ const Dashboardmain = () => {
     const currentUserId = (user?._id || user?.id)?.toString();
     if (!currentUserId) return [];
 
-    const createdByUser = projects.filter((p) => {
+    return projects.filter((p) => {
+      // Exclude inactive client projects
+      const clientObj = getClientObjectForProject(p);
+      if (clientObj && (clientObj.status || "").toLowerCase() === "inactive") {
+        return false;
+      }
+
+      // Strictly only show projects created by this specific user / admin
       const creatorId = (
-        typeof p.createdBy === "object" ? p.createdBy?._id : p.createdBy
+        typeof p.createdBy === "object"
+          ? p.createdBy?._id || p.createdBy?.id
+          : p.createdBy
       )?.toString();
       return creatorId && creatorId === currentUserId;
     });
-
-    if (createdByUser.length > 0) return createdByUser;
-
-    // For Admin / Operation Manager: if they haven't personally created any project,
-    // display active accessible projects so the dashboard is never a blank box
-    const r = (user?.role?.name || user?.role || "")
-      .toString()
-      .toLowerCase()
-      .replace(/[\s_]+/g, "");
-    if (r === "admin" || r === "operationmanager") {
-      return projects.filter((p) => p.status === "Active" || !p.status);
-    }
-
-    return createdByUser;
-  }, [projects, user]);
+  }, [projects, user, getClientObjectForProject]);
 
   const PROJECTS_PER_PAGE = 5;
   const totalProjectPages =
@@ -1119,21 +1129,6 @@ const Dashboardmain = () => {
       projectPage * PROJECTS_PER_PAGE,
     );
   }, [userProjects, projectPage]);
-
-  const getClientObjectForProject = (proj) => {
-    if (!proj || !proj.client) return null;
-    if (typeof proj.client === "object" && proj.client.companyName) {
-      return proj.client;
-    }
-    const clientId =
-      typeof proj.client === "object" ? proj.client._id : proj.client;
-    const matched = clients?.find((c) => c._id === clientId);
-    if (matched) return matched;
-    if (typeof proj.client === "string") return { companyName: proj.client };
-    if (proj.client?.companyName || proj.client?.name)
-      return { companyName: proj.client.companyName || proj.client.name };
-    return null;
-  };
 
   const formatGoalDates = (startStr, endStr) => {
     if (!startStr && !endStr) return null;
@@ -2021,16 +2016,23 @@ const Dashboardmain = () => {
   const showContentCalendar =
     !isFinance && !isGraphicDesigner && !isCinematographer;
 
+  const isOperationManager =
+    roleNorm === "operationmanager" ||
+    roleNorm === "operation manager" ||
+    deptNorm.includes("operation manager") ||
+    desigNorm.includes("operation manager") ||
+    (typeof window !== "undefined" &&
+      window.location.pathname.includes("/operationmanager"));
+
   const canSeeProjectsShortcut =
     !isSocialMediaManager &&
+    !isOperationManager &&
     (roleNorm === "admin" ||
-      roleNorm === "operationmanager" ||
       roleNorm === "socialmediaexecutive" ||
       deptNorm.includes("social media executive") ||
       desigNorm.includes("social media executive") ||
       (deptNorm.includes("social media") && !isSocialMediaManager) ||
       (desigNorm.includes("social media") && !isSocialMediaManager) ||
-      desigNorm.includes("operation manager") ||
       desigNorm.includes("admin"));
 
   return (

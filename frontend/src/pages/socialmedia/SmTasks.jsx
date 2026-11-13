@@ -629,6 +629,11 @@ const SmTasks = () => {
     userRoleClean === "operationmanager" ||
     isSocialMediaManagerRole;
   const isReadOnly = userRoleClean === "admin" || userRoleClean === "operationmanager";
+  const isAdminOrOpManager =
+    userRoleClean === "admin" ||
+    userRoleClean === "operationmanager" ||
+    (user?.role?.name || user?.role || "").toString().toLowerCase().includes("admin") ||
+    (user?.role?.name || user?.role || "").toString().toLowerCase().includes("operation");
 
   // Month & Commitments state (Image 1 style)
   const currentNow = new Date();
@@ -727,6 +732,9 @@ const SmTasks = () => {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
   const [selectedCommitment, setSelectedCommitment] = useState(initialTabIsSme ? "No" : "Yes");
+
+  const hideCommitmentAction =
+    selectedCommitment !== "No" && (isSocialMediaHead || isAdminOrOpManager);
 
   // Comprehensive Date Filter States
   const [dateFilterPreset, setDateFilterPreset] = useState("All"); // "All", "Today", "Tomorrow", "This Week", "This Month", "Overdue", "Custom"
@@ -2168,7 +2176,7 @@ const SmTasks = () => {
                 {selectedCommitment !== "No" && (
                   <th className="py-2.5 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
                 )}
-                {!(isSocialMediaHead && selectedCommitment !== "No") && (
+                {!hideCommitmentAction && (
                   <th className="py-2.5 px-2 text-center whitespace-nowrap">Action</th>
                 )}
               </tr>
@@ -2257,7 +2265,7 @@ const SmTasks = () => {
                     )}
 
                     {/* Action */}
-                    {!(isSocialMediaHead && selectedCommitment !== "No") && (
+                    {!hideCommitmentAction && (
                       <td className="py-2 px-2 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <div className="w-5 h-5 rounded-md bg-slate-200 dark:bg-slate-700/60" />
@@ -2269,7 +2277,7 @@ const SmTasks = () => {
                 ))
               ) : paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={selectedCommitment === "No" ? 11 : (isSocialMediaHead ? 11 : 12)} className="py-12 text-center">
+                  <td colSpan={selectedCommitment === "No" ? 11 : (hideCommitmentAction ? 11 : 12)} className="py-12 text-center">
                     <div className="flex flex-col items-center justify-center py-6">
                       <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
                         <FiCalendar size={22} />
@@ -2540,7 +2548,7 @@ const SmTasks = () => {
                       )}
 
                       {/* ACTIONS */}
-                      {!(isSocialMediaHead && selectedCommitment !== "No") && (
+                      {!hideCommitmentAction && (
                         <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                           {(() => {
                             const isComm = Boolean(task.commitment) || selectedCommitment === "Yes";
