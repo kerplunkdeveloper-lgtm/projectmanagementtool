@@ -2001,6 +2001,22 @@ const Dashboardmain = () => {
         (window.location.pathname.includes("/cinematographer") ||
           window.location.pathname.includes("/videographer"))));
 
+  const isSocialMediaExecutive =
+    roleNorm !== "admin" &&
+    roleNorm !== "operationmanager" &&
+    !isSocialMediaManager &&
+    (roleNorm === "socialmediaexecutive" ||
+      roleNorm.includes("executive") ||
+      deptNorm.includes("social media executive") ||
+      desigNorm.includes("social media executive") ||
+      (deptNorm.includes("social") && deptNorm.includes("executive")) ||
+      (desigNorm.includes("social") && desigNorm.includes("executive")) ||
+      (deptNorm.includes("social media") && !deptNorm.includes("head") && !deptNorm.includes("manager")) ||
+      (desigNorm.includes("social media") && !desigNorm.includes("head") && !desigNorm.includes("manager")) ||
+      (deptNorm.includes("smm") && !deptNorm.includes("head") && !deptNorm.includes("manager")));
+
+  const canShowShootCalendar = canReadShootCalendar && !isSocialMediaExecutive;
+
   const showContentCalendar =
     !isFinance && !isGraphicDesigner && !isCinematographer;
 
@@ -2656,16 +2672,16 @@ const Dashboardmain = () => {
       </div>
 
       {/* ─── CALENDAR OVERVIEW SECTION (Left: Shoot Calendar Overview, Right: Content Calendar Overview) ─── */}
-      {!isFinance && (canReadShootCalendar || showContentCalendar) && (
+      {!isFinance && (canShowShootCalendar || showContentCalendar) && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4 mb-4 items-stretch">
-          {canReadShootCalendar && (
+          {canShowShootCalendar && (
             <div className={`w-full flex ${!showContentCalendar ? "xl:col-span-2" : ""}`}>
               <ShootCalendarOverview />
             </div>
           )}
 
           {showContentCalendar && (
-            <div className={`w-full flex ${!canReadShootCalendar ? "xl:col-span-2" : ""}`}>
+            <div className={`w-full flex ${!canShowShootCalendar ? "xl:col-span-2" : ""}`}>
               <ContentCalendarOverview />
             </div>
           )}
@@ -2733,11 +2749,9 @@ const Dashboardmain = () => {
       })()}
 
       {/* ............................................status cards .......................................... */}
-      {(user?.role === "admin" ||
-        user?.role === "operationmanager" ||
-        user?.department?.toLowerCase() === "social media manager" ||
-        user?.department?.toLowerCase() === "social media executive" ||
-        user?.department?.toLowerCase()?.includes("social media")) && (
+      {(user?.role === "admin" || user?.role === "operationmanager") &&
+        !isSocialMediaManager &&
+        !isSocialMediaExecutive && (
         <div className="w-full py-4 md:py-10">
           {/* Department Tabs */}
           <div className="flex justify-center w-full mb-8 px-2">
@@ -2794,7 +2808,9 @@ const Dashboardmain = () => {
             ) ||
               activeDeptTab?.toLowerCase().includes("design") ||
               activeDeptTab?.toLowerCase().includes("cinema") ||
-              activeDeptTab?.toLowerCase().includes("video")) && (
+              activeDeptTab?.toLowerCase().includes("video")) &&
+              !isSocialMediaManager &&
+              !isSocialMediaExecutive && (
               <GraphicDesignerDashboard targetDept={activeDeptTab} parentTasks={tasks} />
             )}
             {activeDeptTab?.toLowerCase().includes("web") && (
@@ -2821,7 +2837,9 @@ const Dashboardmain = () => {
               !activeDeptTab?.toLowerCase().includes("mobile") &&
               !activeDeptTab?.toLowerCase().includes("social") &&
               !activeDeptTab?.toLowerCase().includes("seo") &&
-              !activeDeptTab?.toLowerCase().includes("performance") && (
+              !activeDeptTab?.toLowerCase().includes("performance") &&
+              !isSocialMediaManager &&
+              !isSocialMediaExecutive && (
                 <GraphicDesignerDashboard targetDept={activeDeptTab} parentTasks={tasks} />
               )}
           </React.Suspense>
@@ -2836,6 +2854,8 @@ const Dashboardmain = () => {
         user?.department?.toLowerCase() !== "social media manager" &&
         user?.department?.toLowerCase() !== "social media executive" &&
         !user?.department?.toLowerCase()?.includes("social media") &&
+        !isSocialMediaManager &&
+        !isSocialMediaExecutive &&
         !isFinance &&
         !isGraphicDesigner &&
         !isCinematographer && (

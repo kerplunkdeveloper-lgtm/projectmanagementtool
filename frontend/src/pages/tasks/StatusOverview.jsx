@@ -13,6 +13,7 @@ import {
   endOfDay,
   isBefore,
   isAfter,
+  differenceInCalendarDays,
 } from "date-fns";
 import {
   FiSearch,
@@ -172,15 +173,192 @@ const formatProductivity = (ms = 0) => {
   return `${h}h ${m.toString().padStart(2, "0")}m`;
 };
 
-// Check if task is overdue
-const isTaskOverdue = (dueDate, status) => {
-  if (!dueDate) return false;
+// Calculate Overdue Details (isOverdue, days, text)
+const getOverdueInfo = (dueDate, status) => {
+  if (!dueDate) return { isOverdue: false, days: 0, text: "" };
   const s = (status || "").toLowerCase();
-  if (s === "completed" || s === "rejected") return false;
+  if (s === "completed" || s === "rejected") return { isOverdue: false, days: 0, text: "" };
   const d = new Date(dueDate);
+  if (isNaN(d.getTime())) return { isOverdue: false, days: 0, text: "" };
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  return d < now;
+  if (d < now) {
+    const days = Math.max(1, differenceInCalendarDays(now, d));
+    const text = days === 1 ? "1 day overdue" : `${days} days overdue`;
+    return { isOverdue: true, days, text };
+  }
+  return { isOverdue: false, days: 0, text: "" };
+};
+
+// Check if task is overdue
+const isTaskOverdue = (dueDate, status) => {
+  return getOverdueInfo(dueDate, status).isOverdue;
+};
+
+// Resolve Hold Reason from task, subtasks, or statusHistory
+const getTaskHoldReason = (task) => {
+  if (!task) return null;
+
+  // Direct holdReason on task
+  if (task.holdReason && typeof task.holdReason === "string" && task.holdReason.trim()) {
+    return task.holdReason.trim();
+  }
+
+  // Look up latest 'On Hold' entry in statusHistory
+  if (Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
+    for (let i = task.statusHistory.length - 1; i >= 0; i--) {
+      const h = task.statusHistory[i];
+      if ((h?.status || "").toLowerCase() === "on hold") {
+        if (h.reason && typeof h.reason === "string" && h.reason.trim()) {
+          return h.reason.trim();
+        }
+        if (h.comment && typeof h.comment === "string" && h.comment.trim()) {
+          return h.comment.trim();
+        }
+      }
+    }
+  }
+
+  // Check top-level task.reason if status is On Hold
+  if ((task.status || "").toLowerCase() === "on hold" && task.reason && typeof task.reason === "string" && task.reason.trim()) {
+    return task.reason.trim();
+  }
+
+  // Subtasks fallback
+  if (Array.isArray(task.subtasks)) {
+    for (const sub of task.subtasks) {
+      if (sub?.holdReason && typeof sub.holdReason === "string" && sub.holdReason.trim()) {
+        return sub.holdReason.trim();
+      }
+      if (Array.isArray(sub?.statusHistory)) {
+        for (let i = sub.statusHistory.length - 1; i >= 0; i--) {
+          const sh = sub.statusHistory[i];
+          if ((sh?.status || "").toLowerCase() === "on hold") {
+            if (sh.reason && typeof sh.reason === "string" && sh.reason.trim()) {
+              return sh.reason.trim();
+            }
+            if (sh.comment && typeof sh.comment === "string" && sh.comment.trim()) {
+              return sh.comment.trim();
+            }
+          }
+        }
+      }
+      if ((sub?.status || "").toLowerCase() === "on hold" && sub.reason && typeof sub.reason === "string" && sub.reason.trim()) {
+        return sub.reason.trim();
+      }
+    }
+  }
+
+  return null;
+};
+
+// Calculate Approval & Review Details
+const getTaskApprovalInfo = (task, currentNowMs = Date.now()) => {
+  if (!task) return { type: "none" };
+
+  const s = (task.status || "").toLowerCase();
+
+  // 1. In Review -> Awaiting Approval
+  if (s.includes("review")) {
+    let reviewStart =
+      task.reviewStartedAt ||
+      task.lastReviewStartedAt ||
+      (Array.isArray(task.reviewCycles) && task.reviewCycles.length > 0
+        ? task.reviewCycles[task.reviewCycles.length - 1]?.startedAt
+        : null);
+
+    if (!reviewStart && Array.isArray(task.statusHistory)) {
+      for (let i = task.statusHistory.length - 1; i >= 0; i--) {
+        const h = task.statusHistory[i];
+        if ((h?.status || "").toLowerCase().includes("review")) {
+          reviewStart = h.startTime;
+          break;
+        }
+      }
+    }
+
+    let waitingMs = Number(task.approvalWaitingMs) || 0;
+    if (reviewStart) {
+      const startMs = new Date(reviewStart).getTime();
+      if (!isNaN(startMs) && startMs > 0 && startMs < currentNowMs) {
+        waitingMs += Math.max(0, currentNowMs - startMs);
+      }
+    }
+
+    return {
+      type: "in_review",
+      label: "Awaiting Approval",
+      durationMs: waitingMs,
+      startedAt: reviewStart,
+    };
+  }
+
+  // 2. Completed -> Approved
+  if (s === "completed") {
+    let completedDate = task.completedAt || task.actualEndTime || null;
+    if (Array.isArray(task.statusHistory)) {
+      for (let i = task.statusHistory.length - 1; i >= 0; i--) {
+        const h = task.statusHistory[i];
+        if ((h?.status || "").toLowerCase() === "completed") {
+          if (!completedDate) completedDate = h.startTime || h.endTime;
+          break;
+        }
+      }
+    }
+
+    return {
+      type: "approved",
+      label: "Approved",
+      completedAt: completedDate,
+      durationMs: Number(task.approvalWaitingMs) || 0,
+    };
+  }
+
+  // 3. Correction
+  if (s.includes("correction")) {
+    let reason = null;
+    if (Array.isArray(task.correctionHistory) && task.correctionHistory.length > 0) {
+      reason = task.correctionHistory[task.correctionHistory.length - 1]?.reason;
+    }
+    if (!reason && Array.isArray(task.statusHistory)) {
+      for (let i = task.statusHistory.length - 1; i >= 0; i--) {
+        const h = task.statusHistory[i];
+        if ((h?.status || "").toLowerCase().includes("correction")) {
+          reason = h.reason || h.comment;
+          break;
+        }
+      }
+    }
+    return {
+      type: "correction",
+      label: "Correction Sent",
+      reason: reason || null,
+    };
+  }
+
+  // 4. Rejected
+  if (s.includes("reject")) {
+    let reason = null;
+    if (Array.isArray(task.rejectionHistory) && task.rejectionHistory.length > 0) {
+      reason = task.rejectionHistory[task.rejectionHistory.length - 1]?.reason;
+    }
+    return {
+      type: "rejected",
+      label: "Rejected",
+      reason: reason || null,
+    };
+  }
+
+  // 5. If has previous approval waiting time
+  if (task.approvalWaitingMs && Number(task.approvalWaitingMs) > 0) {
+    return {
+      type: "historical",
+      label: "Reviewed",
+      durationMs: Number(task.approvalWaitingMs),
+    };
+  }
+
+  return { type: "none" };
 };
 
 // Status badge styling
@@ -368,7 +546,7 @@ const StatusOverview = () => {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Redux state
   const { clients = [] } = useSelector((state) => state.clients || {});
@@ -1331,7 +1509,7 @@ const StatusOverview = () => {
   useEffect(() => {
     const hasInProgress = paginatedTasks.some((t) => {
       const s = (t.status || "").toLowerCase();
-      return s.includes("progress") && !t.autoPaused;
+      return (s.includes("progress") && !t.autoPaused) || s.includes("review");
     });
 
     if (!hasInProgress) return;
@@ -1422,23 +1600,22 @@ const StatusOverview = () => {
               setActiveTab("designer");
               setCurrentPage(1);
             }}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition-all cursor-pointer ${
               activeTab === "designer"
                 ? "bg-white dark:bg-[#1e293b] text-indigo-600 dark:text-indigo-400 shadow-xs border border-indigo-100 dark:border-indigo-500/30"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/40"
             }`}
           >
             <div
-              className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+              className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 ${
                 activeTab === "designer"
                   ? "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400"
                   : "bg-slate-200/70 dark:bg-slate-800 text-slate-500"
               }`}
             >
-              <TbPencilHeart size={14} />
+              <TbPencilHeart size={13} />
             </div>
             <span>All Designer Tasks</span>
-           
           </button>
 
           {/* Tab 2: All Cinematographer Tasks */}
@@ -1448,37 +1625,36 @@ const StatusOverview = () => {
               setActiveTab("cinematographer");
               setCurrentPage(1);
             }}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11.5px] font-bold transition-all cursor-pointer ${
               activeTab === "cinematographer"
                 ? "bg-white dark:bg-[#1e293b] text-amber-600 dark:text-amber-400 shadow-xs border border-amber-100 dark:border-amber-500/30"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/40"
             }`}
           >
             <div
-              className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+              className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 ${
                 activeTab === "cinematographer"
                   ? "bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400"
                   : "bg-slate-200/70 dark:bg-slate-800 text-slate-500"
               }`}
             >
-              <LuVideo size={14} />
+              <LuVideo size={13} />
             </div>
             <span>All Cinematographer Tasks</span>
-           
           </button>
         </div>
 
         {/* CALENDAR-WISE DATE NAVIGATOR & PICKER */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Quick Preset Pills */}
-          <div className="inline-flex items-center p-1 bg-slate-100 dark:bg-[#131926] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs text-xs font-bold">
+          <div className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-[#131926] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs text-[11px] font-bold">
             <button
               type="button"
               onClick={() => {
                 setSelectedCalendarDate(new Date());
                 setDateFilter("Today");
               }}
-              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
                 dateFilter === "Today"
                   ? "bg-white dark:bg-[#1e293b] text-indigo-600 dark:text-indigo-400 shadow-xs font-black"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
@@ -1492,7 +1668,7 @@ const StatusOverview = () => {
                 setSelectedCalendarDate(subDays(new Date(), 1));
                 setDateFilter("Yesterday");
               }}
-              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
                 dateFilter === "Yesterday"
                   ? "bg-white dark:bg-[#1e293b] text-indigo-600 dark:text-indigo-400 shadow-xs font-black"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
@@ -1503,7 +1679,7 @@ const StatusOverview = () => {
             <button
               type="button"
               onClick={() => setDateFilter("All Time")}
-              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
                 dateFilter === "All Time"
                   ? "bg-white dark:bg-[#1e293b] text-indigo-600 dark:text-indigo-400 shadow-xs font-black"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
@@ -1514,7 +1690,7 @@ const StatusOverview = () => {
           </div>
 
           {/* Stepper with Interactive Calendar Picker */}
-          <div className="flex items-center bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden h-9">
+          <div className="flex items-center bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs overflow-hidden h-8">
             <button
               type="button"
               onClick={() => {
@@ -1522,15 +1698,15 @@ const StatusOverview = () => {
                 setSelectedCalendarDate(prev);
                 setDateFilter(isToday(prev) ? "Today" : isYesterday(prev) ? "Yesterday" : "Date");
               }}
-              className="h-full px-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors border-r border-slate-200 dark:border-slate-800 cursor-pointer"
+              className="h-full px-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors border-r border-slate-200 dark:border-slate-800 cursor-pointer"
               title="Previous Day"
             >
-              <FiChevronLeft size={14} />
+              <FiChevronLeft size={13} />
             </button>
 
-            <label className="relative flex items-center gap-1.5 px-3 h-full cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-xs font-bold text-slate-800 dark:text-slate-100 select-none">
-              <FiCalendar className="text-indigo-500 dark:text-indigo-400 shrink-0" size={13} />
-              <span className="min-w-[85px] text-center font-bold">
+            <label className="relative flex items-center gap-1.5 px-2.5 h-full cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-[11px] font-bold text-slate-800 dark:text-slate-100 select-none">
+              <FiCalendar className="text-indigo-500 dark:text-indigo-400 shrink-0" size={12} />
+              <span className="min-w-[80px] text-center font-bold">
                 {dateFilter === "All Time"
                   ? "All Time"
                   : isToday(selectedCalendarDate)
@@ -1539,7 +1715,7 @@ const StatusOverview = () => {
                   ? `Yesterday (${format(selectedCalendarDate, "dd MMM")})`
                   : format(selectedCalendarDate, "dd MMM yyyy")}
               </span>
-              <FiChevronDown className="text-slate-400 shrink-0" size={12} />
+              <FiChevronDown className="text-slate-400 shrink-0" size={11} />
               <input
                 type="date"
                 value={format(selectedCalendarDate, "yyyy-MM-dd")}
@@ -1562,35 +1738,34 @@ const StatusOverview = () => {
                 setSelectedCalendarDate(next);
                 setDateFilter(isToday(next) ? "Today" : isYesterday(next) ? "Yesterday" : "Date");
               }}
-              className="h-full px-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors border-l border-slate-200 dark:border-slate-800 cursor-pointer"
+              className="h-full px-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors border-l border-slate-200 dark:border-slate-800 cursor-pointer"
               title="Next Day"
             >
-              <FiChevronRight size={14} />
+              <FiChevronRight size={13} />
             </button>
           </div>
         </div>
       </div>
 
       {/* FILTER BAR */}
-      <div className="bg-white dark:bg-[#111827] space-y-3">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+      <div className="bg-white dark:bg-[#111827] space-y-2.5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
           {/* Search Input */}
           <div className="relative flex-1">
-           
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by task name, client, creator, or assignee..."
-              className="w-full h-10 pl-10 pr-9 text-xs sm:text-sm bg-slate-50 dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-600 transition-all placeholder:text-slate-400"
+              className="w-full h-9 pl-9 pr-8 text-[11.5px] bg-slate-50 dark:bg-[#0f172a] text-slate-800 dark:text-slate-100 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-600 transition-all placeholder:text-slate-400"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
               >
-                <FiX size={14} />
+                <FiX size={13} />
               </button>
             )}
           </div>
@@ -1606,7 +1781,7 @@ const StatusOverview = () => {
               placeholder="Client"
               searchPlaceholder="Search client..."
               menuWidth="w-60"
-              buttonClassName="h-10 px-3 text-xs font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-2 min-w-[140px]"
+              buttonClassName="h-9 px-2.5 text-[11px] font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-2 min-w-[130px]"
             />
 
             {/* Created By Filter (Searchable) */}
@@ -1618,7 +1793,7 @@ const StatusOverview = () => {
               placeholder="Created By"
               searchPlaceholder="Search creator..."
               menuWidth="w-56"
-              buttonClassName="h-10 px-3 text-xs font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-2 min-w-[140px]"
+              buttonClassName="h-9 px-2.5 text-[11px] font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-2 min-w-[130px]"
             />
 
             {/* Assignee Filter (Searchable) */}
@@ -1630,14 +1805,14 @@ const StatusOverview = () => {
               placeholder="Assignee"
               searchPlaceholder="Search assignee..."
               menuWidth="w-56"
-              buttonClassName="h-10 px-3 text-xs font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-2 min-w-[140px]"
+              buttonClassName="h-9 px-2.5 text-[11px] font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs flex items-center justify-between gap-2 min-w-[130px]"
             />
 
             {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-10 px-3 text-xs font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shadow-2xs"
+              className="h-9 px-2.5 text-[11px] font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shadow-2xs"
             >
               <option value="All">All Statuses</option>
               <option value="In Progress">In Progress</option>
@@ -1653,7 +1828,7 @@ const StatusOverview = () => {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="h-10 px-3 text-xs font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shadow-2xs"
+              className="h-9 px-2.5 text-[11px] font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shadow-2xs"
             >
               <option value="All">All Priorities</option>
               <option value="Top High">🔥 Top High</option>
@@ -1683,7 +1858,7 @@ const StatusOverview = () => {
                   setDateFilter(val);
                 }
               }}
-              className="h-10 px-3 text-xs font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shadow-2xs"
+              className="h-9 px-2.5 text-[11px] font-bold bg-slate-50 dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shadow-2xs"
             >
               <option value="Today">Today (Default)</option>
               <option value="Yesterday">Yesterday</option>
@@ -1721,15 +1896,13 @@ const StatusOverview = () => {
                   setDateFilter("Today");
                   setSelectedCalendarDate(new Date());
                 }}
-                className="h-10 px-3 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 rounded-xl border border-rose-200 dark:border-rose-900/60 transition-colors cursor-pointer shadow-2xs"
+                className="h-9 px-2.5 text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/40 rounded-xl border border-rose-200 dark:border-rose-900/60 transition-colors cursor-pointer shadow-2xs"
               >
                 Clear Filters
               </button>
             )}
           </div>
         </div>
-
-        
       </div>
 
       {/* TABLE CONTAINER */}
@@ -1737,21 +1910,22 @@ const StatusOverview = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-100/80 dark:bg-[#131926] text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 select-none">
-                <th className="py-2.5 px-2.5 w-10 text-center">#</th>
-                <th className="py-2.5 px-3 min-w-[260px]">Task Name</th>
-                <th className="py-2.5 px-3 min-w-[150px]">Client Name</th>
-                <th className="py-2.5 px-3 min-w-[150px]">Created By</th>
-                <th className="py-2.5 px-3 min-w-[150px]">Assignee</th>
-                <th className="py-2.5 px-3 min-w-[160px]">Start Date & End Date</th>
-                <th className="py-2.5 px-3 min-w-[150px]">Total Productivity</th>
-                <th className="py-2.5 px-3 min-w-[120px]">Status</th>
+              <tr className="bg-slate-100/80 dark:bg-[#131926] text-[9.5px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 select-none">
+                <th className="py-2 px-3 min-w-[240px]">Task Name</th>
+                <th className="py-2 px-3 min-w-[140px]">Client Name</th>
+                <th className="py-2 px-3 min-w-[140px]">Created By</th>
+                <th className="py-2 px-3 min-w-[140px]">Assignee</th>
+                <th className="py-2 px-3 min-w-[175px]">Start Date & End Date</th>
+                <th className="py-2 px-3 min-w-[140px]">Total Productivity</th>
+                <th className="py-2 px-3 min-w-[110px]">Status</th>
+                <th className="py-2 px-3 min-w-[130px]">Reason for Hold</th>
+                <th className="py-2 px-3 min-w-[140px]">Approval Info</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-[11px] font-medium">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-[10px] font-medium">
               {tasksLoading && paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center">
+                  <td colSpan={9} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <FiRefreshCw size={26} className="animate-spin text-indigo-500" />
                       <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
@@ -1762,7 +1936,7 @@ const StatusOverview = () => {
                 </tr>
               ) : paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center">
+                  <td colSpan={9} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
                         <LuListChecks size={24} />
@@ -1778,7 +1952,6 @@ const StatusOverview = () => {
                 </tr>
               ) : (
                 paginatedTasks.map((t, idx) => {
-                  const rowIndex = (currentPage - 1) * itemsPerPage + idx + 1;
                   const clientObj = getTaskClient(t);
                   const creatorObj = getTaskCreator(t);
                   const assigneeObj = getTaskAssignee(t);
@@ -1802,36 +1975,36 @@ const StatusOverview = () => {
 
                   const statusBadge = getStatusBadgeStyle(t.status);
                   const priorityBadge = getPriorityBadgeStyle(t.priority);
-                  const overdue = isTaskOverdue(t.dueDate, t.status);
+                  const overdueInfo = getOverdueInfo(t.dueDate, t.status);
+                  const overdue = overdueInfo.isOverdue;
 
                   const totalProdMs = calculateTaskTotalProductivity(t, nowMs);
                   const isTaskActiveInProgress =
                     (t.status || "").toLowerCase().includes("progress") && !t.autoPaused;
+
+                  const holdReason = getTaskHoldReason(t);
+                  const isHold = (t.status || "").toLowerCase().includes("hold");
+                  const approvalInfo = getTaskApprovalInfo(t, nowMs);
 
                   return (
                     <tr
                       key={t._id || idx}
                       className="hover:bg-slate-50/80 dark:hover:bg-[#151c2e]/70 transition-colors"
                     >
-                      {/* 1. Row Index */}
-                      <td className="py-2 px-2.5 text-center font-mono font-bold text-[11px] text-slate-400 dark:text-slate-500">
-                        {rowIndex}
-                      </td>
-
-                      {/* 2. Task Name & Priority */}
-                      <td className="py-2 px-3">
-                        <div className="flex items-start gap-2 max-w-[300px]">
-                          <div className="mt-0.5 shrink-0 w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                      {/* 1. Task Name & Priority */}
+                      <td className="py-1.5 px-2.5">
+                        <div className="flex items-start gap-1.5 max-w-[280px]">
+                          <div className="mt-0.5 shrink-0 w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800/80 flex items-center justify-center text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
                             {activeTab === "designer" ? (
-                              <TbPencilHeart size={13} className="text-indigo-500" />
+                              <TbPencilHeart size={11} className="text-indigo-500" />
                             ) : (
-                              <LuVideo size={13} className="text-amber-500" />
+                              <LuVideo size={11} className="text-amber-500" />
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span
-                                className="font-bold text-slate-900 dark:text-slate-100 text-xs hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-[180px]"
+                                className="font-bold text-slate-900 dark:text-slate-100 text-[11px] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-[180px]"
                                 title={t.title || "Untitled Task"}
                                 onClick={() => handleViewTaskInBoard(t)}
                               >
@@ -1840,7 +2013,7 @@ const StatusOverview = () => {
 
                               {/* Priority badge next to task name */}
                               <span
-                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border shadow-2xs shrink-0 ${priorityBadge.classes}`}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase tracking-wider border shadow-2xs shrink-0 ${priorityBadge.classes}`}
                                 title={`Priority: ${priorityBadge.label}`}
                               >
                                 {priorityBadge.icon}
@@ -1850,12 +2023,12 @@ const StatusOverview = () => {
 
                             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                               {t.contentType && !t.contentType.toUpperCase().includes("MOM") && (
-                                <span className="inline-block px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-black">
+                                <span className="inline-block px-1.5 py-0.2 rounded text-[8.5px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-black">
                                   {t.contentType}
                                 </span>
                               )}
                               {t.workType && (
-                                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium truncate max-w-[120px]">
+                                <span className="text-[8.5px] text-slate-400 dark:text-slate-500 font-medium truncate max-w-[120px]">
                                   {t.workType}
                                 </span>
                               )}
@@ -1865,32 +2038,32 @@ const StatusOverview = () => {
                       </td>
 
                       {/* 3. Client Name */}
-                      <td className="py-2 px-3">
+                      <td className="py-1.5 px-2.5">
                         {clientObj ? (
                           clientObj.isProjectFallback ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                              <LuBuilding2 size={11} className="text-slate-500" />
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              <LuBuilding2 size={10} className="text-slate-500" />
                               <span className="truncate max-w-[120px]">{clientObj.companyName}</span>
                             </span>
                           ) : (
                             <ClientBadge client={clientObj} size="sm" />
                           )
                         ) : (
-                          <span className="text-slate-400 dark:text-slate-500 text-[11px] italic">
+                          <span className="text-slate-400 dark:text-slate-500 text-[10px] italic">
                             — No Client —
                           </span>
                         )}
                       </td>
 
                       {/* 4. Created By */}
-                      <td className="py-2 px-3">
-                        <div className="flex items-center gap-2 max-w-[160px]">
-                          <div className="relative shrink-0 w-6 h-6">
+                      <td className="py-1.5 px-2.5">
+                        <div className="flex items-center gap-1.5 max-w-[150px]">
+                          <div className="relative shrink-0 w-5 h-5">
                             {creatorAvatar ? (
                               <img
                                 src={creatorAvatar}
                                 alt={creatorObj?.name || "User"}
-                                className="w-6 h-6 rounded-full object-cover border border-purple-200 dark:border-purple-800/80 shadow-2xs"
+                                className="w-5 h-5 rounded-full object-cover border border-purple-200 dark:border-purple-800/80 shadow-2xs"
                                 onError={(e) => {
                                   e.currentTarget.style.display = "none";
                                   const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
@@ -1899,7 +2072,7 @@ const StatusOverview = () => {
                               />
                             ) : null}
                             <div
-                              className="avatar-fallback w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white font-extrabold text-[9px] items-center justify-center uppercase shadow-2xs"
+                              className="avatar-fallback w-5 h-5 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white font-extrabold text-[8px] items-center justify-center uppercase shadow-2xs"
                               style={{ display: creatorAvatar ? "none" : "flex" }}
                             >
                               {creatorObj?.name ? creatorObj.name.substring(0, 2) : "U"}
@@ -1907,14 +2080,14 @@ const StatusOverview = () => {
                           </div>
                           <div className="min-w-0 flex flex-col">
                             <span
-                              className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate"
+                              className="font-bold text-slate-800 dark:text-slate-200 text-[10px] truncate"
                               title={creatorObj?.name || "System"}
                             >
                               {creatorObj?.name || "—"}
                             </span>
                             {creatorDept && (
                               <span
-                                className="inline-block text-[9px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50/80 dark:bg-purple-950/40 px-1 py-0.2 rounded border border-purple-100 dark:border-purple-900/40 truncate max-w-[120px]"
+                                className="inline-block text-[8.5px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50/80 dark:bg-purple-950/40 px-1 py-0.2 rounded border border-purple-100 dark:border-purple-900/40 truncate max-w-[110px]"
                                 title={creatorDept}
                               >
                                 {creatorDept}
@@ -1925,15 +2098,15 @@ const StatusOverview = () => {
                       </td>
 
                       {/* 5. Assignee */}
-                      <td className="py-2 px-3">
+                      <td className="py-1.5 px-2.5">
                         {assigneeObj ? (
-                          <div className="flex items-center gap-2 max-w-[160px]">
-                            <div className="relative shrink-0 w-6 h-6">
+                          <div className="flex items-center gap-1.5 max-w-[150px]">
+                            <div className="relative shrink-0 w-5 h-5">
                               {assigneeAvatar ? (
                                 <img
                                   src={assigneeAvatar}
                                   alt={assigneeObj?.name || "Assignee"}
-                                  className="w-6 h-6 rounded-full object-cover border border-indigo-200 dark:border-indigo-800/80 shadow-2xs"
+                                  className="w-5 h-5 rounded-full object-cover border border-indigo-200 dark:border-indigo-800/80 shadow-2xs"
                                   onError={(e) => {
                                     e.currentTarget.style.display = "none";
                                     const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
@@ -1942,7 +2115,7 @@ const StatusOverview = () => {
                                 />
                               ) : null}
                               <div
-                                className="avatar-fallback w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-600 to-sky-500 text-white font-extrabold text-[9px] items-center justify-center uppercase shadow-2xs"
+                                className="avatar-fallback w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-600 to-sky-500 text-white font-extrabold text-[8px] items-center justify-center uppercase shadow-2xs"
                                 style={{ display: assigneeAvatar ? "none" : "flex" }}
                               >
                                 {assigneeObj?.name ? assigneeObj.name.substring(0, 2) : "U"}
@@ -1950,14 +2123,14 @@ const StatusOverview = () => {
                             </div>
                             <div className="min-w-0 flex flex-col">
                               <span
-                                className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate"
+                                className="font-bold text-slate-800 dark:text-slate-200 text-[10px] truncate"
                                 title={assigneeObj?.name}
                               >
                                 {assigneeObj?.name}
                               </span>
                               {assigneeDept && (
                                 <span
-                                  className={`inline-block text-[9px] font-semibold px-1 py-0.2 rounded border truncate max-w-[120px] ${
+                                  className={`inline-block text-[8.5px] font-semibold px-1 py-0.2 rounded border truncate max-w-[110px] ${
                                     activeTab === "designer"
                                       ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-900/40"
                                       : "text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40 border-amber-100 dark:border-amber-900/40"
@@ -1970,27 +2143,27 @@ const StatusOverview = () => {
                             </div>
                           </div>
                         ) : (
-                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8.5px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                             Unassigned
                           </span>
                         )}
                       </td>
 
                       {/* 6. Start Date and End Date */}
-                      <td className="py-2 px-3">
+                      <td className="py-1.5 px-2.5">
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 w-8">
+                            <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 w-7">
                               Start:
                             </span>
-                            <span className="font-semibold text-[11px]">{formatDate(t.startDate)}</span>
+                            <span className="font-semibold text-[10px]">{formatDate(t.startDate)}</span>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 w-8">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 w-7">
                               End:
                             </span>
                             <span
-                              className={`font-semibold text-[11px] ${
+                              className={`font-semibold text-[10px] ${
                                 overdue
                                   ? "text-rose-600 dark:text-rose-400 font-bold"
                                   : "text-slate-600 dark:text-slate-300"
@@ -2000,10 +2173,11 @@ const StatusOverview = () => {
                             </span>
                             {overdue && (
                               <span
-                                className="inline-flex items-center px-1 py-0.2 rounded text-[8px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-900"
-                                title="Task is past due date"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 shadow-2xs whitespace-nowrap"
+                                title={`Task is ${overdueInfo.text}`}
                               >
-                                OVERDUE
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
+                                {overdueInfo.text}
                               </span>
                             )}
                           </div>
@@ -2011,23 +2185,23 @@ const StatusOverview = () => {
                       </td>
 
                       {/* 7. Total Productivity */}
-                      <td className="py-2 px-3">
-                        <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+                      <td className="py-1.5 px-2.5">
+                        <div className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                           <div
-                            className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${
+                            className={`w-4.5 h-4.5 rounded flex items-center justify-center shrink-0 ${
                               totalProdMs > 0
                                 ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
                                 : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"
                             }`}
                           >
                             <FiClock
-                              size={11}
+                              size={10}
                               className={isTaskActiveInProgress ? "animate-spin text-emerald-500" : ""}
                             />
                           </div>
                           <div className="flex flex-col">
                             <div className="flex items-center gap-1">
-                              <span className="font-bold text-slate-800 dark:text-slate-100 text-[11px] font-mono leading-tight">
+                              <span className="font-bold text-slate-800 dark:text-slate-100 text-[10px] font-mono leading-tight">
                                 {formatProductivity(totalProdMs)}
                               </span>
                               {isTaskActiveInProgress && (
@@ -2037,7 +2211,7 @@ const StatusOverview = () => {
                                 />
                               )}
                             </div>
-                            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium leading-none">
+                            <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium leading-none">
                               {isTaskActiveInProgress
                                 ? "Live Working"
                                 : totalProdMs > 0
@@ -2049,13 +2223,84 @@ const StatusOverview = () => {
                       </td>
 
                       {/* 8. Status */}
-                      <td className="py-2 px-3">
+                      <td className="py-1.5 px-2.5">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold border shadow-2xs ${statusBadge.classes}`}
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[10px] font-bold border shadow-2xs ${statusBadge.classes}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dotClass}`} />
                           <span>{statusBadge.label}</span>
                         </span>
+                      </td>
+
+                      {/* 9. Reason for Hold */}
+                      <td className="py-1.5 px-2.5">
+                        {isHold ? (
+                          holdReason ? (
+                            <div className="flex items-center gap-1" title={`Hold reason: ${holdReason}`}>
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800/80 shadow-2xs max-w-[130px] truncate">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                                <span className="truncate">{holdReason}</span>
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8.5px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-900/30 italic">
+                              No reason
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-slate-300 dark:text-slate-600 font-bold text-center block">—</span>
+                        )}
+                      </td>
+
+                      {/* 10. Approval Info */}
+                      <td className="py-1.5 px-2.5">
+                        {approvalInfo.type === "in_review" ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 shadow-2xs w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shrink-0" />
+                              <span>Awaiting Approval</span>
+                            </span>
+                            {approvalInfo.durationMs > 0 && (
+                              <span className="text-[8.5px] font-semibold text-purple-600/80 dark:text-purple-400/80 font-mono">
+                                Waiting: {formatProductivity(approvalInfo.durationMs)}
+                              </span>
+                            )}
+                          </div>
+                        ) : approvalInfo.type === "approved" ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-2xs w-fit">
+                              <FiCheckCircle size={10} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <span>Approved</span>
+                            </span>
+                            <span className="text-[8.5px] text-slate-400 dark:text-slate-500 font-medium">
+                              {approvalInfo.completedAt ? formatDate(approvalInfo.completedAt) : "Completed"}
+                              {approvalInfo.durationMs > 0 ? ` · took ${formatProductivity(approvalInfo.durationMs)}` : ""}
+                            </span>
+                          </div>
+                        ) : approvalInfo.type === "correction" ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-orange-50 text-orange-700 dark:bg-orange-950/70 dark:text-orange-300 border border-orange-200 dark:border-orange-800/80 shadow-2xs w-fit">
+                              <FiAlertCircle size={10} className="text-orange-600 dark:text-orange-400 shrink-0" />
+                              <span>Correction Sent</span>
+                            </span>
+                            {approvalInfo.reason && (
+                              <span className="text-[8.5px] text-orange-600/80 dark:text-orange-400/80 truncate max-w-[125px]" title={approvalInfo.reason}>
+                                "{approvalInfo.reason}"
+                              </span>
+                            )}
+                          </div>
+                        ) : approvalInfo.type === "rejected" ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 shadow-2xs w-fit">
+                            <FiX size={10} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                            <span>Rejected</span>
+                          </span>
+                        ) : approvalInfo.type === "historical" ? (
+                          <span className="text-[9.5px] font-medium text-slate-500 dark:text-slate-400">
+                            Took {formatProductivity(approvalInfo.durationMs)}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 dark:text-slate-600 font-bold text-center block">—</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -2067,14 +2312,32 @@ const StatusOverview = () => {
 
         {/* PAGINATION FOOTER */}
         {filteredTasks.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#131926]/50">
-            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              Showing{" "}
-              <strong>
-                {Math.min((currentPage - 1) * itemsPerPage + 1, filteredTasks.length)} -{" "}
-                {Math.min(currentPage * itemsPerPage, filteredTasks.length)}
-              </strong>{" "}
-              of <strong>{filteredTasks.length}</strong> tasks
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#131926]/50">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium flex-wrap">
+              <span>
+                Showing{" "}
+                <strong className="text-slate-700 dark:text-slate-200">
+                  {Math.min((currentPage - 1) * itemsPerPage + 1, filteredTasks.length)} -{" "}
+                  {Math.min(currentPage * itemsPerPage, filteredTasks.length)}
+                </strong>{" "}
+                of <strong className="text-slate-700 dark:text-slate-200">{filteredTasks.length}</strong> tasks
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px]">Per page:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-0.5 text-xs font-bold bg-white dark:bg-[#111827] text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-hidden cursor-pointer shadow-2xs"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-1">
@@ -2082,21 +2345,54 @@ const StatusOverview = () => {
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors shadow-2xs"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors shadow-2xs"
                 title="Previous Page"
               >
                 <FiChevronLeft size={14} />
               </button>
 
-              <span className="px-3 py-1 text-xs font-bold text-slate-700 dark:text-slate-300">
-                Page {currentPage} of {totalPages}
-              </span>
+              {/* Numbered Page Buttons */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  .reduce((acc, p, idx, arr) => {
+                    if (idx > 0 && p - arr[idx - 1] > 1) {
+                      acc.push("ellipsis-" + p);
+                    }
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((item) => {
+                    if (typeof item === "string") {
+                      return (
+                        <span key={item} className="px-1 text-xs text-slate-400">
+                          …
+                        </span>
+                      );
+                    }
+                    const isCur = item === currentPage;
+                    return (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setCurrentPage(item)}
+                        className={`w-7 h-7 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                          isCur
+                            ? "bg-indigo-600 text-white shadow-2xs"
+                            : "border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    );
+                  })}
+              </div>
 
               <button
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors shadow-2xs"
+                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#111827] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none cursor-pointer transition-colors shadow-2xs"
                 title="Next Page"
               >
                 <FiChevronRight size={14} />

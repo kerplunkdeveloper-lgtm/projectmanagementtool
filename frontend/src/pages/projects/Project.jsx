@@ -171,6 +171,7 @@ const Project = () => {
   const roleLower = (currentUser?.role || "").toLowerCase();
   const isSocialMediaHead =
     currentUser?.role === "socialmediahead" ||
+    currentUser?.role === "socialmediamanager" ||
     deptLower.includes("social media head");
   const isSocialMediaManager =
     currentUser?.role === "socialmediamanager" ||
@@ -181,16 +182,19 @@ const Project = () => {
       deptLower.includes("smm") ||
       roleLower.includes("social"));
 
+  // Social Media Executive has CRUD access. Only Social Media Head is read-only.
   const isAdmin =
     currentUser?.role === "admin" ||
     currentUser?.role === "operationmanager" ||
-    currentUser?.role === "team" ||
-    isSocialMediaManager;
+    (currentUser?.role === "team" && !isSocialMediaHead) ||
+    isSocialMediaExecutive;
+
   const isAdminOrManager =
-    currentUser?.role === "admin" ||
-    currentUser?.role === "operationmanager" ||
-    currentUser?.role === "team" ||
-    isSocialMediaManager;
+    !isSocialMediaHead &&
+    (currentUser?.role === "admin" ||
+      currentUser?.role === "operationmanager" ||
+      currentUser?.role === "team" ||
+      isSocialMediaExecutive);
 
   // Filter projects
   const filteredProjects = useMemo(() => {
@@ -234,6 +238,7 @@ const Project = () => {
 
   // Handle modal trigger
   const handleOpenCreate = () => {
+    if (!isAdminOrManager) return;
     setName("");
     setClient("");
     setStatus("Active");
@@ -246,6 +251,7 @@ const Project = () => {
   // Submit Create Project
   const handleCreateSubmit = (e) => {
     e.preventDefault();
+    if (!isAdminOrManager) return;
     if (!name || !client) return;
     dispatch(
       createProject({
@@ -261,6 +267,7 @@ const Project = () => {
   // Handle Open Edit Modal
   const handleOpenEdit = (e, project) => {
     e.stopPropagation();
+    if (!isAdminOrManager) return;
     setEditProjectId(project._id);
     setEditName(project.name);
     setEditClient(project.client?._id || project.client || "");
@@ -274,6 +281,7 @@ const Project = () => {
   // Submit Edit Project
   const handleEditSubmit = (e) => {
     e.preventDefault();
+    if (!isAdminOrManager) return;
     if (!editName) return;
     dispatch(
       updateProject({
@@ -292,6 +300,7 @@ const Project = () => {
   // Handle Delete Project
   const handleProjectDelete = (e, projectId) => {
     e.stopPropagation();
+    if (!isAdminOrManager) return;
     if (window.confirm("Are you sure you want to delete this project?")) {
       dispatch(deleteProject(projectId));
     }
@@ -458,15 +467,17 @@ const Project = () => {
         </div>
 
         {/* HEADER SECTION */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
-          <button
-            onClick={handleOpenCreate}
-            className="flex items-center gap-2 bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 dark:shadow-[#3b82f6]/20 active:scale-95 whitespace-nowrap"
-          >
-            <FiPlus size={16} />
-            New Project
-          </button>
-        </div>
+        {isAdminOrManager && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4">
+            <button
+              onClick={handleOpenCreate}
+              className="flex items-center gap-2 bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 dark:shadow-[#3b82f6]/20 active:scale-95 whitespace-nowrap"
+            >
+              <FiPlus size={16} />
+              New Project
+            </button>
+          </div>
+        )}
       </div>
 
       {/* TABLE VIEW OF PROJECTS */}
@@ -746,7 +757,7 @@ const Project = () => {
 
       {/* CREATE PROJECT OFFCANVAS DRAWER */}
       <AnimatePresence>
-        {showCreateModal && (
+        {isAdminOrManager && showCreateModal && (
           <div className="fixed inset-0 z-50 flex justify-end">
             {/* Backdrop overlay */}
             <motion.div
@@ -916,7 +927,7 @@ const Project = () => {
         )}
 
         {/* EDIT PROJECT OFFCANVAS DRAWER */}
-        {showEditModal && (
+        {isAdminOrManager && showEditModal && (
           <div className="fixed inset-0 z-50 flex justify-end">
             {/* Backdrop overlay */}
             <motion.div

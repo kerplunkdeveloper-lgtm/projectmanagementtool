@@ -2233,6 +2233,7 @@ const ProjectTaskBoard = ({
   };
 
   const handleDeleteSection = async (sectionName) => {
+    if (!isAdminOrManager) return;
     if (
       window.confirm(
         `Are you sure you want to delete the section "${sectionName}" and ALL its tasks?`,
@@ -2792,6 +2793,7 @@ const ProjectTaskBoard = ({
   }, [filteredTasks]);
 
   const handleDragEnd = async (result) => {
+    if (!isAdminOrManager) return;
     const { destination, source, draggableId, type } = result;
     if (!destination) return;
     if (
@@ -2998,6 +3000,7 @@ const ProjectTaskBoard = ({
 
   // Add Task directly to DB (autosave pattern)
   const handleAddTask = async (sectionName) => {
+    if (!isAdminOrManager) return;
     const resolvedSectionName =
       sectionName ||
       (activeProject?.sections?.length > 0
@@ -4400,288 +4403,6 @@ const ProjectTaskBoard = ({
         <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-auto order-3 lg:order-none relative">
           <div className="flex items-center gap-2 w-full lg:w-auto justify-end flex-wrap">
             
-            {/* Owner Filter Dropdown */}
-            {showOwnerFilter && (
-              <div className="relative" ref={ownerFilterDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOwnerFilterOpen(!isOwnerFilterOpen);
-                    setOwnerSearchTerm("");
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
-                    isOwnerFilterOpen || (ownerFilter && ownerFilter !== "All")
-                      ? "bg-indigo-50 dark:bg-indigo-500/15 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 font-bold"
-                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                  title="Filter by Owner (Created By)"
-                >
-                  <FiUser className="shrink-0" size={13} />
-                  <span className="truncate max-w-[120px]">
-                    {ownerFilter === "All" || !ownerFilter
-                      ? "All Owners"
-                      : selectedOwner?.name || "Owner"}
-                  </span>
-                  <FiChevronDown
-                    className={`shrink-0 text-slate-400 transition-transform duration-200 ${
-                      isOwnerFilterOpen ? "rotate-180 text-indigo-500" : ""
-                    }`}
-                    size={13}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {isOwnerFilterOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1.5 backdrop-blur-md"
-                    >
-                      <div className="px-1 pt-1 pb-1 border-b border-slate-100 dark:border-white/5">
-                        <div className="relative flex items-center">
-                         
-                          <input
-                            type="text"
-                            placeholder="Search owner..."
-                            value={ownerSearchTerm}
-                            onChange={(e) => setOwnerSearchTerm(e.target.value)}
-                            className="w-full pl-7 pr-2.5 py-1 text-xs rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-indigo-500"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOwnerFilter("All");
-                            setIsOwnerFilterOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                            ownerFilter === "All" || !ownerFilter
-                              ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold"
-                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          <span>All Owners</span>
-                          {(ownerFilter === "All" || !ownerFilter) && (
-                            <FiCheck
-                              size={13}
-                              className="text-indigo-600 dark:text-indigo-400"
-                            />
-                          )}
-                        </button>
-
-                        {filteredOwners.map((u) => {
-                          const uid = String(u._id || u.id);
-                          const isSelected = String(ownerFilter) === uid;
-                          return (
-                            <button
-                              key={uid}
-                              type="button"
-                              onClick={() => {
-                                setOwnerFilter(uid);
-                                setIsOwnerFilterOpen(false);
-                              }}
-                              className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                                isSelected
-                                  ? "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-bold"
-                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 truncate min-w-0">
-                                <div
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                                    u.name || "U",
-                                  )}`}
-                                >
-                                  {getInitials(u.name || "U")}
-                                </div>
-                                <span className="truncate">
-                                  {u.name || "Unknown"}
-                                </span>
-                              </div>
-                              {isSelected && (
-                                <FiCheck
-                                  size={13}
-                                  className="text-indigo-600 dark:text-indigo-400 shrink-0 ml-1"
-                                />
-                              )}
-                            </button>
-                          );
-                        })}
-
-                        {filteredOwners.length === 0 && ownerSearchTerm && (
-                          <div className="py-3 text-center text-xs text-slate-400 italic">
-                            No owners found
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-
-            {/* Assignee Filter Dropdown */}
-            {showAssigneeFilter && (
-              <div className="relative" ref={assigneeFilterDropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAssigneeFilterOpen(!isAssigneeFilterOpen);
-                    setAssigneeSearchTerm("");
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
-                    isAssigneeFilterOpen || (assigneeFilter && assigneeFilter !== "All")
-                      ? "bg-purple-50 dark:bg-purple-500/15 border-purple-200 dark:border-purple-500/30 text-purple-600 dark:text-purple-400 font-bold"
-                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                  title="Filter by Assignee"
-                >
-                  <FiUserCheck className="shrink-0" size={13} />
-                  <span className="truncate max-w-[120px]">
-                    {assigneeFilter === "All" || !assigneeFilter
-                      ? "All Assignees"
-                      : assigneeFilter === "unassigned"
-                        ? "Unassigned"
-                        : selectedAssignee?.name || "Assignee"}
-                  </span>
-                  <FiChevronDown
-                    className={`shrink-0 text-slate-400 transition-transform duration-200 ${
-                      isAssigneeFilterOpen ? "rotate-180 text-purple-500" : ""
-                    }`}
-                    size={13}
-                  />
-                </button>
-
-                <AnimatePresence>
-                  {isAssigneeFilterOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1.5 backdrop-blur-md"
-                    >
-                      <div className="px-1 pt-1 pb-1 border-b border-slate-100 dark:border-white/5">
-                        <div className="relative flex items-center">
-                          
-                          <input
-                            type="text"
-                            placeholder="Search assignee..."
-                            value={assigneeSearchTerm}
-                            onChange={(e) =>
-                              setAssigneeSearchTerm(e.target.value)
-                            }
-                            className="w-full pl-7 pr-2.5 py-1 text-xs rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none focus:border-purple-500"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="max-h-56 overflow-y-auto space-y-0.5 custom-scrollbar">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAssigneeFilter("All");
-                            setIsAssigneeFilterOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                            assigneeFilter === "All" || !assigneeFilter
-                              ? "bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold"
-                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          <span>All Assignees</span>
-                          {(assigneeFilter === "All" || !assigneeFilter) && (
-                            <FiCheck
-                              size={13}
-                              className="text-purple-600 dark:text-purple-400"
-                            />
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAssigneeFilter("unassigned");
-                            setIsAssigneeFilterOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                            assigneeFilter === "unassigned"
-                              ? "bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold"
-                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          <span className="italic text-slate-500 dark:text-slate-400">
-                            Unassigned
-                          </span>
-                          {assigneeFilter === "unassigned" && (
-                            <FiCheck
-                              size={13}
-                              className="text-purple-600 dark:text-purple-400"
-                            />
-                          )}
-                        </button>
-
-                        {filteredAssignees.map((u) => {
-                          const uid = String(u._id || u.id);
-                          const isSelected = String(assigneeFilter) === uid;
-                          return (
-                            <button
-                              key={uid}
-                              type="button"
-                              onClick={() => {
-                                setAssigneeFilter(uid);
-                                setIsAssigneeFilterOpen(false);
-                              }}
-                              className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                                isSelected
-                                  ? "bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 font-bold"
-                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 truncate min-w-0">
-                                <div
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                                    u.name || "U",
-                                  )}`}
-                                >
-                                  {getInitials(u.name || "U")}
-                                </div>
-                                <span className="truncate">
-                                  {u.name || "Unknown"}
-                                </span>
-                              </div>
-                              {isSelected && (
-                                <FiCheck
-                                  size={13}
-                                  className="text-purple-600 dark:text-purple-400 shrink-0 ml-1"
-                                />
-                              )}
-                            </button>
-                          );
-                        })}
-
-                        {filteredAssignees.length === 0 &&
-                          assigneeSearchTerm && (
-                            <div className="py-3 text-center text-xs text-slate-400 italic">
-                              No assignees found
-                            </div>
-                          )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-
             {/* Status Filter Dropdown */}
             <div className="relative" ref={statusFilterDropdownRef}>
               <button
@@ -4885,15 +4606,11 @@ const ProjectTaskBoard = ({
               </AnimatePresence>
             </div>
             {/* Clear All Filters Button */}
-            {(ownerFilter !== "All" ||
-              assigneeFilter !== "All" ||
-              statusFilter !== "All" ||
+            {(statusFilter !== "All" ||
               dateFilter !== "All Time") && (
               <button
                 type="button"
                 onClick={() => {
-                  setOwnerFilter("All");
-                  setAssigneeFilter("All");
                   setStatusFilter("All");
                   setDateFilter("All Time");
                 }}
@@ -4905,14 +4622,16 @@ const ProjectTaskBoard = ({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => handleAddTask(null)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[12px] font-black cursor-pointer transition-all shadow-md shrink-0"
-            >
-              <FiPlus size={14} className="stroke-[3]" />
-              <span>Add Task</span>
-            </button>
+            {isAdminOrManager && (
+              <button
+                type="button"
+                onClick={() => handleAddTask(null)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[12px] font-black cursor-pointer transition-all shadow-md shrink-0"
+              >
+                <FiPlus size={14} className="stroke-[3]" />
+                <span>Add Task</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -5090,7 +4809,7 @@ const ProjectTaskBoard = ({
                             className="w-full bg-transparent text-[10px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-indigo-500 dark:border-indigo-400 pb-0.5 placeholder-slate-450 dark:placeholder-slate-555 transition-all focus:border-indigo-650"
                           />
                         </form>
-                      ) : (
+                      ) : isAdminOrManager ? (
                         <div className="flex items-center gap-2 text-[12px] font-bold text-slate-450 dark:text-slate-400 select-none">
                           <button
                             type="button"
@@ -5120,7 +4839,7 @@ const ProjectTaskBoard = ({
                             <span>Add Task List</span>
                           </button>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </td>
                   <td
@@ -5697,8 +5416,9 @@ const ProjectTaskBoard = ({
                                         >
                                           <div className="flex items-center gap-2.5 w-full">
                                             {/* Drag Handle */}
-                                            <div
-                                              {...provided.dragHandleProps}
+                                            {isAdminOrManager && (
+                                              <div
+                                                {...provided.dragHandleProps}
                                               className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-655 dark:hover:text-slate-205 transition-colors flex items-center justify-center shrink-0"
                                               title="Drag to reorder section"
                                               onClick={(e) =>
@@ -5752,13 +5472,16 @@ const ProjectTaskBoard = ({
                                                 />
                                               </svg>
                                             </div>
+                                          )}
 
-                                            {/* Inline Editable Section Name Input */}
+                                          {/* Inline Editable Section Name Input */}
                                             <input
                                               id={`section-input-${sectionName}`}
                                               type="text"
                                               defaultValue={sectionName}
+                                              disabled={!isAdminOrManager}
                                               onBlur={async (e) => {
+                                                if (!isAdminOrManager) return;
                                                 const newName =
                                                   e.target.value.trim();
                                                 if (

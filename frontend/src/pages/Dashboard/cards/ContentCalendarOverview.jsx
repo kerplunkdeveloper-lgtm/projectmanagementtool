@@ -8,6 +8,7 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiChevronRight,
+  FiChevronLeft,
   FiPlus,
   FiSearch,
   FiEye,
@@ -30,7 +31,7 @@ import {
   FiDownload,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
-import { format, isToday, isTomorrow, isThisWeek, parseISO } from "date-fns";
+import { format, isToday, isTomorrow, isThisWeek, parseISO, isSameMonth, addMonths, subMonths } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../../services/axiosInstance";
 
@@ -93,15 +94,26 @@ const getStatusStyles = (status = "") => {
   };
 };
 
-// Content type icon helper
+// Content type helper & icon
+const getNormalizedContentType = (contentType = "") => {
+  const type = (contentType || "").trim().toLowerCase();
+  if (type === "reel" || type === "reels" || type.includes("reel")) return "Reels";
+  if (type === "story" || type === "stories" || type.includes("stor")) return "Stories";
+  return "Post";
+};
+
+const isAllowedContentType = (contentType = "") => {
+  const type = (contentType || "").trim().toLowerCase();
+  if (type === "others task" || type === "other" || type === "seo" || type === "website" || type === "shoot") {
+    return false;
+  }
+  return true;
+};
+
 const getContentTypeIcon = (type = "") => {
-  const t = type.toLowerCase();
-  if (t.includes("reel")) return <FiFilm size={11} className="text-pink-500 shrink-0" />;
-  if (t.includes("carousel")) return <FiLayers size={11} className="text-purple-500 shrink-0" />;
-  if (t.includes("story")) return <FiClock size={11} className="text-amber-500 shrink-0" />;
-  if (t.includes("youtube") || t.includes("video")) return <FiPlay size={11} className="text-red-500 shrink-0" />;
-  if (t.includes("blog")) return <FiFileText size={11} className="text-blue-500 shrink-0" />;
-  if (t.includes("ad")) return <FiTrendingUp size={11} className="text-emerald-500 shrink-0" />;
+  const normalized = getNormalizedContentType(type);
+  if (normalized === "Reels") return <FiFilm size={11} className="text-pink-500 shrink-0" />;
+  if (normalized === "Stories") return <FiClock size={11} className="text-amber-500 shrink-0" />;
   return <FiImage size={11} className="text-indigo-500 shrink-0" />;
 };
 
@@ -249,12 +261,21 @@ const ContentCalendarOverview = () => {
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all"); // "all", "today", "upcoming", "scheduled", "inqc", "live", "overdue"
+  const [selectedMonthDate, setSelectedMonthDate] = useState(new Date());
   const [selectedClient, setSelectedClient] = useState("all");
   const [selectedContentType, setSelectedContentType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTaskForModal, setSelectedTaskForModal] = useState(null);
   const [viewMode, setViewMode] = useState("table"); // "table" | "grid"
+
+  const isCurrentMonthSelected = useMemo(
+    () => isSameMonth(selectedMonthDate, new Date()),
+    [selectedMonthDate]
+  );
+
+  const goToPreviousMonth = () => setSelectedMonthDate((prev) => subMonths(prev, 1));
+  const goToNextMonth = () => setSelectedMonthDate((prev) => addMonths(prev, 1));
+  const goToCurrentMonth = () => setSelectedMonthDate(new Date());
 
   const userRole = (currentUser?.role?.name || currentUser?.role || "")
     .toString()
@@ -301,14 +322,33 @@ const ContentCalendarOverview = () => {
     if (isCinematographer) return;
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get("/socialmedia-task-calendar");
-      setTasks(data.data || []);
+      const m = selectedMonthDate.getMonth() + 1;
+      const y = selectedMonthDate.getFullYear();
+      const { data } = await axiosInstance.get(
+        `/socialmedia-task-calendar?commitment=true&month=${m}&year=${y}`
+      );
+      const list = (data.data || []).filter(
+        (t) =>
+          (t.commitment === true || t.commitment === "true" || t.commitment === "Yes") &&
+          isAllowedContentType(t.contentType) &&
+          (() => {
+            const dateStr = t.publishDate || t.dueDate;
+            if (!dateStr) return false;
+            try {
+              const d = typeof dateStr === "string" ? parseISO(dateStr) : new Date(dateStr);
+              return isSameMonth(d, selectedMonthDate);
+            } catch {
+              return false;
+            }
+          })()
+      );
+      setTasks(list);
     } catch (error) {
       console.error("Failed to fetch content calendar tasks:", error);
     } finally {
       setLoading(false);
     }
-  }, [isCinematographer]);
+  }, [isCinematographer, selectedMonthDate]);
 
   useEffect(() => {
     if (!isCinematographer) {
@@ -335,17 +375,8 @@ const ContentCalendarOverview = () => {
     return Array.from(map.values()).sort();
   }, [clientsFromStore, tasks]);
 
-  // Content types list for filter dropdown
-  const contentTypeOptions = useMemo(() => {
-    const set = new Set();
-    tasks.forEach((t) => {
-      if (t.contentType) set.add(t.contentType.trim());
-    });
-    if (set.size === 0) {
-      return ["Reel", "Carousel", "Static Post", "Story", "Video", "Ad"];
-    }
-    return Array.from(set).sort();
-  }, [tasks]);
+  // Content types list for filter dropdown - strictly Post, Reels, Stories
+  const contentTypeOptions = useMemo(() => ["Post", "Reels", "Stories"], []);
 
   // Metrics calculation
   const metrics = useMemo(() => {
@@ -388,51 +419,22 @@ const ContentCalendarOverview = () => {
     };
   }, [tasks]);
 
-  // Filtered tasks based on tab, client, content type, and search query
+  // Filtered tasks based on month, client, content type, and search query
   const filteredTasks = useMemo(() => {
-    let list = [...tasks];
-
-    // Filter by tab
-    if (activeTab === "today") {
-      list = list.filter((t) => {
-        const d = t.publishDate || t.dueDate;
-        if (!d) return false;
-        try {
-          return isToday(parseISO(d));
-        } catch {
-          return false;
-        }
-      });
-    } else if (activeTab === "upcoming") {
-      const now = new Date();
-      list = list.filter((t) => {
-        const d = t.publishDate || t.dueDate;
-        if (!d) return false;
-        try {
-          return parseISO(d) >= now && t.status !== "Completed" && t.status !== "Live";
-        } catch {
-          return false;
-        }
-      });
-    } else if (activeTab === "scheduled") {
-      list = list.filter((t) => t.status === "Scheduled");
-    } else if (activeTab === "inqc") {
-      list = list.filter((t) => t.status === "In QC");
-    } else if (activeTab === "live") {
-      list = list.filter((t) => t.status === "Live" || t.status === "Completed");
-    } else if (activeTab === "overdue") {
-      const now = new Date();
-      list = list.filter((t) => {
-        if (t.status === "Overdue") return true;
-        const dStr = t.publishDate || t.dueDate;
-        if (!dStr) return false;
-        try {
-          return parseISO(dStr) < now && t.status !== "Completed" && t.status !== "Live";
-        } catch {
-          return false;
-        }
-      });
-    }
+    let list = tasks.filter(
+      (t) =>
+        (t.commitment === true || t.commitment === "true" || t.commitment === "Yes") &&
+        (() => {
+          const dateStr = t.publishDate || t.dueDate;
+          if (!dateStr) return false;
+          try {
+            const d = typeof dateStr === "string" ? parseISO(dateStr) : new Date(dateStr);
+            return isSameMonth(d, selectedMonthDate);
+          } catch {
+            return false;
+          }
+        })()
+    );
 
     // Client filter
     if (selectedClient !== "all") {
@@ -444,10 +446,10 @@ const ContentCalendarOverview = () => {
       );
     }
 
-    // Content Type filter
+    // Content Type filter (strictly Post, Reels, Stories)
     if (selectedContentType !== "all") {
       const ct = selectedContentType.toLowerCase();
-      list = list.filter((t) => (t.contentType || "").toLowerCase() === ct);
+      list = list.filter((t) => getNormalizedContentType(t.contentType).toLowerCase() === ct);
     }
 
     // Search query filter
@@ -458,7 +460,8 @@ const ContentCalendarOverview = () => {
         const codeMatch = (t.taskCode || "").toLowerCase().includes(q);
         const clientMatch = (t.clientName || t.client?.companyName || "").toLowerCase().includes(q);
         const catMatch = (t.category || "").toLowerCase().includes(q);
-        const ctMatch = (t.contentType || "").toLowerCase().includes(q);
+        const normCt = getNormalizedContentType(t.contentType);
+        const ctMatch = normCt.toLowerCase().includes(q) || (t.contentType || "").toLowerCase().includes(q);
         const assigneeMatch = (t.assigneeName || t.assignee?.name || "").toLowerCase().includes(q);
         const creatorMatch = (t.createdByName || t.createdBy?.name || "").toLowerCase().includes(q);
         return (
@@ -481,16 +484,16 @@ const ContentCalendarOverview = () => {
     });
 
     return list;
-  }, [tasks, activeTab, selectedClient, selectedContentType, searchQuery]);
+  }, [tasks, selectedClient, selectedContentType, searchQuery, selectedMonthDate]);
 
   const hasActiveFilters =
-    activeTab !== "all" ||
+    !isCurrentMonthSelected ||
     selectedClient !== "all" ||
     selectedContentType !== "all" ||
     searchQuery.trim() !== "";
 
   const clearFilters = () => {
-    setActiveTab("all");
+    setSelectedMonthDate(new Date());
     setSelectedClient("all");
     setSelectedContentType("all");
     setSearchQuery("");
@@ -551,7 +554,7 @@ const ContentCalendarOverview = () => {
         escapeCsv(task.taskTitle || ""),
         escapeCsv(clientName),
         escapeCsv(task.category || "Content"),
-        escapeCsv(task.contentType || "Post"),
+        escapeCsv(getNormalizedContentType(task.contentType)),
         escapeCsv(task.status || "Not started"),
         escapeCsv(task.priority || "Medium"),
         escapeCsv(task.qc || "-"),
@@ -608,13 +611,47 @@ const ContentCalendarOverview = () => {
                 )}
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                Publishing schedules & deliverables
+                Committed client publishing deliverables • <span className="font-bold text-slate-700 dark:text-slate-300">{format(selectedMonthDate, "MMMM yyyy")}</span>
               </p>
             </div>
           </div>
 
           {/* Action & View Mode Controls */}
           <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+            {/* Present Month Navigator */}
+            <div className="flex items-center bg-slate-100 dark:bg-[#131d2e] p-0.5 rounded-lg border border-slate-200/80 dark:border-white/10 shadow-2xs">
+              <button
+                type="button"
+                onClick={goToPreviousMonth}
+                title="Previous Month"
+                className="p-1 rounded hover:bg-white dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <FiChevronLeft size={13} />
+              </button>
+              <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200 px-1.5 flex items-center gap-1 whitespace-nowrap">
+                <FiCalendar size={11} className="theme-text-accent shrink-0" />
+                {format(selectedMonthDate, "MMM yyyy")}
+              </span>
+              <button
+                type="button"
+                onClick={goToNextMonth}
+                title="Next Month"
+                className="p-1 rounded hover:bg-white dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <FiChevronRight size={13} />
+              </button>
+              {!isCurrentMonthSelected && (
+                <button
+                  type="button"
+                  onClick={goToCurrentMonth}
+                  title="Return to Present Month"
+                  className="text-[9.5px] font-black px-1.5 py-0.5 rounded bg-indigo-500 text-white hover:bg-indigo-600 transition-colors cursor-pointer ml-0.5"
+                >
+                  This Month
+                </button>
+              )}
+            </div>
+
             {/* Table / Grid Switcher */}
             <div className="flex items-center bg-slate-100 dark:bg-[#131d2e] p-0.5 rounded-lg border border-slate-200/80 dark:border-white/10">
               <button
@@ -669,43 +706,6 @@ const ContentCalendarOverview = () => {
               <FiChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform theme-text-accent" />
             </Link>
           </div>
-        </div>
-
-        {/* ─── Minimalist Metric Chips Ribbon ─────────────────────────── */}
-        <div className="flex items-center gap-1.5 flex-wrap my-3">
-          {[
-            { id: "all", label: "All Posts", count: metrics.total },
-            { id: "today", label: "Today", count: metrics.today },
-            { id: "scheduled", label: "Scheduled", count: metrics.scheduled },
-            { id: "inqc", label: "In QC", count: metrics.inQc },
-            { id: "live", label: "Live", count: metrics.live },
-            { id: "overdue", label: "Overdue", count: metrics.overdue },
-          ].map((pill) => {
-            const isActive = activeTab === pill.id;
-            return (
-              <button
-                key={pill.id}
-                type="button"
-                onClick={() => setActiveTab(pill.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border ${
-                  isActive
-                    ? "theme-bg-accent text-white border-transparent shadow-2xs font-black"
-                    : "bg-slate-50/70 dark:bg-[#111927] border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-white/5"
-                }`}
-              >
-                <span>{pill.label}</span>
-                <span
-                  className={`text-[9.5px] font-extrabold px-1.5 py-0.2 rounded-full ${
-                    isActive
-                      ? "bg-white/25 text-white"
-                      : "bg-slate-200/70 dark:bg-white/10 text-slate-700 dark:text-slate-200"
-                  }`}
-                >
-                  {pill.count}
-                </span>
-              </button>
-            );
-          })}
         </div>
 
         {/* ─── Minimalist Filter Bar: Client, Type & Search ───────────── */}
@@ -796,12 +796,12 @@ const ContentCalendarOverview = () => {
               <FiCalendar size={18} />
             </div>
             <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-              No Content Posts Found
+              No Commitment Posts Found
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-xs mt-0.5 mb-3 font-medium">
               {hasActiveFilters
-                ? "No posts match your current search or filters."
-                : "No content tasks scheduled right now."}
+                ? "No commitment posts match your current search or filters."
+                : `No committed client calendar posts scheduled for ${format(selectedMonthDate, "MMMM yyyy")}.`}
             </p>
             {hasActiveFilters && (
               <button
@@ -885,7 +885,7 @@ const ContentCalendarOverview = () => {
                       <td className="py-2 px-3 hidden sm:table-cell whitespace-nowrap">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-[#1a2538] text-slate-700 dark:text-slate-200 border border-slate-200/80 dark:border-white/10">
                           {getContentTypeIcon(task.contentType)}
-                          <span>{task.contentType || "Post"}</span>
+                          <span>{getNormalizedContentType(task.contentType)}</span>
                         </span>
                       </td>
 
@@ -972,7 +972,7 @@ const ContentCalendarOverview = () => {
                   <div className="flex items-center justify-between text-[10px] pt-1.5 border-t border-slate-100 dark:border-white/10">
                     <span className="inline-flex items-center gap-1 font-semibold text-slate-600 dark:text-slate-300">
                       {getContentTypeIcon(task.contentType)}
-                      <span>{task.contentType || "Post"}</span>
+                      <span>{getNormalizedContentType(task.contentType)}</span>
                     </span>
                     <div className="flex items-center gap-1.5 min-w-0 max-w-[95px]">
                       <div className="relative shrink-0 w-4 h-4 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#131d2e]">
@@ -1012,7 +1012,7 @@ const ContentCalendarOverview = () => {
       {/* ─── Bottom Footer: Count & Calendar Link ─────────────────────── */}
       <div className="flex items-center justify-between pt-2.5 mt-2.5 border-t border-slate-100 dark:border-white/10 text-[11px]">
         <span className="text-slate-400 dark:text-slate-500 font-medium">
-          Showing {Math.min(viewMode === "table" ? 5 : 4, filteredTasks.length)} of {filteredTasks.length} posts
+          Showing {Math.min(viewMode === "table" ? 5 : 4, filteredTasks.length)} of {filteredTasks.length} posts ({format(selectedMonthDate, "MMMM yyyy")})
         </span>
         <Link
           to={calendarPath}
@@ -1051,7 +1051,7 @@ const ContentCalendarOverview = () => {
                       </span>
                     )}
                     <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                      {selectedTaskForModal.contentType || "Post"}
+                      {getNormalizedContentType(selectedTaskForModal.contentType)}
                     </span>
                     <span
                       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${

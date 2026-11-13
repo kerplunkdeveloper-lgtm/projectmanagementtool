@@ -143,6 +143,20 @@ exports.getProjects = async (req, res) => {
 // @access  Private/Admin/OperationManager
 exports.createProject = async (req, res) => {
   try {
+    const deptLower = (req.user?.department || "").toLowerCase();
+    const roleLower = (req.user?.role || "").toLowerCase();
+    const isSocialMediaHead =
+      roleLower === "socialmediahead" ||
+      roleLower === "socialmediamanager" ||
+      deptLower.includes("social media head");
+
+    if (isSocialMediaHead) {
+      return res.status(403).json({
+        success: false,
+        message: "Social Media Head has read-only access to projects",
+      });
+    }
+
     const project = await Project.create({
       ...req.body,
       createdBy: req.user._id,
@@ -179,17 +193,24 @@ exports.updateProject = async (req, res) => {
     const roleLower = (req.user?.role || "").toLowerCase();
     const isSocialMediaHead =
       roleLower === "socialmediahead" ||
-      deptLower.includes("social media head");
-    const isSocialMedia =
-      isSocialMediaHead ||
       roleLower === "socialmediamanager" ||
+      deptLower.includes("social media head");
+
+    if (isSocialMediaHead) {
+      return res.status(403).json({
+        success: false,
+        message: "Social Media Head has read-only access to projects",
+      });
+    }
+
+    const isSocialMedia =
       deptLower.includes("social media") ||
       deptLower.includes("smm") ||
       roleLower.includes("social");
 
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      if (isSocialMedia && !isSocialMediaHead) {
-        // Social Media Executive can only manage projects of their assigned clients
+      if (isSocialMedia) {
+        // Social Media Executive can manage projects of their assigned/created clients
         const userClients = await Client.find({
           $or: [
             { assignedTo: req.user._id },
@@ -205,7 +226,7 @@ exports.updateProject = async (req, res) => {
             message: "You are not authorized to edit projects outside your assigned clients",
           });
         }
-      } else if (!isSocialMedia && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
+      } else if (project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
           message: "You are not authorized to edit this private project",
@@ -247,17 +268,24 @@ exports.deleteProject = async (req, res) => {
     const roleLower = (req.user?.role || "").toLowerCase();
     const isSocialMediaHead =
       roleLower === "socialmediahead" ||
-      deptLower.includes("social media head");
-    const isSocialMedia =
-      isSocialMediaHead ||
       roleLower === "socialmediamanager" ||
+      deptLower.includes("social media head");
+
+    if (isSocialMediaHead) {
+      return res.status(403).json({
+        success: false,
+        message: "Social Media Head has read-only access to projects",
+      });
+    }
+
+    const isSocialMedia =
       deptLower.includes("social media") ||
       deptLower.includes("smm") ||
       roleLower.includes("social");
 
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      if (isSocialMedia && !isSocialMediaHead) {
-        // Social Media Executive can only delete projects of their assigned clients
+      if (isSocialMedia) {
+        // Social Media Executive can delete projects of their assigned/created clients
         const userClients = await Client.find({
           $or: [
             { assignedTo: req.user._id },
@@ -273,7 +301,7 @@ exports.deleteProject = async (req, res) => {
             message: "You are not authorized to delete projects outside your assigned clients",
           });
         }
-      } else if (!isSocialMedia && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
+      } else if (project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
           message: "You are not authorized to delete this private project",
