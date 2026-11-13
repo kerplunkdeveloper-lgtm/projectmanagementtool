@@ -477,8 +477,8 @@ const SmTaskFilters = ({
           </select>
         )}
 
-        {/* Content Type Filter - Only shown for Commitment tasks */}
-        {selectedCommitment === "Yes" && (
+        {/* Content Type Filter - Shown for Commitment tasks & Daily Schedule */}
+        {(selectedCommitment === "Yes" || selectedCommitment === "All") && (
           <div className={`relative shrink-0 ${isContentTypeDropdownOpen ? "z-50" : "z-10"}`} ref={contentTypeDropdownRef}>
             <button
               type="button"
@@ -512,6 +512,14 @@ const SmTaskFilters = ({
                     <span className="inline-flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
                       <FiZap size={12} className="text-amber-500 fill-amber-500" />
                       <span>Stories</span>
+                    </span>
+                  );
+                }
+                if (selectedContentType === "Others Task") {
+                  return (
+                    <span className="inline-flex items-center gap-1 font-bold text-slate-700 dark:text-slate-300">
+                      <FiLayers size={12} className="text-slate-500" />
+                      <span>Others Task</span>
                     </span>
                   );
                 }
@@ -627,6 +635,33 @@ const SmTaskFilters = ({
                     <FiCheck size={13} className="text-amber-600 stroke-[3]" />
                   )}
                 </button>
+
+                {/* Option 5: Others Task (if available in contentTypes or selectedCommitment === "All") */}
+                {(contentTypes.includes("Others Task") || selectedCommitment === "All") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (setSelectedContentType) setSelectedContentType("Others Task");
+                      if (setCurrentPage) setCurrentPage(1);
+                      setIsContentTypeDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer mt-0.5 ${
+                      selectedContentType === "Others Task"
+                        ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white font-bold"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                        <FiLayers size={12} />
+                      </div>
+                      <span className="font-bold">Others Task</span>
+                    </div>
+                    {selectedContentType === "Others Task" && (
+                      <FiCheck size={13} className="text-slate-700 dark:text-slate-200 stroke-[3]" />
+                    )}
+                  </button>
+                )}
               </div>
             )}
           </div>

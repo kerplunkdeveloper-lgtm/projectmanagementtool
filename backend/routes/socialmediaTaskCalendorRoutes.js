@@ -15,10 +15,23 @@ const {
   bulkImportSocialmediaTasks,
 } = require('../controllers/socialmediaTaskCalendorController');
 
+const {
+  getDailySchedule,
+  toggleSlotCompletion,
+  toggleSubtaskCompletion,
+  getExecutivesSummary,
+} = require('../controllers/smDailyScheduleController');
+
 const { protect } = require('../middleware/auth');
 
 // Protect all routes with JWT auth
 router.use(protect);
+
+// Daily Work Schedule Routes
+router.get('/daily-schedule', getDailySchedule);
+router.patch('/daily-schedule/toggle-slot', toggleSlotCompletion);
+router.patch('/daily-schedule/toggle-subtask', toggleSubtaskCompletion);
+router.get('/daily-schedule/executives-summary', getExecutivesSummary);
 
 router.get('/meta', getSocialmediaMetadata);
 router.post('/clean-duplicates', cleanDuplicateTasks);

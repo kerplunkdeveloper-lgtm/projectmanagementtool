@@ -62,6 +62,7 @@ import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
 import SmTaskFilters from "./SmTaskFilters";
 import SmPlatformWarningModal from "./SmPlatformWarningModal";
+import DailyWorkScheduleTab from "./DailyWorkScheduleTab";
 
 const CATEGORIES = [
   "All",
@@ -719,26 +720,41 @@ const SmTasks = () => {
     };
   };
 
-  // Query param tab detection (e.g. from notification click: ?tab=sme)
+  // Query param tab detection (e.g. from notification click: ?tab=sme or ?tab=daily)
+  const tabParam = (searchParams.get("tab") || location.state?.tab || "").toLowerCase();
+  const initialTabIsDaily =
+    tabParam === "daily" ||
+    tabParam === "schedule" ||
+    tabParam === "daily-schedule" ||
+    tabParam === "dailyworkschedule";
   const initialTabIsSme =
-    searchParams.get("tab") === "sme" ||
-    searchParams.get("tab") === "sme-tasks" ||
-    location.state?.tab === "sme";
+    !initialTabIsDaily &&
+    (tabParam === "sme" || tabParam === "sme-tasks" || tabParam === "smetasks");
+
+  const [activeTab, setActiveTab] = useState(
+    initialTabIsDaily ? "daily" : initialTabIsSme ? "sme" : "commitment"
+  );
 
   // Filter States
   const [selectedClient, setSelectedClient] = useState("All");
   const [selectedCreatedBy, setSelectedCreatedBy] = useState("All");
-  const [selectedCategory, setSelectedCategory] = useState(initialTabIsSme ? "All" : "Content Calendar");
-  const [selectedContentType, setSelectedContentType] = useState(initialTabIsSme ? "Others Task" : "All");
+  const [selectedCategory, setSelectedCategory] = useState(
+    initialTabIsSme || initialTabIsDaily ? "All" : "Content Calendar"
+  );
+  const [selectedContentType, setSelectedContentType] = useState(
+    initialTabIsSme ? "Others Task" : "All"
+  );
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
-  const [selectedCommitment, setSelectedCommitment] = useState(initialTabIsSme ? "No" : "Yes");
+  const [selectedCommitment, setSelectedCommitment] = useState(
+    initialTabIsSme ? "No" : initialTabIsDaily ? "All" : "Yes"
+  );
 
   const hideCommitmentAction =
-    isAdminOrOpManager || (selectedCommitment !== "No" && isSocialMediaHead);
+    isAdminOrOpManager || (activeTab === "commitment" && isSocialMediaHead);
 
   // Comprehensive Date Filter States
-  const [dateFilterPreset, setDateFilterPreset] = useState("All"); // "All", "Today", "Tomorrow", "This Week", "This Month", "Overdue", "Custom"
+  const [dateFilterPreset, setDateFilterPreset] = useState(initialTabIsDaily ? "Today" : "All"); // "All", "Today", "Tomorrow", "This Week", "This Month", "Overdue", "Custom"
   const [dateFilterField, setDateFieldType] = useState("any"); // "any" (Publish or Due), "publish", "due"
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
@@ -759,6 +775,7 @@ const SmTasks = () => {
   useEffect(() => {
     setSelectedTaskIds([]);
   }, [
+    activeTab,
     selectedCommitment,
     selectedMonth,
     selectedYear,
@@ -781,13 +798,36 @@ const SmTasks = () => {
   });
   const [activePlatformMenuTaskId, setActivePlatformMenuTaskId] = useState(null);
 
-  // Automatically activate SME tasks tab and open modal if taskId is passed via notification link
+  // Automatically activate tab and open modal if taskId is passed via notification link
   useEffect(() => {
-    const tabParam = searchParams.get("tab") || location.state?.tab;
-    if (tabParam === "sme" || tabParam === "sme-tasks" || tabParam === "smetasks") {
+    const tabParam = (searchParams.get("tab") || location.state?.tab || "").toLowerCase();
+    if (
+      tabParam === "daily" ||
+      tabParam === "schedule" ||
+      tabParam === "daily-schedule" ||
+      tabParam === "dailyworkschedule"
+    ) {
+      setActiveTab("daily");
+      setSelectedCommitment("All");
+      setSelectedCategory("All");
+      setSelectedContentType("All");
+      setDateFilterPreset("Today");
+      setCurrentPage(1);
+
+      const targetTaskId = searchParams.get("taskId") || searchParams.get("id");
+      if (targetTaskId && tasks && tasks.length > 0) {
+        const found = tasks.find((t) => t._id === targetTaskId);
+        if (found) {
+          setSelectedTaskForEdit(found);
+          setIsModalOpen(true);
+        }
+      }
+    } else if (tabParam === "sme" || tabParam === "sme-tasks" || tabParam === "smetasks") {
+      setActiveTab("sme");
       setSelectedCommitment("No");
       setSelectedCategory("All");
       setSelectedContentType("Others Task");
+      setDateFilterPreset("All");
       setCurrentPage(1);
 
       const targetTaskId = searchParams.get("taskId") || searchParams.get("id");
@@ -799,9 +839,11 @@ const SmTasks = () => {
         }
       }
     } else if (tabParam === "commitment") {
+      setActiveTab("commitment");
       setSelectedCommitment("Yes");
       setSelectedCategory("Content Calendar");
       setSelectedContentType("All");
+      setDateFilterPreset("All");
       setCurrentPage(1);
     }
   }, [searchParams, location.state, tasks]);
@@ -920,8 +962,8 @@ const SmTasks = () => {
   // Client-side filtering
   const filteredTasks = useMemo(() => {
     const list = uniqueTasks.filter((task) => {
-      // Top Month Filter: Strictly filter table tasks by selected month & year
-      if (selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
+      // Top Month Filter: Strictly filter table tasks by selected month & year (Active only on Commitment tab)
+      if (activeTab === "commitment" && selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
         if (dateFilterPreset === "All" && !customStartDate && !customEndDate) {
           const primaryDate =
             dateFilterField === "publish" && task.publishDate
@@ -1222,6 +1264,7 @@ const SmTasks = () => {
     usersMap,
     selectedMonth,
     selectedYear,
+    activeTab,
   ]);
 
   // Paginated tasks
@@ -1400,14 +1443,19 @@ const SmTasks = () => {
 
   const hasActiveFilters = useMemo(() => {
     const isCategoryFiltered =
-      selectedCommitment === "Yes"
+      activeTab === "commitment"
         ? false
         : selectedCategory !== "All";
 
     const isContentTypeFiltered =
-      selectedCommitment === "No"
+      activeTab === "sme"
         ? false
         : selectedContentType !== "All";
+
+    const isDateFiltered =
+      activeTab === "daily"
+        ? dateFilterPreset !== "Today"
+        : dateFilterPreset !== "All";
 
     return (
       selectedClient !== "All" ||
@@ -1416,16 +1464,16 @@ const SmTasks = () => {
       isContentTypeFiltered ||
       selectedStatus !== "All" ||
       selectedPriority !== "All" ||
-      dateFilterPreset !== "All" ||
+      isDateFiltered ||
       Boolean(customStartDate) ||
       Boolean(customEndDate) ||
       atRiskOnly ||
       searchQuery.trim().length > 0
     );
   }, [
+    activeTab,
     selectedClient,
     selectedCreatedBy,
-    selectedCommitment,
     selectedCategory,
     selectedContentType,
     selectedStatus,
@@ -1467,17 +1515,24 @@ const SmTasks = () => {
   const handleResetFilters = () => {
     setSelectedClient("All");
     setSelectedCreatedBy("All");
-    if (selectedCommitment === "Yes") {
+    if (activeTab === "commitment") {
       setSelectedCategory("Content Calendar");
       setSelectedContentType("All");
-    } else {
+      setSelectedCommitment("Yes");
+      setDateFilterPreset("All");
+    } else if (activeTab === "sme") {
       setSelectedCategory("All");
       setSelectedContentType("Others Task");
+      setSelectedCommitment("No");
+      setDateFilterPreset("All");
+    } else {
+      setSelectedCategory("All");
+      setSelectedContentType("All");
+      setSelectedCommitment("All");
+      setDateFilterPreset("Today");
     }
     setSelectedStatus("All");
     setSelectedPriority("All");
-    setSelectedCommitment(selectedCommitment);
-    setDateFilterPreset("All");
     setDateFieldType("any");
     setCustomStartDate("");
     setCustomEndDate("");
@@ -1598,7 +1653,7 @@ const SmTasks = () => {
   };
 
   const handleCreateNew = () => {
-    if (isReadOnly || (isSocialMediaHead && selectedCommitment !== "No")) return;
+    if (isReadOnly || (isSocialMediaHead && activeTab === "commitment")) return;
     setSelectedTaskForEdit(null);
     setIsModalOpen(true);
   };
@@ -1947,6 +2002,7 @@ const SmTasks = () => {
     if (e) e.stopPropagation();
     const isComm =
       Boolean(task?.commitment) ||
+      activeTab === "commitment" ||
       selectedCommitment === "Yes" ||
       (task?.category || "").trim().toLowerCase() === "content calendar" ||
       (task?.category || "").trim().toLowerCase() === "content calendor" ||
@@ -1956,7 +2012,7 @@ const SmTasks = () => {
     setDeleteConfirm({
       show: true,
       target: task,
-      tabName: isCommitmentTab ? "Commitment" : "SME",
+      tabName: activeTab === "daily" ? "Daily work Schedule" : (activeTab === "commitment" ? "Commitment" : "SME"),
     });
   };
 
@@ -2001,42 +2057,44 @@ const SmTasks = () => {
         </div>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-          {/* Month Selector Dropdown */}
-          <div className="relative inline-flex items-center">
-            <FiCalendar
-              size={13}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
-            />
-            <select
-              value={selectedMonth === "all" ? "all" : `${selectedYear}-${selectedMonth}`}
-              onChange={(e) => {
-                if (e.target.value === "all") {
-                  setSelectedYear("all");
-                  setSelectedMonth("all");
-                } else {
-                  const [y, m] = e.target.value.split("-").map(Number);
-                  setSelectedYear(y);
-                  setSelectedMonth(m);
-                }
-                setCurrentPage(1);
-              }}
-              style={{ paddingLeft: "2.15rem" }}
-              className="appearance-none bg-white dark:bg-[#131d31] border border-slate-200 dark:border-white/10 rounded-xl pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-            >
-              <option value="all">All Months</option>
-              {monthOptions.map((opt) => (
-                <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <FiChevronDown
-              size={13}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
-            />
-          </div>
+          {/* Month Selector Dropdown - Show only for Commitment tab */}
+          {activeTab === "commitment" && (
+            <div className="relative inline-flex items-center">
+              <FiCalendar
+                size={13}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
+              />
+              <select
+                value={selectedMonth === "all" ? "all" : `${selectedYear}-${selectedMonth}`}
+                onChange={(e) => {
+                  if (e.target.value === "all") {
+                    setSelectedYear("all");
+                    setSelectedMonth("all");
+                  } else {
+                    const [y, m] = e.target.value.split("-").map(Number);
+                    setSelectedYear(y);
+                    setSelectedMonth(m);
+                  }
+                  setCurrentPage(1);
+                }}
+                style={{ paddingLeft: "2.15rem" }}
+                className="appearance-none bg-white dark:bg-[#131d31] border border-slate-200 dark:border-white/10 rounded-xl pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              >
+                <option value="all">All Months</option>
+                {monthOptions.map((opt) => (
+                  <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <FiChevronDown
+                size={13}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
+              />
+            </div>
+          )}
 
-          {isReadOnly || (isSocialMediaHead && selectedCommitment !== "No") ? (
+          {isReadOnly || (isSocialMediaHead && activeTab === "commitment") ? (
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs shadow-2xs">
               <FiLock size={13} />
               <span>Read-only View</span>
@@ -2053,25 +2111,27 @@ const SmTasks = () => {
         </div>
       </div>
 
-      {/* Segmented Tab Navigation: Commitment vs SME tasks */}
-      <div className=" flex items-center justify-between gap-3">
+      {/* Segmented Tab Navigation: Commitment vs SME tasks vs Daily work Schedule */}
+      <div className=" flex items-center justify-between gap-3 flex-wrap">
         {/* Sleek Segmented Switcher */}
-        <div className="w-full sm:w-auto grid grid-cols-2 sm:inline-flex items-center p-1.5 bg-slate-100/90 dark:bg-[#131d31] rounded-2xl border border-slate-200/70 dark:border-white/10 gap-1.5 shadow-inner relative">
+        <div className="w-full sm:w-auto grid grid-cols-3 sm:inline-flex items-center p-1.5 bg-slate-100/90 dark:bg-[#131d31] rounded-2xl border border-slate-200/70 dark:border-white/10 gap-1.5 shadow-inner relative">
           {/* Tab 1: Commitment */}
           <button
             type="button"
             onClick={() => {
+              setActiveTab("commitment");
               setSelectedCommitment("Yes");
               setSelectedCategory("Content Calendar");
               setSelectedContentType("All");
               setCurrentPage(1);
             }}
-            className={`group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${selectedCommitment === "Yes"
+            className={`group relative inline-flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2.5 px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${
+              activeTab === "commitment"
                 ? (isLightAccent ? "text-slate-950 font-black" : "text-white")
                 : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-              }`}
+            }`}
           >
-            {selectedCommitment === "Yes" && (
+            {activeTab === "commitment" && (
               <motion.div
                 layoutId="activeSmTaskTab"
                 className="absolute inset-0 rounded-xl"
@@ -2082,16 +2142,17 @@ const SmTasks = () => {
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
-            <div className="relative z-10 flex items-center gap-2">
+            <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
               <div
-                className={`p-1 rounded-lg transition-colors ${selectedCommitment === "Yes"
+                className={`p-1 rounded-lg transition-colors ${
+                  activeTab === "commitment"
                     ? "bg-white/20 text-current"
                     : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300/80 dark:group-hover:bg-white/20"
-                  }`}
+                }`}
               >
                 <FiLock size={13} className="stroke-[2.5]" />
               </div>
-              <span>Commitment</span>
+              <span className="whitespace-nowrap">Commitment</span>
             </div>
           </button>
 
@@ -2099,17 +2160,19 @@ const SmTasks = () => {
           <button
             type="button"
             onClick={() => {
+              setActiveTab("sme");
               setSelectedCommitment("No");
               setSelectedCategory("All");
               setSelectedContentType("Others Task");
               setCurrentPage(1);
             }}
-            className={`group relative inline-flex items-center justify-center sm:justify-start gap-2 sm:gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${selectedCommitment === "No"
+            className={`group relative inline-flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2.5 px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${
+              activeTab === "sme"
                 ? (isLightAccent ? "text-slate-950 font-black" : "text-white")
                 : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-              }`}
+            }`}
           >
-            {selectedCommitment === "No" && (
+            {activeTab === "sme" && (
               <motion.div
                 layoutId="activeSmTaskTab"
                 className="absolute inset-0 rounded-xl"
@@ -2120,16 +2183,59 @@ const SmTasks = () => {
                 transition={{ type: "spring", stiffness: 450, damping: 35 }}
               />
             )}
-            <div className="relative z-10 flex items-center gap-2">
+            <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
               <div
-                className={`p-1 rounded-lg transition-colors ${selectedCommitment === "No"
-                    ? "bg-white/20 text-black"
+                className={`p-1 rounded-lg transition-colors ${
+                  activeTab === "sme"
+                    ? "bg-white/20 text-current"
                     : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300/80 dark:group-hover:bg-white/20"
-                  }`}
+                }`}
               >
                 <FiLayers size={13} className="stroke-[2.5]" />
               </div>
-              <span>SME tasks</span>
+              <span className="whitespace-nowrap">SME tasks</span>
+            </div>
+          </button>
+
+          {/* Tab 3: Daily work Schedule */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("daily");
+              setSelectedCommitment("All");
+              setSelectedCategory("All");
+              setSelectedContentType("All");
+              setDateFilterPreset("Today");
+              setCurrentPage(1);
+            }}
+            className={`group relative inline-flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2.5 px-3 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-colors duration-200 cursor-pointer ${
+              activeTab === "daily"
+                ? (isLightAccent ? "text-slate-950 font-black" : "text-white")
+                : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            {activeTab === "daily" && (
+              <motion.div
+                layoutId="activeSmTaskTab"
+                className="absolute inset-0 rounded-xl"
+                style={{
+                  background: "var(--color-brand-gradient, var(--accent-gradient))",
+                  boxShadow: "0 4px 16px var(--btn-glow-shadow, rgba(0,0,0,0.25))",
+                }}
+                transition={{ type: "spring", stiffness: 450, damping: 35 }}
+              />
+            )}
+            <div className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+              <div
+                className={`p-1 rounded-lg transition-colors ${
+                  activeTab === "daily"
+                    ? "bg-white/20 text-current"
+                    : "bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 group-hover:bg-slate-300/80 dark:group-hover:bg-white/20"
+                }`}
+              >
+                <FiClock size={13} className="stroke-[2.5]" />
+              </div>
+              <span className="whitespace-nowrap">Daily work Schedule</span>
             </div>
           </button>
         </div>
@@ -2151,7 +2257,7 @@ const SmTasks = () => {
                 <span>Delete Selected ({selectedTaskIds.length})</span>
               </motion.button>
             )}
-            {selectedCommitment === "Yes" && (
+            {activeTab === "commitment" && (
               <motion.button
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -2184,8 +2290,13 @@ const SmTasks = () => {
         </div>
       </div>
 
-      {/* Reference Matching Filter UI Container */}
-      <SmTaskFilters
+      {/* Tab Content Display */}
+      {activeTab === "daily" ? (
+        <DailyWorkScheduleTab user={user} users={users} />
+      ) : (
+        <>
+          {/* Reference Matching Filter UI Container */}
+          <SmTaskFilters
         searchQuery={searchQuery}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
@@ -2205,13 +2316,15 @@ const SmTasks = () => {
         selectedContentType={selectedContentType}
         setSelectedContentType={setSelectedContentType}
         contentTypes={
-          selectedCommitment === "Yes"
+          activeTab === "commitment"
             ? ["All", "Post", "Reels", "Stories"]
-            : ["All", "Others Task"]
+            : activeTab === "sme"
+            ? ["All", "Others Task"]
+            : ["All", "Post", "Reels", "Stories", "Others Task"]
         }
         selectedStatus={selectedStatus}
         setSelectedStatus={setSelectedStatus}
-        statuses={selectedCommitment === "Yes" ? COMMITMENT_STATUSES : NON_COMMITMENT_STATUSES}
+        statuses={activeTab === "sme" ? NON_COMMITMENT_STATUSES : COMMITMENT_STATUSES}
         selectedPriority={selectedPriority}
         setSelectedPriority={setSelectedPriority}
         priorities={PRIORITIES}
@@ -2436,12 +2549,12 @@ const SmTasks = () => {
                         <FiCalendar size={22} />
                       </div>
                       <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
-                        No social media tasks found
+                        {activeTab === "daily" ? "No tasks scheduled for this date" : activeTab === "sme" ? "No SME tasks found" : "No commitment tasks found"}
                       </p>
                       <p className="text-xs text-slate-400 mb-4 max-w-sm text-center">
-                        Create your first social media task or plan directly on the Content Calendar.
+                        {activeTab === "daily" ? "Check back later or adjust the date filter above." : "Create your first social media task or plan directly on the Content Calendar."}
                       </p>
-                      {(!isReadOnly && (!isSocialMediaHead || selectedCommitment === "No")) && (
+                      {(!isReadOnly && (!isSocialMediaHead || activeTab !== "commitment")) && (
                         <button
                           onClick={handleCreateNew}
                           className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 cursor-pointer"
@@ -2865,6 +2978,8 @@ const SmTasks = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
 
       {/* Task Creation / Edit Modal */}
       <SmTaskModal
@@ -2872,7 +2987,7 @@ const SmTasks = () => {
         onClose={() => setIsModalOpen(false)}
         task={selectedTaskForEdit}
         isReadOnly={isReadOnly || (isSocialMediaHead && Boolean(selectedTaskForEdit?.commitment))}
-        initialCommitment={isSocialMediaHead ? false : selectedCommitment !== "No"}
+        initialCommitment={isSocialMediaHead ? false : activeTab !== "sme"}
       />
 
       {/* Pending Commitment Modal (Detailed Client Breakdown) */}
@@ -2990,7 +3105,7 @@ const SmTasks = () => {
               </h3>
 
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
-                Are you sure you want to permanently delete these <strong>{selectedTaskIds.length}</strong> selected tasks from {selectedCommitment !== "No" ? "Commitment" : "SME"} tasks? This action cannot be undone.
+                Are you sure you want to permanently delete these <strong>{selectedTaskIds.length}</strong> selected tasks from {activeTab === "daily" ? "Daily work Schedule" : (activeTab === "commitment" ? "Commitment" : "SME")} tasks? This action cannot be undone.
               </p>
 
               <div className="flex items-center gap-3 w-full">
