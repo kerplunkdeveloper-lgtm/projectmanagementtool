@@ -2712,10 +2712,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           >
             <div className="p-2.5 border-b border-slate-100 dark:border-slate-800/80 shrink-0 bg-slate-50/70 dark:bg-slate-900/50 backdrop-blur-md">
               <div className="relative flex items-center">
-                <FiSearch
-                  size={14}
-                  className="absolute left-3 text-slate-400 dark:text-slate-400 pointer-events-none"
-                />
+               
                 <input
                   type="text"
                   placeholder="Search users..."

@@ -1158,7 +1158,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
 
             {/* Date Picker Input */}
             <div className="relative inline-flex items-center">
-              <FaCalendarAlt size={10} className="absolute left-2 pointer-events-none text-slate-400" />
+        
               <input
                 type="date"
                 value={selectedDate}

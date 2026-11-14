@@ -2043,7 +2043,7 @@ const Dashboardmain = () => {
 
       {/* Goal tasks (Left) & My Projects / View Task Board (Right) */}
       <div
-        className={`grid grid-cols-1 ${canSeeProjectsShortcut || isGraphicDesigner || isCinematographer ? "xl:grid-cols-2" : "grid-cols-1"} gap-4 mt-2 relative z-10 items-stretch`}
+        className={`grid grid-cols-1 ${canSeeProjectsShortcut || isGraphicDesigner || isCinematographer ? "xl:grid-cols-1" : "grid-cols-1"} gap-4 mt-2 relative z-10 items-stretch`}
       >
         {/* My Goals tasks card */}
         <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col min-h-[340px] relative w-full">
