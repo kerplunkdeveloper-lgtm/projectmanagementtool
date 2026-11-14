@@ -2032,84 +2032,98 @@ const SmTasks = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 p-3 sm:p-5 space-y-3.5 sm:space-y-6">
-      {/* Top Header - Matching Image 1 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {setSidebarOpen && (
+      {/* Top Header - Matching Image 1 (Hidden on Daily Work Schedule tab) */}
+      {activeTab === "daily" ? (
+        setSidebarOpen && (
+          <div className="lg:hidden flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer shrink-0"
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer shrink-0"
               title="Open Sidebar"
             >
               <FiMenu size={18} />
             </button>
-          )}
-          <div>
+          </div>
+        )
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {setSidebarOpen && (
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-xs cursor-pointer shrink-0"
+                title="Open Sidebar"
+              >
+                <FiMenu size={18} />
+              </button>
+            )}
+            <div>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                Social Media Tasks
+              </h1>
+              <p className="text-xs text-slate-500 italic dark:text-slate-400 mt-0.5">
+                Plan, track and deliver all your social media content in one place.
+              </p>
+            </div>
+          </div>
 
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Social Media Tasks
-            </h1>
-            <p className="text-xs text-slate-500 italic dark:text-slate-400 mt-0.5">
-              Plan, track and deliver all your social media content in one place.
-            </p>
+          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+            {/* Month Selector Dropdown - Show only for Commitment tab */}
+            {activeTab === "commitment" && (
+              <div className="relative inline-flex items-center">
+                <FiCalendar
+                  size={13}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
+                />
+                <select
+                  value={selectedMonth === "all" ? "all" : `${selectedYear}-${selectedMonth}`}
+                  onChange={(e) => {
+                    if (e.target.value === "all") {
+                      setSelectedYear("all");
+                      setSelectedMonth("all");
+                    } else {
+                      const [y, m] = e.target.value.split("-").map(Number);
+                      setSelectedYear(y);
+                      setSelectedMonth(m);
+                    }
+                    setCurrentPage(1);
+                  }}
+                  style={{ paddingLeft: "2.15rem" }}
+                  className="appearance-none bg-white dark:bg-[#131d31] border border-slate-200 dark:border-white/10 rounded-xl pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                >
+                  <option value="all">All Months</option>
+                  {monthOptions.map((opt) => (
+                    <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown
+                  size={13}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
+                />
+              </div>
+            )}
+
+            {isReadOnly || (isSocialMediaHead && activeTab === "commitment") ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs shadow-2xs">
+                <FiLock size={13} />
+                <span>Read-only View</span>
+              </div>
+            ) : (
+              <button
+                onClick={handleCreateNew}
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                <FiPlus size={15} className="stroke-[2.5]" />
+                <span>Create task</span>
+              </button>
+            )}
           </div>
         </div>
-
-        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-          {/* Month Selector Dropdown - Show only for Commitment tab */}
-          {activeTab === "commitment" && (
-            <div className="relative inline-flex items-center">
-              <FiCalendar
-                size={13}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
-              />
-              <select
-                value={selectedMonth === "all" ? "all" : `${selectedYear}-${selectedMonth}`}
-                onChange={(e) => {
-                  if (e.target.value === "all") {
-                    setSelectedYear("all");
-                    setSelectedMonth("all");
-                  } else {
-                    const [y, m] = e.target.value.split("-").map(Number);
-                    setSelectedYear(y);
-                    setSelectedMonth(m);
-                  }
-                  setCurrentPage(1);
-                }}
-                style={{ paddingLeft: "2.15rem" }}
-                className="appearance-none bg-white dark:bg-[#131d31] border border-slate-200 dark:border-white/10 rounded-xl pr-8 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-              >
-                <option value="all">All Months</option>
-                {monthOptions.map((opt) => (
-                  <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown
-                size={13}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
-              />
-            </div>
-          )}
-
-          {isReadOnly || (isSocialMediaHead && activeTab === "commitment") ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold text-xs shadow-2xs">
-              <FiLock size={13} />
-              <span>Read-only View</span>
-            </div>
-          ) : (
-            <button
-              onClick={handleCreateNew}
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all cursor-pointer"
-            >
-              <FiPlus size={15} className="stroke-[2.5]" />
-              <span>Create task</span>
-            </button>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Segmented Tab Navigation: Commitment vs SME tasks vs Daily work Schedule */}
       <div className=" flex items-center justify-between gap-3 flex-wrap">

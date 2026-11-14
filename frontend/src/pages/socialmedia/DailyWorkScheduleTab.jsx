@@ -17,7 +17,22 @@ import {
   FiInfo,
   FiShield,
   FiSearch,
+  FiTarget,
+  FiZap,
+  FiMonitor,
+  FiBarChart2,
 } from "react-icons/fi";
+import {
+  FaWhatsapp,
+  FaUsers,
+  FaListUl,
+  FaHandshake,
+  FaCalendarAlt,
+  FaLightbulb,
+  FaImage,
+  FaFileAlt,
+} from "react-icons/fa";
+import { HiOutlineShieldCheck, HiOutlineUserGroup } from "react-icons/hi2";
 import toast from "react-hot-toast";
 import axiosInstance from "../../services/axiosInstance";
 
@@ -330,6 +345,131 @@ const formatShortTime = (dateStr) => {
   });
 };
 
+// 4-Phase Timeline Color Mapping matching the Reference Image:
+// Phase 1 (Green): Slots 1 - 3 (9:00 - 9:45 AM)
+// Phase 2 (Sky Blue): Slots 4 - 5 (9:45 - 11:30 AM)
+// Phase 3 (Indigo/Purple): Slots 6 - 7 (11:30 AM - 1:30 PM)
+// Phase 4 (Amber/Golden): Slots 8 - 15 (2:15 - 6:00 PM)
+const getSlotTimelineConfig = (slotId) => {
+  const num = parseInt((slotId || "").replace("slot-", ""), 10) || 1;
+  if (num <= 3) {
+    return {
+      num,
+      lineColor: "#10b981",
+      borderColor: "border-emerald-500",
+      textColor: "text-emerald-600 dark:text-emerald-400",
+      pulseColor: "ring-emerald-400/30",
+      phaseLabel: "Morning Setup",
+    };
+  } else if (num <= 5) {
+    return {
+      num,
+      lineColor: "#0284c7",
+      borderColor: "border-sky-500",
+      textColor: "text-sky-600 dark:text-sky-400",
+      pulseColor: "ring-sky-400/30",
+      phaseLabel: "Posting & Analytics",
+    };
+  } else if (num <= 7) {
+    return {
+      num,
+      lineColor: "#4f46e5",
+      borderColor: "border-indigo-600",
+      textColor: "text-indigo-600 dark:text-indigo-400",
+      pulseColor: "ring-indigo-400/30",
+      phaseLabel: "Execution & Review",
+    };
+  } else {
+    return {
+      num,
+      lineColor: "#d97706",
+      borderColor: "border-amber-500",
+      textColor: "text-amber-600 dark:text-amber-400",
+      pulseColor: "ring-amber-400/30",
+      phaseLabel: "Execution & EOD",
+    };
+  }
+};
+
+// Exact 15 Activity Icons and Capsule Styles matching the Reference Image
+const SLOT_ACTIVITY_ICONS = {
+  "slot-1": {
+    Icon: FaWhatsapp,
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    bgClass: "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60",
+  },
+  "slot-2": {
+    Icon: FaUsers,
+    iconColor: "text-blue-600 dark:text-blue-400",
+    bgClass: "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/60",
+  },
+  "slot-3": {
+    Icon: FaListUl,
+    iconColor: "text-blue-600 dark:text-blue-400",
+    bgClass: "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/60",
+  },
+  "slot-4": {
+    Icon: FiTarget,
+    iconColor: "text-indigo-600 dark:text-indigo-400",
+    bgClass: "bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800/60",
+  },
+  "slot-5": {
+    Icon: FiBarChart2,
+    iconColor: "text-blue-600 dark:text-blue-400",
+    bgClass: "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/60",
+  },
+  "slot-6": {
+    Icon: FaHandshake,
+    iconColor: "text-amber-600 dark:text-amber-400",
+    bgClass: "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60",
+  },
+  "slot-7": {
+    Icon: FiMonitor,
+    iconColor: "text-blue-600 dark:text-blue-400",
+    bgClass: "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/60",
+  },
+  "slot-8": {
+    Icon: FaCalendarAlt,
+    iconColor: "text-sky-600 dark:text-sky-400",
+    bgClass: "bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-800/60",
+  },
+  "slot-9": {
+    Icon: FiSearch,
+    iconColor: "text-cyan-600 dark:text-cyan-400",
+    bgClass: "bg-cyan-50 dark:bg-cyan-950/50 border-cyan-200 dark:border-cyan-800/60",
+  },
+  "slot-10": {
+    Icon: FiTrendingUp,
+    iconColor: "text-emerald-600 dark:text-emerald-400",
+    bgClass: "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60",
+  },
+  "slot-11": {
+    Icon: FaLightbulb,
+    iconColor: "text-amber-500 dark:text-amber-400",
+    bgClass: "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60",
+  },
+  "slot-12": {
+    Icon: FaImage,
+    iconColor: "text-blue-600 dark:text-blue-400",
+    bgClass: "bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/60",
+  },
+  "slot-13": {
+    Icon: HiOutlineShieldCheck,
+    iconColor: "text-orange-700 dark:text-orange-400",
+    bgClass: "bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800/60",
+  },
+  "slot-14": {
+    Icon: FaFileAlt,
+    iconColor: "text-amber-800 dark:text-amber-400",
+    bgClass: "bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/60",
+  },
+  "slot-15": {
+    Icon: HiOutlineUserGroup,
+    iconColor: "text-purple-700 dark:text-purple-400",
+    bgClass: "bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800/60",
+  },
+};
+
 const buildInitialScheduleState = (dateStr) => ({
   date: dateStr,
   slots: DEFAULT_SCHEDULE_SLOTS.map((slot) => ({
@@ -371,12 +511,127 @@ const isSocialMediaExecutive = (u) => {
   );
 };
 
+// Compact Executive Avatar Component with profile image & initials fallback
+const ExecutiveAvatar = ({ user, avatarUrl, isAllDone, hasStarted }) => {
+  const [imgError, setImgError] = useState(false);
+  const initials = (user?.name || "SM")
+    .split(" ")
+    .filter(Boolean)
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const showImage = Boolean(avatarUrl && !imgError);
+
+  return (
+    <div className="relative shrink-0">
+      {showImage ? (
+        <img
+          src={avatarUrl}
+          alt={user?.name || "Executive"}
+          onError={() => setImgError(true)}
+          className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full object-cover ring-1.5 ring-slate-200/90 dark:ring-white/20 shadow-2xs"
+        />
+      ) : (
+        <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-[10px] sm:text-[11px] flex items-center justify-center uppercase shadow-2xs ring-1 ring-white/30">
+          {initials}
+        </div>
+      )}
+
+      {/* Mini Status Indicator Dot */}
+      {isAllDone ? (
+        <span
+          title="All 15 tasks completed"
+          className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[7px] font-black ring-1.5 ring-white dark:ring-[#0c1220]"
+        >
+          ✓
+        </span>
+      ) : hasStarted ? (
+        <span
+          title="In progress"
+          className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-1.5 ring-white dark:ring-[#0c1220] animate-pulse"
+        />
+      ) : (
+        <span
+          title="Pending"
+          className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 ring-1.5 ring-white dark:ring-[#0c1220]"
+        />
+      )}
+    </div>
+  );
+};
+
 const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
   const authState = useSelector((state) => state.auth);
   const currentUser = propUser || authState?.user;
 
   // In-memory cache to prevent redundant fetches and make tab/date/executive switching 0ms instantaneous
   const scheduleCacheRef = useRef(new Map());
+
+  // Carousel ref for smooth left/right horizontal scrolling
+  const carouselRef = useRef(null);
+  const scrollCarousel = (offset) => {
+    if (carouselRef.current) {
+      carouselRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    }
+  };
+
+  // Extract clean avatar URL from user object or profile
+  const extractAvatarUrl = useCallback((target) => {
+    if (!target) return null;
+    if (typeof target === "string") {
+      const trimmed = target.trim();
+      if (!trimmed) return null;
+      if (trimmed.startsWith("http")) return trimmed;
+      if (trimmed.startsWith("/")) {
+        const backendBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/api\/?$/, "");
+        return backendBase ? `${backendBase}${trimmed}` : trimmed;
+      }
+      return trimmed;
+    }
+    if (typeof target === "object") {
+      if (typeof target.url === "string" && target.url.trim()) return extractAvatarUrl(target.url);
+      if (target.profile?.profileImage) return extractAvatarUrl(target.profile.profileImage);
+      if (target.profileImage) return extractAvatarUrl(target.profileImage);
+      if (target.avatar) return extractAvatarUrl(target.avatar);
+      if (target.profilePic) return extractAvatarUrl(target.profilePic);
+    }
+    return null;
+  }, []);
+
+  // Lookup map for fast profile photo and user details resolution
+  const usersMap = useMemo(() => {
+    const map = new Map();
+    (propUsers || []).forEach((u) => {
+      if (u._id) map.set(u._id.toString(), u);
+      if (u.id) map.set(u.id.toString(), u);
+      if (u.name) map.set(u.name.trim().toLowerCase(), u);
+    });
+    return map;
+  }, [propUsers]);
+
+  // Robust resolver for executive profile picture
+  const getExecutiveAvatarUrl = useCallback(
+    (execUser) => {
+      if (!execUser) return null;
+      const direct = extractAvatarUrl(execUser);
+      if (direct) return direct;
+
+      if (execUser._id && usersMap.has(execUser._id.toString())) {
+        const fromFound = extractAvatarUrl(usersMap.get(execUser._id.toString()));
+        if (fromFound) return fromFound;
+      }
+
+      if (execUser.name && usersMap.has(execUser.name.trim().toLowerCase())) {
+        const fromFound = extractAvatarUrl(usersMap.get(execUser.name.trim().toLowerCase()));
+        if (fromFound) return fromFound;
+      }
+
+      return null;
+    },
+    [extractAvatarUrl, usersMap]
+  );
 
   // Determine user leadership status
   const isLeadership = useMemo(() => {
@@ -722,29 +977,19 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
   }, [isLeadership, selectedExecutiveId, executivesSummary, smExecutivesFromProps, currentUser]);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* 1. TOP HEADER & CALENDAR DATE FILTER BAR */}
       <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/80 dark:border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Left: Title & Executive context */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white shadow-xs">
-              <FiClock size={16} className="stroke-[2.5]" />
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="p-2 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20">
+              <FiClock size={18} className="stroke-[2.5]" />
             </span>
             <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
               Daily Work Schedule
             </h2>
-            {isLeadership ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                <FiShield size={10} />
-                <span>Leadership Audit Mode</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                <FiCheckCircle size={10} />
-                <span>Executive Routine Tracker</span>
-              </span>
-            )}
+           
             {isFetchingSchedule && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-500 animate-pulse pl-1">
                 <FiRefreshCw size={11} className="animate-spin" />
@@ -754,76 +999,70 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
           </div>
 
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {isLeadership
-              ? `Viewing schedule for: `
-              : `Tick your routine deliverables on daily basis. All check timestamps are verified in real time.`}
-            {isLeadership && (
-              <strong className="text-slate-800 dark:text-slate-200 font-bold ml-1">
-                {currentlyViewedUser?.name || "Selected Executive"}
-              </strong>
-            )}
+           
             <span className="text-slate-400 dark:text-slate-500 ml-2">
-              • {formattedDateHeader}
+              {formattedDateHeader}
             </span>
           </p>
         </div>
 
         {/* Right: Daily Wise Calendar Filter Navigation */}
         <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-          {/* Previous Day Button */}
-          <button
-            type="button"
-            onClick={handlePrevDay}
-            className="p-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer shadow-2xs"
-            title="Previous Day"
-          >
-            <FiChevronLeft size={16} />
-          </button>
+          <div className="inline-flex items-center bg-slate-100/90 dark:bg-[#131d31] p-1 rounded-2xl border border-slate-200/80 dark:border-white/10 gap-1 shadow-inner">
+            {/* Previous Day Button */}
+            <button
+              type="button"
+              onClick={handlePrevDay}
+              className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#1a253c] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-2xs"
+              title="Previous Day"
+            >
+              <FiChevronLeft size={16} />
+            </button>
 
-          {/* Date Picker Input */}
-          <div className="relative inline-flex items-center">
-            <FiCalendar
-              size={13}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-            />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-              className="pl-8 pr-3 py-1.5 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-            />
+            {/* Date Picker Input */}
+            <div className="relative inline-flex items-center">
+              <FiCalendar
+                size={13}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+              />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                className="pl-7 pr-2.5 py-1 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200/70 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              />
+            </div>
+
+            {/* Today Button */}
+            <button
+              type="button"
+              onClick={handleSetToday}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                selectedDate === todayStr
+                  ? "bg-indigo-600 text-white shadow-indigo-500/25"
+                  : "bg-white dark:bg-[#0c1220] border border-slate-200/70 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#182338]"
+              }`}
+            >
+              Today
+            </button>
+
+            {/* Next Day Button */}
+            <button
+              type="button"
+              onClick={handleNextDay}
+              className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#1a253c] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-2xs"
+              title="Next Day"
+            >
+              <FiChevronRight size={16} />
+            </button>
           </div>
-
-          {/* Today Button */}
-          <button
-            type="button"
-            onClick={handleSetToday}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
-              selectedDate === todayStr
-                ? "bg-indigo-600 text-white shadow-indigo-500/20"
-                : "border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338]"
-            }`}
-          >
-            Today
-          </button>
-
-          {/* Next Day Button */}
-          <button
-            type="button"
-            onClick={handleNextDay}
-            className="p-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer shadow-2xs"
-            title="Next Day"
-          >
-            <FiChevronRight size={16} />
-          </button>
 
           {/* Refresh Button */}
           <button
             type="button"
             onClick={() => {
               scheduleCacheRef.current.clear();
-              toast.success("Cache refreshed");
-              // Force reload
+              toast.success("Schedule refreshed");
               const targetUserId = effectiveUserId;
               axiosInstance
                 .get(`/socialmedia-task-calendar/daily-schedule?date=${selectedDate}&userId=${targetUserId}`)
@@ -831,8 +1070,8 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                   if (res.data?.success) setScheduleData(res.data.schedule);
                 });
             }}
-            className="p-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer shadow-2xs"
-            title="Refresh Schedule Cache"
+            className="p-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#131d31] text-slate-500 hover:text-indigo-600 hover:bg-slate-50 dark:hover:bg-[#182338] transition-colors cursor-pointer shadow-2xs"
+            title="Refresh Schedule"
           >
             <FiRefreshCw size={14} className={isFetchingSchedule ? "animate-spin text-indigo-500" : ""} />
           </button>
@@ -841,20 +1080,46 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
 
       {/* 2. LEADERSHIP EXECUTIVE SELECTOR CAROUSEL (ADMIN, OP MANAGER, SM HEAD) */}
       {isLeadership && (
-        <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-4 shadow-xs border border-purple-200/80 dark:border-purple-900/40 space-y-3">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-3 sm:p-3.5 shadow-xs border border-slate-200/80 dark:border-white/10 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <FiUser className="text-purple-600 dark:text-purple-400" size={15} />
-              <h3 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+              <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <FiUser size={13} className="stroke-[2.5]" />
+              </span>
+              <h3 className="text-[11px] sm:text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
                 Social Media Executives ({executivesSummary.length || smExecutivesFromProps.length})
               </h3>
             </div>
-            <span className="text-[11px] text-slate-400 font-medium">
-              Click an executive to verify their check-in times & on-time accuracy
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="hidden sm:inline text-[10px] text-slate-400 font-medium">
+                Click executive to verify check-ins
+              </span>
+              <div className="flex items-center gap-1 ml-1">
+                <button
+                  type="button"
+                  onClick={() => scrollCarousel(-220)}
+                  className="w-6 h-6 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] hover:bg-slate-100 dark:hover:bg-[#182338] text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                  title="Scroll Left"
+                >
+                  <FiChevronLeft size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollCarousel(220)}
+                  className="w-6 h-6 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] hover:bg-slate-100 dark:hover:bg-[#182338] text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                  title="Scroll Right"
+                >
+                  <FiChevronRight size={13} />
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-1.5 scrollbar-thin">
+          <div
+            ref={carouselRef}
+            className="flex items-center gap-2 overflow-x-auto py-0.5 scrollbar-none scroll-smooth"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
             {(executivesSummary.length > 0 ? executivesSummary : smExecutivesFromProps.map((u) => ({
               user: u,
               completedSlotsCount: 0,
@@ -866,62 +1131,51 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
               const isSelected = selectedExecutiveId === execUser?._id;
               const isAllDone = exec.completedSlotsCount >= 15;
               const hasStarted = exec.completedSlotsCount > 0;
+              const avatarUrl = getExecutiveAvatarUrl(execUser);
 
               return (
                 <button
                   key={execUser?._id}
                   type="button"
                   onClick={() => setSelectedExecutiveId(execUser?._id)}
-                  className={`group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl border text-left transition-all cursor-pointer shrink-0 ${
+                  className={`group relative flex items-center gap-2.5 py-1.5 px-2.5 sm:px-3 rounded-xl border text-left transition-all cursor-pointer shrink-0 ${
                     isSelected
-                      ? "bg-purple-50 dark:bg-purple-950/50 border-purple-400 dark:border-purple-600 ring-2 ring-purple-500/20 shadow-xs"
-                      : "bg-slate-50 dark:bg-[#131d31] border-slate-200/70 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
+                      ? "bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-500/25 shadow-xs scale-[1.01]"
+                      : "bg-slate-50/70 dark:bg-[#131d31] border-slate-200/70 dark:border-white/10 hover:bg-white dark:hover:bg-[#19243a] hover:border-slate-300"
                   }`}
                 >
-                  {/* Executive Initials */}
-                  <div className="relative">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center uppercase shadow-2xs">
-                      {execUser?.name
-                        ?.split(" ")
-                        .map((n) => n[0])
-                        .slice(0, 2)
-                        .join("") || "SM"}
-                    </div>
-                    {isAllDone ? (
-                      <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] ring-2 ring-white dark:ring-[#131d31]">
-                        ✓
-                      </span>
-                    ) : hasStarted ? (
-                      <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-blue-500 ring-2 ring-white dark:ring-[#131d31] animate-pulse" />
-                    ) : null}
-                  </div>
+                  {/* Executive Avatar with Profile Image + Fallback Initials */}
+                  <ExecutiveAvatar
+                    user={execUser}
+                    avatarUrl={avatarUrl}
+                    isAllDone={isAllDone}
+                    hasStarted={hasStarted}
+                  />
 
-                  {/* Executive Info & Progress */}
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                        {execUser?.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[10px]">
+                  {/* Executive Info & Mini Progress Pill */}
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap truncate max-w-[95px] sm:max-w-[120px] block leading-tight">
+                      {execUser?.name}
+                    </span>
+                    <div className="flex items-center gap-1 text-[10px] leading-none whitespace-nowrap">
                       <span
-                        className={`font-black px-1.5 py-0.2 rounded ${
+                        className={`font-black px-1.5 py-0.5 rounded text-[9.5px] ${
                           isAllDone
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300"
                             : hasStarted
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300"
-                            : "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                            ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/80 dark:text-indigo-300"
+                            : "bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                         }`}
                       >
                         {exec.completedSlotsCount || 0} / 15 ({exec.completionPercentage || 0}%)
                       </span>
                       {exec.onTimeSlotsCount > 0 && (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[9.5px]">
                           • {exec.onTimeSlotsCount} on-time
                         </span>
                       )}
                       {exec.delayedSlotsCount > 0 && (
-                        <span className="text-amber-600 dark:text-amber-400 font-bold">
+                        <span className="text-amber-600 dark:text-amber-400 font-bold text-[9.5px]">
                           • {exec.delayedSlotsCount} late
                         </span>
                       )}
@@ -934,109 +1188,55 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
         </div>
       )}
 
-      {/* 3. PROGRESS & PERFORMANCE STATS BANNER */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Card 1: Completed Slots */}
-        <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-4 border border-slate-200/80 dark:border-white/10 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <FiCheckCircle size={20} className="stroke-[2.5]" />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Completed</div>
-            <div className="text-lg font-black text-slate-900 dark:text-white">
-              {scheduleData?.completedSlotsCount || 0} / 15
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Completion Percentage */}
-        <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-4 border border-slate-200/80 dark:border-white/10 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-            <FiTrendingUp size={20} className="stroke-[2.5]" />
-          </div>
-          <div className="w-full">
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Progress</div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-black text-slate-900 dark:text-white">
-                {scheduleData?.completionPercentage || 0}%
-              </span>
-            </div>
-            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-emerald-500 to-indigo-600 h-1.5 rounded-full transition-all duration-300"
-                style={{ width: `${scheduleData?.completionPercentage || 0}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: On-Time Ticks */}
-        <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-4 border border-slate-200/80 dark:border-white/10 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-            <FiClock size={20} className="stroke-[2.5]" />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">On-Time Updates</div>
-            <div className="text-lg font-black text-blue-600 dark:text-blue-400">
-              {scheduleData?.onTimeSlotsCount || 0}
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Delayed / Pending */}
-        <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-4 border border-slate-200/80 dark:border-white/10 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-            <FiAlertTriangle size={20} className="stroke-[2.5]" />
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Late Updates</div>
-            <div className="text-lg font-black text-amber-600 dark:text-amber-400">
-              {scheduleData?.delayedSlotsCount || 0}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 4. FILTER BAR & SEARCH */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#0c1220] p-3 rounded-2xl border border-slate-200/80 dark:border-white/10">
-        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#0c1220] p-3 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {[
-            { id: "all", label: `All (15)` },
-            { id: "completed", label: `Completed (${scheduleData?.completedSlotsCount || 0})` },
-            { id: "pending", label: `Pending (${15 - (scheduleData?.completedSlotsCount || 0)})` },
-            { id: "ontime", label: `On-Time (${scheduleData?.onTimeSlotsCount || 0})` },
-            { id: "delayed", label: `Late (${scheduleData?.delayedSlotsCount || 0})` },
+            { id: "all", label: "All Slots", count: 15 },
+            { id: "completed", label: "Completed", count: scheduleData?.completedSlotsCount || 0 },
+            { id: "pending", label: "Pending", count: 15 - (scheduleData?.completedSlotsCount || 0) },
+            { id: "ontime", label: "On-Time", count: scheduleData?.onTimeSlotsCount || 0 },
+            { id: "delayed", label: "Late", count: scheduleData?.delayedSlotsCount || 0 },
           ].map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 statusFilter === tab.id
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-2xs"
-                  : "bg-slate-100 dark:bg-[#131d31] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs scale-[1.02]"
+                  : "bg-slate-100 dark:bg-[#131d31] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-[#19243a]"
               }`}
             >
-              {tab.label}
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                  statusFilter === tab.id
+                    ? "bg-white/20 text-white dark:bg-black/10 dark:text-slate-950"
+                    : "bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                }`}
+              >
+                {tab.count}
+              </span>
             </button>
           ))}
         </div>
 
-        {/* Search Input */}
-        <div className="relative w-full sm:w-64">
-          <FiSearch size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Search Input with proper FiSearch icon */}
+        <div className="relative w-full sm:w-72">
+          
           <input
             type="text"
             placeholder="Search routine or slot..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 rounded-xl text-xs bg-slate-50 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full pl-9 pr-3.5 py-2 rounded-xl text-xs font-medium bg-slate-50 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
           />
         </div>
       </div>
 
-      {/* 5. THE 15 SCHEDULE SLOTS TIMELINE LIST (Instant 0ms layout!) */}
-      <div className="space-y-3">
+      {/* 5. THE 15 SCHEDULE SLOTS TIMELINE LIST (Continuous Rail & Reference Image Time Area) */}
+      <div className="relative pl-1 sm:pl-2">
         {displayedSlots.length === 0 ? (
           <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-12 text-center border border-slate-200/80 dark:border-white/10">
             <FiInfo size={28} className="mx-auto text-slate-400 mb-2" />
@@ -1053,50 +1253,89 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
             const isCurrentSlot = activeSlotIdNow === slot.slotId;
             const isUpdating = isUpdatingSlot === slot.slotId;
             const isOnTime = slot.timingStatus === "on-time" || slot.timingStatus === "early";
+            const config = getSlotTimelineConfig(slot.slotId);
+            const nextSlot = displayedSlots[index + 1];
+            const nextConfig = nextSlot ? getSlotTimelineConfig(nextSlot.slotId) : null;
+            const activityMeta = SLOT_ACTIVITY_ICONS[slot.slotId] || {
+              Icon: FiClock,
+              iconColor: "text-slate-600 dark:text-slate-400",
+              bgClass: "bg-slate-100 dark:bg-[#131d31] border-slate-200 dark:border-white/10",
+            };
+            const ActivityIcon = activityMeta.Icon;
 
             return (
-              <motion.div
+              <div
                 key={slot.slotId}
-                layout
-                initial={false}
-                className={`relative rounded-2xl p-4 sm:p-5 border transition-all ${
-                  isCompleted
-                    ? "bg-white dark:bg-[#0c1220] border-emerald-300 dark:border-emerald-800/60 shadow-2xs"
-                    : isCurrentSlot
-                    ? "bg-white dark:bg-[#0c1220] border-blue-400 dark:border-blue-600 ring-2 ring-blue-500/20 shadow-md"
-                    : "bg-white dark:bg-[#0c1220] border-slate-200/80 dark:border-white/10 shadow-2xs hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
+                className="relative flex items-stretch gap-2.5 sm:gap-4 pb-3.5 sm:pb-4 group"
               >
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  {/* Left Column: Time & Slot Number Badge */}
-                  <div className="flex items-start gap-3 shrink-0 md:w-64">
-                    {/* Number Indicator */}
-                    <div
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                        isCompleted
-                          ? "bg-emerald-500 text-white"
-                          : isCurrentSlot
-                          ? "bg-blue-600 text-white animate-pulse"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
+                {/* Continuous Left Timeline Rail (Exact 4-Phase Color Matching from Reference Image) */}
+                <div className="relative flex flex-col items-center shrink-0 w-6 self-stretch">
+                  {/* Top Line Segment (connects from top of slot row down to ring node) */}
+                  <div
+                    className={`w-[2.5px] shrink-0 ${index === 0 ? "opacity-0" : ""}`}
+                    style={{
+                      backgroundColor: config.lineColor,
+                      height: "23px",
+                    }}
+                  />
 
-                    <div className="space-y-1">
-                      {/* Time Range */}
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#131d31] font-mono text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-white/10">
-                        <FiClock size={12} className="text-slate-400 shrink-0" />
-                        <span>{slot.timeRange}</span>
+                  {/* Circular Ring Node (Hollow Center with 2.5px Colored Outline) */}
+                  <div
+                    className={`w-[17px] h-[17px] rounded-full border-[2.5px] bg-white dark:bg-[#0c1220] z-10 shrink-0 shadow-2xs transition-all duration-200 group-hover:scale-115 ${
+                      config.borderColor
+                    } ${isCurrentSlot ? `ring-4 ${config.pulseColor} scale-110` : ""}`}
+                    title={`${config.phaseLabel} (${slot.timeRange})`}
+                  />
+
+                  {/* Bottom Line Segment (fills through bottom padding and meets next slot with zero gap) */}
+                  <div
+                    className={`w-[2.5px] grow ${
+                      index === displayedSlots.length - 1 ? "opacity-0" : ""
+                    }`}
+                    style={{
+                      background:
+                        nextConfig && nextConfig.lineColor !== config.lineColor
+                          ? `linear-gradient(to bottom, ${config.lineColor}, ${nextConfig.lineColor})`
+                          : config.lineColor,
+                    }}
+                  />
+                </div>
+
+                {/* Main Schedule Card */}
+                <motion.div
+                  layout
+                  initial={false}
+                  className={`grow min-w-0 relative rounded-2xl p-4 sm:p-5 border transition-all ${
+                    isCompleted
+                      ? isOnTime
+                        ? "bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-300 dark:border-emerald-800/60 shadow-2xs hover:border-emerald-400"
+                        : "bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-800/60 shadow-2xs hover:border-amber-400"
+                      : isCurrentSlot
+                      ? "bg-red-50/65 dark:bg-red-950/20 border-red-300 dark:border-red-800/60 ring-2 ring-red-400/40 shadow-sm"
+                      : "bg-red-50/50 dark:bg-red-950/15 border-red-200/80 dark:border-red-900/40 shadow-2xs hover:border-red-300 dark:hover:border-red-800/50 hover:shadow-xs"
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    {/* Left Column: Reference Image Time Area (Capsule Pill + Verification Badge) */}
+                    <div className="flex flex-col items-start gap-2.5 shrink-0 md:w-56">
+                      {/* Exact Reference Image Pill Badge */}
+                      <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#edf2fc] dark:bg-[#151f33] border border-[#dbe6f6] dark:border-white/10 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-xs transition-shadow">
+                        <span className="font-extrabold text-xs sm:text-[13px] text-[#0f172a] dark:text-slate-100 tracking-tight whitespace-nowrap">
+                          {slot.timeRange}
+                        </span>
                       </div>
 
-                      {/* Timing Verification Stamp */}
-                      <div>
+                      {/* Timing Verification Stamp & Slot Number */}
+                      <div className="flex items-center gap-1.5 flex-wrap pl-1">
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/10">
+                          Slot {config.num}
+                        </span>
+
                         {isCompleted ? (
                           isOnTime ? (
                             <span
                               title={`Checked on time at ${formatExactTime(slot.completedAt)}`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               <span>✓ On-Time ({formatShortTime(slot.completedAt)})</span>
@@ -1104,133 +1343,146 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                           ) : (
                             <span
                               title={`Checked at ${formatExactTime(slot.completedAt)} (Delayed update)`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                               <span>⏱ Late Update ({formatShortTime(slot.completedAt)})</span>
                             </span>
                           )
                         ) : isCurrentSlot ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700 animate-pulse">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                            <span>⚡ Active Slot Now</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700 animate-pulse">
+                            <FiZap size={10} className="text-blue-600 dark:text-blue-400" />
+                            <span>Active Slot Now</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 dark:bg-[#131d31] text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-white/10">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                             <span>Pending</span>
                           </span>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Middle Column: Title & Subtasks / Checklist points */}
-                  <div className="flex-1 space-y-2.5">
-                    {/* Title */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4
-                        className={`text-sm sm:text-base font-extrabold transition-colors ${
-                          isCompleted
-                            ? "text-slate-900 dark:text-white line-through decoration-emerald-500/50"
-                            : "text-slate-900 dark:text-white"
-                        }`}
-                      >
-                        {slot.title}
-                      </h4>
-                      {isCompleted && (
-                        <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                          Completed
-                        </span>
-                      )}
-                    </div>
+                    {/* Middle Column: Activity Icon & Task Details */}
+                    <div className="flex-1 space-y-2.5 min-w-0">
+                      <div className="flex items-start gap-3">
+                        {/* Reference Image Activity Icon Capsule */}
+                        <div
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs ${activityMeta.bgClass}`}
+                          title={slot.title}
+                        >
+                          <ActivityIcon size={19} className={activityMeta.iconColor} />
+                        </div>
 
-                    {/* Subtasks Interactive Checklist */}
-                    {Array.isArray(slot.subtasks) && slot.subtasks.length > 0 && (
-                      <div className="space-y-1.5 pt-1">
-                        {slot.subtasks.map((st) => {
-                          const isSubDone = Boolean(st.completed);
-                          return (
-                            <div
-                              key={st.id}
-                              onClick={(e) => handleToggleSubtask(slot, st, e)}
-                              className={`flex items-start gap-2.5 text-xs rounded-xl p-1.5 -ml-1.5 transition-colors cursor-pointer select-none ${
-                                isSubDone
-                                  ? "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                                  : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                        <div className="flex-1 min-w-0 space-y-2">
+                          {/* Title */}
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <h4
+                              className={`text-sm sm:text-base font-extrabold transition-colors ${
+                                isCompleted
+                                  ? "text-slate-800 dark:text-slate-200 line-through decoration-emerald-500/50"
+                                  : "text-slate-900 dark:text-white"
                               }`}
                             >
-                              <button
-                                type="button"
-                                className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                                  isSubDone
-                                    ? "bg-emerald-500 text-white"
-                                    : "border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#131d31] hover:border-indigo-500"
-                                }`}
-                              >
-                                {isSubDone && <FiCheck size={11} className="stroke-[3]" />}
-                              </button>
-                              <span
-                                className={`leading-snug ${
-                                  isSubDone ? "line-through text-slate-400 dark:text-slate-500" : "font-medium"
-                                }`}
-                              >
-                                {st.text}
+                              {slot.title}
+                            </h4>
+                            {isCompleted && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                                <FiCheck size={11} className="stroke-[3]" />
+                                <span>Done</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Subtasks Interactive Checklist */}
+                          {Array.isArray(slot.subtasks) && slot.subtasks.length > 0 && (
+                            <div className="space-y-1.5 pt-1">
+                              {slot.subtasks.map((st) => {
+                                const isSubDone = Boolean(st.completed);
+                                return (
+                                  <div
+                                    key={st.id}
+                                    onClick={(e) => handleToggleSubtask(slot, st, e)}
+                                    className={`group/sub flex items-start gap-2.5 text-xs sm:text-[13px] rounded-xl p-1.5 -ml-1.5 transition-colors cursor-pointer select-none ${
+                                      isSubDone
+                                        ? "text-slate-500 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"
+                                        : "text-slate-800 dark:text-slate-100 hover:bg-black/5 dark:hover:bg-white/5"
+                                    }`}
+                                  >
+                                    <div
+                                      className={`mt-0.5 w-4.5 h-4.5 rounded-lg flex items-center justify-center transition-all shrink-0 ${
+                                        isSubDone
+                                          ? "bg-emerald-500 text-white shadow-xs shadow-emerald-500/20"
+                                          : "border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#131d31] group-hover/sub:border-indigo-500"
+                                      }`}
+                                    >
+                                      {isSubDone && <FiCheck size={12} className="stroke-[3]" />}
+                                    </div>
+                                    <span
+                                      className={`leading-relaxed ${
+                                        isSubDone ? "line-through text-slate-400 dark:text-slate-500" : "font-medium"
+                                      }`}
+                                    >
+                                      {st.text}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Benchmark Callout */}
+                          {slot.benchmark && (
+                            <div className="inline-flex items-start gap-2 px-3 py-1.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-800/50 text-[11px] font-bold text-purple-900 dark:text-purple-300 mt-1">
+                              <FiTarget size={13} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                              <span>Benchmark: {slot.benchmark}</span>
+                            </div>
+                          )}
+
+                          {/* Completion Audit Log Footer */}
+                          {isCompleted && slot.completedAt && (
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 pt-1">
+                              <FiCheckCircle size={12} className="text-emerald-500 shrink-0" />
+                              <span>
+                                Completed at <strong className="text-slate-700 dark:text-slate-200">{formatExactTime(slot.completedAt)}</strong>
+                                {slot.completedByName ? ` by ${slot.completedByName}` : ""}
                               </span>
                             </div>
-                          );
-                        })}
+                          )}
+                        </div>
                       </div>
-                    )}
+                    </div>
 
-                    {/* Benchmark Callout (e.g. for Competitor Scan / Story Posting) */}
-                    {slot.benchmark && (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50/80 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/60 text-[11px] font-bold text-purple-800 dark:text-purple-300 mt-1">
-                        <FiInfo size={12} className="text-purple-600 shrink-0" />
-                        <span>Benchmark: {slot.benchmark}</span>
-                      </div>
-                    )}
-
-                    {/* Completion Audit Log Footer */}
-                    {isCompleted && slot.completedAt && (
-                      <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1.5 pt-1">
-                        <FiCheckCircle size={11} className="text-emerald-500 shrink-0" />
-                        <span>
-                          Checked at <strong>{formatExactTime(slot.completedAt)}</strong>
-                          {slot.completedByName ? ` by ${slot.completedByName}` : ""}
-                        </span>
-                      </div>
-                    )}
+                    {/* Right Column: Big Interactive Checkbox Button */}
+                    <div className="shrink-0 self-end md:self-center">
+                      <button
+                        type="button"
+                        disabled={isUpdating}
+                        onClick={() => handleToggleSlot(slot)}
+                        className={`group relative inline-flex items-center gap-2 px-4.5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 ${
+                          isCompleted
+                            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                            : "bg-white/90 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 border border-slate-300/80 dark:bg-[#131d31] dark:text-slate-200 dark:border-white/10 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+                        }`}
+                      >
+                        {isUpdating ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : isCompleted ? (
+                          <>
+                            <FiCheckCircle size={15} className="stroke-[2.5]" />
+                            <span>Done</span>
+                          </>
+                        ) : (
+                          <>
+                            <FiCheck size={14} className="stroke-[2.5] text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                            <span>Mark Done</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-
-                  {/* Right Column: Big Interactive Checkbox Button */}
-                  <div className="shrink-0 self-end md:self-center">
-                    <button
-                      type="button"
-                      disabled={isUpdating}
-                      onClick={() => handleToggleSlot(slot)}
-                      className={`group relative inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 ${
-                        isCompleted
-                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-                          : "bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200/80 dark:bg-[#131d31] dark:text-slate-200 dark:border-white/10 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
-                      }`}
-                    >
-                      {isUpdating ? (
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                      ) : isCompleted ? (
-                        <>
-                          <FiCheckCircle size={15} className="stroke-[2.5]" />
-                          <span>Done</span>
-                        </>
-                      ) : (
-                        <>
-                          <FiSquare size={14} className="stroke-[2.5] text-slate-400 group-hover:text-emerald-600" />
-                          <span>Mark Done</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </div>
             );
           })
         )}

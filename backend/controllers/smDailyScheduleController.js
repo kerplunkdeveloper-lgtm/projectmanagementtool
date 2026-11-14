@@ -641,7 +641,8 @@ exports.getExecutivesSummary = async (req, res) => {
         { designation: { $regex: /social media/i } },
       ],
     })
-      .select('_id name email role department')
+      .select('_id name email role department profile')
+      .populate({ path: 'profile', select: 'profileImage' })
       .lean();
 
     if (!executives || executives.length === 0) {
