@@ -407,20 +407,23 @@ exports.getDailySchedule = async (req, res) => {
       targetDate = `${y}-${m}-${d}`;
     }
 
-    // Parallel lean fetch for maximum performance
-    const [targetUser, dbSchedule] = await Promise.all([
-      User.findById(targetUserId).select('name email role department').lean(),
-      SmDailySchedule.findOne({ user: targetUserId, date: targetDate }).lean(),
-    ]);
+    // Check for existing schedule first with compound index { user: 1, date: 1 }
+    let schedule = await SmDailySchedule.findOne({ user: targetUserId, date: targetDate }).lean();
+    let targetUser = null;
 
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
+    if (schedule) {
+      targetUser = {
+        _id: schedule.user,
+        name: schedule.userName,
+        department: schedule.userDepartment,
+      };
+    } else {
+      targetUser = await User.findById(targetUserId).select('name email role department').lean();
+      if (!targetUser) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
 
-    let schedule = dbSchedule;
-
-    // If not in DB yet, construct default schedule in memory without a disk write lock!
-    if (!schedule) {
+      // Construct default schedule in memory without a disk write lock (0ms latency)
       schedule = {
         user: targetUserId,
         userName: targetUser.name,
@@ -678,6 +681,7 @@ exports.getExecutivesSummary = async (req, res) => {
           email: exec.email,
           role: exec.role,
           department: exec.department,
+          profile: exec.profile,
         },
         hasStarted: Boolean(sched && sched.completedSlotsCount > 0),
         completedSlotsCount: sched ? sched.completedSlotsCount : 0,

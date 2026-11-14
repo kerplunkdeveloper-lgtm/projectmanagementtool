@@ -5,7 +5,7 @@ import {
   FiClock,
   FiCheckCircle,
   FiCheck,
-  FiCalendar,
+ 
   FiUser,
   FiChevronLeft,
   FiChevronRight,
@@ -511,6 +511,44 @@ const isSocialMediaExecutive = (u) => {
   );
 };
 
+// Persistent Module-Level Caches across tab changes & unmounts (0ms instant recall)
+const GLOBAL_SCHEDULE_CACHE = new Map();
+const GLOBAL_EXECUTIVES_SUMMARY_CACHE = new Map();
+
+// High Performance Stagger Container for Smooth UI Entry
+const timelineContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.03,
+      delayChildren: 0.01,
+    },
+  },
+};
+
+// Fluid Spring Physics Card Transition
+const slotCardVariants = {
+  hidden: { opacity: 0, y: 12, scale: 0.985 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 380,
+      damping: 28,
+      mass: 0.8,
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.96,
+    y: -8,
+    transition: { duration: 0.15, ease: "easeOut" },
+  },
+};
+
 // Compact Executive Avatar Component with profile image & initials fallback
 const ExecutiveAvatar = ({ user, avatarUrl, isAllDone, hasStarted }) => {
   const [imgError, setImgError] = useState(false);
@@ -673,7 +711,12 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
   }, [isLeadership, smExecutivesFromProps, currentUser]);
 
   const [selectedExecutiveId, setSelectedExecutiveId] = useState(initialExecutiveId);
-  const [executivesSummary, setExecutivesSummary] = useState([]);
+  const [executivesSummary, setExecutivesSummary] = useState(() => {
+    if (GLOBAL_EXECUTIVES_SUMMARY_CACHE.has(todayStr)) {
+      return GLOBAL_EXECUTIVES_SUMMARY_CACHE.get(todayStr);
+    }
+    return [];
+  });
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 
   // Target executive user being viewed
@@ -684,8 +727,26 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     return currentUser?._id;
   }, [isLeadership, selectedExecutiveId, currentUser]);
 
-  // Initialize schedule with instant default template (0ms first paint!)
-  const [scheduleData, setScheduleData] = useState(() => buildInitialScheduleState(todayStr));
+  // Active executive user object for header context display
+  const activeExecutiveUser = useMemo(() => {
+    if (!isLeadership) return currentUser;
+    if (selectedExecutiveId) {
+      const execObj = executivesSummary.find((e) => e.user?._id === selectedExecutiveId);
+      if (execObj?.user) return execObj.user;
+      const foundInProps = smExecutivesFromProps.find((u) => u._id === selectedExecutiveId);
+      if (foundInProps) return foundInProps;
+    }
+    return currentUser;
+  }, [isLeadership, selectedExecutiveId, executivesSummary, smExecutivesFromProps, currentUser]);
+
+  // Initialize schedule with instant module cache or default template (0ms first paint!)
+  const [scheduleData, setScheduleData] = useState(() => {
+    const cacheKey = `${initialExecutiveId || currentUser?._id}_${todayStr}`;
+    if (GLOBAL_SCHEDULE_CACHE.has(cacheKey)) {
+      return GLOBAL_SCHEDULE_CACHE.get(cacheKey);
+    }
+    return buildInitialScheduleState(todayStr);
+  });
   const [isFetchingSchedule, setIsFetchingSchedule] = useState(false);
   const [isUpdatingSlot, setIsUpdatingSlot] = useState(null);
 
@@ -698,6 +759,12 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     if (!isLeadership) return;
     let isCancelled = false;
 
+    // A. 0ms instant render from module cache if available
+    if (GLOBAL_EXECUTIVES_SUMMARY_CACHE.has(selectedDate)) {
+      setExecutivesSummary(GLOBAL_EXECUTIVES_SUMMARY_CACHE.get(selectedDate));
+    }
+
+    // B. Revalidate silently in background
     const loadExecutivesSummary = async () => {
       try {
         setIsLoadingSummary(true);
@@ -706,6 +773,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
         );
         if (!isCancelled && res.data?.success) {
           const summary = res.data.summary || [];
+          GLOBAL_EXECUTIVES_SUMMARY_CACHE.set(selectedDate, summary);
           setExecutivesSummary(summary);
 
           // If no executive selected yet, select the first one
@@ -735,9 +803,12 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     let isCancelled = false;
     const cacheKey = `${effectiveUserId}_${selectedDate}`;
 
-    // A. Check in-memory cache first for INSTANT 0ms load
-    if (scheduleCacheRef.current.has(cacheKey)) {
-      setScheduleData(scheduleCacheRef.current.get(cacheKey));
+    // A. Check in-memory module cache first for INSTANT 0ms load
+    if (GLOBAL_SCHEDULE_CACHE.has(cacheKey)) {
+      setScheduleData(GLOBAL_SCHEDULE_CACHE.get(cacheKey));
+    } else {
+      // Immediate clean baseline for target date (avoids showing stale previous date/user)
+      setScheduleData(buildInitialScheduleState(selectedDate));
     }
 
     // B. Fetch fresh data in background
@@ -749,14 +820,13 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
         );
         if (!isCancelled && res.data?.success && res.data.schedule) {
           const freshData = res.data.schedule;
-          scheduleCacheRef.current.set(cacheKey, freshData);
+          GLOBAL_SCHEDULE_CACHE.set(cacheKey, freshData);
           setScheduleData(freshData);
         }
       } catch (err) {
         if (!isCancelled) {
           console.error("Failed to load daily schedule:", err);
-          // If not in cache and failed, ensure standard template is visible
-          if (!scheduleCacheRef.current.has(cacheKey)) {
+          if (!GLOBAL_SCHEDULE_CACHE.has(cacheKey)) {
             setScheduleData(buildInitialScheduleState(selectedDate));
           }
         }
@@ -828,8 +898,25 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     };
 
     setScheduleData(optimisticSchedule);
-    scheduleCacheRef.current.set(cacheKey, optimisticSchedule);
+    GLOBAL_SCHEDULE_CACHE.set(cacheKey, optimisticSchedule);
     setIsUpdatingSlot(slotId);
+
+    // Optimistically update executive selector badge in 0ms!
+    if (isLeadership) {
+      setExecutivesSummary((prev) =>
+        prev.map((e) => {
+          if (e.user?._id === targetUserId) {
+            return {
+              ...e,
+              completedSlotsCount: newCompletedCount,
+              completionPercentage: Math.round((newCompletedCount / 15) * 100),
+              isAllDone: newCompletedCount >= 15,
+            };
+          }
+          return e;
+        })
+      );
+    }
 
     try {
       const res = await axiosInstance.patch(
@@ -845,7 +932,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
       if (res.data?.success) {
         const serverSchedule = res.data.schedule;
         setScheduleData(serverSchedule);
-        scheduleCacheRef.current.set(cacheKey, serverSchedule);
+        GLOBAL_SCHEDULE_CACHE.set(cacheKey, serverSchedule);
 
         if (nextCompleted) {
           toast.success(`✓ "${slot.title}" completed!`);
@@ -853,7 +940,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
           toast(`Unchecked "${slot.title}"`, { icon: "↩️" });
         }
 
-        // Silently update leadership executive pill
+        // Reconcile leadership executive pill with server calculations
         if (isLeadership) {
           setExecutivesSummary((prev) =>
             prev.map((e) => {
@@ -877,7 +964,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
       toast.error(err?.response?.data?.message || "Failed to update slot status");
       // Rollback
       setScheduleData(previousSchedule);
-      scheduleCacheRef.current.set(cacheKey, previousSchedule);
+      GLOBAL_SCHEDULE_CACHE.set(cacheKey, previousSchedule);
     } finally {
       setIsUpdatingSlot(null);
     }
@@ -892,6 +979,33 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     const subtaskId = subtask.id;
     const nextCompleted = !subtask.completed;
     const cacheKey = `${targetUserId}_${selectedDate}`;
+
+    // 0ms Optimistic Subtask UI update
+    const previousSchedule = { ...scheduleData };
+    const nowISO = new Date().toISOString();
+
+    const updatedSlots = (scheduleData.slots || []).map((s) => {
+      if (s.slotId === slotId) {
+        return {
+          ...s,
+          subtasks: (s.subtasks || []).map((st) => {
+            if (st.id === subtaskId) {
+              return {
+                ...st,
+                completed: nextCompleted,
+                completedAt: nextCompleted ? nowISO : null,
+              };
+            }
+            return st;
+          }),
+        };
+      }
+      return s;
+    });
+
+    const optimisticSchedule = { ...scheduleData, slots: updatedSlots };
+    setScheduleData(optimisticSchedule);
+    GLOBAL_SCHEDULE_CACHE.set(cacheKey, optimisticSchedule);
 
     try {
       const res = await axiosInstance.patch(
@@ -908,11 +1022,13 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
       if (res.data?.success) {
         const serverSchedule = res.data.schedule;
         setScheduleData(serverSchedule);
-        scheduleCacheRef.current.set(cacheKey, serverSchedule);
+        GLOBAL_SCHEDULE_CACHE.set(cacheKey, serverSchedule);
       }
     } catch (err) {
       console.error("Failed to update subtask:", err);
       toast.error("Failed to update subtask");
+      setScheduleData(previousSchedule);
+      GLOBAL_SCHEDULE_CACHE.set(cacheKey, previousSchedule);
     }
   };
 
@@ -993,16 +1109,37 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
             {isFetchingSchedule && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-500 animate-pulse pl-1">
                 <FiRefreshCw size={11} className="animate-spin" />
-                <span>Syncing...</span>
+                <span>Syncing live...</span>
               </span>
             )}
           </div>
 
           <p className="text-xs text-slate-500 dark:text-slate-400">
-           
-            <span className="text-slate-400 dark:text-slate-500 ml-2">
-              {formattedDateHeader}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              {isLeadership ? (
+                <>
+                  Viewing:{" "}
+                  <strong className="text-indigo-600 dark:text-indigo-400 font-extrabold">
+                    {activeExecutiveUser?.name || "Executive"}
+                  </strong>
+                </>
+              ) : (
+                "Complete routine checklist slots on-time"
+              )}
             </span>
+            <span className="text-slate-400 dark:text-slate-500 mx-1.5">•</span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={selectedDate}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="inline-block text-slate-500 dark:text-slate-400 font-medium"
+              >
+                {formattedDateHeader}
+              </motion.span>
+            </AnimatePresence>
           </p>
         </div>
 
@@ -1021,10 +1158,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
 
             {/* Date Picker Input */}
             <div className="relative inline-flex items-center">
-              <FiCalendar
-                size={13}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              />
+             
               <input
                 type="date"
                 value={selectedDate}
@@ -1061,13 +1195,17 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
           <button
             type="button"
             onClick={() => {
-              scheduleCacheRef.current.clear();
+              GLOBAL_SCHEDULE_CACHE.clear();
+              GLOBAL_EXECUTIVES_SUMMARY_CACHE.clear();
               toast.success("Schedule refreshed");
               const targetUserId = effectiveUserId;
               axiosInstance
                 .get(`/socialmedia-task-calendar/daily-schedule?date=${selectedDate}&userId=${targetUserId}`)
                 .then((res) => {
-                  if (res.data?.success) setScheduleData(res.data.schedule);
+                  if (res.data?.success) {
+                    GLOBAL_SCHEDULE_CACHE.set(`${targetUserId}_${selectedDate}`, res.data.schedule);
+                    setScheduleData(res.data.schedule);
+                  }
                 });
             }}
             className="p-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#131d31] text-slate-500 hover:text-indigo-600 hover:bg-slate-50 dark:hover:bg-[#182338] transition-colors cursor-pointer shadow-2xs"
@@ -1076,6 +1214,18 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
             <FiRefreshCw size={14} className={isFetchingSchedule ? "animate-spin text-indigo-500" : ""} />
           </button>
         </div>
+      </div>
+
+      {/* Sleek Ambient Sync Progress Bar */}
+      <div className="h-0.5 w-full bg-transparent overflow-hidden rounded-full -mt-2">
+        {(isFetchingSchedule || isLoadingSummary) && (
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: "100%" }}
+            transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }}
+            className="h-full w-1/3 bg-gradient-to-r from-transparent via-indigo-500 to-transparent"
+          />
+        )}
       </div>
 
       {/* 2. LEADERSHIP EXECUTIVE SELECTOR CAROUSEL (ADMIN, OP MANAGER, SM HEAD) */}
@@ -1198,7 +1348,9 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
             { id: "ontime", label: "On-Time", count: scheduleData?.onTimeSlotsCount || 0 },
             { id: "delayed", label: "Late", count: scheduleData?.delayedSlotsCount || 0 },
           ].map((tab) => (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
               key={tab.id}
               type="button"
               onClick={() => setStatusFilter(tab.id)}
@@ -1218,13 +1370,13 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
               >
                 {tab.count}
               </span>
-            </button>
+            </motion.button>
           ))}
         </div>
 
         {/* Search Input with proper FiSearch icon */}
         <div className="relative w-full sm:w-72">
-          
+          <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
             placeholder="Search routine or slot..."
@@ -1236,257 +1388,280 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
       </div>
 
       {/* 5. THE 15 SCHEDULE SLOTS TIMELINE LIST (Continuous Rail & Reference Image Time Area) */}
-      <div className="relative pl-1 sm:pl-2">
-        {displayedSlots.length === 0 ? (
-          <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-12 text-center border border-slate-200/80 dark:border-white/10">
-            <FiInfo size={28} className="mx-auto text-slate-400 mb-2" />
-            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
-              No matching routine slots found
-            </p>
-            <p className="text-xs text-slate-400 mt-1">
-              Try changing your search term or filter selection.
-            </p>
-          </div>
-        ) : (
-          displayedSlots.map((slot, index) => {
-            const isCompleted = Boolean(slot.completed);
-            const isCurrentSlot = activeSlotIdNow === slot.slotId;
-            const isUpdating = isUpdatingSlot === slot.slotId;
-            const isOnTime = slot.timingStatus === "on-time" || slot.timingStatus === "early";
-            const config = getSlotTimelineConfig(slot.slotId);
-            const nextSlot = displayedSlots[index + 1];
-            const nextConfig = nextSlot ? getSlotTimelineConfig(nextSlot.slotId) : null;
-            const activityMeta = SLOT_ACTIVITY_ICONS[slot.slotId] || {
-              Icon: FiClock,
-              iconColor: "text-slate-600 dark:text-slate-400",
-              bgClass: "bg-slate-100 dark:bg-[#131d31] border-slate-200 dark:border-white/10",
-            };
-            const ActivityIcon = activityMeta.Icon;
+      <motion.div
+        layout
+        variants={timelineContainerVariants}
+        initial="hidden"
+        animate="visible"
+        className="relative pl-1 sm:pl-2"
+      >
+        <AnimatePresence mode="popLayout">
+          {displayedSlots.length === 0 ? (
+            <motion.div
+              key="empty-schedule-state"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white dark:bg-[#0c1220] rounded-2xl p-12 text-center border border-slate-200/80 dark:border-white/10"
+            >
+              <FiInfo size={28} className="mx-auto text-slate-400 mb-2" />
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                No matching routine slots found
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Try changing your search term or filter selection.
+              </p>
+            </motion.div>
+          ) : (
+            displayedSlots.map((slot, index) => {
+              const isCompleted = Boolean(slot.completed);
+              const isCurrentSlot = activeSlotIdNow === slot.slotId;
+              const isUpdating = isUpdatingSlot === slot.slotId;
+              const isOnTime = slot.timingStatus === "on-time" || slot.timingStatus === "early";
+              const config = getSlotTimelineConfig(slot.slotId);
+              const nextSlot = displayedSlots[index + 1];
+              const nextConfig = nextSlot ? getSlotTimelineConfig(nextSlot.slotId) : null;
+              const activityMeta = SLOT_ACTIVITY_ICONS[slot.slotId] || {
+                Icon: FiClock,
+                iconColor: "text-slate-600 dark:text-slate-400",
+                bgClass: "bg-slate-100 dark:bg-[#131d31] border-slate-200 dark:border-white/10",
+              };
+              const ActivityIcon = activityMeta.Icon;
 
-            return (
-              <div
-                key={slot.slotId}
-                className="relative flex items-stretch gap-2.5 sm:gap-4 pb-3.5 sm:pb-4 group"
-              >
-                {/* Continuous Left Timeline Rail (Exact 4-Phase Color Matching from Reference Image) */}
-                <div className="relative flex flex-col items-center shrink-0 w-6 self-stretch">
-                  {/* Top Line Segment (connects from top of slot row down to ring node) */}
-                  <div
-                    className={`w-[2.5px] shrink-0 ${index === 0 ? "opacity-0" : ""}`}
-                    style={{
-                      backgroundColor: config.lineColor,
-                      height: "23px",
-                    }}
-                  />
-
-                  {/* Circular Ring Node (Hollow Center with 2.5px Colored Outline) */}
-                  <div
-                    className={`w-[17px] h-[17px] rounded-full border-[2.5px] bg-white dark:bg-[#0c1220] z-10 shrink-0 shadow-2xs transition-all duration-200 group-hover:scale-115 ${
-                      config.borderColor
-                    } ${isCurrentSlot ? `ring-4 ${config.pulseColor} scale-110` : ""}`}
-                    title={`${config.phaseLabel} (${slot.timeRange})`}
-                  />
-
-                  {/* Bottom Line Segment (fills through bottom padding and meets next slot with zero gap) */}
-                  <div
-                    className={`w-[2.5px] grow ${
-                      index === displayedSlots.length - 1 ? "opacity-0" : ""
-                    }`}
-                    style={{
-                      background:
-                        nextConfig && nextConfig.lineColor !== config.lineColor
-                          ? `linear-gradient(to bottom, ${config.lineColor}, ${nextConfig.lineColor})`
-                          : config.lineColor,
-                    }}
-                  />
-                </div>
-
-                {/* Main Schedule Card */}
+              return (
                 <motion.div
-                  layout
-                  initial={false}
-                  className={`grow min-w-0 relative rounded-2xl p-4 sm:p-5 border transition-all ${
-                    isCompleted
-                      ? isOnTime
-                        ? "bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-300 dark:border-emerald-800/60 shadow-2xs hover:border-emerald-400"
-                        : "bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-800/60 shadow-2xs hover:border-amber-400"
-                      : isCurrentSlot
-                      ? "bg-red-50/65 dark:bg-red-950/20 border-red-300 dark:border-red-800/60 ring-2 ring-red-400/40 shadow-sm"
-                      : "bg-red-50/50 dark:bg-red-950/15 border-red-200/80 dark:border-red-900/40 shadow-2xs hover:border-red-300 dark:hover:border-red-800/50 hover:shadow-xs"
-                  }`}
+                  layout="position"
+                  key={slot.slotId}
+                  variants={slotCardVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="relative flex items-stretch gap-2.5 sm:gap-4 pb-3.5 sm:pb-4 group"
                 >
-                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                    {/* Left Column: Reference Image Time Area (Capsule Pill + Verification Badge) */}
-                    <div className="flex flex-col items-start gap-2.5 shrink-0 md:w-56">
-                      {/* Exact Reference Image Pill Badge */}
-                      <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#edf2fc] dark:bg-[#151f33] border border-[#dbe6f6] dark:border-white/10 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-xs transition-shadow">
-                        <span className="font-extrabold text-xs sm:text-[13px] text-[#0f172a] dark:text-slate-100 tracking-tight whitespace-nowrap">
-                          {slot.timeRange}
-                        </span>
-                      </div>
+                  {/* Continuous Left Timeline Rail (Exact 4-Phase Color Matching from Reference Image) */}
+                  <div className="relative flex flex-col items-center shrink-0 w-6 self-stretch">
+                    {/* Top Line Segment (connects from top of slot row down to ring node) */}
+                    <div
+                      className={`w-[2.5px] shrink-0 ${index === 0 ? "opacity-0" : ""}`}
+                      style={{
+                        backgroundColor: config.lineColor,
+                        height: "23px",
+                      }}
+                    />
 
-                      {/* Timing Verification Stamp & Slot Number */}
-                      <div className="flex items-center gap-1.5 flex-wrap pl-1">
-                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/10">
-                          Slot {config.num}
-                        </span>
+                    {/* Circular Ring Node (Hollow Center with 2.5px Colored Outline) */}
+                    <div
+                      className={`w-[17px] h-[17px] rounded-full border-[2.5px] bg-white dark:bg-[#0c1220] z-10 shrink-0 shadow-2xs transition-all duration-200 group-hover:scale-115 ${
+                        config.borderColor
+                      } ${isCurrentSlot ? `ring-4 ${config.pulseColor} scale-110` : ""}`}
+                      title={`${config.phaseLabel} (${slot.timeRange})`}
+                    />
 
-                        {isCompleted ? (
-                          isOnTime ? (
-                            <span
-                              title={`Checked on time at ${formatExactTime(slot.completedAt)}`}
-                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              <span>✓ On-Time ({formatShortTime(slot.completedAt)})</span>
+                    {/* Bottom Line Segment (fills through bottom padding and meets next slot with zero gap) */}
+                    <div
+                      className={`w-[2.5px] grow ${
+                        index === displayedSlots.length - 1 ? "opacity-0" : ""
+                      }`}
+                      style={{
+                        background:
+                          nextConfig && nextConfig.lineColor !== config.lineColor
+                            ? `linear-gradient(to bottom, ${config.lineColor}, ${nextConfig.lineColor})`
+                            : config.lineColor,
+                      }}
+                    />
+                  </div>
+
+                  {/* Main Schedule Card */}
+                  <motion.div
+                    layout
+                    initial={false}
+                    className={`grow min-w-0 relative rounded-2xl p-4 sm:p-5 border transition-all ${
+                      isCompleted
+                        ? isOnTime
+                          ? "bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-300 dark:border-emerald-800/60 shadow-2xs hover:border-emerald-400"
+                          : "bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-800/60 shadow-2xs hover:border-amber-400"
+                        : isCurrentSlot
+                        ? "bg-red-50/65 dark:bg-red-950/20 border-red-300 dark:border-red-800/60 ring-2 ring-red-400/40 shadow-sm"
+                        : "bg-red-50/50 dark:bg-red-950/15 border-red-200/80 dark:border-red-900/40 shadow-2xs hover:border-red-300 dark:hover:border-red-800/50 hover:shadow-xs"
+                    }`}
+                  >
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                      {/* Left Column: Reference Image Time Area (Capsule Pill + Verification Badge) */}
+                      <div className="flex flex-col items-start gap-2.5 shrink-0 md:w-56">
+                        {/* Exact Reference Image Pill Badge */}
+                        <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#edf2fc] dark:bg-[#151f33] border border-[#dbe6f6] dark:border-white/10 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-xs transition-shadow">
+                          <span className="font-extrabold text-xs sm:text-[13px] text-[#0f172a] dark:text-slate-100 tracking-tight whitespace-nowrap">
+                            {slot.timeRange}
+                          </span>
+                        </div>
+
+                        {/* Timing Verification Stamp & Slot Number */}
+                        <div className="flex items-center gap-1.5 flex-wrap pl-1">
+                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/10">
+                            Slot {config.num}
+                          </span>
+
+                          {isCompleted ? (
+                            isOnTime ? (
+                              <span
+                                title={`Checked on time at ${formatExactTime(slot.completedAt)}`}
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <span>✓ On-Time ({formatShortTime(slot.completedAt)})</span>
+                              </span>
+                            ) : (
+                              <span
+                                title={`Checked at ${formatExactTime(slot.completedAt)} (Delayed update)`}
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                <span>⏱ Late Update ({formatShortTime(slot.completedAt)})</span>
+                              </span>
+                            )
+                          ) : isCurrentSlot ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700 animate-pulse">
+                              <FiZap size={10} className="text-blue-600 dark:text-blue-400" />
+                              <span>Active Slot Now</span>
                             </span>
                           ) : (
-                            <span
-                              title={`Checked at ${formatExactTime(slot.completedAt)} (Delayed update)`}
-                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                              <span>⏱ Late Update ({formatShortTime(slot.completedAt)})</span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800/50">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                              <span>Pending</span>
                             </span>
-                          )
-                        ) : isCurrentSlot ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700 animate-pulse">
-                            <FiZap size={10} className="text-blue-600 dark:text-blue-400" />
-                            <span>Active Slot Now</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800/50">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                            <span>Pending</span>
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Middle Column: Activity Icon & Task Details */}
-                    <div className="flex-1 space-y-2.5 min-w-0">
-                      <div className="flex items-start gap-3">
-                        {/* Reference Image Activity Icon Capsule */}
-                        <div
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs ${activityMeta.bgClass}`}
-                          title={slot.title}
-                        >
-                          <ActivityIcon size={19} className={activityMeta.iconColor} />
+                          )}
                         </div>
+                      </div>
 
-                        <div className="flex-1 min-w-0 space-y-2">
-                          {/* Title */}
-                          <div className="flex items-center gap-2.5 flex-wrap">
-                            <h4
-                              className={`text-sm sm:text-base font-extrabold transition-colors ${
-                                isCompleted
-                                  ? "text-slate-800 dark:text-slate-200 line-through decoration-emerald-500/50"
-                                  : "text-slate-900 dark:text-white"
-                              }`}
-                            >
-                              {slot.title}
-                            </h4>
-                            {isCompleted && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                                <FiCheck size={11} className="stroke-[3]" />
-                                <span>Done</span>
-                              </span>
-                            )}
+                      {/* Middle Column: Activity Icon & Task Details */}
+                      <div className="flex-1 space-y-2.5 min-w-0">
+                        <div className="flex items-start gap-3">
+                          {/* Reference Image Activity Icon Capsule */}
+                          <div
+                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs ${activityMeta.bgClass}`}
+                            title={slot.title}
+                          >
+                            <ActivityIcon size={19} className={activityMeta.iconColor} />
                           </div>
 
-                          {/* Subtasks Interactive Checklist */}
-                          {Array.isArray(slot.subtasks) && slot.subtasks.length > 0 && (
-                            <div className="space-y-1.5 pt-1">
-                              {slot.subtasks.map((st) => {
-                                const isSubDone = Boolean(st.completed);
-                                return (
-                                  <div
-                                    key={st.id}
-                                    onClick={(e) => handleToggleSubtask(slot, st, e)}
-                                    className={`group/sub flex items-start gap-2.5 text-xs sm:text-[13px] rounded-xl p-1.5 -ml-1.5 transition-colors cursor-pointer select-none ${
-                                      isSubDone
-                                        ? "text-slate-500 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"
-                                        : "text-slate-800 dark:text-slate-100 hover:bg-black/5 dark:hover:bg-white/5"
-                                    }`}
-                                  >
-                                    <div
-                                      className={`mt-0.5 w-4.5 h-4.5 rounded-lg flex items-center justify-center transition-all shrink-0 ${
+                          <div className="flex-1 min-w-0 space-y-2">
+                            {/* Title */}
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                              <h4
+                                className={`text-sm sm:text-base font-extrabold transition-colors ${
+                                  isCompleted
+                                    ? "text-slate-800 dark:text-slate-200 line-through decoration-emerald-500/50"
+                                    : "text-slate-900 dark:text-white"
+                                }`}
+                              >
+                                {slot.title}
+                              </h4>
+                              {isCompleted && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
+                                  <FiCheck size={11} className="stroke-[3]" />
+                                  <span>Done</span>
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Subtasks Interactive Checklist */}
+                            {Array.isArray(slot.subtasks) && slot.subtasks.length > 0 && (
+                              <div className="space-y-1.5 pt-1">
+                                {slot.subtasks.map((st) => {
+                                  const isSubDone = Boolean(st.completed);
+                                  return (
+                                    <motion.div
+                                      whileHover={{ x: 2 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      key={st.id}
+                                      onClick={(e) => handleToggleSubtask(slot, st, e)}
+                                      className={`group/sub flex items-start gap-2.5 text-xs sm:text-[13px] rounded-xl p-1.5 -ml-1.5 transition-colors cursor-pointer select-none ${
                                         isSubDone
-                                          ? "bg-emerald-500 text-white shadow-xs shadow-emerald-500/20"
-                                          : "border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#131d31] group-hover/sub:border-indigo-500"
+                                          ? "text-slate-500 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"
+                                          : "text-slate-800 dark:text-slate-100 hover:bg-black/5 dark:hover:bg-white/5"
                                       }`}
                                     >
-                                      {isSubDone && <FiCheck size={12} className="stroke-[3]" />}
-                                    </div>
-                                    <span
-                                      className={`leading-relaxed ${
-                                        isSubDone ? "line-through text-slate-400 dark:text-slate-500" : "font-medium"
-                                      }`}
-                                    >
-                                      {st.text}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
+                                      <div
+                                        className={`mt-0.5 w-4.5 h-4.5 rounded-lg flex items-center justify-center transition-all shrink-0 ${
+                                          isSubDone
+                                            ? "bg-emerald-500 text-white shadow-xs shadow-emerald-500/20"
+                                            : "border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#131d31] group-hover/sub:border-indigo-500"
+                                        }`}
+                                      >
+                                        {isSubDone && <FiCheck size={12} className="stroke-[3]" />}
+                                      </div>
+                                      <span
+                                        className={`leading-relaxed ${
+                                          isSubDone ? "line-through text-slate-400 dark:text-slate-500" : "font-medium"
+                                        }`}
+                                      >
+                                        {st.text}
+                                      </span>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            )}
 
-                          {/* Benchmark Callout */}
-                          {slot.benchmark && (
-                            <div className="inline-flex items-start gap-2 px-3 py-1.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-800/50 text-[11px] font-bold text-purple-900 dark:text-purple-300 mt-1">
-                              <FiTarget size={13} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-                              <span>Benchmark: {slot.benchmark}</span>
-                            </div>
-                          )}
+                            {/* Benchmark Callout */}
+                            {slot.benchmark && (
+                              <div className="inline-flex items-start gap-2 px-3 py-1.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-800/50 text-[11px] font-bold text-purple-900 dark:text-purple-300 mt-1">
+                                <FiTarget size={13} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                                <span>Benchmark: {slot.benchmark}</span>
+                              </div>
+                            )}
 
-                          {/* Completion Audit Log Footer */}
-                          {isCompleted && slot.completedAt && (
-                            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 pt-1">
-                              <FiCheckCircle size={12} className="text-emerald-500 shrink-0" />
-                              <span>
-                                Completed at <strong className="text-slate-700 dark:text-slate-200">{formatExactTime(slot.completedAt)}</strong>
-                                {slot.completedByName ? ` by ${slot.completedByName}` : ""}
-                              </span>
-                            </div>
-                          )}
+                            {/* Completion Audit Log Footer */}
+                            {isCompleted && slot.completedAt && (
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 pt-1">
+                                <FiCheckCircle size={12} className="text-emerald-500 shrink-0" />
+                                <span>
+                                  Completed at <strong className="text-slate-700 dark:text-slate-200">{formatExactTime(slot.completedAt)}</strong>
+                                  {slot.completedByName ? ` by ${slot.completedByName}` : ""}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Right Column: Big Interactive Checkbox Button */}
-                    <div className="shrink-0 self-end md:self-center">
-                      <button
-                        type="button"
-                        disabled={isUpdating}
-                        onClick={() => handleToggleSlot(slot)}
-                        className={`group relative inline-flex items-center gap-2 px-4.5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 ${
-                          isCompleted
-                            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-                            : "bg-white/90 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 border border-slate-300/80 dark:bg-[#131d31] dark:text-slate-200 dark:border-white/10 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
-                        }`}
-                      >
-                        {isUpdating ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : isCompleted ? (
-                          <>
-                            <FiCheckCircle size={15} className="stroke-[2.5]" />
-                            <span>Done</span>
-                          </>
-                        ) : (
-                          <>
-                            <FiCheck size={14} className="stroke-[2.5] text-slate-400 group-hover:text-emerald-600 transition-colors" />
-                            <span>Mark Done</span>
-                          </>
-                        )}
-                      </button>
+                      {/* Right Column: Big Interactive Checkbox Button */}
+                      <div className="shrink-0 self-end md:self-center">
+                        <motion.button
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.94 }}
+                          type="button"
+                          disabled={isUpdating}
+                          onClick={() => handleToggleSlot(slot)}
+                          className={`group relative inline-flex items-center gap-2 px-4.5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 ${
+                            isCompleted
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                              : "bg-white/90 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 border border-slate-300/80 dark:bg-[#131d31] dark:text-slate-200 dark:border-white/10 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+                          }`}
+                        >
+                          {isUpdating ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : isCompleted ? (
+                            <>
+                              <FiCheckCircle size={15} className="stroke-[2.5]" />
+                              <span>Done</span>
+                            </>
+                          ) : (
+                            <>
+                              <FiCheck size={14} className="stroke-[2.5] text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                              <span>Mark Done</span>
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </motion.div>
-              </div>
-            );
-          })
-        )}
-      </div>
+              );
+            })
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 };
