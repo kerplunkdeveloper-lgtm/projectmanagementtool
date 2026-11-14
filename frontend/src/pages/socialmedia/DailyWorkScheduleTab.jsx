@@ -569,10 +569,10 @@ const ExecutiveAvatar = ({ user, avatarUrl, isAllDone, hasStarted }) => {
           src={avatarUrl}
           alt={user?.name || "Executive"}
           onError={() => setImgError(true)}
-          className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full object-cover ring-1.5 ring-slate-200/90 dark:ring-white/20 shadow-2xs"
+          className="w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full object-cover ring-1 ring-slate-200/90 dark:ring-white/20 shadow-2xs"
         />
       ) : (
-        <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-[10px] sm:text-[11px] flex items-center justify-center uppercase shadow-2xs ring-1 ring-white/30">
+        <div className="w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-[9.5px] sm:text-[10px] flex items-center justify-center uppercase shadow-2xs ring-1 ring-white/30">
           {initials}
         </div>
       )}
@@ -581,19 +581,19 @@ const ExecutiveAvatar = ({ user, avatarUrl, isAllDone, hasStarted }) => {
       {isAllDone ? (
         <span
           title="All 15 tasks completed"
-          className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[7px] font-black ring-1.5 ring-white dark:ring-[#0c1220]"
+          className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[6.5px] font-black ring-1 ring-white dark:ring-[#0c1220]"
         >
           ✓
         </span>
       ) : hasStarted ? (
         <span
           title="In progress"
-          className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-1.5 ring-white dark:ring-[#0c1220] animate-pulse"
+          className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-[#0c1220] animate-pulse"
         />
       ) : (
         <span
           title="Pending"
-          className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 ring-1.5 ring-white dark:ring-[#0c1220]"
+          className="absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 ring-1 ring-white dark:ring-[#0c1220]"
         />
       )}
     </div>
@@ -645,7 +645,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
       if (u._id) map.set(u._id.toString(), u);
       if (u.id) map.set(u.id.toString(), u);
       if (u.name) map.set(u.name.trim().toLowerCase(), u);
-    });
+    }); 
     return map;
   }, [propUsers]);
 
@@ -1093,33 +1093,33 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
   }, [isLeadership, selectedExecutiveId, executivesSummary, smExecutivesFromProps, currentUser]);
 
   return (
-    <div className="space-y-5 sm:space-y-6">
+    <div className="space-y-3.5 sm:space-y-4">
       {/* 1. TOP HEADER & CALENDAR DATE FILTER BAR */}
-      <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-4 sm:p-5 shadow-xs border border-slate-200/80 dark:border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#0c1220] rounded-xl p-3 sm:p-4 shadow-xs border border-slate-200/80 dark:border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         {/* Left: Title & Executive context */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="p-2 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20">
-              <FiClock size={18} className="stroke-[2.5]" />
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="p-1.5 rounded-lg bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-600 text-white shadow-xs shadow-indigo-500/20">
+              <FiClock size={15} className="stroke-[2.5]" />
             </span>
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white tracking-tight">
               Daily Work Schedule
             </h2>
            
             {isFetchingSchedule && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-500 animate-pulse pl-1">
-                <FiRefreshCw size={11} className="animate-spin" />
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-500 animate-pulse pl-1">
+                <FiRefreshCw size={10} className="animate-spin" />
                 <span>Syncing live...</span>
               </span>
             )}
           </div>
 
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-semibold text-slate-700 dark:text-slate-300">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="font-medium text-slate-700 dark:text-slate-300">
               {isLeadership ? (
                 <>
                   Viewing:{" "}
-                  <strong className="text-indigo-600 dark:text-indigo-400 font-extrabold">
+                  <strong className="text-indigo-600 dark:text-indigo-400 font-bold">
                     {activeExecutiveUser?.name || "Executive"}
                   </strong>
                 </>
@@ -1144,26 +1144,26 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
         </div>
 
         {/* Right: Daily Wise Calendar Filter Navigation */}
-        <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-          <div className="inline-flex items-center bg-slate-100/90 dark:bg-[#131d31] p-1 rounded-2xl border border-slate-200/80 dark:border-white/10 gap-1 shadow-inner">
+        <div className="flex items-center gap-1.5 flex-wrap self-start sm:self-auto">
+          <div className="inline-flex items-center bg-slate-100/90 dark:bg-[#131d31] p-0.5 rounded-xl border border-slate-200/80 dark:border-white/10 gap-0.5 shadow-inner">
             {/* Previous Day Button */}
             <button
               type="button"
               onClick={handlePrevDay}
-              className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#1a253c] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-2xs"
+              className="p-1 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#1a253c] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-2xs"
               title="Previous Day"
             >
-              <FiChevronLeft size={16} />
+              <FiChevronLeft size={14} />
             </button>
 
             {/* Date Picker Input */}
             <div className="relative inline-flex items-center">
-             
+              <FaCalendarAlt size={10} className="absolute left-2 pointer-events-none text-slate-400" />
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-                className="pl-7 pr-2.5 py-1 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200/70 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                className="pl-6 pr-2 py-0.5 rounded-lg bg-white dark:bg-[#0c1220] border border-slate-200/70 dark:border-white/10 text-[11px] font-semibold text-slate-800 dark:text-slate-100 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-1.5 focus:ring-indigo-500 cursor-pointer"
               />
             </div>
 
@@ -1171,7 +1171,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
             <button
               type="button"
               onClick={handleSetToday}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+              className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold transition-all cursor-pointer shadow-2xs ${
                 selectedDate === todayStr
                   ? "bg-indigo-600 text-white shadow-indigo-500/25"
                   : "bg-white dark:bg-[#0c1220] border border-slate-200/70 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#182338]"
@@ -1184,10 +1184,10 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
             <button
               type="button"
               onClick={handleNextDay}
-              className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#1a253c] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-2xs"
+              className="p-1 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-[#1a253c] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer shadow-2xs"
               title="Next Day"
             >
-              <FiChevronRight size={16} />
+              <FiChevronRight size={14} />
             </button>
           </div>
 
@@ -1208,10 +1208,10 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                   }
                 });
             }}
-            className="p-2 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#131d31] text-slate-500 hover:text-indigo-600 hover:bg-slate-50 dark:hover:bg-[#182338] transition-colors cursor-pointer shadow-2xs"
+            className="p-1.5 rounded-lg border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#131d31] text-slate-500 hover:text-indigo-600 hover:bg-slate-50 dark:hover:bg-[#182338] transition-colors cursor-pointer shadow-2xs"
             title="Refresh Schedule"
           >
-            <FiRefreshCw size={14} className={isFetchingSchedule ? "animate-spin text-indigo-500" : ""} />
+            <FiRefreshCw size={13} className={isFetchingSchedule ? "animate-spin text-indigo-500" : ""} />
           </button>
         </div>
       </div>
@@ -1230,36 +1230,36 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
 
       {/* 2. LEADERSHIP EXECUTIVE SELECTOR CAROUSEL (ADMIN, OP MANAGER, SM HEAD) */}
       {isLeadership && (
-        <div className="bg-white dark:bg-[#0c1220] rounded-2xl p-3 sm:p-3.5 shadow-xs border border-slate-200/80 dark:border-white/10 space-y-2.5">
+        <div className="bg-white dark:bg-[#0c1220] rounded-xl p-2.5 sm:p-3 shadow-xs border border-slate-200/80 dark:border-white/10 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <FiUser size={13} className="stroke-[2.5]" />
+            <div className="flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <FiUser size={11} className="stroke-[2.5]" />
               </span>
-              <h3 className="text-[11px] sm:text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+              <h3 className="text-[10px] sm:text-[10.5px] font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
                 Social Media Executives ({executivesSummary.length || smExecutivesFromProps.length})
               </h3>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="hidden sm:inline text-[10px] text-slate-400 font-medium">
+              <span className="hidden sm:inline text-[9.5px] text-slate-400 font-medium">
                 Click executive to verify check-ins
               </span>
               <div className="flex items-center gap-1 ml-1">
                 <button
                   type="button"
                   onClick={() => scrollCarousel(-220)}
-                  className="w-6 h-6 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] hover:bg-slate-100 dark:hover:bg-[#182338] text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-5.5 h-5.5 rounded-md border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] hover:bg-slate-100 dark:hover:bg-[#182338] text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
                   title="Scroll Left"
                 >
-                  <FiChevronLeft size={13} />
+                  <FiChevronLeft size={12} />
                 </button>
                 <button
                   type="button"
                   onClick={() => scrollCarousel(220)}
-                  className="w-6 h-6 rounded-lg border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] hover:bg-slate-100 dark:hover:bg-[#182338] text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-5.5 h-5.5 rounded-md border border-slate-200/80 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] hover:bg-slate-100 dark:hover:bg-[#182338] text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
                   title="Scroll Right"
                 >
-                  <FiChevronRight size={13} />
+                  <FiChevronRight size={12} />
                 </button>
               </div>
             </div>
@@ -1288,9 +1288,9 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                   key={execUser?._id}
                   type="button"
                   onClick={() => setSelectedExecutiveId(execUser?._id)}
-                  className={`group relative flex items-center gap-2.5 py-1.5 px-2.5 sm:px-3 rounded-xl border text-left transition-all cursor-pointer shrink-0 ${
+                  className={`group relative flex items-center gap-2 py-1 px-2 sm:px-2.5 rounded-lg border text-left transition-all cursor-pointer shrink-0 ${
                     isSelected
-                      ? "bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-500/25 shadow-xs scale-[1.01]"
+                      ? "bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-400 dark:border-indigo-500 ring-1.5 ring-indigo-500/25 shadow-xs scale-[1.01]"
                       : "bg-slate-50/70 dark:bg-[#131d31] border-slate-200/70 dark:border-white/10 hover:bg-white dark:hover:bg-[#19243a] hover:border-slate-300"
                   }`}
                 >
@@ -1304,12 +1304,12 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
 
                   {/* Executive Info & Mini Progress Pill */}
                   <div className="space-y-0.5 min-w-0">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap truncate max-w-[95px] sm:max-w-[120px] block leading-tight">
+                    <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap truncate max-w-[90px] sm:max-w-[110px] block leading-tight">
                       {execUser?.name}
                     </span>
-                    <div className="flex items-center gap-1 text-[10px] leading-none whitespace-nowrap">
+                    <div className="flex items-center gap-1 text-[9px] leading-none whitespace-nowrap">
                       <span
-                        className={`font-black px-1.5 py-0.5 rounded text-[9.5px] ${
+                        className={`font-bold px-1.5 py-0.5 rounded text-[8.5px] ${
                           isAllDone
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300"
                             : hasStarted
@@ -1320,12 +1320,12 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                         {exec.completedSlotsCount || 0} / 15 ({exec.completionPercentage || 0}%)
                       </span>
                       {exec.onTimeSlotsCount > 0 && (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[9.5px]">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[8.5px]">
                           • {exec.onTimeSlotsCount} on-time
                         </span>
                       )}
                       {exec.delayedSlotsCount > 0 && (
-                        <span className="text-amber-600 dark:text-amber-400 font-bold text-[9.5px]">
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold text-[8.5px]">
                           • {exec.delayedSlotsCount} late
                         </span>
                       )}
@@ -1339,8 +1339,8 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
       )}
 
       {/* 4. FILTER BAR & SEARCH */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-[#0c1220] p-3 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs">
-        <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-white dark:bg-[#0c1220] p-2.5 rounded-xl border border-slate-200/80 dark:border-white/10 shadow-xs">
+        <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {[
             { id: "all", label: "All Slots", count: 15 },
             { id: "completed", label: "Completed", count: scheduleData?.completedSlotsCount || 0 },
@@ -1354,15 +1354,15 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
               key={tab.id}
               type="button"
               onClick={() => setStatusFilter(tab.id)}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 statusFilter === tab.id
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs scale-[1.02]"
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950 shadow-xs"
                   : "bg-slate-100 dark:bg-[#131d31] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-[#19243a]"
               }`}
             >
               <span>{tab.label}</span>
               <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold ${
                   statusFilter === tab.id
                     ? "bg-white/20 text-white dark:bg-black/10 dark:text-slate-950"
                     : "bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
@@ -1375,14 +1375,14 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
         </div>
 
         {/* Search Input with proper FiSearch icon */}
-        <div className="relative w-full sm:w-72">
-          <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <div className="relative w-full sm:w-64">
+         
           <input
             type="text"
             placeholder="Search routine or slot..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl text-xs font-medium bg-slate-50 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg text-[11px] font-medium bg-slate-50 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1.5 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
           />
         </div>
       </div>
@@ -1402,13 +1402,13 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-[#0c1220] rounded-2xl p-12 text-center border border-slate-200/80 dark:border-white/10"
+              className="bg-white dark:bg-[#0c1220] rounded-xl p-8 text-center border border-slate-200/80 dark:border-white/10"
             >
-              <FiInfo size={28} className="mx-auto text-slate-400 mb-2" />
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+              <FiInfo size={24} className="mx-auto text-slate-400 mb-1.5" />
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
                 No matching routine slots found
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-[11px] text-slate-400 mt-0.5">
                 Try changing your search term or filter selection.
               </p>
             </motion.div>
@@ -1436,30 +1436,30 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="relative flex items-stretch gap-2.5 sm:gap-4 pb-3.5 sm:pb-4 group"
+                  className="relative flex items-stretch gap-2 sm:gap-3 pb-2.5 sm:pb-3 group"
                 >
-                  {/* Continuous Left Timeline Rail (Exact 4-Phase Color Matching from Reference Image) */}
-                  <div className="relative flex flex-col items-center shrink-0 w-6 self-stretch">
-                    {/* Top Line Segment (connects from top of slot row down to ring node) */}
+                  {/* Continuous Left Timeline Rail */}
+                  <div className="relative flex flex-col items-center shrink-0 w-5 self-stretch">
+                    {/* Top Line Segment (connects from top down to ring node) */}
                     <div
-                      className={`w-[2.5px] shrink-0 ${index === 0 ? "opacity-0" : ""}`}
+                      className={`w-[2px] shrink-0 ${index === 0 ? "opacity-0" : ""}`}
                       style={{
                         backgroundColor: config.lineColor,
-                        height: "23px",
+                        height: "17px",
                       }}
                     />
 
-                    {/* Circular Ring Node (Hollow Center with 2.5px Colored Outline) */}
+                    {/* Circular Ring Node */}
                     <div
-                      className={`w-[17px] h-[17px] rounded-full border-[2.5px] bg-white dark:bg-[#0c1220] z-10 shrink-0 shadow-2xs transition-all duration-200 group-hover:scale-115 ${
+                      className={`w-[13px] h-[13px] rounded-full border-[2px] bg-white dark:bg-[#0c1220] z-10 shrink-0 shadow-2xs transition-all duration-200 group-hover:scale-110 ${
                         config.borderColor
-                      } ${isCurrentSlot ? `ring-4 ${config.pulseColor} scale-110` : ""}`}
+                      } ${isCurrentSlot ? `ring-3 ${config.pulseColor} scale-105` : ""}`}
                       title={`${config.phaseLabel} (${slot.timeRange})`}
                     />
 
-                    {/* Bottom Line Segment (fills through bottom padding and meets next slot with zero gap) */}
+                    {/* Bottom Line Segment */}
                     <div
-                      className={`w-[2.5px] grow ${
+                      className={`w-[2px] grow ${
                         index === displayedSlots.length - 1 ? "opacity-0" : ""
                       }`}
                       style={{
@@ -1475,7 +1475,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                   <motion.div
                     layout
                     initial={false}
-                    className={`grow min-w-0 relative rounded-2xl p-4 sm:p-5 border transition-all ${
+                    className={`grow min-w-0 relative rounded-xl p-3 sm:p-3.5 border transition-all ${
                       isCompleted
                         ? isOnTime
                           ? "bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-300 dark:border-emerald-800/60 shadow-2xs hover:border-emerald-400"
@@ -1485,19 +1485,19 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                         : "bg-red-50/50 dark:bg-red-950/15 border-red-200/80 dark:border-red-900/40 shadow-2xs hover:border-red-300 dark:hover:border-red-800/50 hover:shadow-xs"
                     }`}
                   >
-                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                      {/* Left Column: Reference Image Time Area (Capsule Pill + Verification Badge) */}
-                      <div className="flex flex-col items-start gap-2.5 shrink-0 md:w-56">
-                        {/* Exact Reference Image Pill Badge */}
-                        <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-[#edf2fc] dark:bg-[#151f33] border border-[#dbe6f6] dark:border-white/10 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-xs transition-shadow">
-                          <span className="font-extrabold text-xs sm:text-[13px] text-[#0f172a] dark:text-slate-100 tracking-tight whitespace-nowrap">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                      {/* Left Column: Time Area (Capsule Pill + Verification Badge) */}
+                      <div className="flex flex-col items-start gap-1.5 shrink-0 md:w-48">
+                        {/* Time Capsule Pill */}
+                        <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#edf2fc] dark:bg-[#151f33] border border-[#dbe6f6] dark:border-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-xs transition-shadow">
+                          <span className="font-bold text-[11px] sm:text-xs text-[#0f172a] dark:text-slate-100 tracking-tight whitespace-nowrap">
                             {slot.timeRange}
                           </span>
                         </div>
 
                         {/* Timing Verification Stamp & Slot Number */}
-                        <div className="flex items-center gap-1.5 flex-wrap pl-1">
-                          <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/10">
+                        <div className="flex items-center gap-1.5 flex-wrap pl-0.5">
+                          <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/10">
                             Slot {config.num}
                           </span>
 
@@ -1505,7 +1505,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                             isOnTime ? (
                               <span
                                 title={`Checked on time at ${formatExactTime(slot.completedAt)}`}
-                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 <span>✓ On-Time ({formatShortTime(slot.completedAt)})</span>
@@ -1513,19 +1513,19 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                             ) : (
                               <span
                                 title={`Checked at ${formatExactTime(slot.completedAt)} (Delayed update)`}
-                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                <span>⏱ Late Update ({formatShortTime(slot.completedAt)})</span>
+                                <span>⏱ Late ({formatShortTime(slot.completedAt)})</span>
                               </span>
                             )
                           ) : isCurrentSlot ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700 animate-pulse">
-                              <FiZap size={10} className="text-blue-600 dark:text-blue-400" />
-                              <span>Active Slot Now</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700 animate-pulse">
+                              <FiZap size={9} className="text-blue-600 dark:text-blue-400" />
+                              <span>Active Now</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800/50">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800/50">
                               <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                               <span>Pending</span>
                             </span>
@@ -1534,21 +1534,21 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                       </div>
 
                       {/* Middle Column: Activity Icon & Task Details */}
-                      <div className="flex-1 space-y-2.5 min-w-0">
-                        <div className="flex items-start gap-3">
-                          {/* Reference Image Activity Icon Capsule */}
+                      <div className="flex-1 space-y-2 min-w-0">
+                        <div className="flex items-start gap-2.5">
+                          {/* Activity Icon Capsule */}
                           <div
-                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border shadow-2xs ${activityMeta.bgClass}`}
+                            className={`w-7.5 h-7.5 rounded-xl flex items-center justify-center shrink-0 border shadow-2xs ${activityMeta.bgClass}`}
                             title={slot.title}
                           >
-                            <ActivityIcon size={19} className={activityMeta.iconColor} />
+                            <ActivityIcon size={15} className={activityMeta.iconColor} />
                           </div>
 
-                          <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex-1 min-w-0 space-y-1.5">
                             {/* Title */}
-                            <div className="flex items-center gap-2.5 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <h4
-                                className={`text-sm sm:text-base font-extrabold transition-colors ${
+                                className={`text-xs sm:text-[13px] font-bold transition-colors ${
                                   isCompleted
                                     ? "text-slate-800 dark:text-slate-200 line-through decoration-emerald-500/50"
                                     : "text-slate-900 dark:text-white"
@@ -1557,8 +1557,8 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                                 {slot.title}
                               </h4>
                               {isCompleted && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800">
-                                  <FiCheck size={11} className="stroke-[3]" />
+                                <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.2 rounded border border-emerald-200 dark:border-emerald-800">
+                                  <FiCheck size={9} className="stroke-[3]" />
                                   <span>Done</span>
                                 </span>
                               )}
@@ -1566,7 +1566,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
 
                             {/* Subtasks Interactive Checklist */}
                             {Array.isArray(slot.subtasks) && slot.subtasks.length > 0 && (
-                              <div className="space-y-1.5 pt-1">
+                              <div className="space-y-1 pt-0.5">
                                 {slot.subtasks.map((st) => {
                                   const isSubDone = Boolean(st.completed);
                                   return (
@@ -1575,24 +1575,24 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                                       whileTap={{ scale: 0.98 }}
                                       key={st.id}
                                       onClick={(e) => handleToggleSubtask(slot, st, e)}
-                                      className={`group/sub flex items-start gap-2.5 text-xs sm:text-[13px] rounded-xl p-1.5 -ml-1.5 transition-colors cursor-pointer select-none ${
+                                      className={`group/sub flex items-start gap-2 text-[11px] sm:text-[11.5px] rounded-lg p-1 -ml-1 transition-colors cursor-pointer select-none ${
                                         isSubDone
                                           ? "text-slate-500 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"
-                                          : "text-slate-800 dark:text-slate-100 hover:bg-black/5 dark:hover:bg-white/5"
+                                          : "text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
                                       }`}
                                     >
                                       <div
-                                        className={`mt-0.5 w-4.5 h-4.5 rounded-lg flex items-center justify-center transition-all shrink-0 ${
+                                        className={`mt-0.5 w-3.5 h-3.5 rounded flex items-center justify-center transition-all shrink-0 ${
                                           isSubDone
-                                            ? "bg-emerald-500 text-white shadow-xs shadow-emerald-500/20"
-                                            : "border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-[#131d31] group-hover/sub:border-indigo-500"
+                                            ? "bg-emerald-500 text-white shadow-2xs shadow-emerald-500/20"
+                                            : "border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#131d31] group-hover/sub:border-indigo-500"
                                         }`}
                                       >
-                                        {isSubDone && <FiCheck size={12} className="stroke-[3]" />}
+                                        {isSubDone && <FiCheck size={9} className="stroke-[3]" />}
                                       </div>
                                       <span
-                                        className={`leading-relaxed ${
-                                          isSubDone ? "line-through text-slate-400 dark:text-slate-500" : "font-medium"
+                                        className={`leading-snug ${
+                                          isSubDone ? "line-through text-slate-400 dark:text-slate-500" : "font-normal"
                                         }`}
                                       >
                                         {st.text}
@@ -1605,16 +1605,16 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
 
                             {/* Benchmark Callout */}
                             {slot.benchmark && (
-                              <div className="inline-flex items-start gap-2 px-3 py-1.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-800/50 text-[11px] font-bold text-purple-900 dark:text-purple-300 mt-1">
-                                <FiTarget size={13} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                              <div className="inline-flex items-start gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-800/50 text-[10px] font-semibold text-purple-900 dark:text-purple-300 mt-0.5">
+                                <FiTarget size={11} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                                 <span>Benchmark: {slot.benchmark}</span>
                               </div>
                             )}
 
                             {/* Completion Audit Log Footer */}
                             {isCompleted && slot.completedAt && (
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 pt-1">
-                                <FiCheckCircle size={12} className="text-emerald-500 shrink-0" />
+                              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1.5 pt-0.5">
+                                <FiCheckCircle size={11} className="text-emerald-500 shrink-0" />
                                 <span>
                                   Completed at <strong className="text-slate-700 dark:text-slate-200">{formatExactTime(slot.completedAt)}</strong>
                                   {slot.completedByName ? ` by ${slot.completedByName}` : ""}
@@ -1625,30 +1625,30 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                         </div>
                       </div>
 
-                      {/* Right Column: Big Interactive Checkbox Button */}
+                      {/* Right Column: Interactive Checkbox Button */}
                       <div className="shrink-0 self-end md:self-center">
                         <motion.button
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.94 }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.95 }}
                           type="button"
                           disabled={isUpdating}
                           onClick={() => handleToggleSlot(slot)}
-                          className={`group relative inline-flex items-center gap-2 px-4.5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-sm active:scale-95 disabled:opacity-50 ${
+                          className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-[11px] transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 ${
                             isCompleted
                               ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
-                              : "bg-white/90 hover:bg-emerald-50 text-slate-800 hover:text-emerald-700 border border-slate-300/80 dark:bg-[#131d31] dark:text-slate-200 dark:border-white/10 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+                              : "bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-300/80 dark:bg-[#131d31] dark:text-slate-200 dark:border-white/10 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
                           }`}
                         >
                           {isUpdating ? (
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           ) : isCompleted ? (
                             <>
-                              <FiCheckCircle size={15} className="stroke-[2.5]" />
+                              <FiCheckCircle size={13} className="stroke-[2.5]" />
                               <span>Done</span>
                             </>
                           ) : (
                             <>
-                              <FiCheck size={14} className="stroke-[2.5] text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                              <FiCheck size={12} className="stroke-[2.5] text-slate-400 group-hover:text-emerald-600 transition-colors" />
                               <span>Mark Done</span>
                             </>
                           )}
