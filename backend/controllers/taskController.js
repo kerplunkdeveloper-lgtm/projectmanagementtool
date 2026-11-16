@@ -943,6 +943,29 @@ exports.updateTask = async (req, res) => {
     delete req.body.createdBy;
     delete req.body.project;
 
+    if (
+      req.body.client === "extra_work" ||
+      (typeof req.body.client === "string" && req.body.client.trim().toLowerCase() === "extra work")
+    ) {
+      const ew = await Client.findOne({ companyName: { $regex: /^extra\s*work$/i } });
+      if (ew) req.body.client = ew._id;
+    }
+    if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
+      let ewId = null;
+      for (const sub of req.body.subtasks) {
+        if (
+          sub.client === "extra_work" ||
+          (typeof sub.client === "string" && sub.client.trim().toLowerCase() === "extra work")
+        ) {
+          if (!ewId) {
+            const ew = await Client.findOne({ companyName: { $regex: /^extra\s*work$/i } });
+            if (ew) ewId = ew._id;
+          }
+          if (ewId) sub.client = ewId;
+        }
+      }
+    }
+
     let task = await Task.findById(req.params.id);
 
     if (!task) {

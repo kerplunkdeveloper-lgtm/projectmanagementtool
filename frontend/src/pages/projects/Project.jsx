@@ -45,6 +45,12 @@ const Project = () => {
   const { portfolios = [] } = useSelector((state) => state.portfolios);
   const { user: currentUser } = useSelector((state) => state.auth);
 
+  const extraWorkClient = useMemo(() => {
+    return (clients || []).find(
+      (c) => (c.companyName || "").trim().toLowerCase() === "extra work",
+    );
+  }, [clients]);
+
   const userMap = useMemo(() => {
     const map = new Map();
     (users || []).forEach((u) => {
@@ -231,6 +237,9 @@ const Project = () => {
         const clientIds = new Set(
           clients.map((c) => (c._id || c.id || c).toString())
         );
+        if (extraWorkClient?._id) {
+          clientIds.add(extraWorkClient._id.toString());
+        }
         const projClientId = (project.client?._id || project.client)?.toString();
         if (!projClientId || !clientIds.has(projClientId)) {
           return false;
@@ -246,13 +255,30 @@ const Project = () => {
         createdByFilter === "All" ||
         (project.createdBy && project.createdBy._id === createdByFilter) ||
         project.createdBy === createdByFilter;
+
+      const isExtraWorkFilter =
+        clientFilter === "extra_work" ||
+        (extraWorkClient?._id && clientFilter === extraWorkClient._id.toString());
+
+      const projClientObj =
+        project.client && typeof project.client === "object"
+          ? project.client
+          : clients?.find((c) => (c._id || c.id)?.toString() === clientId);
+
+      const isProjectExtraWork =
+        (projClientObj?.companyName || "").trim().toLowerCase() === "extra work" ||
+        clientId === "extra_work" ||
+        (extraWorkClient?._id && clientId === extraWorkClient._id.toString());
+
       const matchesClient =
         clientFilter === "All" ||
-        (project.client && project.client._id === clientFilter) ||
-        project.client === clientFilter;
+        (isExtraWorkFilter
+          ? isProjectExtraWork
+          : (project.client && (project.client._id === clientFilter || project.client === clientFilter)) ||
+            clientId === clientFilter);
       return matchesSearch && matchesStatus && matchesCreatedBy && matchesClient;
     });
-  }, [projects, clients, isSocialMediaExecutive, searchTerm, statusFilter, createdByFilter, clientFilter]);
+  }, [projects, clients, extraWorkClient, isSocialMediaExecutive, searchTerm, statusFilter, createdByFilter, clientFilter]);
 
   const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
   const paginatedProjects = useMemo(() => {
@@ -279,10 +305,16 @@ const Project = () => {
     e.preventDefault();
     if (!isAdminOrManager) return;
     if (!name || !client) return;
+
+    let targetClient = client;
+    if (client === "extra_work" && extraWorkClient?._id) {
+      targetClient = extraWorkClient._id;
+    }
+
     dispatch(
       createProject({
         name,
-        client: client ? client : null,
+        client: targetClient ? targetClient : null,
         status,
         access,
       }),
@@ -309,12 +341,18 @@ const Project = () => {
     e.preventDefault();
     if (!isAdminOrManager) return;
     if (!editName) return;
+
+    let targetClient = editClient;
+    if (editClient === "extra_work" && extraWorkClient?._id) {
+      targetClient = extraWorkClient._id;
+    }
+
     dispatch(
       updateProject({
         id: editProjectId,
         data: {
           name: editName,
-          client: editClient ? editClient : null,
+          client: targetClient ? targetClient : null,
           status: editStatus,
           access: editAccess,
         },
@@ -449,8 +487,19 @@ const Project = () => {
             <option value="All" className="dark:bg-[#111111]">
               All Clients
             </option>
+            <option
+              value={extraWorkClient?._id || "extra_work"}
+              className="dark:bg-[#111111] font-bold text-amber-600 dark:text-amber-400"
+            >
+              Extra work
+            </option>
             {clients
-              ?.filter((c) => (c.status || "active").toLowerCase() !== "inactive")
+              ?.filter(
+                (c) =>
+                  (c.status || "active").toLowerCase() !== "inactive" &&
+                  (c.companyName || "").trim().toLowerCase() !== "extra work" &&
+                  c._id !== extraWorkClient?._id,
+              )
               .map((client) => (
                 <option
                   key={client._id}
@@ -593,15 +642,40 @@ const Project = () => {
                     <td className="px-4 py-2 ">
                       {(() => {
                         const clientId = project.client?._id || project.client;
-                        const clientObj = clients?.find(
-                          (c) => c._id === clientId,
-                        );
-                        if (!clientObj)
+                        const clientObj =
+                          clients?.find(
+                            (c) =>
+                              (c._id || c.id)?.toString() ===
+                              clientId?.toString(),
+                          ) ||
+                          (typeof project.client === "object"
+                            ? project.client
+                            : null);
+                        if (!clientObj) {
+                          if (
+                            clientId === "extra_work" ||
+                            (extraWorkClient?._id &&
+                              clientId?.toString() ===
+                                extraWorkClient._id.toString())
+                          ) {
+                            return (
+                              <ClientBadge
+                                client={
+                                  extraWorkClient || {
+                                    companyName: "Extra work",
+                                    color: "#f59e0b",
+                                  }
+                                }
+                                size="sm"
+                              />
+                            );
+                          }
                           return (
                             <span className="text-slate-400 text-[10px] italic">
                               No Client
                             </span>
                           );
+                        }
                         return <ClientBadge client={clientObj} size="sm" />;
                       })()}
                     </td>
@@ -1009,8 +1083,19 @@ const Project = () => {
                         <option value="" className="dark:bg-[#111111]">
                           Select a client
                         </option>
+                        <option
+                          value={extraWorkClient?._id || "extra_work"}
+                          className="dark:bg-[#111111] font-bold text-amber-600 dark:text-amber-400"
+                        >
+                          Extra work
+                        </option>
                         {clients
-                          ?.filter((c) => (c.status || "active").toLowerCase() !== "inactive")
+                          ?.filter(
+                            (c) =>
+                              (c.status || "active").toLowerCase() !== "inactive" &&
+                              (c.companyName || "").trim().toLowerCase() !== "extra work" &&
+                              c._id !== extraWorkClient?._id,
+                          )
                           .map((c) => (
                           <option
                             key={c._id}
@@ -1180,7 +1265,19 @@ const Project = () => {
                         <option value="" className="dark:bg-[#111111]">
                           Select a client (optional)
                         </option>
-                        {clients?.map((c) => (
+                        <option
+                          value={extraWorkClient?._id || "extra_work"}
+                          className="dark:bg-[#111111] font-bold text-amber-600 dark:text-amber-400"
+                        >
+                          Extra work
+                        </option>
+                        {clients
+                          ?.filter(
+                            (c) =>
+                              (c.companyName || "").trim().toLowerCase() !== "extra work" &&
+                              c._id !== extraWorkClient?._id,
+                          )
+                          .map((c) => (
                           <option
                             key={c._id}
                             value={c._id}
