@@ -2,7 +2,6 @@ const Project = require("../models/Project");
 const User = require("../models/User");
 const Task = require("../models/Task");
 const Client = require("../models/Client");
-const { ensureExtraWorkClient } = require("./clientController");
 
 // @desc    Get all projects
 // @route   GET /api/projects
@@ -24,13 +23,12 @@ exports.getProjects = async (req, res) => {
 
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       if (isSocialMediaHead) {
-        // Social Media Head: Chennai branch clients or assigned/created clients or Extra work
+        // Social Media Head: Chennai branch clients or assigned/created clients
         const headClients = await Client.find({
           $or: [
             { branch: new RegExp("^chennai$", "i") },
             { assignedTo: req.user._id },
             { createdBy: req.user._id },
-            { companyName: new RegExp("^extra\\s*work$", "i") },
           ],
         }).select("_id").lean();
         const headClientIds = headClients.map((c) => c._id);
@@ -39,12 +37,11 @@ exports.getProjects = async (req, res) => {
           client: { $in: headClientIds },
         };
       } else if (isSocialMedia) {
-        // Social Media Executive: strictly only show projects for their assigned or created clients or Extra work
+        // Social Media Executive: strictly only show projects for their assigned or created clients
         const userClients = await Client.find({
           $or: [
             { assignedTo: req.user._id },
             { createdBy: req.user._id },
-            { companyName: new RegExp("^extra\\s*work$", "i") },
           ],
         }).select("_id").lean();
         const userClientIds = userClients.map((c) => c._id);
@@ -53,12 +50,7 @@ exports.getProjects = async (req, res) => {
           client: { $in: userClientIds },
         };
       } else {
-        const userClients = await Client.find({
-          $or: [
-            { assignedTo: req.user._id },
-            { companyName: new RegExp("^extra\\s*work$", "i") },
-          ],
-        }).select("_id").lean();
+        const userClients = await Client.find({ assignedTo: req.user._id }).select("_id").lean();
         const userClientIds = userClients.map(c => c._id);
 
         query = {
@@ -170,16 +162,6 @@ exports.createProject = async (req, res) => {
       });
     }
 
-    if (
-      req.body.client === "extra_work" ||
-      (typeof req.body.client === "string" && req.body.client.trim().toLowerCase() === "extra work")
-    ) {
-      const extraWork = await ensureExtraWorkClient();
-      if (extraWork) {
-        req.body.client = extraWork._id;
-      }
-    }
-
     const project = await Project.create({
       ...req.body,
       createdBy: req.user._id,
@@ -233,12 +215,11 @@ exports.updateProject = async (req, res) => {
 
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       if (isSocialMedia) {
-        // Social Media Executive can manage projects of their assigned/created clients or Extra work
+        // Social Media Executive can manage projects of their assigned/created clients
         const userClients = await Client.find({
           $or: [
             { assignedTo: req.user._id },
             { createdBy: req.user._id },
-            { companyName: new RegExp("^extra\\s*work$", "i") },
           ],
         }).select("_id").lean();
         const userClientIds = userClients.map((c) => c._id.toString());
@@ -255,16 +236,6 @@ exports.updateProject = async (req, res) => {
           success: false,
           message: "You are not authorized to edit this private project",
         });
-      }
-    }
-
-    if (
-      req.body.client === "extra_work" ||
-      (typeof req.body.client === "string" && req.body.client.trim().toLowerCase() === "extra work")
-    ) {
-      const extraWork = await ensureExtraWorkClient();
-      if (extraWork) {
-        req.body.client = extraWork._id;
       }
     }
 

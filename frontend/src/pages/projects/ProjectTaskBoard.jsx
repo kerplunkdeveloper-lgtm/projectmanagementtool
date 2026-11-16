@@ -1372,29 +1372,13 @@ const ClientDropdown = ({
     };
   }, [isOpen]);
 
-  const extraWorkClient = useMemo(() => {
-    return (clients || []).find(
-      (c) => c && (c.companyName || "").trim().toLowerCase() === "extra work",
-    );
-  }, [clients]);
-
-  const isExtraWorkSelected =
-    selectedClient === "extra_work" ||
-    (extraWorkClient?._id && (selectedClient === extraWorkClient._id || selectedClient?._id === extraWorkClient._id)) ||
-    (typeof selectedClient === "object" && (selectedClient?.companyName || "").trim().toLowerCase() === "extra work");
-
-  const selectedClientObj = isExtraWorkSelected
-    ? extraWorkClient || { _id: "extra_work", companyName: "Extra work", color: "#f59e0b" }
-    : typeof selectedClient === "string"
+  const selectedClientObj =
+    typeof selectedClient === "string"
       ? (clients || []).find((c) => c && c._id === selectedClient)
       : selectedClient;
 
   const handleSelect = (client) => {
-    if (client === "extra_work") {
-      onChange(extraWorkClient ? extraWorkClient._id : "extra_work");
-    } else {
-      onChange(client ? client._id : null);
-    }
+    onChange(client ? client._id : null);
     setIsOpen(false);
   };
 
@@ -1519,35 +1503,10 @@ const ClientDropdown = ({
               <span>None</span>
             </button>
 
-            {/* Extra work quick option */}
-            <button
-              type="button"
-              onClick={() => handleSelect(extraWorkClient || "extra_work")}
-              className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors border-b border-slate-100 dark:border-white/5 ${
-                isExtraWorkSelected
-                  ? "text-amber-600 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-950/20 font-bold"
-                  : "text-amber-600 dark:text-amber-400"
-              }`}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 shrink-0">
-                  ⚡
-                </div>
-                <span className="truncate">Extra work</span>
-              </div>
-              {isExtraWorkSelected && (
-                <FiCheck
-                  size={12}
-                  className="text-amber-600 dark:text-amber-400 shrink-0"
-                />
-              )}
-            </button>
-
             {(clients || [])
               .filter(
                 (c) =>
                   c &&
-                  (c.companyName || "").trim().toLowerCase() !== "extra work" &&
                   (!searchTerm ||
                     c.companyName
                       ?.toLowerCase()
@@ -6081,33 +6040,15 @@ const ProjectTaskBoard = ({
                                                             const clientObj =
                                                               clients?.find(
                                                                 (c) =>
-                                                                  (c._id || c.id)?.toString() ===
-                                                                  clientId?.toString(),
-                                                              ) ||
-                                                              (typeof clientId === "object"
-                                                                ? clientId
-                                                                : null);
-                                                            if (!clientObj) {
-                                                              if (
-                                                                clientId === "extra_work" ||
-                                                                (typeof clientId === "string" && clientId.toLowerCase() === "extra work")
-                                                              ) {
-                                                                return (
-                                                                  <ClientBadge
-                                                                    client={{
-                                                                      companyName: "Extra work",
-                                                                      color: "#f59e0b",
-                                                                    }}
-                                                                    size="sm"
-                                                                  />
-                                                                );
-                                                              }
+                                                                  c._id ===
+                                                                  clientId,
+                                                              );
+                                                            if (!clientObj)
                                                               return (
                                                                 <span className="text-slate-400 text-[10px] italic">
                                                                   No Client
                                                                 </span>
                                                               );
-                                                            }
                                                             return (
                                                               <ClientBadge
                                                                 client={

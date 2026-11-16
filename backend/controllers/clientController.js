@@ -143,52 +143,17 @@ exports.createClient = async (req, res) => {
 };
 
 
-// Helper to ensure "Extra work" client exists
-const ensureExtraWorkClient = async () => {
-  try {
-    let extraWork = await Client.findOne({
-      companyName: { $regex: /^extra\s*work$/i },
-    });
-    if (!extraWork) {
-      extraWork = await Client.create({
-        companyName: "Extra work",
-        branch: "Pondicherry",
-        industry: "Others",
-        service: ["Additional work", "Others"],
-        budget: 0,
-        gst: 18,
-        status: "Active",
-        color: "#f59e0b",
-        icon: "FaRegBuilding",
-      });
-    }
-    return extraWork;
-  } catch (err) {
-    try {
-      return await Client.findOne({
-        companyName: { $regex: /^extra\s*work$/i },
-      });
-    } catch (e) {
-      return null;
-    }
-  }
-};
-
-exports.ensureExtraWorkClient = ensureExtraWorkClient;
-
+// @desc    Get All Clients
+// @route   GET /api/clients
+// @access  Private
 // @desc    Get All Clients
 // @route   GET /api/clients
 // @access  Private
 exports.getClients = async (req, res) => {
   try {
-    const extraWorkClient = await ensureExtraWorkClient();
-
     let query = {};
     if (isSocialMediaManagerUser(req.user)) {
-      query.$or = [
-        { branch: new RegExp("^chennai$", "i") },
-        { companyName: new RegExp("^extra\\s*work$", "i") },
-      ];
+      query.branch = new RegExp("^chennai$", "i");
     } else if (
       !isPrivilegedClientUser(req.user) ||
       req.query.assignedOnly === "true"
@@ -196,7 +161,6 @@ exports.getClients = async (req, res) => {
       query.$or = [
         { assignedTo: req.user._id },
         { createdBy: req.user._id },
-        { companyName: new RegExp("^extra\\s*work$", "i") },
       ];
     }
 
@@ -211,18 +175,6 @@ exports.getClients = async (req, res) => {
       )
       .sort({ createdAt: -1 })
       .lean();
-
-    // Ensure extraWorkClient is always present in clients list
-    if (
-      extraWorkClient &&
-      !clients.some(
-        (c) => (c.companyName || "").toLowerCase().trim() === "extra work"
-      )
-    ) {
-      clients.unshift(
-        extraWorkClient.toObject ? extraWorkClient.toObject() : extraWorkClient
-      );
-    }
 
     if (isSocialMediaManagerUser(req.user)) {
       clients.forEach((c) => {
