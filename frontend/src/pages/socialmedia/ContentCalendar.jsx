@@ -3347,6 +3347,7 @@ const ContentCalendar = () => {
         initialDate={initialDateForCreate}
         isReadOnly={isReadOnly}
         initialCommitment={true}
+        commitmentOnly={true}
       />
 
       {/* Pending Commitment Modal (Detailed Client Breakdown) */}

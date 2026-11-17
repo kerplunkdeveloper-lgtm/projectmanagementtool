@@ -65,6 +65,7 @@ const DEFAULT_PRIORITIES = ["All", "High", "Medium", "Low"];
 const DEFAULT_COMMITMENTS = ["All", "Yes", "No"];
 
 const SmTaskFilters = ({
+  activeTab = "commitment",
   searchQuery = "",
   setSearchQuery,
   onExportExcel,
@@ -149,26 +150,37 @@ const SmTaskFilters = ({
     };
   }, [isClientDropdownOpen, isDateDropdownOpen, isContentTypeDropdownOpen]);
 
+  const defaultPreset = activeTab === "sme" ? "All Time" : "All";
+
+  const presets = useMemo(() => {
+    if (activeTab === "sme") {
+      return [
+        { id: "Today", label: "Today" },
+        { id: "Yesterday", label: "Yesterday" },
+        { id: "This Month", label: "This Month" },
+        { id: "All Time", label: "All Time" },
+      ];
+    }
+    return [
+      { id: "All", label: "All Dates" },
+      { id: "Today", label: "Today" },
+      { id: "Tomorrow", label: "Tomorrow" },
+      { id: "This Week", label: "This Week" },
+      { id: "This Month", label: "This Month" },
+      { id: "Overdue", label: "Overdue" },
+    ];
+  }, [activeTab]);
+
   const dateFilterLabel = useMemo(() => {
-    if (customStartDate && customEndDate) {
-      return `${customStartDate} → ${customEndDate}`;
-    }
-    if (customStartDate) {
-      return `Date: ${customStartDate}`;
-    }
-    if (dateFilterPreset !== "All") {
+    if (dateFilterPreset !== "All" && dateFilterPreset !== "All Time") {
       return `Date: ${dateFilterPreset}`;
     }
     return "Date";
-  }, [dateFilterPreset, customStartDate, customEndDate]);
+  }, [dateFilterPreset]);
 
   const isDateFilterActive = useMemo(() => {
-    return (
-      dateFilterPreset !== "All" ||
-      Boolean(customStartDate) ||
-      Boolean(customEndDate)
-    );
-  }, [dateFilterPreset, customStartDate, customEndDate]);
+    return dateFilterPreset !== "All" && dateFilterPreset !== "All Time";
+  }, [dateFilterPreset]);
 
   // Filtered client options matching search box inside dropdown
   const filteredClientOptions = useMemo(() => {
@@ -179,22 +191,25 @@ const SmTaskFilters = ({
   }, [clientOptions, clientSearchQuery]);
 
   return (
-    <div className="relative z-30 bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-white/10 rounded-2xl p-3 sm:p-3.5 shadow-xs space-y-2.5">
-      {/* Row 1: Search Input & Action Controls (Export, At Risk, Count, Reset) */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-        {/* Search Input with Search Icon */}
-        <div className="flex items-center gap-2 flex-1 max-w-md">
-          <div className="relative w-full">
-           
+    <div className="relative z-30 bg-white dark:bg-[#0b101d] border border-slate-200/80 dark:border-white/10 rounded-xl p-2 sm:p-2.5 shadow-2xs">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        {/* Left Section: Search Input + Filter Pills */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 min-w-0">
+          {/* Search Input */}
+          <div className="relative w-44 sm:w-48 lg:w-56 shrink-0">
+            <FiSearch
+              size={13}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
             <input
               type="text"
-              placeholder="Search tasks, clients, creators..."
+              placeholder="Search tasks, clients..."
               value={searchQuery}
               onChange={(e) => {
                 if (setSearchQuery) setSearchQuery(e.target.value);
                 if (setCurrentPage) setCurrentPage(1);
               }}
-              className="w-full h-9 pl-9 pr-8 rounded-xl border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-xs font-medium focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-2xs"
+              className="w-full h-8 pl-8 pr-7 rounded-lg border border-slate-200/90 dark:border-white/10 bg-slate-50 dark:bg-[#131d31] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 text-xs font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 transition-all shadow-2xs"
             />
             {searchQuery && (
               <button
@@ -203,94 +218,13 @@ const SmTaskFilters = ({
                   if (setSearchQuery) setSearchQuery("");
                   if (setCurrentPage) setCurrentPage(1);
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 title="Clear search"
               >
-                <FiX size={13} />
+                <FiX size={12} />
               </button>
             )}
           </div>
-
-          {/* Mobile Filter Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-            className={`sm:hidden h-9 px-3 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer ${
-              isMobileFiltersOpen || hasActiveFilters
-                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700"
-                : "bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
-            }`}
-          >
-            <FiFilter size={13} className="text-emerald-600 dark:text-emerald-400" />
-            <span>Filters</span>
-            {hasActiveFilters && (
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-            )}
-          </button>
-        </div>
-
-        {/* Right Controls: At Risk + Export + Reset */}
-        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-between sm:justify-end">
-          {/* At Risk Toggle Button */}
-          <button
-            type="button"
-            onClick={() => {
-              if (setAtRiskOnly) setAtRiskOnly(!atRiskOnly);
-              if (setCurrentPage) setCurrentPage(1);
-            }}
-            className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer border shrink-0 shadow-2xs ${
-              atRiskOnly
-                ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 ring-2 ring-rose-400/20 font-bold"
-                : "bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#182338]"
-            }`}
-            title="Filter tasks at risk (due in <= 24 hours)"
-          >
-            <span className="relative flex h-2 w-2 items-center justify-center">
-              {atRiskOnly && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              )}
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-            </span>
-            <span>At risk</span>
-          </button>
-
-          {/* Export to Excel */}
-          <button
-            type="button"
-            onClick={onExportExcel}
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-all cursor-pointer shadow-xs shadow-emerald-600/20 shrink-0"
-            title="Export filtered tasks to Excel"
-          >
-            <FiDownload size={13} className="stroke-[2.5]" />
-            <span>Export</span>
-          </button>
-
-          {/* Reset Filters Button (Shown when filters are active) */}
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={onResetFilters}
-              className="inline-flex items-center gap-1 h-9 px-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all cursor-pointer shrink-0 shadow-2xs"
-              title="Reset all active filters"
-            >
-              <FiRotateCcw size={12} />
-              <span>Reset</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Row 2: Filter Pills Row (Wrap-friendly without clipping dropdowns) */}
-      <div
-        className={`flex items-center gap-2 py-0.5 flex-wrap min-w-0 relative ${
-          isMobileFiltersOpen ? "flex" : "hidden sm:flex"
-        }`}
-      >
-        {/* Filter Label */}
-        <div className="hidden md:inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 select-none mr-0.5 shrink-0">
-          <FiFilter size={12} />
-          <span>Filters:</span>
-        </div>
 
         {/* Client Filter - Searchable Dropdown */}
         <div className={`relative shrink-0 ${isClientDropdownOpen ? "z-50" : "z-10"}`} ref={clientDropdownRef}>
@@ -300,7 +234,7 @@ const SmTaskFilters = ({
               setIsClientDropdownOpen(!isClientDropdownOpen);
               setClientSearchQuery("");
             }}
-            className={`inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
+            className={`inline-flex items-center justify-between gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
               selectedClient !== "All"
                 ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
                 : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
@@ -421,7 +355,7 @@ const SmTaskFilters = ({
               searchPlaceholder="Search creator..."
               emptyText="No creators found"
               menuWidth="w-64"
-              buttonClassName={`inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
+              buttonClassName={`inline-flex items-center justify-between gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
                 selectedCreatedBy !== "All"
                   ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
                   : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
@@ -430,7 +364,7 @@ const SmTaskFilters = ({
           </div>
         ) : (
           <div
-            className="inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-xl text-xs font-medium border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-[#131d31]/50 text-slate-500 select-none opacity-80 shrink-0"
+            className="inline-flex items-center justify-between gap-1.5 h-8 px-2.5 rounded-lg text-xs font-medium border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-[#131d31]/50 text-slate-500 select-none opacity-80 shrink-0"
             title="Viewing tasks created by you"
           >
             <span className="truncate max-w-[120px]">
@@ -448,7 +382,7 @@ const SmTaskFilters = ({
               if (setSelectedCategory) setSelectedCategory(e.target.value);
               if (setCurrentPage) setCurrentPage(1);
             }}
-            className={`h-8 pl-3 pr-7 rounded-xl text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
+            className={`h-8 pl-2.5 pr-6 rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
               selectedCategory !== "All"
                 ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
                 : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
@@ -483,7 +417,7 @@ const SmTaskFilters = ({
             <button
               type="button"
               onClick={() => setIsContentTypeDropdownOpen(!isContentTypeDropdownOpen)}
-              className={`inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
+              className={`inline-flex items-center justify-between gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
                 selectedContentType !== "All"
                   ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
                   : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
@@ -674,7 +608,7 @@ const SmTaskFilters = ({
             if (setSelectedStatus) setSelectedStatus(e.target.value);
             if (setCurrentPage) setCurrentPage(1);
           }}
-          className={`h-8 pl-3 pr-7 rounded-xl text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
+          className={`h-8 pl-2.5 pr-6 rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
             selectedStatus !== "All"
               ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
               : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
@@ -703,7 +637,7 @@ const SmTaskFilters = ({
             if (setSelectedPriority) setSelectedPriority(e.target.value);
             if (setCurrentPage) setCurrentPage(1);
           }}
-          className={`h-8 pl-3 pr-7 rounded-xl text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
+          className={`h-8 pl-2.5 pr-6 rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
             selectedPriority !== "All"
               ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
               : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
@@ -730,7 +664,7 @@ const SmTaskFilters = ({
           <button
             type="button"
             onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-            className={`inline-flex items-center justify-between gap-1.5 h-8 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
+            className={`inline-flex items-center justify-between gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border shadow-2xs ${
               isDateFilterActive
                 ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
                 : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
@@ -769,9 +703,7 @@ const SmTaskFilters = ({
                   <button
                     type="button"
                     onClick={() => {
-                      if (setDateFilterPreset) setDateFilterPreset("All");
-                      if (setCustomStartDate) setCustomStartDate("");
-                      if (setCustomEndDate) setCustomEndDate("");
+                      if (setDateFilterPreset) setDateFilterPreset(defaultPreset);
                       if (setCurrentPage) setCurrentPage(1);
                     }}
                     className="text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
@@ -782,65 +714,53 @@ const SmTaskFilters = ({
               </div>
 
               {/* Target Date Field (Any Date vs Publish Date vs Due Date) */}
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
-                  Target Date Field
-                </span>
-                <div className="grid grid-cols-3 gap-1 p-0.5 bg-slate-100 dark:bg-[#131d31] rounded-xl text-[11px] font-bold border border-slate-200/60 dark:border-white/10">
-                  {[
-                    { id: "any", label: "Any Date" },
-                    { id: "publish", label: "Publish" },
-                    { id: "due", label: "Due Date" },
-                  ].map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => {
-                        if (setDateFieldType) setDateFieldType(f.id);
-                        if (setCurrentPage) setCurrentPage(1);
-                      }}
-                      className={`py-1 rounded-lg transition-colors cursor-pointer text-center ${
-                        dateFilterField === f.id
-                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs"
-                          : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
+              {activeTab !== "sme" && (
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                    Target Date Field
+                  </span>
+                  <div className="grid grid-cols-3 gap-1 p-0.5 bg-slate-100 dark:bg-[#131d31] rounded-xl text-[11px] font-bold border border-slate-200/60 dark:border-white/10">
+                    {[
+                      { id: "any", label: "Any Date" },
+                      { id: "publish", label: "Publish" },
+                      { id: "due", label: "Due Date" },
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => {
+                          if (setDateFieldType) setDateFieldType(f.id);
+                          if (setCurrentPage) setCurrentPage(1);
+                        }}
+                        className={`py-1 rounded-lg transition-colors cursor-pointer text-center ${
+                          dateFilterField === f.id
+                            ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs"
+                            : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Quick Presets */}
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
                   Quick Presets
                 </span>
-                <div className="grid grid-cols-3 gap-1.5 text-xs">
-                  {[
-                    { id: "All", label: "All Dates" },
-                    { id: "Today", label: "Today" },
-                    { id: "Tomorrow", label: "Tomorrow" },
-                    { id: "This Week", label: "This Week" },
-                    { id: "This Month", label: "This Month" },
-                    { id: "Overdue", label: "Overdue" },
-                  ].map((p) => {
-                    const isSelected =
-                      dateFilterPreset === p.id &&
-                      !customStartDate &&
-                      !customEndDate;
+                <div className={`grid gap-1.5 text-xs ${activeTab === "sme" ? "grid-cols-2" : "grid-cols-3"}`}>
+                  {presets.map((p) => {
+                    const isSelected = dateFilterPreset === p.id;
                     return (
                       <button
                         key={p.id}
                         type="button"
                         onClick={() => {
                           if (setDateFilterPreset) setDateFilterPreset(p.id);
-                          if (setCustomStartDate) setCustomStartDate("");
-                          if (setCustomEndDate) setCustomEndDate("");
                           if (setCurrentPage) setCurrentPage(1);
-                          if (p.id !== "Custom") {
-                            setIsDateDropdownOpen(false);
-                          }
+                          setIsDateDropdownOpen(false);
                         }}
                         className={`px-2 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-center ${
                           isSelected
@@ -852,61 +772,6 @@ const SmTaskFilters = ({
                       </button>
                     );
                   })}
-                </div>
-              </div>
-
-              {/* Custom Range */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Custom Range
-                  </span>
-                  {(customStartDate || customEndDate) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (setCustomStartDate) setCustomStartDate("");
-                        if (setCustomEndDate) setCustomEndDate("");
-                        if (setDateFilterPreset) setDateFilterPreset("All");
-                        if (setCurrentPage) setCurrentPage(1);
-                      }}
-                      className="text-[10px] font-bold text-rose-500 hover:underline cursor-pointer"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
-                      From / Specific
-                    </span>
-                    <input
-                      type="date"
-                      value={customStartDate}
-                      onChange={(e) => {
-                        if (setCustomStartDate) setCustomStartDate(e.target.value);
-                        if (setDateFilterPreset) setDateFilterPreset("Custom");
-                        if (setCurrentPage) setCurrentPage(1);
-                      }}
-                      className="date-filter-picker-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-0.5">
-                      To (Optional)
-                    </span>
-                    <input
-                      type="date"
-                      value={customEndDate}
-                      onChange={(e) => {
-                        if (setCustomEndDate) setCustomEndDate(e.target.value);
-                        if (setDateFilterPreset) setDateFilterPreset("Custom");
-                        if (setCurrentPage) setCurrentPage(1);
-                      }}
-                      className="date-filter-picker-input w-full"
-                    />
-                  </div>
                 </div>
               </div>
 
@@ -925,7 +790,57 @@ const SmTaskFilters = ({
         </div>
       </div>
 
+      {/* Right Controls: At Risk + Export + Reset */}
+      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+        {/* At Risk Toggle Button */}
+        <button
+          type="button"
+          onClick={() => {
+            if (setAtRiskOnly) setAtRiskOnly(!atRiskOnly);
+            if (setCurrentPage) setCurrentPage(1);
+          }}
+          className={`inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border shrink-0 shadow-2xs ${
+            atRiskOnly
+              ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 ring-2 ring-rose-400/20 font-bold"
+              : "bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#182338]"
+          }`}
+          title="Filter tasks at risk (due in <= 24 hours)"
+        >
+          <span className="relative flex h-2 w-2 items-center justify-center">
+            {atRiskOnly && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            )}
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+          </span>
+          <span>At risk</span>
+        </button>
+
+        {/* Export to Excel */}
+        <button
+          type="button"
+          onClick={onExportExcel}
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-all cursor-pointer shadow-xs shadow-emerald-600/20 shrink-0"
+          title="Export filtered tasks to Excel"
+        >
+          <FiDownload size={13} className="stroke-[2.5]" />
+          <span>Export</span>
+        </button>
+
+        {/* Reset Filters Button (Shown when filters are active) */}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="inline-flex items-center gap-1 h-8 px-2 rounded-lg text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all cursor-pointer shrink-0 shadow-2xs"
+            title="Reset all active filters"
+          >
+            <FiRotateCcw size={12} />
+            <span>Reset</span>
+          </button>
+        )}
+      </div>
     </div>
+  </div>
   );
 };
 

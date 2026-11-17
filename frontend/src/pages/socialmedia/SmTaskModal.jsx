@@ -158,7 +158,15 @@ const STATUSES = COMMITMENT_STATUSES;
 const PRIORITIES = ["High", "Medium", "Low"];
 const QC_STATUSES = ["-", "Pending", "Passed", "Rejected"];
 
-const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadOnly: isReadOnlyProp = null, initialCommitment = null }) => {
+const SmTaskModal = ({
+  isOpen,
+  onClose,
+  task = null,
+  initialDate = null,
+  isReadOnly: isReadOnlyProp = null,
+  initialCommitment = null,
+  commitmentOnly = false,
+}) => {
   const dispatch = useDispatch();
   const { user: currentUser } = useSelector((state) => state.auth);
   const clientsState = useSelector((state) => state.clients);
@@ -301,7 +309,7 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         task.commitment !== undefined
           ? Boolean(task.commitment)
           : isContentCalendarCategory(task.category);
-      setIsCommitment(isSocialMediaHead ? false : isTaskCommitment);
+      setIsCommitment(commitmentOnly ? true : isTaskCommitment);
 
       const currentCat = task.category || (isTaskCommitment ? "Content Calendar" : "Content Creation");
 
@@ -339,8 +347,8 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         notes: task.notes || "",
       });
     } else {
-      const defaultIsCommitment = isSocialMediaHead
-        ? false
+      const defaultIsCommitment = commitmentOnly
+        ? true
         : (initialCommitment !== null
           ? Boolean(initialCommitment)
           : Boolean(initialDate));
@@ -350,7 +358,9 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         ? formatLocalDateKey(initialDate)
         : formatLocalDateKey(new Date());
 
-      const defaultClient = clients[0] || null;
+      const defaultClient = clients.find(
+        (c) => !defaultIsCommitment || (c.companyName || "").trim().toLowerCase() !== "others"
+      ) || clients[0] || null;
 
       setFormData({
         taskTitle: "",
@@ -375,9 +385,9 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
         notes: "",
       });
     }
-  }, [isOpen, task, initialDate, clients, users, currentUser, initialCommitment]);
+  }, [isOpen, task, initialDate, clients, users, currentUser, initialCommitment, commitmentOnly]);
 
-  const isContentCalendar = isSocialMediaHead ? false : isCommitment;
+  const isContentCalendar = Boolean(isCommitment);
 
   const contentTypeDropdownRef = useRef(null);
   const [isContentTypeOpen, setIsContentTypeOpen] = useState(false);
@@ -391,31 +401,6 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleTabChange = (tab) => {
-    if (isReadOnly || isSocialMediaHead) return;
-    if (tab === "commitment") {
-      setIsCommitment(true);
-      setFormData((prev) => ({
-        ...prev,
-        category: "Content Calendar",
-        contentType: ["Post", "Reels", "Stories"].includes(prev.contentType) ? prev.contentType : "Post",
-        platform: prev.platforms?.[0] || prev.platform || "Instagram",
-        platforms: prev.platforms?.length ? prev.platforms : ["Instagram"],
-        hasPublishDate: true,
-      }));
-    } else {
-      setIsCommitment(false);
-      setFormData((prev) => ({
-        ...prev,
-        category: prev.category && prev.category !== "Content" && SME_CATEGORIES.includes(prev.category) ? prev.category : "Content Creation",
-        contentType: "Others Task",
-        platform: "",
-        platforms: [],
-        hasPublishDate: false,
-      }));
-    }
-  };
 
   const handlePlatformSelect = (platId) => {
     if (isReadOnly) return;
@@ -489,11 +474,35 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
     };
   }, [formData.createdById, formData.createdByName, task, currentUser, users]);
 
+  const headerDateStr = useMemo(() => {
+    const rawDate = formData.publishDate || formData.dueDate;
+    if (!rawDate) return null;
+    try {
+      const parts = String(rawDate).slice(0, 10).split("-");
+      if (parts.length === 3) {
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let y, m, d;
+        if (parts[0].length === 4) {
+          [y, m, d] = parts;
+        } else {
+          [d, m, y] = parts;
+        }
+        const mIdx = parseInt(m, 10) - 1;
+        const mName = months[mIdx] || m;
+        return `${d} ${mName} ${y}`;
+      }
+      return String(rawDate);
+    } catch {
+      return null;
+    }
+  }, [formData.publishDate, formData.dueDate]);
+
   if (!isOpen) return null;
 
   const handleClientSelect = (e) => {
     const val = e.target.value;
     if (val === "Others") {
+      if (isCommitment) return;
       setFormData((prev) => ({
         ...prev,
         clientId: "",
@@ -690,6 +699,12 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                 SME tasks 
               </span>
             )}
+            {headerDateStr && (
+              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 bg-slate-200/70 dark:bg-[#1e2a40] border border-slate-300 dark:border-[#2a3c5a] px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
+                <FiCalendar size={10} className="text-indigo-500 dark:text-indigo-400" />
+                <span>{headerDateStr}</span>
+              </span>
+            )}
             {isAtRisk && (
               <span className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/10 dark:bg-rose-500/20 border border-rose-300/80 dark:border-rose-500/30 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
                 <FiAlertCircle size={10} /> At Risk (&lt;24h)
@@ -703,10 +718,10 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
             <span className="text-slate-300 dark:text-slate-600 hidden sm:inline">•</span>
             <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
               {isReadOnly
-                ? "View Social Media Task"
+                ? (isCommitment ? "View Commitment Task" : "View SME Task")
                 : task
-                  ? "Edit Social Media Task"
-                  : "Create Social Media Task"}
+                  ? (isCommitment ? "Edit Commitment Task" : "Edit SME Task")
+                  : (isCommitment ? "Create Commitment Task" : "Create SME Task")}
             </h2>
           </div>
 
@@ -718,51 +733,6 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
           >
             <FiX size={18} />
           </button>
-        </div>
-
-        {/* Commitment vs SME tasks  Mode Tabs */}
-        <div className="px-5 py-2.5 bg-slate-50/70 dark:bg-[#0f172a] border-b border-slate-100 dark:border-[#1e2a40] flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 dark:bg-[#162033] rounded-xl border border-slate-200 dark:border-[#22324f]">
-            {!isSocialMediaHead && (
-              <button
-                type="button"
-                disabled={isReadOnly}
-                onClick={() => handleTabChange("commitment")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  isContentCalendar
-                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-300/80 dark:border-emerald-500/40 shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-transparent border border-transparent"
-                }`}
-              >
-                <FiLock size={12} className={isContentCalendar ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"} />
-                <span>Commitment</span>
-                {isContentCalendar && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-              </button>
-            )}
-
-            <button
-              type="button"
-              disabled={isReadOnly}
-              onClick={() => handleTabChange("non-commitment")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                !isContentCalendar
-                  ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 border border-indigo-300/80 dark:border-indigo-500/40 shadow-xs"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-transparent border border-transparent"
-              }`}
-            >
-              <FiLayers size={12} className={!isContentCalendar ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"} />
-              <span>SME tasks </span>
-              {!isContentCalendar && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
-            </button>
-          </div>
-
-          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 hidden sm:inline">
-            {isSocialMediaHead
-              ? "SME Task (Ad-hoc / Non-commitment)"
-              : isContentCalendar
-                ? "Content Calendar Task (Locked Commitment)"
-                : "Ad-hoc / Non-commitment Task"}
-          </span>
         </div>
 
         {/* Form Body - Compact 2-Column Grid Layout */}
@@ -801,14 +771,18 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                     className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     <option value="" className="dark:bg-[#131d31] dark:text-white">Select Client</option>
-                    <option value="Others" className="dark:bg-[#131d31] dark:text-white font-medium text-indigo-600 dark:text-indigo-400">
-                      Others
-                    </option>
-                    {clients.map((c) => (
-                      <option key={c._id} value={c._id} className="dark:bg-[#131d31] dark:text-white">
-                        {c.companyName}
+                    {!isCommitment && (
+                      <option value="Others" className="dark:bg-[#131d31] dark:text-white font-medium text-indigo-600 dark:text-indigo-400">
+                        Others
                       </option>
-                    ))}
+                    )}
+                    {clients
+                      .filter((c) => !isCommitment || (c.companyName || "").trim().toLowerCase() !== "others")
+                      .map((c) => (
+                        <option key={c._id} value={c._id} className="dark:bg-[#131d31] dark:text-white">
+                          {c.companyName}
+                        </option>
+                      ))}
                     {formData.clientName && formData.clientName !== "Others" && !clients.some((c) => c.companyName === formData.clientName) && (
                       <option value={formData.clientName} className="dark:bg-[#131d31] dark:text-white">{formData.clientName}</option>
                     )}
@@ -1077,7 +1051,14 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                         <input
                           type="date"
                           value={formData.publishDate}
-                          onChange={(e) => setFormData({ ...formData, publishDate: e.target.value })}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormData((prev) => ({
+                              ...prev,
+                              publishDate: val,
+                              dueDate: val || prev.dueDate,
+                            }));
+                          }}
                           disabled={isReadOnly}
                           className="w-full px-2.5 py-1.5 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                         />
@@ -1142,6 +1123,61 @@ const SmTaskModal = ({ isOpen, onClose, task = null, initialDate = null, isReadO
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Status & QC */}
+              <div className={`grid ${isCommitment ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={
+                      isCommitment
+                        ? (["Live", "Published", "Published Live"].includes(formData.status)
+                            ? "Published Live"
+                            : ["In QC", "QC"].includes(formData.status)
+                              ? "QC"
+                              : ["In progress", "Inprogress"].includes(formData.status)
+                                ? "Inprogress"
+                                : (formData.status || "").toLowerCase().includes("client approval")
+                                  ? "Completed and wait CLient Approval"
+                                  : formData.status || "Not started")
+                        : (["In progress", "Inprogress"].includes(formData.status)
+                            ? "Inprogress"
+                            : formData.status || "Not started")
+                    }
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                    disabled={isReadOnly}
+                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed truncate"
+                  >
+                    {(isCommitment ? COMMITMENT_STATUSES : NON_COMMITMENT_STATUSES).map((st) => (
+                      <option key={st} value={st} className="dark:bg-[#131d31] dark:text-white">
+                        {st}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {isCommitment && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                      QC Status
+                    </label>
+                    <select
+                      value={formData.qc}
+                      onChange={(e) => setFormData({ ...formData, qc: e.target.value })}
+                      disabled={isReadOnly}
+                      className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+                    >
+                      {QC_STATUSES.map((q) => (
+                        <option key={q} value={q} className="dark:bg-[#131d31] dark:text-white">
+                          {q === "-" ? "None (-)" : q}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
           </div>
