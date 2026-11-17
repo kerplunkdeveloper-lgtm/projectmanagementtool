@@ -823,6 +823,7 @@ const SmTasks = () => {
       setSelectedCategory("All");
       setSelectedContentType("Others Task");
       setDateFilterPreset("All");
+      setAtRiskOnly(false);
       setCurrentPage(1);
 
       const targetTaskId = searchParams.get("taskId") || searchParams.get("id");
@@ -1416,7 +1417,7 @@ const SmTasks = () => {
       isDateFiltered ||
       Boolean(customStartDate) ||
       Boolean(customEndDate) ||
-      atRiskOnly ||
+      (activeTab !== "sme" && atRiskOnly) ||
       searchQuery.trim().length > 0
     );
   }, [
@@ -1444,7 +1445,7 @@ const SmTasks = () => {
     if (selectedPriority !== "All") count++;
     if (selectedCommitment !== "All") count++;
     if ((dateFilterPreset !== "All" && dateFilterPreset !== "All Time") || customStartDate || customEndDate) count++;
-    if (atRiskOnly) count++;
+    if (activeTab !== "sme" && atRiskOnly) count++;
     return count;
   }, [
     selectedClient,
@@ -2040,6 +2041,7 @@ const SmTasks = () => {
                 setSelectedCommitment("No");
                 setSelectedCategory("All");
                 setSelectedContentType("Others Task");
+                setAtRiskOnly(false);
                 setCurrentPage(1);
               }}
               className={`group relative inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold tracking-tight transition-all duration-150 cursor-pointer ${

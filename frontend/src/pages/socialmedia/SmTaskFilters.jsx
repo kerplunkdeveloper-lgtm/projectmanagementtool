@@ -197,10 +197,7 @@ const SmTaskFilters = ({
         <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap flex-1 min-w-0">
           {/* Search Input */}
           <div className="relative w-44 sm:w-48 lg:w-56 shrink-0">
-            <FiSearch
-              size={13}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-            />
+           
             <input
               type="text"
               placeholder="Search tasks, clients..."
@@ -792,28 +789,30 @@ const SmTaskFilters = ({
 
       {/* Right Controls: At Risk + Export + Reset */}
       <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-        {/* At Risk Toggle Button */}
-        <button
-          type="button"
-          onClick={() => {
-            if (setAtRiskOnly) setAtRiskOnly(!atRiskOnly);
-            if (setCurrentPage) setCurrentPage(1);
-          }}
-          className={`inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border shrink-0 shadow-2xs ${
-            atRiskOnly
-              ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 ring-2 ring-rose-400/20 font-bold"
-              : "bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#182338]"
-          }`}
-          title="Filter tasks at risk (due in <= 24 hours)"
-        >
-          <span className="relative flex h-2 w-2 items-center justify-center">
-            {atRiskOnly && (
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            )}
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-          </span>
-          <span>At risk</span>
-        </button>
+        {/* At Risk Toggle Button - Only shown when NOT in SME tasks tab */}
+        {activeTab !== "sme" && (
+          <button
+            type="button"
+            onClick={() => {
+              if (setAtRiskOnly) setAtRiskOnly(!atRiskOnly);
+              if (setCurrentPage) setCurrentPage(1);
+            }}
+            className={`inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-xs font-semibold transition-all cursor-pointer border shrink-0 shadow-2xs ${
+              atRiskOnly
+                ? "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700 ring-2 ring-rose-400/20 font-bold"
+                : "bg-white dark:bg-[#131d31] text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#182338]"
+            }`}
+            title="Filter tasks at risk (due in <= 24 hours)"
+          >
+            <span className="relative flex h-2 w-2 items-center justify-center">
+              {atRiskOnly && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              )}
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            </span>
+            <span>At risk</span>
+          </button>
+        )}
 
         {/* Export to Excel */}
         <button

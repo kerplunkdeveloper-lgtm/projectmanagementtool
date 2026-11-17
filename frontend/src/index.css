@@ -1045,6 +1045,46 @@ input.toolbar-search-input:focus {
   border-color: #475569 !important;
 }
 
+/* Date input toolbar styling */
+input.toolbar-filter-date {
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 0.75rem !important;
+  padding: 0 0.85rem !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+  line-height: normal !important;
+  height: 2.25rem !important;
+  min-height: 2.25rem !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+  cursor: pointer !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+input.toolbar-filter-date:hover {
+  border-color: #cbd5e1 !important;
+  background-color: #f8fafc !important;
+}
+
+input.toolbar-filter-date:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  outline: none !important;
+}
+
+.dark input.toolbar-filter-date {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+.dark input.toolbar-filter-date:hover {
+  border-color: #475569 !important;
+  background-color: #27354a !important;
+}
+
 .dark input.toolbar-search-input:focus {
   border-color: #60a5fa !important;
   box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2) !important;

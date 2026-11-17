@@ -28,6 +28,10 @@ import {
   FiCheck,
   FiLoader,
   FiDownload,
+  FiArrowRight,
+  FiX,
+  FiCopy,
+  FiEdit2,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
@@ -226,6 +230,42 @@ const MomPoints = () => {
   const [inlineAdding, setInlineAdding] = useState(false);
   const [inlineTitle, setInlineTitle] = useState("");
   const inlineInputRef = useRef(null);
+
+  // Full Title View Modal State
+  const [selectedMomForModal, setSelectedMomForModal] = useState(null);
+  const [isEditingModalTitle, setIsEditingModalTitle] = useState(false);
+  const [modalTitleValue, setModalTitleValue] = useState("");
+
+  const handleOpenTitleModal = (mom) => {
+    setSelectedMomForModal(mom);
+    setModalTitleValue(mom.title || "");
+    setIsEditingModalTitle(false);
+  };
+
+  const handleSaveModalTitle = async () => {
+    if (!selectedMomForModal) return;
+    const trimmed = modalTitleValue.trim();
+    if (!trimmed) {
+      toast.error("Title cannot be empty");
+      return;
+    }
+    if (trimmed !== selectedMomForModal.title) {
+      await handleUpdateField(selectedMomForModal._id, "title", trimmed);
+      setSelectedMomForModal((prev) => (prev ? { ...prev, title: trimmed } : null));
+      toast.success("Title updated successfully");
+    }
+    setIsEditingModalTitle(false);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && selectedMomForModal) {
+        setSelectedMomForModal(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedMomForModal]);
 
   // Initial load: fetch all 3 once
   useEffect(() => {
@@ -725,31 +765,71 @@ const MomPoints = () => {
                         </div>
                       )}
                       <div className="flex items-center gap-2.5 w-full pl-6">
-                        <div className="flex-grow min-w-0 flex items-center gap-1.5">
+                        <div className="flex-grow min-w-0 flex items-center gap-1.5 flex-wrap">
                           {isUnread && (
                             <span className="px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-rose-500 text-white shadow-xs shrink-0 animate-pulse">
                               New
                             </span>
                           )}
-                          <span
-                            contentEditable={true}
-                            suppressContentEditableWarning={true}
-                            onBlur={(e) => {
-                              const val = e.target.innerText.trim();
-                              if (val !== mom.title) {
-                                handleUpdateField(mom._id, "title", val);
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                e.target.blur();
-                              }
-                            }}
-                            className="font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full"
-                          >
-                            {mom.title}
-                          </span>
+                          {mom.title && mom.title.length > 60 ? (
+                            <div className="flex items-center gap-1.5 flex-wrap flex-1 min-w-0 py-0.5">
+                              <span
+                                className="font-semibold text-slate-800 dark:text-white text-[11px] leading-tight cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                title={mom.title}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenTitleModal(mom);
+                                }}
+                              >
+                                {mom.title.slice(0, 60)}...
+                              </span>
+                              {/* Spinning Neon Border Read More Button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenTitleModal(mom);
+                                }}
+                                className="group relative inline-flex p-[1.5px] overflow-hidden rounded-md shrink-0 cursor-pointer shadow-xs hover:scale-[1.04] active:scale-[0.98] transition-transform select-none"
+                                title="Click to view full MOM title"
+                              >
+                                {/* Spinning Neon Border Beam */}
+                                <span
+                                  className="absolute -inset-[150%] animate-spin pointer-events-none"
+                                  style={{
+                                    animationDuration: "2.5s",
+                                    background:
+                                      "conic-gradient(from 0deg, transparent 0%, #3b82f6 25%, transparent 50%, #8b5cf6 75%, transparent 100%)",
+                                  }}
+                                />
+                                {/* Inner Button Content */}
+                                <span className="relative z-10 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4.5px] bg-blue-50 dark:bg-[#0c1527] text-[10px] font-bold text-blue-600 dark:text-blue-400 group-hover:bg-blue-100 dark:group-hover:bg-[#13223f] transition-colors whitespace-nowrap">
+                                  <span>Read more</span>
+                                  <FiArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
+                                </span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              contentEditable={true}
+                              suppressContentEditableWarning={true}
+                              onBlur={(e) => {
+                                const val = e.target.innerText.trim();
+                                if (val !== mom.title) {
+                                  handleUpdateField(mom._id, "title", val);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  e.target.blur();
+                                }
+                              }}
+                              className="font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full"
+                            >
+                              {mom.title}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -1142,6 +1222,163 @@ const MomPoints = () => {
           </div>
         )}
       </div>
+
+      {/* ─── FULL TITLE VIEW MODAL ─── */}
+      {selectedMomForModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs"
+          onClick={() => setSelectedMomForModal(null)}
+        >
+          <div
+            className="relative w-full max-w-xl bg-white dark:bg-[#111116] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/80 dark:bg-[#16161c]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
+                  <FiFileText size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                    MOM Point Full View
+                  </h3>
+                  <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                    {selectedMomForModal.client?.companyName && (
+                      <span>
+                        Client: <strong className="text-slate-700 dark:text-slate-300">{selectedMomForModal.client.companyName}</strong>
+                      </span>
+                    )}
+                    {selectedMomForModal.momType && (
+                      <>
+                        <span>•</span>
+                        <span>{selectedMomForModal.momType}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedMomForModal(null)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                title="Close (Esc)"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Badges strip */}
+              <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                {selectedMomForModal.status && (
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wide border shadow-2xs ${
+                      selectedMomForModal.status === "Completed"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40"
+                        : selectedMomForModal.status === "In Progress"
+                        ? "bg-blue-50 text-blue-700 border-blue-300/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40"
+                        : "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+                    }`}
+                  >
+                    {selectedMomForModal.status}
+                  </span>
+                )}
+                {selectedMomForModal.createdBy?.name && (
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Created by: <strong className="text-slate-700 dark:text-slate-200">{selectedMomForModal.createdBy.name}</strong>
+                  </span>
+                )}
+                {selectedMomForModal.assignedTo?.name && (
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Assigned to: <strong className="text-slate-700 dark:text-slate-200">{selectedMomForModal.assignedTo.name}</strong>
+                  </span>
+                )}
+              </div>
+
+              {/* Full Title Card / Editor */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Full Title Content
+                  </label>
+                  {!isEditingModalTitle && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingModalTitle(true)}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                    >
+                      <FiEdit2 size={11} />
+                      <span>Edit</span>
+                    </button>
+                  )}
+                </div>
+
+                {isEditingModalTitle ? (
+                  <div className="space-y-2">
+                    <textarea
+                      autoFocus
+                      rows={5}
+                      value={modalTitleValue}
+                      onChange={(e) => setModalTitleValue(e.target.value)}
+                      className="w-full p-3.5 rounded-xl bg-slate-50 dark:bg-[#18181f] border-2 border-blue-500 text-slate-900 dark:text-white text-xs sm:text-sm font-medium leading-relaxed outline-none focus:ring-2 focus:ring-blue-500/20 transition-all resize-none"
+                      placeholder="Enter MOM Point title..."
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModalTitleValue(selectedMomForModal.title || "");
+                          setIsEditingModalTitle(false);
+                        }}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveModalTitle}
+                        className="px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs cursor-pointer"
+                      >
+                        Save Title
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#18181f] border border-slate-200/80 dark:border-white/10 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-wrap select-text break-words shadow-2xs">
+                    {selectedMomForModal.title}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-[#16161c]/50 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(selectedMomForModal.title || "");
+                  toast.success("Title copied to clipboard!");
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+              >
+                <FiCopy size={12} />
+                <span>Copy Title</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedMomForModal(null)}
+                className="px-4 py-1.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold transition-all cursor-pointer shadow-xs hover:opacity-90"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         </>
       )}
     </div>

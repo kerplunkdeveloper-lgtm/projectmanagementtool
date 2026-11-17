@@ -11,6 +11,7 @@ import {
   FiSquare,
   FiUser,
   FiFilter,
+  FiX,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
@@ -94,7 +95,7 @@ const AVATAR_COLORS = [
 ];
 
 // --- MEMOIZED USER AVATAR COMPONENT ---
-const UserAvatar = React.memo(({ userObj, sizeClass = "w-7 h-7 text-[10px]" }) => {
+const UserAvatar = React.memo(({ userObj, sizeClass = "w-6 h-6 text-[9px]" }) => {
   const [imgError, setImgError] = useState(false);
   const avatarUrl = useMemo(() => getAvatarUrl(userObj), [userObj]);
 
@@ -103,7 +104,7 @@ const UserAvatar = React.memo(({ userObj, sizeClass = "w-7 h-7 text-[10px]" }) =
       <div
         className={`${sizeClass} rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-400 shrink-0`}
       >
-        <FiUser size={12} />
+        <FiUser size={10} />
       </div>
     );
   }
@@ -145,30 +146,30 @@ const CallRow = React.memo(({ call, onEdit, onDelete }) => {
   return (
     <tr className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors group">
       {/* Date in Date Month Year format */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-        <div className="flex items-center gap-2">
-          <span className="p-1.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
-            <FiCalendar size={13} />
+      <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-1.5">
+          <span className="p-1 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+            <FiCalendar size={12} />
           </span>
-          <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
+          <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
             {formatDateDMY(call.date)}
           </span>
         </div>
       </td>
 
       {/* Client */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs">
+      <td className="px-3.5 py-2.5 whitespace-nowrap text-xs font-medium">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs">
           {call.client?.companyName || "Unknown"}
         </span>
       </td>
 
       {/* Posted By with User Profile Image */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">
-        <div className="flex items-center gap-2.5">
-          <UserAvatar userObj={call.createdBy} sizeClass="w-7 h-7 text-[10px]" />
+      <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-2">
+          <UserAvatar userObj={call.createdBy} sizeClass="w-6 h-6 text-[9px]" />
           <div className="flex flex-col">
-            <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-tight">
+            <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs leading-tight">
               {call.createdBy?.name || "Unknown"}
             </span>
             {call.createdBy?.department && (
@@ -181,9 +182,9 @@ const CallRow = React.memo(({ call, onEdit, onDelete }) => {
       </td>
 
       {/* Time */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
+      <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400">
         <div className="flex items-center gap-1.5 text-xs font-medium">
-          <FiClock className="text-slate-400 shrink-0" size={13} />
+          <FiClock className="text-slate-400 shrink-0" size={12} />
           <span>
             {formatTime12hr(call.startTime)} - {formatTime12hr(call.endTime)}
           </span>
@@ -191,34 +192,34 @@ const CallRow = React.memo(({ call, onEdit, onDelete }) => {
       </td>
 
       {/* Duration */}
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
-        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+      <td className="px-3.5 py-2.5 whitespace-nowrap text-xs text-slate-600 dark:text-slate-400">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
           {call.duration}
         </span>
       </td>
 
       {/* Discussion Points */}
-      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 max-w-md">
+      <td className="px-3.5 py-2.5 text-xs text-slate-600 dark:text-slate-300 max-w-sm">
         <div className="line-clamp-2 text-xs leading-relaxed" title={call.discussionPoints}>
           {call.discussionPoints}
         </div>
       </td>
 
       {/* Actions */}
-      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+      <td className="px-3.5 py-2.5 whitespace-nowrap text-right text-xs font-medium">
         <button
           onClick={() => onEdit(call)}
-          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-2.5 p-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors cursor-pointer"
+          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 mr-1.5 p-1 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors cursor-pointer"
           title="Edit Call"
         >
-          <FiEdit2 size={15} />
+          <FiEdit2 size={13} />
         </button>
         <button
           onClick={() => onDelete(call._id)}
-          className="text-rose-600 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-300 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors cursor-pointer"
+          className="text-rose-600 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-300 p-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors cursor-pointer"
           title="Delete Call"
         >
-          <FiTrash2 size={15} />
+          <FiTrash2 size={13} />
         </button>
       </td>
     </tr>
@@ -312,6 +313,15 @@ const ClientCalls = ({ isEmbedded = false }) => {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [calls]);
 
+  // Sorted clients alphabetically for easier selection
+  const sortedClients = useMemo(() => {
+    return [...clients].sort((a, b) => {
+      const nameA = a.companyName || a.clientName || "";
+      const nameB = b.companyName || b.clientName || "";
+      return nameA.localeCompare(nameB);
+    });
+  }, [clients]);
+
   // Optimized Filtered Calls
   const filteredCalls = useMemo(() => {
     const currentUserId = user?._id || user?.id;
@@ -394,7 +404,6 @@ const ClientCalls = ({ isEmbedded = false }) => {
     });
     setTimeMode("manual");
     setShowAddForm(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   const handleDelete = useCallback(
@@ -414,6 +423,11 @@ const ClientCalls = ({ isEmbedded = false }) => {
   );
 
   const handleCancel = useCallback(() => {
+    if (isTimerRunning) {
+      if (!window.confirm("A call timer is actively running. Are you sure you want to cancel and discard it?")) {
+        return;
+      }
+    }
     setShowAddForm(false);
     setEditId(null);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -427,7 +441,18 @@ const ClientCalls = ({ isEmbedded = false }) => {
       endTime: "",
       duration: "",
     });
-  }, []);
+  }, [isTimerRunning]);
+
+  // Close modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && showAddForm) {
+        handleCancel();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showAddForm, handleCancel]);
 
   const handleSubmit = useCallback(
     async (e) => {
@@ -518,129 +543,272 @@ const ClientCalls = ({ isEmbedded = false }) => {
   }, []);
 
   return (
-    <div className={isEmbedded ? "px-6 pb-6" : "p-6"}>
+    <div className={isEmbedded ? "px-3.5 pb-4" : "p-3 sm:p-4"}>
       {/* Top Header when standalone */}
       {!isEmbedded && (
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
-              <FiPhoneCall size={24} />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Client Calls</h1>
+        <div className="flex items-center space-x-2.5 mb-3">
+          <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+            <FiPhoneCall size={18} />
           </div>
-          {!showAddForm && (
-            <button
-              onClick={() => {
-                setEditId(null);
-                setTimeMode("timer");
-                setShowAddForm(true);
-              }}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium text-sm cursor-pointer"
-            >
-              <FiPlus className="mr-2" /> Log New Call
-            </button>
-          )}
+          <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">Client Calls</h1>
         </div>
       )}
 
-      {/* Button when embedded */}
-      {isEmbedded && !showAddForm && (
-        <div className="flex justify-end mb-4">
+      {/* Filter Bar Above Table */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3 p-2.5 bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800/60 rounded-xl shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+          <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pr-1">
+            <FiFilter size={12} className="text-indigo-500" />
+            <span>Filters:</span>
+          </div>
+
+          {/* Date Filter */}
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className={`toolbar-filter-date ${filterDate ? "is-active" : ""}`}
+            title="Filter by Call Date"
+          />
+
+          {/* Client Filter */}
+          <select
+            value={filterClient}
+            onChange={(e) => setFilterClient(e.target.value)}
+            className={`toolbar-filter-select max-w-[200px] ${filterClient ? "is-active" : ""}`}
+          >
+            <option value="">All Clients ({clients.length})</option>
+            {sortedClients.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.companyName || c.clientName || "Unnamed Client"}
+              </option>
+            ))}
+          </select>
+
+          {/* Posted By Filter */}
+          {(user?.role !== "team" || isSocialMediaManager) && (
+            <select
+              value={filterPostedBy}
+              onChange={(e) => setFilterPostedBy(e.target.value)}
+              className={`toolbar-filter-select max-w-[190px] ${filterPostedBy ? "is-active" : ""}`}
+            >
+              <option value="">All Posted By ({postedByList.length})</option>
+              {postedByList.map((u) => (
+                <option key={u._id} value={u._id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Clear Filters Button */}
+          {(filterDate || filterClient || filterPostedBy) && (
+            <button
+              onClick={handleResetFilters}
+              className="h-9 px-2.5 flex items-center text-xs text-rose-500 hover:text-rose-600 font-bold rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Right Section: Counter Summary & Log New Call Button */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap hidden sm:block">
+            Total Calls: <span className="font-bold text-slate-700 dark:text-slate-300">{filteredCalls.length}</span>
+          </div>
           <button
+            type="button"
             onClick={() => {
               setEditId(null);
               setTimeMode("timer");
               setShowAddForm(true);
             }}
-            className="flex items-center mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm text-sm font-semibold cursor-pointer"
+            className="h-9 flex items-center gap-1.5 px-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl shadow-xs font-bold text-xs cursor-pointer transition-all whitespace-nowrap"
           >
-            <FiPlus className="mr-2" /> Log New Call
+            <FiPlus size={14} />
+            <span>Log New Call</span>
           </button>
         </div>
-      )}
+      </div>
 
-      {/* Add / Edit Form Modal/Section */}
+      {/* Log / Edit Call Modal */}
       {showAddForm && (
-        <div className="bg-white dark:bg-[#0B1120] rounded-xl border border-indigo-100 dark:border-indigo-900/30 p-6 mb-6 shadow-sm transition-all duration-300">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-white flex items-center">
-              {editId ? <FiEdit2 className="mr-2 text-indigo-500" /> : <FiPlus className="mr-2 text-indigo-500" />}
-              {editId ? "Edit Call Record" : "Create New Call Record"}
-            </h2>
-
-            {/* Time Mode Toggle */}
-            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              handleCancel();
+            }
+          }}
+        >
+          <div
+            className="bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between bg-gradient-to-r from-indigo-50/60 via-white to-transparent dark:from-indigo-950/20 dark:via-transparent dark:to-transparent shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <FiPhoneCall size={16} />
+                </div>
+                <div>
+                  <h2 className="text-sm sm:text-base font-bold text-slate-800 dark:text-white leading-tight flex items-center gap-1.5">
+                    {editId ? "Edit Call Record" : "Log New Client Call"}
+                  </h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {editId ? "Update discussion notes or call timing" : "Record client discussion, action items, and duration"}
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
-                onClick={() => setTimeMode("timer")}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                  timeMode === "timer"
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                }`}
+                onClick={handleCancel}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Close"
               >
-                Live Timer
-              </button>
-              <button
-                type="button"
-                onClick={() => setTimeMode("manual")}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                  timeMode === "manual"
-                    ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                }`}
-              >
-                Manual Entry
+                <FiX size={16} />
               </button>
             </div>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date</label>
-                <input
-                  type="date"
-                  name="date"
-                  required
-                  value={formData.date}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Client</label>
-                <select
-                  name="client"
-                  required
-                  value={formData.client}
-                  onChange={handleChange}
-                  disabled={loading || clients.length === 0}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+            {/* Time Mode Segmented Switcher */}
+            <div className="px-5 pt-3.5 pb-1 shrink-0">
+              <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-slate-700/60 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setTimeMode("timer")}
+                  className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    timeMode === "timer"
+                      ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-xs"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
                 >
-                  {loading ? (
-                    <option value="">Loading clients...</option>
-                  ) : clients.length === 0 ? (
-                    <option value="">No clients available</option>
-                  ) : (
-                    <>
-                      <option value="">Select client...</option>
-                      {clients.map((client) => (
-                        <option key={client._id} value={client._id}>
-                          {client.companyName}
-                        </option>
-                      ))}
-                    </>
-                  )}
-                </select>
+                  <FiPlay size={11} className={timeMode === "timer" ? "text-indigo-500 dark:text-white" : ""} />
+                  <span>Live Stopwatch</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeMode("manual")}
+                  className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    timeMode === "manual"
+                      ? "bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-xs"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <FiClock size={11} className={timeMode === "manual" ? "text-indigo-500 dark:text-white" : ""} />
+                  <span>Manual Entry</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body - Scrollable Form */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-3.5 space-y-3.5">
+              {/* Row 1: Date & Client */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Date <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="date"
+                    required
+                    value={formData.date}
+                    onChange={handleChange}
+                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white text-xs h-9 cursor-pointer transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Client <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    name="client"
+                    required
+                    value={formData.client}
+                    onChange={handleChange}
+                    disabled={loading || clients.length === 0}
+                    className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white text-xs h-9 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed transition-all"
+                  >
+                    {loading ? (
+                      <option value="">Loading clients...</option>
+                    ) : clients.length === 0 ? (
+                      <option value="">No clients available</option>
+                    ) : (
+                      <>
+                        <option value="">Select client...</option>
+                        {sortedClients.map((client) => (
+                          <option key={client._id} value={client._id}>
+                            {client.companyName || client.clientName || "Unnamed"}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </div>
               </div>
 
-              {/* Conditional Time Inputs */}
-              {timeMode === "manual" ? (
-                <>
+              {/* Row 2: Timing Section (Live Stopwatch or Manual Entry) */}
+              {timeMode === "timer" ? (
+                <div className="p-3.5 bg-gradient-to-br from-indigo-50/60 via-slate-50 to-indigo-50/30 dark:from-indigo-950/30 dark:via-slate-800/50 dark:to-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="font-mono text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-wider bg-white dark:bg-slate-900 px-3.5 py-1.5 rounded-xl border border-indigo-200/80 dark:border-indigo-800/60 shadow-2xs">
+                        {formatElapsedTime(elapsedSeconds)}
+                      </div>
+                      <div className="text-xs">
+                        {formData.startTime && !isTimerRunning && formData.endTime ? (
+                          <div className="text-slate-600 dark:text-slate-300">
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">Call Finished</span>
+                            <div className="text-[11px] text-slate-400">
+                              {formatTime12hr(formData.startTime)} - {formatTime12hr(formData.endTime)} ({formData.duration})
+                            </div>
+                          </div>
+                        ) : isTimerRunning ? (
+                          <div>
+                            <span className="inline-flex items-center text-emerald-600 dark:text-emerald-400 font-bold text-xs">
+                              <span className="animate-ping mr-1.5 h-2 w-2 bg-emerald-500 rounded-full"></span>
+                              Call in progress...
+                            </span>
+                            <div className="text-[11px] text-slate-400">Started at {formatTime12hr(formData.startTime)}</div>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-semibold text-slate-700 dark:text-slate-300 text-xs">Ready to start</span>
+                            <div className="text-[11px] text-slate-400">Select client & click Start Call</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="self-end sm:self-center">
+                      {!isTimerRunning ? (
+                        <button
+                          type="button"
+                          onClick={startTimer}
+                          disabled={!formData.client}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          <FiPlay size={13} /> <span>Start Call</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={stopTimer}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-xs transition-all active:scale-95 cursor-pointer animate-pulse"
+                        >
+                          <FiSquare size={13} /> <span>End Call</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/60 rounded-xl">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Start Time
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                      Start Time <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="time"
@@ -648,12 +816,12 @@ const ClientCalls = ({ isEmbedded = false }) => {
                       required
                       value={formData.startTime}
                       onChange={handleTimeChange}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white text-xs h-9 cursor-pointer"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      End Time
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                      End Time <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="time"
@@ -661,185 +829,78 @@ const ClientCalls = ({ isEmbedded = false }) => {
                       required
                       value={formData.endTime}
                       onChange={handleTimeChange}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm"
+                      className="w-full px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white text-xs h-9 cursor-pointer"
                     />
                   </div>
-                </>
-              ) : (
-                <div className="lg:col-span-2 flex items-end">
-                  <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-3 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="font-mono text-xl font-medium text-indigo-600 dark:text-indigo-400 tracking-wider w-20 text-center">
-                        {formatElapsedTime(elapsedSeconds)}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        {formData.startTime && !isTimerRunning && formData.endTime ? (
-                          <span>
-                            Call finished ({formatTime12hr(formData.startTime)} - {formatTime12hr(formData.endTime)})
-                          </span>
-                        ) : isTimerRunning ? (
-                          <span className="flex items-center text-emerald-500">
-                            <span className="animate-pulse mr-1 h-2 w-2 bg-emerald-500 rounded-full"></span> Call in
-                            progress...
-                          </span>
-                        ) : (
-                          <span>Click start when call begins</span>
-                        )}
-                      </div>
+                  {formData.duration && (
+                    <div className="col-span-2 flex items-center justify-end text-[11px] text-slate-500 dark:text-slate-400">
+                      Calculated Duration: <span className="font-bold text-indigo-600 dark:text-indigo-400 ml-1.5">{formData.duration}</span>
                     </div>
-                    <div>
-                      {!isTimerRunning ? (
-                        <button
-                          type="button"
-                          onClick={startTimer}
-                          disabled={!formData.client}
-                          className="flex items-center px-4 py-1.5 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                        >
-                          <FiPlay className="mr-1.5" /> Start
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={stopTimer}
-                          className="flex items-center px-4 py-1.5 bg-rose-600 text-white rounded-md hover:bg-rose-700 text-sm font-medium transition-colors cursor-pointer"
-                        >
-                          <FiSquare className="mr-1.5" /> End Call
-                        </button>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Discussion Points / MOM
-              </label>
-              <textarea
-                name="discussionPoints"
-                rows="4"
-                required
-                value={formData.discussionPoints}
-                onChange={handleChange}
-                placeholder="What was discussed in this call? Key decisions, action items, or feedback..."
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 dark:text-white text-sm"
-              ></textarea>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-              <div className="text-sm text-slate-500 dark:text-slate-400">
-                Duration:{" "}
-                <span className="font-semibold text-slate-700 dark:text-slate-300">
-                  {formData.duration || "--"}
-                </span>
+              {/* Row 3: Discussion Points / MOM */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                  Discussion Points / MOM <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  name="discussionPoints"
+                  rows="3"
+                  required
+                  value={formData.discussionPoints}
+                  onChange={handleChange}
+                  placeholder="What was discussed in this call? Key decisions, action items, feedback, deliverables..."
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-white text-xs resize-none placeholder:text-slate-400 leading-relaxed"
+                ></textarea>
               </div>
-              <div className="flex space-x-3">
-                {!isTimerRunning && (
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <FiClock size={12} className="text-slate-400" />
+                  <span>Duration:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {formData.duration || "--"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    disabled={submitting}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={submitting || isTimerRunning}
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-70 flex items-center cursor-pointer"
-                >
-                  <FiSave className="mr-2" /> {submitting ? "Saving..." : editId ? "Update Record" : "Save Record"}
-                </button>
+                  <button
+                    type="submit"
+                    disabled={submitting || isTimerRunning || !formData.duration}
+                    className="px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <FiSave size={13} />
+                    <span>{submitting ? "Saving..." : editId ? "Update Call" : "Save Call"}</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       )}
-
-      {/* Filter Bar Above Table */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 p-3.5 bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-800/60 rounded-xl shadow-xs">
-        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider pr-1">
-            <FiFilter size={14} className="text-indigo-500" />
-            <span>Filters:</span>
-          </div>
-
-          {/* Date Filter */}
-          <div className="relative flex items-center">
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all cursor-pointer"
-              title="Filter by Call Date"
-            />
-          </div>
-
-          {/* Client Filter */}
-          <div className="relative">
-            <select
-              value={filterClient}
-              onChange={(e) => setFilterClient(e.target.value)}
-              className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all cursor-pointer max-w-[200px]"
-            >
-              <option value="">All Clients ({clients.length})</option>
-              {clients.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.companyName || c.clientName || "Unnamed Client"}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Posted By Filter */}
-          {(user?.role !== "team" || isSocialMediaManager) && (
-            <div className="relative">
-              <select
-                value={filterPostedBy}
-                onChange={(e) => setFilterPostedBy(e.target.value)}
-                className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all cursor-pointer max-w-[180px]"
-              >
-                <option value="">All Posted By ({postedByList.length})</option>
-                {postedByList.map((u) => (
-                  <option key={u._id} value={u._id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Clear Filters Button */}
-          {(filterDate || filterClient || filterPostedBy) && (
-            <button
-              onClick={handleResetFilters}
-              className="text-xs text-rose-500 hover:text-rose-600 font-semibold px-2.5 py-1 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
-            >
-              Clear Filters
-            </button>
-          )}
-        </div>
-
-        {/* Counter Summary */}
-        <div className="text-xs text-slate-400 dark:text-slate-500 font-medium whitespace-nowrap self-center">
-          Total Calls: <span className="font-bold text-slate-700 dark:text-slate-300">{filteredCalls.length}</span>
-        </div>
-      </div>
-
       {/* Main Table Container */}
-      <div className="bg-white dark:bg-[#0B1120] rounded-xl border border-slate-200 dark:border-slate-800/60 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-[#0B1120] rounded-xl border border-slate-200 dark:border-slate-800/60 shadow-2xs overflow-hidden">
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="flex justify-center items-center h-48">
+            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div>
           </div>
         ) : calls.length === 0 && !showAddForm ? (
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 mx-auto bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 mb-3">
-              <FiPhoneCall size={32} />
+          <div className="p-8 text-center">
+            <div className="w-12 h-12 mx-auto bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 mb-2.5">
+              <FiPhoneCall size={24} />
             </div>
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">No Calls Logged</h3>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 mb-4">
+            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">No Calls Logged</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-3">
               You haven't recorded any client calls yet.
             </p>
             <button
@@ -848,23 +909,23 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 setTimeMode("timer");
                 setShowAddForm(true);
               }}
-              className="inline-flex items-center px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-medium text-sm cursor-pointer"
+              className="inline-flex items-center px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors font-bold text-xs cursor-pointer"
             >
-              <FiPlus className="mr-2" /> Log Your First Call
+              <FiPlus className="mr-1.5" size={13} /> Log Your First Call
             </button>
           </div>
         ) : filteredCalls.length === 0 && !showAddForm ? (
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 mx-auto bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 mb-3">
-              <FiFilter size={28} />
+          <div className="p-8 text-center">
+            <div className="w-12 h-12 mx-auto bg-slate-50 dark:bg-slate-800/50 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 mb-2.5">
+              <FiFilter size={22} />
             </div>
-            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-200">No matching call records</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No matching call records</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-3">
               No client calls match your current filter criteria.
             </p>
             <button
               onClick={handleResetFilters}
-              className="inline-flex items-center px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-medium text-xs cursor-pointer"
+              className="inline-flex items-center px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors font-semibold text-xs cursor-pointer"
             >
               Reset Filters
             </button>
@@ -873,17 +934,17 @@ const ClientCalls = ({ isEmbedded = false }) => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700/60 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-medium">Date</th>
-                  <th className="px-6 py-4 font-medium">Client</th>
-                  <th className="px-6 py-4 font-medium">Posted By</th>
-                  <th className="px-6 py-4 font-medium">Time</th>
-                  <th className="px-6 py-4 font-medium">Duration</th>
-                  <th className="px-6 py-4 font-medium">Discussion Points</th>
-                  <th className="px-6 py-4 font-medium text-right">Actions</th>
+                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700/60 text-slate-600 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
+                  <th className="px-3.5 py-2.5 font-bold">Date</th>
+                  <th className="px-3.5 py-2.5 font-bold">Client</th>
+                  <th className="px-3.5 py-2.5 font-bold">Posted By</th>
+                  <th className="px-3.5 py-2.5 font-bold">Time</th>
+                  <th className="px-3.5 py-2.5 font-bold">Duration</th>
+                  <th className="px-3.5 py-2.5 font-bold">Discussion Points</th>
+                  <th className="px-3.5 py-2.5 font-bold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60">
+              <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800/60">
                 {paginatedCalls.map((call) => (
                   <CallRow key={call._id} call={call} onEdit={handleEdit} onDelete={handleDelete} />
                 ))}
@@ -894,7 +955,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
 
         {/* Pagination Footer */}
         {filteredCalls.length > 0 && (
-          <div className="px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/60 dark:bg-[#0E1526]">
+          <div className="px-3.5 py-2 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-slate-50/60 dark:bg-[#0E1526]">
             <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Showing{" "}
               <span className="font-bold text-slate-700 dark:text-slate-200">
@@ -912,7 +973,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
               >
                 Previous
               </button>
@@ -934,9 +995,9 @@ const ClientCalls = ({ isEmbedded = false }) => {
                         <button
                           type="button"
                           onClick={() => setCurrentPage(page)}
-                          className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          className={`w-6 h-6 flex items-center justify-center rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             currentPage === page
-                              ? "bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-600"
+                              ? "bg-indigo-600 text-white shadow-2xs ring-1 ring-indigo-600"
                               : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                           }`}
                         >
@@ -951,7 +1012,7 @@ const ClientCalls = ({ isEmbedded = false }) => {
                 type="button"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
+                className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs cursor-pointer"
               >
                 Next
               </button>

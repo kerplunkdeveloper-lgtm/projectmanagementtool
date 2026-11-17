@@ -204,6 +204,7 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
   const uniqueStatuses = React.useMemo(() => {
     const defaultStatuses = [
       "Not Started",
+      "Pending",
       "In Progress",
       "In Review",
       "Correction",
@@ -317,6 +318,8 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
               sLower !== "not_started"
             )
               return false;
+          } else if (targetLower === "pending") {
+            if (sLower !== "pending") return false;
           } else if (sLower !== targetLower) {
             return false;
           }
@@ -347,6 +350,32 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
         return true;
       })
       .sort((a, b) => {
+        // 1. Show "Not Started" and "Pending" tasks FIRST
+        const getStatusRank = (st) => {
+          const s = (st || "").toLowerCase().trim();
+          if (
+            s === "not started" ||
+            s === "not-started" ||
+            s === "not_started" ||
+            s === "pending"
+          ) {
+            return 1;
+          }
+          if (s === "in progress" || s === "inprogress") return 2;
+          if (s === "in review" || s === "inreview") return 3;
+          if (s === "correction") return 4;
+          if (s === "on hold" || s === "onhold") return 5;
+          if (s === "completed") return 9;
+          return 6;
+        };
+
+        const statusRankA = getStatusRank(a.status);
+        const statusRankB = getStatusRank(b.status);
+        if (statusRankA !== statusRankB) {
+          return statusRankA - statusRankB;
+        }
+
+        // 2. Priority Rank (Top High -> High -> Medium -> Low)
         const isSameA = isSameDateHelper(a.startDate, a.dueDate);
         const isSameB = isSameDateHelper(b.startDate, b.dueDate);
         const pA = isSameA ? "Top High" : a.priority || "Medium";
@@ -356,6 +385,7 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
         const rankB = priorityRank[pB] || 3;
         if (rankA !== rankB) return rankA - rankB;
 
+        // 3. Due Date Rank (earliest/overdue first)
         const dateA = a.dueDate || a.startDate;
         const dateB = b.dueDate || b.startDate;
         if (!dateA) return 1;
@@ -392,6 +422,24 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
     const month = months[d.getMonth()];
     const year = d.getFullYear();
     return `${day} ${month} ${year}`;
+  };
+
+  const formatShortDate = (dateStr) => {
+    if (!dateStr) return "";
+    try {
+      const parts = String(dateStr).split("-");
+      if (parts.length === 3) {
+        const [y, m, d] = parts;
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const mIdx = parseInt(m, 10) - 1;
+        return `${parseInt(d, 10)} ${months[mIdx] || m}`;
+      }
+      const d = new Date(dateStr);
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return `${d.getDate()} ${months[d.getMonth()]}`;
+    } catch {
+      return dateStr;
+    }
   };
 
   const isFilterActive =
@@ -468,41 +516,42 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
         </div>
 
         {/* ─── Filter Tabs Row (All Tasks, Top High, Today, Upcoming, Overdue, Completed) ─── */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 mb-2.5">
           {[
             {
               id: "all",
               label: "All Tasks",
               count: taskStats.allCount,
-              activeBg: "bg-emerald-600 border-emerald-600 text-white",
+              activeBg: "bg-blue-600 border-blue-600 text-white shadow-xs",
               badgeActive: "bg-white/20 text-white",
-              idle: "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800",
-              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200",
+              idle: "border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800",
+              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300",
             },
             {
               id: "top_high",
-              label: "🔴 Top High",
+              label: "Top High",
+              dot: "🔴",
               count: taskStats.topHighCount,
-              activeBg: "bg-red-600 border-red-600 text-white shadow-red-500/30",
+              activeBg: "bg-rose-600 border-rose-600 text-white shadow-rose-500/20",
               badgeActive: "bg-white/25 text-white",
-              idle: "border-yellow-400/80 dark:border-yellow-500/40 text-red-700 dark:text-yellow-300 bg-yellow-50/80 dark:bg-yellow-950/30 hover:bg-yellow-100/80",
-              badgeIdle: "bg-yellow-200 dark:bg-yellow-900/60 text-red-900 dark:text-yellow-200",
+              idle: "border-yellow-400/80 dark:border-yellow-500/40 text-rose-700 dark:text-yellow-300 bg-yellow-50/80 dark:bg-yellow-950/30 hover:bg-yellow-100/80",
+              badgeIdle: "bg-yellow-200 dark:bg-yellow-900/60 text-rose-900 dark:text-yellow-200",
               highlight: taskStats.topHighCount > 0,
             },
             {
               id: "today",
               label: "Today",
               count: taskStats.todayCount,
-              activeBg: "bg-amber-600 border-amber-600 text-white",
+              activeBg: "bg-amber-600 border-amber-600 text-white shadow-amber-500/20",
               badgeActive: "bg-white/20 text-white",
-              idle: "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800",
-              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200",
+              idle: "border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800",
+              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300",
             },
             {
               id: "upcoming",
               label: "Upcoming",
               count: taskStats.upcomingCount,
-              activeBg: "bg-blue-600 border-blue-600 text-white",
+              activeBg: "bg-indigo-600 border-indigo-600 text-white shadow-indigo-500/20",
               badgeActive: "bg-white/20 text-white",
               idle: "border-blue-200/80 dark:border-blue-800/40 text-blue-700 dark:text-blue-300 bg-blue-50/60 dark:bg-blue-950/30 hover:bg-blue-100/60",
               badgeIdle: "bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200",
@@ -511,7 +560,7 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
               id: "overdue",
               label: "Overdue",
               count: taskStats.overdueCount,
-              activeBg: "bg-rose-600 border-rose-600 text-white",
+              activeBg: "bg-rose-600 border-rose-600 text-white shadow-rose-500/20",
               badgeActive: "bg-white/20 text-white",
               idle: "border-rose-200/80 dark:border-rose-800/40 text-rose-700 dark:text-rose-300 bg-rose-50/60 dark:bg-rose-950/30 hover:bg-rose-100/60",
               badgeIdle: "bg-rose-100 dark:bg-rose-900/60 text-rose-800 dark:text-rose-200",
@@ -521,10 +570,10 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
               id: "completed",
               label: "Completed",
               count: taskStats.completedCount,
-              activeBg: "bg-emerald-600 border-emerald-600 text-white",
+              activeBg: "bg-emerald-600 border-emerald-600 text-white shadow-emerald-500/20",
               badgeActive: "bg-white/20 text-white",
-              idle: "border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800",
-              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200",
+              idle: "border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800",
+              badgeIdle: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300",
             },
           ].map((tab) => {
             const isActive = filterTab === tab.id;
@@ -532,15 +581,16 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
               <button
                 key={tab.id}
                 onClick={() => setFilterTab(tab.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-bold transition-all shadow-2xs cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-2xs shrink-0 cursor-pointer border ${
                   isActive
-                    ? `${tab.activeBg} shadow-xs scale-[1.02]`
+                    ? `${tab.activeBg} shadow-xs scale-[1.01]`
                     : `${tab.idle}`
                 } ${tab.highlight ? "animate-pulse" : ""}`}
               >
+                {tab.dot && <span className="text-[10px]">{tab.dot}</span>}
                 <span>{tab.label}</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-black min-w-[16px] text-center ${
+                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-black min-w-[16px] text-center ${
                     isActive ? tab.badgeActive : tab.badgeIdle
                   }`}
                 >
@@ -551,103 +601,134 @@ const GraphicDesignerDeadlines = React.memo(({ user }) => {
           })}
         </div>
 
-        {/* ─── Detailed Filters: All Status, Priority, Client, Date Picker ─── */}
-        <div className="flex flex-wrap items-center gap-2 pb-2 text-[11px]">
-          {/* Status Dropdown ("All status wise") */}
-          <div className="flex items-center gap-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-200 shadow-2xs">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10px]">
-              Status:
-            </span>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 text-[11px]"
-            >
-              <option value="all" className="dark:bg-slate-800">
-                All Status
+        {/* ─── Detailed Filters: All Status, Priority, Client, Date Picker (Single Sleek Row) ─── */}
+        <div className="flex items-center gap-1.5 flex-wrap pb-2 text-xs">
+          {/* Status Dropdown */}
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className={`h-7.5 pl-2.5 pr-6 rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
+              selectedStatus !== "all"
+                ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
+                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-750"
+            }`}
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 0.45rem center",
+              backgroundSize: "0.6rem 0.6rem",
+            }}
+          >
+            <option value="all">All Status</option>
+            {uniqueStatuses.map((st) => (
+              <option key={st} value={st}>
+                {st}
               </option>
-              {uniqueStatuses.map((st) => (
-                <option key={st} value={st} className="dark:bg-slate-800">
-                  {st}
-                </option>
-              ))}
-            </select>
-          </div>
+            ))}
+          </select>
 
-          {/* Priority Dropdown ("easy find top high priority") */}
-          <div className="flex items-center gap-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-200 shadow-2xs">
-            <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10px]">
-              Priority:
-            </span>
-            <select
-              value={selectedPriority}
-              onChange={(e) => setSelectedPriority(e.target.value)}
-              className="bg-transparent font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 text-[11px]"
-            >
-              <option value="all" className="dark:bg-slate-800">
-                All Priority
-              </option>
-              <option value="Top High" className="dark:bg-slate-800">
-                🔴 Top High
-              </option>
-              <option value="High" className="dark:bg-slate-800">
-                High
-              </option>
-              <option value="Medium" className="dark:bg-slate-800">
-                Medium
-              </option>
-              <option value="Low" className="dark:bg-slate-800">
-                Low
-              </option>
-            </select>
-          </div>
+          {/* Priority Dropdown */}
+          <select
+            value={selectedPriority}
+            onChange={(e) => setSelectedPriority(e.target.value)}
+            className={`h-7.5 pl-2.5 pr-6 rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
+              selectedPriority !== "all"
+                ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
+                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-750"
+            }`}
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+              backgroundRepeat: "no-repeat",
+              backgroundPosition: "right 0.45rem center",
+              backgroundSize: "0.6rem 0.6rem",
+            }}
+          >
+            <option value="all">All Priority</option>
+            <option value="Top High">🔴 Top High</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
 
           {/* Client Filter Dropdown */}
           {uniqueClients.length > 0 && (
-            <div className="flex items-center gap-1 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-2.5 py-1 rounded-lg text-slate-700 dark:text-slate-200 shadow-2xs">
-              <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10px]">
-                Client:
-              </span>
-              <select
-                value={selectedClient}
-                onChange={(e) => setSelectedClient(e.target.value)}
-                className="bg-transparent font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 text-[11px] max-w-[130px] truncate"
-              >
-                <option value="all" className="dark:bg-slate-800">
-                  All Clients
+            <select
+              value={selectedClient}
+              onChange={(e) => setSelectedClient(e.target.value)}
+              className={`h-7.5 pl-2.5 pr-6 rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none max-w-[130px] truncate shrink-0 ${
+                selectedClient !== "all"
+                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
+                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-750"
+              }`}
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.45rem center",
+                backgroundSize: "0.6rem 0.6rem",
+              }}
+            >
+              <option value="all">All Clients</option>
+              {uniqueClients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
-                {uniqueClients.map((c) => (
-                  <option key={c.id} value={c.id} className="dark:bg-slate-800">
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+              ))}
+            </select>
           )}
 
-          {/* Date Picker Filter */}
-          <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 px-2 py-1 rounded-lg text-slate-800 dark:text-slate-100 shadow-2xs">
-            <FiCalendar
-              className="shrink-0 text-emerald-600 dark:text-emerald-400"
-              size={12}
-            />
+          {/* Compact Date Filter Pill */}
+          <div className="relative inline-flex items-center shrink-0">
+            <div
+              className={`h-7.5 px-2.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
+                selectedDate
+                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
+                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-slate-750"
+              }`}
+            >
+              <FiCalendar
+                size={12}
+                className={selectedDate ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}
+              />
+              <span className="whitespace-nowrap">
+                {selectedDate ? formatShortDate(selectedDate) : "Date"}
+              </span>
+              {selectedDate ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedDate("");
+                  }}
+                  className="text-slate-400 hover:text-rose-500 transition-colors ml-0.5 cursor-pointer z-10"
+                  title="Clear date"
+                >
+                  <FiX size={12} />
+                </button>
+              ) : (
+                <FiChevronDown size={11} className="text-slate-400 pointer-events-none" />
+              )}
+            </div>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent text-[10.5px] font-bold outline-none cursor-pointer text-slate-800 dark:text-slate-100 [&::-webkit-calendar-picker-indicator]:dark:invert"
+              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              title="Filter by date"
             />
-            {selectedDate && (
-              <button
-                type="button"
-                onClick={() => setSelectedDate("")}
-                className="text-slate-400 hover:text-rose-500 transition-colors ml-0.5"
-                title="Clear date"
-              >
-                <FiX size={11} />
-              </button>
-            )}
           </div>
+
+          {/* Reset Filters Button (Inline) */}
+          {isFilterActive && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="h-7.5 px-2 rounded-lg text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-all cursor-pointer flex items-center gap-1 shadow-2xs shrink-0"
+              title="Reset all filters"
+            >
+              <FiRotateCcw size={11} />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -2043,7 +2124,7 @@ const Dashboardmain = () => {
 
       {/* Goal tasks (Left) & My Projects / View Task Board (Right) */}
       <div
-        className={`grid grid-cols-1 ${canSeeProjectsShortcut || isGraphicDesigner || isCinematographer ? "xl:grid-cols-1" : "grid-cols-1"} gap-4 mt-2 relative z-10 items-stretch`}
+        className={`grid grid-cols-1 ${canSeeProjectsShortcut || isGraphicDesigner || isCinematographer ? "xl:grid-cols-2" : "grid-cols-1"} gap-4 mt-2 relative z-10 items-stretch`}
       >
         {/* My Goals tasks card */}
         <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-4 sm:p-5 flex flex-col min-h-[340px] relative w-full">
