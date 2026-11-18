@@ -619,9 +619,75 @@ const StatusOverview = () => {
     (users || []).forEach((u) => {
       if (u?._id) m.set(String(u._id), u);
       if (u?.id) m.set(String(u.id), u);
+      if (u?.name) m.set(u.name.trim().toLowerCase(), u);
     });
     return m;
   }, [users]);
+
+  // Set of inactive client identifiers (companyName lowercase, name lowercase, _id, id)
+  const inactiveClientIdentSet = useMemo(() => {
+    const set = new Set();
+    (clients || []).forEach((c) => {
+      if (!c) return;
+      if ((c?.status || "Active").toLowerCase() === "inactive") {
+        if (c?.companyName) set.add(c.companyName.trim().toLowerCase());
+        if (c?.name) set.add(c.name.trim().toLowerCase());
+        if (c?._id) set.add(String(c._id));
+        if (c?.id) set.add(String(c.id));
+      }
+    });
+    return set;
+  }, [clients]);
+
+  // Helper to check if a client is inactive
+  const isClientInactive = useCallback(
+    (c) => {
+      if (!c) return false;
+      if ((c.status || "").toLowerCase() === "inactive") return true;
+      const cId = String(c._id || c.id || "");
+      if (cId && inactiveClientIdentSet.has(cId)) return true;
+      const cName = (c.companyName || c.name || "").trim().toLowerCase();
+      if (cName && inactiveClientIdentSet.has(cName)) return true;
+      return false;
+    },
+    [inactiveClientIdentSet]
+  );
+
+  // Set of relieved/inactive user identifiers (lowercase name, _id, id, email)
+  const relievedUserIdentSet = useMemo(() => {
+    const set = new Set();
+    (users || []).forEach((u) => {
+      if (!u) return;
+      const empStatus = (u.employmentStatus || "").toLowerCase().trim();
+      const accStatus = (u.accountStatus || "").toLowerCase().trim();
+      const status = (u.status || "").toLowerCase().trim();
+      if (empStatus === "relieved" || accStatus === "inactive" || status === "relieved") {
+        if (u.name) set.add(u.name.trim().toLowerCase());
+        if (u.email) set.add(u.email.trim().toLowerCase());
+        if (u._id) set.add(String(u._id));
+        if (u.id) set.add(String(u.id));
+      }
+    });
+    return set;
+  }, [users]);
+
+  // Helper to check if a user is relieved / inactive
+  const isUserRelieved = useCallback(
+    (userRef) => {
+      if (!userRef) return false;
+      const uId = String(userRef._id || userRef.id || userRef || "");
+      if (uId && relievedUserIdentSet.has(uId)) return true;
+      const uName = (userRef.name || "").trim().toLowerCase();
+      if (uName && relievedUserIdentSet.has(uName)) return true;
+      const uEmail = (userRef.email || "").trim().toLowerCase();
+      if (uEmail && relievedUserIdentSet.has(uEmail)) return true;
+      const empStatus = (userRef.employmentStatus || "").toLowerCase().trim();
+      const accStatus = (userRef.accountStatus || "").toLowerCase().trim();
+      const status = (userRef.status || "").toLowerCase().trim();
+      return empStatus === "relieved" || accStatus === "inactive" || status === "relieved";
+    },
+    [relievedUserIdentSet]
+  );
 
   // Set of Chennai client IDs & names for Social Media Head filtering
   const { chennaiClientIdSet, chennaiClientNameSet } = useMemo(() => {
@@ -629,6 +695,7 @@ const StatusOverview = () => {
     const nameSet = new Set();
     (clients || []).forEach((c) => {
       if (!c) return;
+      if (isClientInactive(c)) return;
       const b = (c.branch || "").trim().toLowerCase();
       // For Social Media Head, clients from /api/clients are already Chennai branch; otherwise check branch === 'chennai'
       if (b === "chennai" || isSocialMediaHead) {
@@ -639,7 +706,7 @@ const StatusOverview = () => {
       }
     });
     return { chennaiClientIdSet: idSet, chennaiClientNameSet: nameSet };
-  }, [clients, isSocialMediaHead]);
+  }, [clients, isSocialMediaHead, isClientInactive]);
 
   // Robust helper to resolve client for ANY task
   const getTaskClient = useCallback(
@@ -777,10 +844,15 @@ const StatusOverview = () => {
     (t) => {
       if (!t) return null;
       const creatorRaw = typeof t.createdBy === "object" ? t.createdBy : null;
-      const creatorFromMap = usersMap.get(String(creatorRaw?._id || t.createdBy));
+      const cId = String(creatorRaw?._id || creatorRaw?.id || t.createdBy || "");
+      let creatorFromMap = cId ? usersMap.get(cId) : null;
+      if (!creatorFromMap) {
+        const cName = (creatorRaw?.name || t.createdByName || "").trim().toLowerCase();
+        if (cName) creatorFromMap = usersMap.get(cName);
+      }
       return creatorFromMap
         ? { ...creatorRaw, ...creatorFromMap }
-        : creatorRaw || creatorFromMap || null;
+        : creatorRaw || creatorFromMap || (t.createdByName ? { name: t.createdByName } : null);
     },
     [usersMap]
   );
@@ -1209,31 +1281,35 @@ const StatusOverview = () => {
     return activeTab === "designer" ? allDesignerTasks : allCinematographerTasks;
   }, [activeTab, allDesignerTasks, allCinematographerTasks]);
 
-  // Unique client options for filter (combining all available clients + tasks' clients)
+  // Unique client options for filter (combining all available clients + tasks' clients, strictly excluding inactive clients)
   const clientFilterOptions = useMemo(() => {
     const map = new Map();
 
-    // 1. All clients registered in the system (filtered for Social Media Head / Executive)
+    // 1. All active clients registered in the system (filtered for Social Media Head / Executive)
     if (!isSocialMediaExecutive) {
       (clients || []).forEach((c) => {
+        if (isClientInactive(c)) return;
         if (isSocialMediaHead) {
           const b = (c?.branch || "").trim().toLowerCase();
           if (b && b !== "chennai") return;
         }
         const name = c?.companyName || c?.name;
         if (name && name.trim()) {
+          if (inactiveClientIdentSet.has(name.trim().toLowerCase())) return;
           map.set(name.trim().toLowerCase(), name.trim());
         }
       });
     }
 
-    // 2. Any clients referenced in current tasks pool
+    // 2. Any active clients referenced in current tasks pool
     currentTabPool.forEach((t) => {
       if (isSocialMediaExecutive && !isTaskCreatedByCurrentUser(t)) return;
       if (isSocialMediaHead && !isTaskFromChennaiClient(t)) return;
       const c = getTaskClient(t);
+      if (isClientInactive(c)) return;
       const name = c?.companyName || c?.name;
       if (name && name.trim()) {
+        if (inactiveClientIdentSet.has(name.trim().toLowerCase())) return;
         map.set(name.trim().toLowerCase(), name.trim());
       }
     });
@@ -1243,24 +1319,41 @@ const StatusOverview = () => {
     clients,
     currentTabPool,
     getTaskClient,
+    isClientInactive,
+    inactiveClientIdentSet,
     isSocialMediaHead,
     isSocialMediaExecutive,
     isTaskFromChennaiClient,
     isTaskCreatedByCurrentUser,
   ]);
 
-  // Unique creator options for filter (from current task pool)
+  // Unique creator options for filter (from current task pool, strictly excluding relieved creators)
   const creatorFilterOptions = useMemo(() => {
     const map = new Map();
     currentTabPool.forEach((t) => {
       const creator = getTaskCreator(t);
+      if (creator && isUserRelieved(creator)) return;
       const name = creator?.name?.trim();
       if (name) {
+        if (relievedUserIdentSet.has(name.toLowerCase())) return;
         map.set(name.toLowerCase(), name);
       }
     });
     return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
-  }, [currentTabPool, getTaskCreator]);
+  }, [currentTabPool, getTaskCreator, isUserRelieved, relievedUserIdentSet]);
+
+  // Auto-reset filters if active selection was an inactive client or relieved creator
+  useEffect(() => {
+    if (clientFilter !== "All" && inactiveClientIdentSet.has(clientFilter.trim().toLowerCase())) {
+      setClientFilter("All");
+    }
+  }, [clientFilter, inactiveClientIdentSet]);
+
+  useEffect(() => {
+    if (creatorFilter !== "All" && relievedUserIdentSet.has(creatorFilter.trim().toLowerCase())) {
+      setCreatorFilter("All");
+    }
+  }, [creatorFilter, relievedUserIdentSet]);
 
   // Unique assignee options for filter (from current task pool and subtasks)
   const assigneeFilterOptions = useMemo(() => {
