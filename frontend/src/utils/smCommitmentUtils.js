@@ -237,9 +237,10 @@ export const computeAllClientsCommitments = (
   year = null,
   restrictToPassedClients = false
 ) => {
-  // Map clients from DB
+  // Map clients from DB (exclude inactive clients)
   const clientMap = new Map();
   (clients || []).forEach((c) => {
+    if ((c.status || "Active").toLowerCase() === "inactive") return;
     if (c.companyName) {
       clientMap.set(c.companyName.trim().toLowerCase(), c);
     }
@@ -247,9 +248,15 @@ export const computeAllClientsCommitments = (
 
   // Only scan tasks for other missing clients if we are NOT restricting to passed clients
   if (!restrictToPassedClients) {
+    const inactiveNamesSet = new Set(
+      (clients || [])
+        .filter((c) => (c.status || "Active").toLowerCase() === "inactive")
+        .map((c) => (c.companyName || "").trim().toLowerCase())
+    );
     (tasks || []).forEach((t) => {
+      if (t.client && typeof t.client === "object" && (t.client.status || "").toLowerCase() === "inactive") return;
       const name = (t.clientName || "").trim();
-      if (name && !clientMap.has(name.toLowerCase())) {
+      if (name && !clientMap.has(name.toLowerCase()) && !inactiveNamesSet.has(name.toLowerCase())) {
         clientMap.set(name.toLowerCase(), {
           _id: t.client?._id || t.client || name,
           companyName: name,

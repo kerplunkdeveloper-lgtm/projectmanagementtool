@@ -145,10 +145,15 @@ const PendingCommitmentModal = ({
 
   const monthName = MONTH_NAMES[currentMonth - 1] || "Current Month";
 
-  // Compute all clients' commitments
+  // Filter out inactive clients
+  const activeClients = useMemo(() => {
+    return (clients || []).filter((c) => (c.status || "Active").toLowerCase() !== "inactive");
+  }, [clients]);
+
+  // Compute all clients' commitments (strictly active clients)
   const { clientSummaries } = useMemo(() => {
-    return computeAllClientsCommitments(clients, tasks, currentMonth, currentYear);
-  }, [clients, tasks, currentMonth, currentYear]);
+    return computeAllClientsCommitments(activeClients, tasks, currentMonth, currentYear);
+  }, [activeClients, tasks, currentMonth, currentYear]);
 
   // Enriched summaries with SMM names, task breakdown, and live/completed status flags
   // ONLY clients that belong to the Social Media Executive department are included

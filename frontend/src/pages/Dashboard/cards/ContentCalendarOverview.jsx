@@ -303,10 +303,41 @@ const ContentCalendarOverview = () => {
   const isReadOnly = isSuperOrAdmin || isSocialMediaHead;
 
   // Chennai branch clients sets and checker for Social Media Head
+  const activeClients = useMemo(() => {
+    return (clientsFromStore || []).filter((c) => (c.status || "Active").toLowerCase() !== "inactive");
+  }, [clientsFromStore]);
+
+  const inactiveClientIdentSet = useMemo(() => {
+    const set = new Set();
+    (clientsFromStore || []).forEach((c) => {
+      if ((c.status || "Active").toLowerCase() === "inactive") {
+        if (c.companyName) set.add(c.companyName.trim().toLowerCase());
+        if (c._id) set.add(c._id.toString());
+        if (c.id) set.add(c.id.toString());
+      }
+    });
+    return set;
+  }, [clientsFromStore]);
+
+  const isTaskFromInactiveClient = useCallback(
+    (t) => {
+      if (!t) return false;
+      if (t.client && typeof t.client === "object" && (t.client.status || "").toLowerCase() === "inactive") {
+        return true;
+      }
+      const cId = (t.client?._id || t.client)?.toString();
+      if (cId && inactiveClientIdentSet.has(cId)) return true;
+      const cName = (t.clientName || t.client?.companyName || "").trim().toLowerCase();
+      if (cName && inactiveClientIdentSet.has(cName)) return true;
+      return false;
+    },
+    [inactiveClientIdentSet]
+  );
+
   const { chennaiClientIdSet, chennaiClientNameSet } = useMemo(() => {
     const idSet = new Set();
     const nameSet = new Set();
-    (clientsFromStore || []).forEach((c) => {
+    (activeClients || []).forEach((c) => {
       if (!c) return;
       const b = (c.branch || "").trim().toLowerCase();
       if (b === "chennai" || isSocialMediaHead) {
@@ -317,7 +348,7 @@ const ContentCalendarOverview = () => {
       }
     });
     return { chennaiClientIdSet: idSet, chennaiClientNameSet: nameSet };
-  }, [clientsFromStore, isSocialMediaHead]);
+  }, [activeClients, isSocialMediaHead]);
 
   const isTaskFromChennaiClient = useCallback(
     (t) => {
@@ -378,6 +409,7 @@ const ContentCalendarOverview = () => {
           (t.commitment === true || t.commitment === "true" || t.commitment === "Yes") &&
           isAllowedContentType(t.contentType) &&
           (!isSocialMediaHead || isTaskFromChennaiClient(t)) &&
+          !isTaskFromInactiveClient(t) &&
           (() => {
             const dateStr = t.publishDate || t.dueDate;
             if (!dateStr) return false;
@@ -395,7 +427,7 @@ const ContentCalendarOverview = () => {
     } finally {
       setLoading(false);
     }
-  }, [isCinematographer, selectedMonthDate, isSocialMediaHead, isTaskFromChennaiClient]);
+  }, [isCinematographer, selectedMonthDate, isSocialMediaHead, isTaskFromChennaiClient, isTaskFromInactiveClient]);
 
   useEffect(() => {
     if (!isCinematographer) {
@@ -403,10 +435,10 @@ const ContentCalendarOverview = () => {
     }
   }, [fetchTasks, isCinematographer]);
 
-  // Clients list for filter dropdown (filtered to Chennai branch for Social Media Head)
+  // Clients list for filter dropdown (filtered to Chennai branch for Social Media Head, excluding inactive clients)
   const clientOptions = useMemo(() => {
     const map = new Map();
-    clientsFromStore.forEach((c) => {
+    activeClients.forEach((c) => {
       if (isSocialMediaHead) {
         const b = (c.branch || "").trim().toLowerCase();
         if (b && b !== "chennai") return;
@@ -417,15 +449,16 @@ const ContentCalendarOverview = () => {
     });
     tasks.forEach((t) => {
       if (isSocialMediaHead && !isTaskFromChennaiClient(t)) return;
-      if (t.clientName) {
+      if (isTaskFromInactiveClient(t)) return;
+      if (t.clientName && !inactiveClientIdentSet.has(t.clientName.trim().toLowerCase())) {
         map.set(t.clientName.trim().toLowerCase(), t.clientName.trim());
       }
-      if (t.client?.companyName) {
+      if (t.client?.companyName && !inactiveClientIdentSet.has(t.client.companyName.trim().toLowerCase())) {
         map.set(t.client.companyName.trim().toLowerCase(), t.client.companyName.trim());
       }
     });
     return Array.from(map.values()).sort();
-  }, [clientsFromStore, tasks, isSocialMediaHead, isTaskFromChennaiClient]);
+  }, [activeClients, tasks, isSocialMediaHead, isTaskFromChennaiClient, isTaskFromInactiveClient, inactiveClientIdentSet]);
 
   // Content types list for filter dropdown - strictly Post, Reels, Stories
   const contentTypeOptions = useMemo(() => ["Post", "Reels", "Stories"], []);

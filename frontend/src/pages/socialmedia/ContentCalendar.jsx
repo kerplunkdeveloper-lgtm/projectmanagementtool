@@ -275,6 +275,39 @@ const ContentCalendar = () => {
   const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || [];
+
+  // Active clients list (filter out inactive clients)
+  const activeClients = useMemo(() => {
+    return (clients || []).filter((c) => (c.status || "Active").toLowerCase() !== "inactive");
+  }, [clients]);
+
+  // Set of inactive client identifiers (companyName lowercase, _id, id)
+  const inactiveClientIdentSet = useMemo(() => {
+    const set = new Set();
+    (clients || []).forEach((c) => {
+      if ((c.status || "Active").toLowerCase() === "inactive") {
+        if (c.companyName) set.add(c.companyName.trim().toLowerCase());
+        if (c._id) set.add(c._id.toString());
+        if (c.id) set.add(c.id.toString());
+      }
+    });
+    return set;
+  }, [clients]);
+
+  const isTaskFromInactiveClient = useCallback(
+    (t) => {
+      if (!t) return false;
+      if (t.client && typeof t.client === "object" && (t.client.status || "").toLowerCase() === "inactive") {
+        return true;
+      }
+      const cId = (t.client?._id || t.client)?.toString();
+      if (cId && inactiveClientIdentSet.has(cId)) return true;
+      const cName = (t.clientName || t.client?.companyName || "").trim().toLowerCase();
+      if (cName && inactiveClientIdentSet.has(cName)) return true;
+      return false;
+    },
+    [inactiveClientIdentSet]
+  );
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
@@ -648,16 +681,17 @@ const ContentCalendar = () => {
 
   const isCalendarLoading = loading || initialLoading;
 
-  // Ensure tasks are unique by document _id without deleting valid posts with the same title
+  // Ensure tasks are unique by document _id and filter out inactive client tasks
   const uniqueTasks = useMemo(() => {
     const seen = new Set();
     return (tasks || []).filter((t) => {
+      if (isTaskFromInactiveClient(t)) return false;
       const key = t._id ? t._id.toString() : JSON.stringify(t);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [tasks]);
+  }, [tasks, isTaskFromInactiveClient]);
 
   // Sets of Chennai branch client IDs and Names for Social Media Head filtering
   const { chennaiClientIdSet, chennaiClientNameSet } = useMemo(() => {
@@ -690,10 +724,10 @@ const ContentCalendar = () => {
     [chennaiClientIdSet, chennaiClientNameSet]
   );
 
-  // Dynamic client options (alphabetically sorted, filtered to Chennai branch for Social Media Head)
+  // Dynamic client options (alphabetically sorted, filtered to Chennai branch for Social Media Head, excluding inactive clients)
   const clientOptions = useMemo(() => {
     const set = new Set();
-    (clients || []).forEach((c) => {
+    (activeClients || []).forEach((c) => {
       if (isSocialMediaHead) {
         const b = (c.branch || "").trim().toLowerCase();
         if (b && b !== "chennai") return;
@@ -702,11 +736,14 @@ const ContentCalendar = () => {
     });
     uniqueTasks.forEach((t) => {
       if (isSocialMediaHead && !isTaskFromChennaiClient(t)) return;
-      if (t.clientName) set.add(t.clientName.trim());
+      if (isTaskFromInactiveClient(t)) return;
+      if (t.clientName && !inactiveClientIdentSet.has(t.clientName.trim().toLowerCase())) {
+        set.add(t.clientName.trim());
+      }
     });
     const sorted = Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
     return ["All", ...sorted];
-  }, [clients, uniqueTasks, isSocialMediaHead, isTaskFromChennaiClient]);
+  }, [activeClients, uniqueTasks, isSocialMediaHead, isTaskFromChennaiClient, isTaskFromInactiveClient, inactiveClientIdentSet]);
 
   // Helper to identify Social Media Executives
   const isSocialMediaManager = useCallback((u) => {
@@ -891,7 +928,7 @@ const ContentCalendar = () => {
   ]);
 
   const relevantClients = useMemo(() => {
-    let list = clients || [];
+    let list = activeClients || [];
     if (isSocialMediaHead) {
       list = list.filter((c) => {
         const b = (c.branch || "").trim().toLowerCase();
@@ -902,7 +939,7 @@ const ContentCalendar = () => {
     return list.filter(
       (c) => (c.companyName || "").trim().toLowerCase() === selectedClient.trim().toLowerCase()
     );
-  }, [clients, selectedClient, isSocialMediaHead]);
+  }, [activeClients, selectedClient, isSocialMediaHead]);
 
   const tasksForCommitments = useMemo(() => {
     let list = uniqueTasks || [];
@@ -3354,8 +3391,8 @@ const ContentCalendar = () => {
       <PendingCommitmentModal
         isOpen={isPendingCommitmentOpen}
         onClose={() => setIsPendingCommitmentOpen(false)}
-        clients={clients}
-        tasks={tasks}
+        clients={activeClients}
+        tasks={uniqueTasks}
         currentMonth={currentMonth + 1}
         currentYear={currentYear}
         onSelectClient={(clientName) => {

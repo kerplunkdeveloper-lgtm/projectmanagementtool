@@ -72,10 +72,11 @@ const cleanDuplicates = async () => {
 // @access  Private
 exports.getSocialmediaMetadata = async (req, res) => {
   try {
-    const clientQuery = isSocialMediaHeadUser(req.user)
-      ? { branch: new RegExp('^chennai$', 'i') }
-      : {};
-    const clients = await Client.find(clientQuery).select('companyName color industry posts reels story branch').sort({ companyName: 1 });
+    const clientQuery = {
+      status: { $nin: ['Inactive', 'inactive'] },
+      ...(isSocialMediaHeadUser(req.user) ? { branch: new RegExp('^chennai$', 'i') } : {}),
+    };
+    const clients = await Client.find(clientQuery).select('companyName color industry posts reels story branch status').sort({ companyName: 1 });
     const users = await User.find({ accountStatus: { $ne: 'inactive' } }).select('name role department email').sort({ name: 1 });
 
     res.status(200).json({
@@ -285,7 +286,7 @@ exports.getSocialmediaTasks = async (req, res) => {
     // Restrict strictly to Chennai branch clients for Social Media Head
     let chennaiBranchCondition = null;
     if (isSocialMediaHeadUser(req.user)) {
-      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i') }).select('_id companyName').lean();
+      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i'), status: { $nin: ['Inactive', 'inactive'] } }).select('_id companyName').lean();
       const chennaiClientIds = chennaiClients.map((c) => c._id);
       const chennaiClientNames = chennaiClients.map((c) => c.companyName).filter(Boolean);
       chennaiBranchCondition = {
@@ -296,12 +297,27 @@ exports.getSocialmediaTasks = async (req, res) => {
       };
     }
 
+    // Exclude tasks belonging to Inactive clients unless specifically queried
+    let excludeInactiveCondition = null;
+    if (!client && (!clientName || clientName === 'All' || clientName === 'All clients')) {
+      const inactiveClients = await Client.find({ status: { $regex: /^inactive$/i } }).select('_id companyName').lean();
+      if (inactiveClients.length > 0) {
+        const inactiveClientIds = inactiveClients.map((c) => c._id);
+        const inactiveClientNames = inactiveClients.map((c) => c.companyName).filter(Boolean);
+        excludeInactiveCondition = {
+          client: { $nin: inactiveClientIds },
+          clientName: { $nin: inactiveClientNames.map((n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')) },
+        };
+      }
+    }
+
     // Combine any OR conditions safely using $and if multiple exist
     const andClauses = [];
     if (userCreatorCondition) andClauses.push(userCreatorCondition);
     if (searchCondition) andClauses.push(searchCondition);
     if (dateCondition) andClauses.push(dateCondition);
     if (chennaiBranchCondition) andClauses.push(chennaiBranchCondition);
+    if (excludeInactiveCondition) andClauses.push(excludeInactiveCondition);
 
     if (andClauses.length === 1) {
       Object.assign(query, andClauses[0]);
@@ -312,11 +328,12 @@ exports.getSocialmediaTasks = async (req, res) => {
     const baseCountFilter = {
       ...(userCreatorCondition || {}),
       ...(chennaiBranchCondition || {}),
+      ...(excludeInactiveCondition || {}),
     };
 
     const [rawTasks, totalCount, commitmentsCount] = await Promise.all([
       SocialmediaTaskCalendor.find(query)
-      .populate('client', 'companyName color icon industry posts reels story')
+      .populate('client', 'companyName color icon industry posts reels story status')
       .populate({
         path: 'assignee',
         select: 'name email role profile',
@@ -411,7 +428,7 @@ exports.getSocialmediaStats = async (req, res) => {
     }
 
     if (isSocialMediaHeadUser(req.user)) {
-      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i') }).select('_id companyName').lean();
+      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i'), status: { $nin: ['Inactive', 'inactive'] } }).select('_id companyName').lean();
       const chennaiClientIds = chennaiClients.map((c) => c._id);
       const chennaiClientNames = chennaiClients.map((c) => c.companyName).filter(Boolean);
       const chennaiCondition = {
@@ -425,6 +442,25 @@ exports.getSocialmediaStats = async (req, res) => {
         delete commitmentsQuery.$or;
       } else {
         commitmentsQuery.$or = chennaiCondition.$or;
+      }
+    }
+
+    // Exclude inactive clients from stats calculation
+    const inactiveClients = await Client.find({ status: { $regex: /^inactive$/i } }).select('_id companyName').lean();
+    if (inactiveClients.length > 0) {
+      const inactiveClientIds = inactiveClients.map((c) => c._id);
+      const inactiveClientNames = inactiveClients.map((c) => c.companyName).filter(Boolean);
+      const excludeInactiveCondition = {
+        client: { $nin: inactiveClientIds },
+        clientName: { $nin: inactiveClientNames.map((n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')) },
+      };
+      if (commitmentsQuery.$or) {
+        commitmentsQuery.$and = [{ $or: commitmentsQuery.$or }, excludeInactiveCondition];
+        delete commitmentsQuery.$or;
+      } else if (commitmentsQuery.$and) {
+        commitmentsQuery.$and.push(excludeInactiveCondition);
+      } else {
+        commitmentsQuery.$and = [excludeInactiveCondition];
       }
     }
 
@@ -504,7 +540,7 @@ exports.getSocialmediaStats = async (req, res) => {
 exports.getSocialmediaTaskById = async (req, res) => {
   try {
     const task = await SocialmediaTaskCalendor.findById(req.params.id)
-      .populate('client', 'companyName color icon industry posts reels story')
+      .populate('client', 'companyName color icon industry posts reels story status')
       .populate({
         path: 'assignee',
         select: 'name email role profile',
@@ -613,7 +649,7 @@ exports.createSocialmediaTask = async (req, res) => {
     body.createdByName = req.user ? req.user.name : (body.createdByName || 'Admin');
 
     let task = await SocialmediaTaskCalendor.create(body);
-    task = await task.populate('client', 'companyName color icon industry posts reels story');
+    task = await task.populate('client', 'companyName color icon industry posts reels story status');
     task = await task.populate({
       path: 'assignee',
       select: 'name email role profile',
@@ -825,7 +861,7 @@ exports.updateSocialmediaTask = async (req, res) => {
       body,
       { returnDocument: 'after', runValidators: true }
     )
-      .populate('client', 'companyName color icon industry posts reels story')
+      .populate('client', 'companyName color icon industry posts reels story status')
       .populate({
         path: 'assignee',
         select: 'name email role profile',
@@ -900,7 +936,7 @@ exports.rescheduleSocialmediaTask = async (req, res) => {
       updateData,
       { returnDocument: 'after' }
     )
-      .populate('client', 'companyName color icon industry posts reels story')
+      .populate('client', 'companyName color icon industry posts reels story status')
       .populate({
         path: 'assignee',
         select: 'name email role profile',
@@ -1174,8 +1210,8 @@ exports.bulkImportSocialmediaTasks = async (req, res) => {
       });
     }
 
-    // Dynamic Client and User caches for fast mapping
-    const allClients = await Client.find({}).select('_id companyName color');
+    // Dynamic Client and User caches for fast mapping (exclude inactive clients)
+    const allClients = await Client.find({ status: { $nin: ['Inactive', 'inactive'] } }).select('_id companyName color');
     const allUsers = await User.find({ accountStatus: { $ne: 'inactive' } }).select('_id name email');
 
     const clientMap = new Map();
@@ -1357,7 +1393,7 @@ exports.bulkImportSocialmediaTasks = async (req, res) => {
     // Populate for immediate return to frontend Redux state
     const createdIds = createdRaw.map((t) => t._id);
     const populatedTasks = await SocialmediaTaskCalendor.find({ _id: { $in: createdIds } })
-      .populate('client', 'companyName color icon industry posts reels story')
+      .populate('client', 'companyName color icon industry posts reels story status')
       .populate({
         path: 'assignee',
         select: 'name email role profile',

@@ -602,6 +602,39 @@ const SmTasks = () => {
   );
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || [];
+
+  // Active clients list (strictly exclude inactive clients)
+  const activeClients = useMemo(() => {
+    return (clients || []).filter((c) => (c.status || "Active").toLowerCase() !== "inactive");
+  }, [clients]);
+
+  // Set of inactive client identifiers (companyName lowercase, _id, id)
+  const inactiveClientIdentSet = useMemo(() => {
+    const set = new Set();
+    (clients || []).forEach((c) => {
+      if ((c.status || "Active").toLowerCase() === "inactive") {
+        if (c.companyName) set.add(c.companyName.trim().toLowerCase());
+        if (c._id) set.add(c._id.toString());
+        if (c.id) set.add(c.id.toString());
+      }
+    });
+    return set;
+  }, [clients]);
+
+  const isTaskFromInactiveClient = useCallback(
+    (t) => {
+      if (!t) return false;
+      if (t.client && typeof t.client === "object" && (t.client.status || "").toLowerCase() === "inactive") {
+        return true;
+      }
+      const cId = (t.client?._id || t.client)?.toString();
+      if (cId && inactiveClientIdentSet.has(cId)) return true;
+      const cName = (t.clientName || t.client?.companyName || "").trim().toLowerCase();
+      if (cName && inactiveClientIdentSet.has(cName)) return true;
+      return false;
+    },
+    [inactiveClientIdentSet]
+  );
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
@@ -904,29 +937,33 @@ const SmTasks = () => {
     }
   }, [dispatch, selectedMonth, selectedYear]);
 
-  // Dynamic unique client list from real DB clients & tasks
+  // Dynamic unique client list from real DB clients & tasks (strictly excluding inactive clients)
   const clientOptions = useMemo(() => {
     const set = new Set();
-    clients.forEach((c) => {
+    activeClients.forEach((c) => {
       if (c.companyName) set.add(c.companyName);
     });
     tasks.forEach((t) => {
-      if (t.clientName) set.add(t.clientName);
+      if (isTaskFromInactiveClient(t)) return;
+      if (t.clientName && !inactiveClientIdentSet.has(t.clientName.trim().toLowerCase())) {
+        set.add(t.clientName);
+      }
     });
     set.add("Others");
     return ["All", ...Array.from(set)];
-  }, [clients, tasks]);
+  }, [activeClients, tasks, isTaskFromInactiveClient, inactiveClientIdentSet]);
 
-  // Deduplicate tasks by taskTitle + clientName
+  // Deduplicate tasks by taskTitle + clientName and filter out inactive client tasks
   const uniqueTasks = useMemo(() => {
     const seen = new Set();
     return tasks.filter((t) => {
+      if (isTaskFromInactiveClient(t)) return false;
       const key = `${(t.taskTitle || '').trim().toLowerCase()}___${(t.clientName || '').trim().toLowerCase()}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [tasks]);
+  }, [tasks, isTaskFromInactiveClient]);
 
   // Dynamic unique creators list for Admin & Operation Manager filter - ONLY Social Media Executives
   const createdByOptions = useMemo(() => {
@@ -1296,11 +1333,14 @@ const SmTasks = () => {
     return pages;
   }, [currentPage, totalPages]);
 
-  // Filtered clients matching current selection (client, category, creator)
+  // Filtered clients matching current selection (client, category, creator) - strictly active clients
   const relevantClients = useMemo(() => {
-    let list = clients || [];
+    let list = activeClients || [];
 
     if (selectedClient !== "All") {
+      if (inactiveClientIdentSet.has(selectedClient.trim().toLowerCase())) {
+        return [];
+      }
       const match = list.filter(
         (c) => c.companyName?.trim().toLowerCase() === selectedClient.trim().toLowerCase()
       );
@@ -1310,6 +1350,9 @@ const SmTasks = () => {
       const foundTask = uniqueTasks.find(
         (t) => (t.clientName || "").trim().toLowerCase() === selectedClient.trim().toLowerCase()
       );
+      if (!foundTask || isTaskFromInactiveClient(foundTask)) {
+        return [];
+      }
       return [
         {
           _id: foundTask?.client?._id || foundTask?.client || selectedClient,
@@ -1356,7 +1399,9 @@ const SmTasks = () => {
 
     return list;
   }, [
-    clients,
+    activeClients,
+    inactiveClientIdentSet,
+    isTaskFromInactiveClient,
     uniqueTasks,
     filteredTasks,
     selectedClient,
@@ -2816,8 +2861,8 @@ const SmTasks = () => {
       <PendingCommitmentModal
         isOpen={isPendingCommitmentOpen}
         onClose={() => setIsPendingCommitmentOpen(false)}
-        clients={clients}
-        tasks={tasks}
+        clients={activeClients}
+        tasks={uniqueTasks}
         currentMonth={selectedMonth}
         currentYear={selectedYear}
         onSelectClient={(clientName) => {

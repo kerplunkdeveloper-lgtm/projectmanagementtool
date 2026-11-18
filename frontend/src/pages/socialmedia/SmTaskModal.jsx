@@ -171,6 +171,9 @@ const SmTaskModal = ({
   const { user: currentUser } = useSelector((state) => state.auth);
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || [];
+  const activeClients = useMemo(() => {
+    return (clients || []).filter((c) => (c.status || "Active").toLowerCase() !== "inactive");
+  }, [clients]);
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
@@ -255,12 +258,12 @@ const SmTaskModal = ({
       activeSessionRef.current.initialDateStr === currentInitialDateStr;
 
     if (alreadyInitialized) {
-      if (!formData.clientId && !formData.clientName && clients.length > 0 && !task) {
+      if (!formData.clientId && !formData.clientName && activeClients.length > 0 && !task) {
         setFormData((prev) => ({
           ...prev,
-          clientId: prev.clientId || clients[0]._id,
-          clientName: prev.clientName || clients[0].companyName,
-          clientColor: prev.clientColor || clients[0].color || "#6366f1",
+          clientId: prev.clientId || activeClients[0]._id,
+          clientName: prev.clientName || activeClients[0].companyName,
+          clientColor: prev.clientColor || activeClients[0].color || "#6366f1",
         }));
       }
       return;
@@ -358,9 +361,9 @@ const SmTaskModal = ({
         ? formatLocalDateKey(initialDate)
         : formatLocalDateKey(new Date());
 
-      const defaultClient = clients.find(
+      const defaultClient = activeClients.find(
         (c) => !defaultIsCommitment || (c.companyName || "").trim().toLowerCase() !== "others"
-      ) || clients[0] || null;
+      ) || activeClients[0] || null;
 
       setFormData({
         taskTitle: "",
@@ -385,7 +388,7 @@ const SmTaskModal = ({
         notes: "",
       });
     }
-  }, [isOpen, task, initialDate, clients, users, currentUser, initialCommitment, commitmentOnly]);
+  }, [isOpen, task, initialDate, activeClients, users, currentUser, initialCommitment, commitmentOnly]);
 
   const isContentCalendar = Boolean(isCommitment);
 
@@ -776,14 +779,14 @@ const SmTaskModal = ({
                         Others
                       </option>
                     )}
-                    {clients
+                    {activeClients
                       .filter((c) => !isCommitment || (c.companyName || "").trim().toLowerCase() !== "others")
                       .map((c) => (
                         <option key={c._id} value={c._id} className="dark:bg-[#131d31] dark:text-white">
                           {c.companyName}
                         </option>
                       ))}
-                    {formData.clientName && formData.clientName !== "Others" && !clients.some((c) => c.companyName === formData.clientName) && (
+                    {formData.clientName && formData.clientName !== "Others" && !activeClients.some((c) => c.companyName === formData.clientName) && (
                       <option value={formData.clientName} className="dark:bg-[#131d31] dark:text-white">{formData.clientName}</option>
                     )}
                   </select>
