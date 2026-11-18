@@ -4,6 +4,13 @@ const UserDailyActivity = require('../models/UserDailyActivity');
 const { getTodayDateStr } = require('../utils/presenceService');
 const bcrypt = require('bcryptjs');
 
+// Water reminder limits
+const WATER_ALLOWED_INTERVALS = [30, 60, 90];
+const WATER_TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+const WATER_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const WATER_MAX_LOGS_PER_DAY = 20;
+const WATER_MIN_LOG_GAP_MS = 60 * 1000; // prevents double-click / multi-tab duplicate logs
+const WATER_MAX_STORED_LOGS = 200;
 
 
 
@@ -224,6 +231,37 @@ exports.updateUser = async (req, res) => {
         salt
       );
       updateData.plainPassword = req.body.password;
+    }
+
+    // Water reminder: validate & write as dotted paths so logs are never overwritten
+    if (Object.prototype.hasOwnProperty.call(updateData, 'waterReminder')) {
+      const wr = updateData.waterReminder || {};
+      delete updateData.waterReminder;
+
+      if (wr.enabled !== undefined) {
+        updateData['waterReminder.enabled'] = wr.enabled === true || wr.enabled === 'true';
+      }
+      if (wr.interval !== undefined) {
+        const interval = Number(wr.interval);
+        if (!WATER_ALLOWED_INTERVALS.includes(interval)) {
+          return res.status(400).json({
+            success: false,
+            message: `Reminder interval must be one of: ${WATER_ALLOWED_INTERVALS.join(', ')} minutes`,
+          });
+        }
+        updateData['waterReminder.interval'] = interval;
+      }
+      if (wr.workingHours) {
+        const { start, end } = wr.workingHours;
+        if (!WATER_TIME_REGEX.test(start || '') || !WATER_TIME_REGEX.test(end || '')) {
+          return res.status(400).json({ success: false, message: 'Working hours must be in HH:MM format' });
+        }
+        if (start === end) {
+          return res.status(400).json({ success: false, message: 'Reminder start and end time cannot be the same' });
+        }
+        updateData['waterReminder.workingHours.start'] = start;
+        updateData['waterReminder.workingHours.end'] = end;
+      }
     }
 
     const targetId = (!req.params.id || req.params.id === 'me') ? req.user._id : req.params.id;
@@ -812,48 +850,63 @@ exports.getTeamActivity = async (req, res) => {
 // .....................................................log water break.................................
 exports.logWaterBreak = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select('waterReminder');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const todayStr = new Date().toLocaleDateString('en-CA');
+    // Use the client's local date (user's timezone) when valid, else server date
+    const clientDate = req.body?.date;
+    const todayStr = (typeof clientDate === 'string' && WATER_DATE_REGEX.test(clientDate))
+      ? clientDate
+      : new Date().toLocaleDateString('en-CA');
+
+    const existingLogs = Array.isArray(user.waterReminder?.logs) ? user.waterReminder.logs : [];
+    const todayCount = existingLogs.filter((l) => l.date === todayStr).length;
+
+    if (todayCount >= WATER_MAX_LOGS_PER_DAY) {
+      return res.status(429).json({
+        success: false,
+        message: `Daily limit reached (${WATER_MAX_LOGS_PER_DAY} glasses)`,
+        countToday: todayCount,
+        waterReminder: user.waterReminder,
+      });
+    }
+
+    const lastLog = existingLogs[existingLogs.length - 1];
+    if (lastLog?.timestamp && Date.now() - new Date(lastLog.timestamp).getTime() < WATER_MIN_LOG_GAP_MS) {
+      return res.status(429).json({
+        success: false,
+        message: 'Glass already logged just now. Please wait a minute before logging again.',
+        countToday: todayCount,
+        waterReminder: user.waterReminder,
+      });
+    }
+
     const newLog = {
       timestamp: new Date(),
       date: todayStr,
     };
 
-    if (!user.waterReminder) {
-      user.waterReminder = {
-        enabled: true,
-        interval: 60,
-        workingHours: { start: '09:00', end: '19:00' },
-        logs: [],
-      };
-    }
+    // Atomic push (keeps only the latest N logs) — does not touch other settings
+    const updated = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        $push: {
+          'waterReminder.logs': { $each: [newLog], $slice: -WATER_MAX_STORED_LOGS },
+        },
+      },
+      { returnDocument: 'after' }
+    ).select('waterReminder');
 
-    if (!Array.isArray(user.waterReminder.logs)) {
-      user.waterReminder.logs = [];
-    }
-
-    user.waterReminder.logs.push(newLog);
-
-    // Keep logs bounded to last 200 entries to prevent infinite growth
-    if (user.waterReminder.logs.length > 200) {
-      user.waterReminder.logs = user.waterReminder.logs.slice(-200);
-    }
-
-    await user.save();
-
-    const todayLogs = user.waterReminder.logs.filter((l) => l.date === todayStr);
-
+    const todayLogs = (updated.waterReminder?.logs || []).filter((l) => l.date === todayStr);
 
     res.status(200).json({
       success: true,
       message: 'Glass of water logged!',
       countToday: todayLogs.length,
       lastLog: newLog,
-      waterReminder: user.waterReminder,
+      waterReminder: updated.waterReminder,
     });
   } catch (err) {
     console.error('[logWaterBreak Error]:', err);

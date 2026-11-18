@@ -24,6 +24,11 @@ import { updateUser, logWaterBreak } from "../../features/users/userSlice";
 import { triggerWaterReminderPreview } from "../../components/common/WaterReminderManager.jsx";
 import WaterReminderToast from "../../components/common/WaterReminderToast.jsx";
 import {
+  WATER_ALLOWED_INTERVALS,
+  WATER_MAX_LOGS_PER_DAY,
+  normalizeWaterInterval,
+} from "../../hooks/useWaterReminder.jsx";
+import {
   requestNotificationPermission,
   getNotificationPermission,
   showWaterDesktopNotification,
@@ -182,13 +187,13 @@ const Settings = () => {
     user?.waterReminder?.enabled !== false
   );
   const [waterInterval, setWaterInterval] = useState(
-    user?.waterReminder?.interval || 60
+    normalizeWaterInterval(user?.waterReminder?.interval)
   );
   const [waterStart, setWaterStart] = useState(
     user?.waterReminder?.workingHours?.start || "09:00"
   );
   const [waterEnd, setWaterEnd] = useState(
-    user?.waterReminder?.workingHours?.end || "17:00"
+    user?.waterReminder?.workingHours?.end || "18:00"
   );
   const [savingWater, setSavingWater] = useState(false);
   const [loggingGlass, setLoggingGlass] = useState(false);
@@ -222,9 +227,7 @@ const Settings = () => {
       if (user.waterReminder.enabled !== undefined) {
         setWaterEnabled(user.waterReminder.enabled !== false);
       }
-      if (user.waterReminder.interval) {
-        setWaterInterval(Number(user.waterReminder.interval));
-      }
+      setWaterInterval(normalizeWaterInterval(user.waterReminder.interval));
       if (user.waterReminder.workingHours?.start) {
         setWaterStart(user.waterReminder.workingHours.start);
       }
@@ -240,37 +243,74 @@ const Settings = () => {
   );
   const todayWaterCount = todayWaterLogs.length;
 
+  const saveWaterReminder = async (reminderData, successMsg) => {
+    await dispatch(
+      updateUser({
+        id: "me",
+        userData: { waterReminder: reminderData },
+      })
+    ).unwrap();
+    const uid = user?._id || user?.id;
+    if (uid) {
+      // Remove old local interval override (used by the removed 1-min test option)
+      localStorage.removeItem(`water_reminder_interval_${uid}`);
+    }
+    window.dispatchEvent(new CustomEvent("water-reminder-reset-timer"));
+    toast.success(successMsg);
+  };
+
   const handleSaveWaterSettings = async () => {
+    if (waterEnabled) {
+      if (!WATER_ALLOWED_INTERVALS.includes(Number(waterInterval))) {
+        toast.error("Please choose a valid reminder interval");
+        return;
+      }
+      if (!waterStart || !waterEnd) {
+        toast.error("Please set both reminder start and end time");
+        return;
+      }
+      if (waterStart === waterEnd) {
+        toast.error("Reminder start and end time cannot be the same");
+        return;
+      }
+    }
     setSavingWater(true);
     try {
       if (waterEnabled && notifPermission === "default") {
         await requestNotificationPermission();
         setNotifPermission(getNotificationPermission());
       }
-      const updatedReminder = {
-        enabled: waterEnabled,
-        interval: Number(waterInterval),
-        workingHours: {
-          start: waterStart,
-          end: waterEnd,
-        },
-      };
-      await dispatch(
-        updateUser({
-          id: "me",
-          userData: {
-            waterReminder: updatedReminder,
-          },
-        })
-      ).unwrap();
-      if (user?._id || user?.id) {
-        localStorage.setItem(`water_reminder_interval_${user?._id || user?.id}`, Number(waterInterval).toString());
-        localStorage.setItem(`water_reminder_active_sec_${user?._id || user?.id}`, "0");
-      }
-      window.dispatchEvent(new CustomEvent("water-reminder-reset-timer"));
-      toast.success("Water reminder settings saved!");
+      await saveWaterReminder(
+        waterEnabled
+          ? {
+              enabled: true,
+              interval: Number(waterInterval),
+              workingHours: { start: waterStart, end: waterEnd },
+            }
+          : { enabled: false },
+        "Water reminder settings saved!"
+      );
     } catch (err) {
-      toast.error("Failed to save water reminder settings");
+      toast.error(typeof err === "string" ? err : "Failed to save water reminder settings");
+      console.error(err);
+    } finally {
+      setSavingWater(false);
+    }
+  };
+
+  // Toggle saves immediately, so turning reminders OFF takes effect right away
+  const handleToggleWaterEnabled = async () => {
+    const next = !waterEnabled;
+    setWaterEnabled(next);
+    setSavingWater(true);
+    try {
+      await saveWaterReminder(
+        { enabled: next },
+        next ? "Water reminders turned on 💧" : "Water reminders turned off"
+      );
+    } catch (err) {
+      setWaterEnabled(!next);
+      toast.error(typeof err === "string" ? err : "Failed to update water reminder");
       console.error(err);
     } finally {
       setSavingWater(false);
@@ -278,12 +318,17 @@ const Settings = () => {
   };
 
   const handleQuickLogGlass = async () => {
+    if (loggingGlass) return;
+    if (todayWaterCount >= WATER_MAX_LOGS_PER_DAY) {
+      toast.error(`Daily limit reached (${WATER_MAX_LOGS_PER_DAY} glasses)`);
+      return;
+    }
     setLoggingGlass(true);
     try {
       await dispatch(logWaterBreak()).unwrap();
       toast.success("Glass of water logged! 💧");
     } catch (err) {
-      toast.error("Failed to log glass of water");
+      toast.error(typeof err === "string" ? err : "Failed to log glass of water");
       console.error(err);
     } finally {
       setLoggingGlass(false);
@@ -557,7 +602,8 @@ const Settings = () => {
                     type="button"
                     role="switch"
                     aria-checked={waterEnabled}
-                    onClick={() => setWaterEnabled(!waterEnabled)}
+                    onClick={handleToggleWaterEnabled}
+                    disabled={savingWater}
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
                       waterEnabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-700"
                     }`}
@@ -614,9 +660,8 @@ const Settings = () => {
                       <label className="block text-xs font-black theme-text-secondary uppercase tracking-wider mb-2.5">
                         Reminder Interval
                       </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="grid grid-cols-3 gap-2">
                         {[
-                          { value: 1, label: "1 Minute", badge: "Test ⚡" },
                           { value: 30, label: "30 Minutes", badge: "Frequent" },
                           { value: 60, label: "60 Minutes", badge: "Recommended" },
                           { value: 90, label: "90 Minutes", badge: "Extended" },

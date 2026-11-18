@@ -68,6 +68,9 @@ export const reactivateUserAPI = async (id) => {
 
 // LOG WATER BREAK
 export const logWaterBreakAPI = async () => {
-  const response = await axiosInstance.post('/users/water-log');
+  // Send the user's local date so "today" matches their timezone
+  const response = await axiosInstance.post('/users/water-log', {
+    date: new Date().toLocaleDateString('en-CA'),
+  });
   return response.data;
 };

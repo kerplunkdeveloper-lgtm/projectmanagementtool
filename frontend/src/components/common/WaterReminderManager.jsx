@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import useWaterReminder from '../../hooks/useWaterReminder.jsx';
+import useWaterReminder, { WATER_DAILY_GOAL } from '../../hooks/useWaterReminder.jsx';
 import WaterReminderPopup from './WaterReminderPopup';
 
 /**
@@ -45,7 +45,10 @@ const WaterReminderManager = () => {
     if (isPreviewOpen) {
       setIsPreviewOpen(false);
     }
-    handleSnooze(mins);
+    // Preview snooze must not touch the real reminder timer
+    if (isReminderOpen) {
+      handleSnooze(mins);
+    }
   };
 
   const handleModalLog = async () => {
@@ -62,7 +65,7 @@ const WaterReminderManager = () => {
       onSnooze={handleModalSnooze}
       onClose={handleModalClose}
       todayLogsCount={todayLogsCount}
-      dailyGoal={8}
+      dailyGoal={WATER_DAILY_GOAL}
     />
   );
 };

@@ -120,6 +120,8 @@ const userSchema = new mongoose.Schema({
     },
     interval: {
       type: Number,
+      // Allowed values (30/60/90) are enforced in userController.updateUser.
+      // Kept loose here so legacy docs (e.g. old 1-min test value) don't break other saves.
       min: 1,
       max: 240,
       default: 60,
