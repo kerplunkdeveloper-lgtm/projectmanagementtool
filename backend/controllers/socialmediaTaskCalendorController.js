@@ -299,14 +299,24 @@ exports.getSocialmediaTasks = async (req, res) => {
 
     // Exclude tasks belonging to Inactive clients unless specifically queried
     let excludeInactiveCondition = null;
+    let inactiveClients = [];
     if (!client && (!clientName || clientName === 'All' || clientName === 'All clients')) {
-      const inactiveClients = await Client.find({ status: { $regex: /^inactive$/i } }).select('_id companyName').lean();
+      inactiveClients = await Client.find({ status: { $regex: /^inactive$/i } }).select('_id companyName').lean();
       if (inactiveClients.length > 0) {
         const inactiveClientIds = inactiveClients.map((c) => c._id);
-        const inactiveClientNames = inactiveClients.map((c) => c.companyName).filter(Boolean);
+        const inactiveNamesSet = new Set();
+        inactiveClients.forEach((c) => {
+          const n = (c.companyName || '').trim();
+          if (n) {
+            inactiveNamesSet.add(n);
+            inactiveNamesSet.add(n.toLowerCase());
+            inactiveNamesSet.add(n.toUpperCase());
+          }
+        });
+        const inactiveClientNames = Array.from(inactiveNamesSet);
         excludeInactiveCondition = {
           client: { $nin: inactiveClientIds },
-          clientName: { $nin: inactiveClientNames.map((n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')) },
+          clientName: { $nin: inactiveClientNames },
         };
       }
     }
@@ -354,7 +364,22 @@ exports.getSocialmediaTasks = async (req, res) => {
     ]);
 
     const now = new Date();
-    let tasks = rawTasks.map((t) => {
+    // Filter out any lingering inactive client tasks in JS for 100% case-insensitive safety
+    let validRawTasks = rawTasks;
+    if (inactiveClients && inactiveClients.length > 0) {
+      const inactiveIdSet = new Set(inactiveClients.map((c) => c._id.toString()));
+      const inactiveNameSet = new Set(inactiveClients.map((c) => (c.companyName || '').trim().toLowerCase()));
+      validRawTasks = rawTasks.filter((t) => {
+        const cId = (t.client?._id || t.client)?.toString();
+        if (cId && inactiveIdSet.has(cId)) return false;
+        const cName = (t.clientName || t.client?.companyName || '').trim().toLowerCase();
+        if (cName && inactiveNameSet.has(cName)) return false;
+        if (t.client && typeof t.client === 'object' && (t.client.status || '').toLowerCase() === 'inactive') return false;
+        return true;
+      });
+    }
+
+    let tasks = validRawTasks.map((t) => {
       let isAtRisk = false;
       if (
         t.commitment &&
@@ -449,10 +474,19 @@ exports.getSocialmediaStats = async (req, res) => {
     const inactiveClients = await Client.find({ status: { $regex: /^inactive$/i } }).select('_id companyName').lean();
     if (inactiveClients.length > 0) {
       const inactiveClientIds = inactiveClients.map((c) => c._id);
-      const inactiveClientNames = inactiveClients.map((c) => c.companyName).filter(Boolean);
+      const inactiveNamesSet = new Set();
+      inactiveClients.forEach((c) => {
+        const n = (c.companyName || '').trim();
+        if (n) {
+          inactiveNamesSet.add(n);
+          inactiveNamesSet.add(n.toLowerCase());
+          inactiveNamesSet.add(n.toUpperCase());
+        }
+      });
+      const inactiveClientNames = Array.from(inactiveNamesSet);
       const excludeInactiveCondition = {
         client: { $nin: inactiveClientIds },
-        clientName: { $nin: inactiveClientNames.map((n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i')) },
+        clientName: { $nin: inactiveClientNames },
       };
       if (commitmentsQuery.$or) {
         commitmentsQuery.$and = [{ $or: commitmentsQuery.$or }, excludeInactiveCondition];
