@@ -60,6 +60,9 @@ const Templatelib = lazyWithRetry(
 const Clients = lazyWithRetry(
   () => import("../pages/admin/clients/Clients.jsx"),
 );
+const ClientSplit = lazyWithRetry(
+  () => import("../pages/admin/clients/ClientSplit.jsx"),
+);
 const Notifications = lazyWithRetry(
   () => import("../pages/notifications/Notifications.jsx"),
 );
@@ -110,6 +113,7 @@ export const routePreloaders = {
   designerTasks: () => import("../pages/projects/DesignerTasks.jsx"),
   cinematographerTasks: () => import("../pages/projects/CinematographerTasks.jsx"),
   clients: () => import("../pages/admin/clients/Clients.jsx"),
+  clientSplit: () => import("../pages/admin/clients/ClientSplit.jsx"),
   users: () => import("../pages/admin/AdminUsers.jsx"),
   tasks: () => import("../pages/tasks/Task.jsx"),
   settings: () => import("../pages/settings/Settings.jsx"),
@@ -143,6 +147,7 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/content-calendar") || p.endsWith("/content-calendor")) routePreloaders.contentCalendar?.();
   else if (p.endsWith("/hr-tasks") || p.endsWith("/hr-task")) routePreloaders.hrTasks?.();
   else if (p.endsWith("/clients")) routePreloaders.clients?.();
+  else if (p.endsWith("/client-split")) routePreloaders.clientSplit?.();
   else if (p.endsWith("/users")) routePreloaders.users?.();
   else if (p.endsWith("/tasks")) routePreloaders.tasks?.();
   else if (p.endsWith("/settings")) routePreloaders.settings?.();
@@ -273,6 +278,15 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requiredPermission="manage_clients">
                 <Clients />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="client-split"
+            element={
+              <ProtectedRoute requiredPermission="manage_clients">
+                <ClientSplit />
               </ProtectedRoute>
             }
           />
@@ -433,6 +447,15 @@ const AppRoutes = () => {
             element={
               <ProtectedRoute requiredPermission="manage_clients">
                 <Clients />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="client-split"
+            element={
+              <ProtectedRoute requiredPermission="manage_clients">
+                <ClientSplit />
               </ProtectedRoute>
             }
           />

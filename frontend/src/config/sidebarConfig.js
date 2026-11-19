@@ -1,5 +1,6 @@
 import {
   LuBuilding2,
+  LuSplit,
   LuFolderKanban,
   LuLayoutTemplate,
   LuUsers,
@@ -27,6 +28,7 @@ export const sidebarConfig = {
     { name: "Home", path: "/admin", icon: FiHome },
     { name: "Sticky Notes", path: "/admin/stickynotes", icon: TbPencilHeart },
     { name: "Clients", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
+    { name: "Client Split", path: "/admin/client-split", icon: LuSplit, permissionKey: "manage_clients" },
     { name: "Projects", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     {
       name: "Tasks",
@@ -67,6 +69,7 @@ export const sidebarConfig = {
     { name: "Home", path: "/operationmanager", icon: FiHome },
     { name: "Sticky Notes", path: "/operationmanager/stickynotes", icon: TbPencilHeart },
     { name: "Clients", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
+    { name: "Client Split", path: "/operationmanager/client-split", icon: LuSplit, permissionKey: "manage_clients" },
     { name: "Projects", path: "/operationmanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     {
       name: "Tasks",

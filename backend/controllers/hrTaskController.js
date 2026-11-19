@@ -413,10 +413,15 @@ exports.createHrTask = async (req, res) => {
       category = "General HR",
       priority = "Medium",
       dueDate,
-      assignedTo,
       checklist = [],
       attachments = [],
     } = req.body;
+
+    // Managers/Admins can assign to any HR member; HR users can only self-assign
+    const isManager = isManagerOrAdmin(req.user);
+    const assignedTo = isManager ? req.body.assignedTo : req.user._id;
+    const isSelfAssigned =
+      !!assignedTo && assignedTo.toString() === req.user._id.toString();
 
     if (!title || !title.trim()) {
       return res.status(400).json({
@@ -469,7 +474,9 @@ exports.createHrTask = async (req, res) => {
       activityHistory: [
         {
           action: "Task Created",
-          details: `Task created and assigned to ${assignedUser.name}`,
+          details: isSelfAssigned
+            ? `Task created and self-assigned by ${assignedUser.name}`
+            : `Task created and assigned to ${assignedUser.name}`,
           performedBy: req.user._id,
           timestamp: new Date(),
         },

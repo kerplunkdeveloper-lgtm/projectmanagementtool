@@ -622,22 +622,22 @@ const HrTasks = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070b13] text-slate-800 dark:text-slate-100 p-3 sm:p-6 lg:p-8 space-y-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#070b13] text-slate-800 dark:text-slate-100 p-3 sm:p-5 lg:p-6 space-y-4">
       {/* 1. TOP HEADER & WORKSPACE SUMMARY */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/5 pb-5">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+            <div className="w-10 h-10 rounded-xl bg-[image:var(--btn-gradient-bg)] flex items-center justify-center text-white shadow-md">
               <FiBriefcase className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
                 HR Task Management
                 <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">
                   {isManager ? "Manager Oversight" : "HR Workspace"}
                 </span>
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-[12px] sm:text-[13px] text-slate-500 dark:text-slate-400">
                 {isManager
                   ? "Assign work to HR team members, monitor real-time progress, and review submissions."
                   : "View and execute assigned tasks, update checklist progress, and submit work for manager review."}
@@ -652,7 +652,7 @@ const HrTasks = () => {
           {unreadHrNotifications.length > 0 && (
             <button
               onClick={handleMarkAllHrAsRead}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-500/20 transition-all cursor-pointer shadow-xs animate-pulse"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-[12px] font-bold hover:bg-rose-500/20 transition-all cursor-pointer shadow-xs animate-pulse"
               title="Click to mark all HR alerts as read"
             >
               <FiAlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
@@ -668,36 +668,34 @@ const HrTasks = () => {
             className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer shadow-xs"
             title="Refresh Tasks"
           >
-            <FiRefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-indigo-500" : ""}`} />
+            <FiRefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-[var(--color-brand-primary)]" : ""}`} />
           </button>
 
           {/* Workload button for Managers */}
           {isManager && (
             <button
               onClick={() => setIsWorkloadModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-indigo-400 dark:hover:border-indigo-500 text-xs sm:text-sm font-semibold transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-[var(--color-brand-primary)] dark:hover:border-[var(--color-brand-primary)] text-[12px] sm:text-[13px] font-semibold transition-all cursor-pointer shadow-xs"
             >
-              <FiUsers className="w-4 h-4 text-indigo-500" />
+              <FiUsers className="w-4 h-4 text-[var(--color-brand-primary)]" />
               <span>HR Workload</span>
             </button>
           )}
 
-          {/* Create Task button (Manager Only) */}
-          {isManager && (
-            <button
-              id="create-hr-task-btn"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs sm:text-sm shadow-md shadow-indigo-600/25 transition-all cursor-pointer"
-            >
-              <FiPlus className="w-4 h-4" />
-              <span>Assign HR Task</span>
-            </button>
-          )}
+          {/* Create Task button (Manager assigns to HR; HR self-assigns) */}
+          <button
+            id="create-hr-task-btn"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[image:var(--btn-gradient-bg)] hover:brightness-110 text-white font-semibold text-[12px] sm:text-[13px] shadow-md shadow-[color:var(--btn-glow-shadow)] transition-all cursor-pointer"
+          >
+            <FiPlus className="w-4 h-4" />
+            <span>{isManager ? "Assign HR Task" : "Add My Task"}</span>
+          </button>
         </div>
       </div>
 
       {/* 2. KPI METRICS / DASHBOARD COUNTS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {isManager ? (
           <>
             {/* Manager KPI 1: Total Active */}
@@ -706,18 +704,18 @@ const HrTasks = () => {
                 setStatusFilter("all");
                 setDueDateFilter("all");
               }}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-indigo-400 dark:hover:border-indigo-500 transition-all cursor-pointer group"
+              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-[var(--color-brand-primary)] dark:hover:border-[var(--color-brand-primary)] transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Total Active Tasks
                 </span>
-                <span className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                <span className="p-2 rounded-xl bg-[color-mix(in_srgb,var(--color-brand-primary)_12%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-brand-primary)_18%,transparent)] text-[var(--color-brand-primary)] dark:text-[var(--color-brand-primary)]">
                   <LuListTodo className="w-4 h-4" />
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-900 dark:text-white">
+                <span className="text-xl font-bold text-slate-900 dark:text-white">
                   {metrics?.managerCounts?.totalActive ?? 0}
                 </span>
                 <span className="text-[11px] text-slate-400">Active</span>
@@ -727,10 +725,10 @@ const HrTasks = () => {
             {/* Manager KPI 2: In Progress */}
             <div
               onClick={() => setStatusFilter("In Progress")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer group"
+              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   In Progress
                 </span>
                 <span className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
@@ -738,7 +736,7 @@ const HrTasks = () => {
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
+                <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
                   {metrics?.managerCounts?.inProgress ?? 0}
                 </span>
                 <span className="text-[11px] text-slate-400">Ongoing</span>
@@ -748,14 +746,14 @@ const HrTasks = () => {
             {/* Manager KPI 3: Submitted for Review (Highlight) */}
             <div
               onClick={() => setStatusFilter("Submitted")}
-              className={`bg-white dark:bg-slate-900/90 rounded-2xl p-4 border shadow-xs transition-all cursor-pointer group ${
+              className={`bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border shadow-xs transition-all cursor-pointer group ${
                 (metrics?.managerCounts?.submittedForReview ?? 0) > 0
                   ? "border-purple-400 dark:border-purple-600/70 ring-2 ring-purple-500/20"
-                  : "border-slate-200/80 dark:border-white/5 hover:border-purple-400"
+                  : "border-slate-200/80 dark:border-white/5 hover:border-[var(--color-brand-primary)]"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Submitted for Review
                 </span>
                 <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
@@ -763,7 +761,7 @@ const HrTasks = () => {
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-purple-600 dark:text-purple-400">
+                <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
                   {metrics?.managerCounts?.submittedForReview ?? 0}
                 </span>
                 <span className="text-[11px] font-medium text-purple-500">
@@ -778,10 +776,10 @@ const HrTasks = () => {
                 setStatusFilter("all");
                 setDueDateFilter("overdue");
               }}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-rose-400 dark:hover:border-rose-500 transition-all cursor-pointer group"
+              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-rose-400 dark:hover:border-rose-500 transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Overdue
                 </span>
                 <span className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
@@ -789,7 +787,7 @@ const HrTasks = () => {
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
+                <span className="text-xl font-bold text-rose-600 dark:text-rose-400">
                   {metrics?.managerCounts?.overdue ?? 0}
                 </span>
                 <span className="text-[11px] text-rose-400">Delayed</span>
@@ -799,10 +797,10 @@ const HrTasks = () => {
             {/* Manager KPI 5: Completed */}
             <div
               onClick={() => setStatusFilter("Completed")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer group col-span-2 sm:col-span-1"
+              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer group col-span-2 sm:col-span-1"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Completed
                 </span>
                 <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
@@ -810,7 +808,7 @@ const HrTasks = () => {
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                   {metrics?.managerCounts?.completed ?? 0}
                 </span>
                 <span className="text-[11px] text-emerald-500">Approved</span>
@@ -825,18 +823,18 @@ const HrTasks = () => {
                 setStatusFilter("all");
                 setDueDateFilter("all");
               }}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-indigo-400 dark:hover:border-indigo-500 transition-all cursor-pointer"
+              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-[var(--color-brand-primary)] dark:hover:border-[var(--color-brand-primary)] transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   My Active Tasks
                 </span>
-                <span className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                <span className="p-2 rounded-xl bg-[color-mix(in_srgb,var(--color-brand-primary)_12%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-brand-primary)_18%,transparent)] text-[var(--color-brand-primary)] dark:text-[var(--color-brand-primary)]">
                   <LuListTodo className="w-4 h-4" />
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-900 dark:text-white">
+                <span className="text-xl font-bold text-slate-900 dark:text-white">
                   {metrics?.hrCounts?.myActiveTasks ?? 0}
                 </span>
                 <span className="text-[11px] text-slate-400">Active</span>
@@ -846,10 +844,10 @@ const HrTasks = () => {
             {/* HR KPI 2: Due Soon (Next 3 Days) */}
             <div
               onClick={() => setDueDateFilter("due_soon")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-amber-400 dark:hover:border-amber-500 transition-all cursor-pointer"
+              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-amber-400 dark:hover:border-amber-500 transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Due Soon
                 </span>
                 <span className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
@@ -857,7 +855,7 @@ const HrTasks = () => {
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
+                <span className="text-xl font-bold text-amber-600 dark:text-amber-400">
                   {metrics?.hrCounts?.dueSoon ?? 0}
                 </span>
                 <span className="text-[11px] text-amber-500 font-medium">&le; 3 Days</span>
@@ -867,14 +865,14 @@ const HrTasks = () => {
             {/* HR KPI 3: Changes Requested */}
             <div
               onClick={() => setStatusFilter("Changes Requested")}
-              className={`bg-white dark:bg-slate-900/90 rounded-2xl p-4 border shadow-xs transition-all cursor-pointer ${
+              className={`bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border shadow-xs transition-all cursor-pointer ${
                 (metrics?.hrCounts?.changesRequested ?? 0) > 0
                   ? "border-rose-400 dark:border-rose-500 ring-2 ring-rose-500/20"
                   : "border-slate-200/80 dark:border-white/5 hover:border-rose-400"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Changes Requested
                 </span>
                 <span className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
@@ -882,7 +880,7 @@ const HrTasks = () => {
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-rose-600 dark:text-rose-400">
+                <span className="text-xl font-bold text-rose-600 dark:text-rose-400">
                   {metrics?.hrCounts?.changesRequested ?? 0}
                 </span>
                 <span className="text-[11px] text-rose-500 font-medium">Action Needed</span>
@@ -892,10 +890,10 @@ const HrTasks = () => {
             {/* HR KPI 4: Submitted for Review */}
             <div
               onClick={() => setStatusFilter("Submitted")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-purple-400 dark:hover:border-purple-500 transition-all cursor-pointer"
+              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-[var(--color-brand-primary)] dark:hover:border-[var(--color-brand-primary)] transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Submitted for Review
                 </span>
                 <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
@@ -903,7 +901,7 @@ const HrTasks = () => {
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-purple-600 dark:text-purple-400">
+                <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
                   {metrics?.hrCounts?.submittedForReview ?? 0}
                 </span>
                 <span className="text-[11px] text-purple-500">Awaiting Manager</span>
@@ -913,10 +911,10 @@ const HrTasks = () => {
             {/* HR KPI 5: Completed */}
             <div
               onClick={() => setStatusFilter("Completed")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer col-span-2 sm:col-span-1"
+              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer col-span-2 sm:col-span-1"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Completed
                 </span>
                 <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
@@ -924,7 +922,7 @@ const HrTasks = () => {
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
                   {metrics?.hrCounts?.completed ?? 0}
                 </span>
                 <span className="text-[11px] text-emerald-500">Approved</span>
@@ -935,7 +933,7 @@ const HrTasks = () => {
       </div>
 
       {/* 3. SEARCH & FILTER TOOLBAR */}
-      <div className="bg-white dark:bg-slate-900/90 rounded-2xl p-4 border border-slate-200/80 dark:border-white/5 shadow-xs space-y-4">
+      <div className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs space-y-4">
         {/* Search bar & quick filters */}
         <div className="flex flex-col md:flex-row gap-3">
           {/* Search Input */}
@@ -946,7 +944,7 @@ const HrTasks = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search HR tasks by title, category, description..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-hidden focus:border-indigo-500 text-xs sm:text-sm transition-all"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-hidden focus:border-[var(--color-brand-primary)] text-[12px] sm:text-[13px] transition-all"
             />
             {searchQuery && (
               <button
@@ -965,7 +963,7 @@ const HrTasks = () => {
               <select
                 value={assigneeFilter}
                 onChange={(e) => setAssigneeFilter(e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 text-xs font-semibold focus:outline-hidden focus:border-indigo-500 cursor-pointer"
+                className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)] cursor-pointer"
               >
                 <option value="all">All HR Assignees</option>
                 {hrUsers.map((u) => (
@@ -980,7 +978,7 @@ const HrTasks = () => {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 text-xs font-semibold focus:outline-hidden focus:border-indigo-500 cursor-pointer"
+              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)] cursor-pointer"
             >
               <option value="all">All Categories</option>
               {HR_CATEGORIES.map((cat) => (
@@ -994,7 +992,7 @@ const HrTasks = () => {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 text-xs font-semibold focus:outline-hidden focus:border-indigo-500 cursor-pointer"
+              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)] cursor-pointer"
             >
               <option value="all">All Priorities</option>
               <option value="Low">Low</option>
@@ -1007,7 +1005,7 @@ const HrTasks = () => {
             <select
               value={dueDateFilter}
               onChange={(e) => setDueDateFilter(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 text-xs font-semibold focus:outline-hidden focus:border-indigo-500 cursor-pointer"
+              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-700 dark:text-slate-300 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)] cursor-pointer"
             >
               <option value="all">All Dates</option>
               <option value="due_soon">Due Soon (&le; 3 Days)</option>
@@ -1033,7 +1031,7 @@ const HrTasks = () => {
                   setDueDateFilter("all");
                   setSearchQuery("");
                 }}
-                className="px-3 py-2.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
+                className="px-3 py-2.5 rounded-xl text-[12px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
               >
                 Reset
               </button>
@@ -1055,9 +1053,9 @@ const HrTasks = () => {
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 statusFilter === tab.id
-                  ? "bg-indigo-600 text-white shadow-xs"
+                  ? "bg-[var(--color-brand-primary)] text-white shadow-xs"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
@@ -1072,51 +1070,49 @@ const HrTasks = () => {
         {loading ? (
           <div className="p-12 text-center space-y-4">
             <div className="w-10 h-10 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 animate-pulse">
+            <p className="text-[12px] font-semibold uppercase tracking-wider text-slate-400 animate-pulse">
               Loading HR tasks...
             </p>
           </div>
         ) : tasks.length === 0 ? (
           <div className="p-12 text-center space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-500 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-[color-mix(in_srgb,var(--color-brand-primary)_12%,transparent)] dark:bg-indigo-950/30 text-[var(--color-brand-primary)] flex items-center justify-center mx-auto">
               <FiBriefcase className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 No HR Tasks Found
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+              <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
                 {isManager
                   ? "No tasks match your current filters. Create a new task to assign work to HR team members."
                   : "You have no tasks matching this criteria. When manager assigns work, it will appear here."}
               </p>
             </div>
-            {isManager && (
-              <button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-xs"
-              >
-                <FiPlus className="w-4 h-4" />
-                Assign New Task
-              </button>
-            )}
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] transition-all shadow-xs"
+            >
+              <FiPlus className="w-4 h-4" />
+              {isManager ? "Assign New Task" : "Add My Task"}
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/75 dark:bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  <th className="py-3.5 px-4 sm:px-6">Task</th>
-                  <th className="py-3.5 px-4">HR Assignee</th>
-                  <th className="py-3.5 px-4">Assigned By</th>
-                  <th className="py-3.5 px-4">Priority</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Due Date</th>
-                  <th className="py-3.5 px-4">Last Updated</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                  <th className="py-3 px-4 sm:px-6">Task</th>
+                  <th className="py-3 px-4">HR Assignee</th>
+                  <th className="py-3 px-4">Assigned By</th>
+                  <th className="py-3 px-4">Priority</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Due Date</th>
+                  <th className="py-3 px-4">Last Updated</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs sm:text-sm">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-[12px] sm:text-[13px]">
                 {tasks.map((task) => {
                   const priorityMeta = getPriorityBadge(task.priority);
                   const statusMeta = getStatusBadge(task.status);
@@ -1135,10 +1131,10 @@ const HrTasks = () => {
                       className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group"
                     >
                       {/* Task Column */}
-                      <td className="py-4 px-4 sm:px-6 max-w-xs sm:max-w-md">
+                      <td className="py-3 px-4 sm:px-5 max-w-xs sm:max-w-md">
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-900 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors cursor-pointer"
+                            <span className="font-semibold text-slate-900 dark:text-white line-clamp-1 group-hover:text-[var(--color-brand-primary)] dark:group-hover:text-[var(--color-brand-primary)] transition-colors cursor-pointer"
                               onClick={() => {
                                 setSelectedTask(task);
                                 setIsDetailDrawerOpen(true);
@@ -1161,7 +1157,7 @@ const HrTasks = () => {
                               </span>
                             )}
                             {taskHasUnreadAlert(task._id) && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-rose-500 to-amber-500 text-white flex items-center gap-1 animate-pulse shadow-xs">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-rose-500 to-amber-500 text-white flex items-center gap-1 animate-pulse shadow-xs">
                                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
                                 New Alert
                               </span>
@@ -1175,7 +1171,7 @@ const HrTasks = () => {
 
                             {checklistTotal > 0 && (
                               <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                                <LuClipboardCheck className="w-3.5 h-3.5 text-indigo-500" />
+                                <LuClipboardCheck className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
                                 <span>
                                   {checklistDone}/{checklistTotal} ({checklistPercent}%)
                                 </span>
@@ -1193,7 +1189,7 @@ const HrTasks = () => {
                       </td>
 
                       {/* HR Assignee */}
-                      <td className="py-4 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
                           {getUserAvatar(task.assignedTo) ? (
                             <img
@@ -1215,7 +1211,7 @@ const HrTasks = () => {
                             {getInitials(task.assignedTo?.name)}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-800 dark:text-slate-200 text-xs truncate max-w-[130px]">
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 text-[12px] truncate max-w-[130px]">
                               {task.assignedTo?.name || "Unassigned"}
                             </div>
                             <div className="text-[10px] text-slate-400 truncate max-w-[130px]">
@@ -1226,7 +1222,7 @@ const HrTasks = () => {
                       </td>
 
                       {/* Assigned By */}
-                      <td className="py-4 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
                           {getUserAvatar(task.createdBy) ? (
                             <img
@@ -1248,7 +1244,7 @@ const HrTasks = () => {
                             {getInitials(task.createdBy?.name)}
                           </div>
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-800 dark:text-slate-200 text-xs truncate max-w-[130px]">
+                            <div className="font-semibold text-slate-800 dark:text-slate-200 text-[12px] truncate max-w-[130px]">
                               {task.createdBy?.name || "Manager"}
                             </div>
                             <div className="text-[10px] text-slate-400 truncate max-w-[130px]">
@@ -1263,7 +1259,7 @@ const HrTasks = () => {
                       </td>
 
                       {/* Priority */}
-                      <td className="py-4 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${priorityMeta.bg}`}
                         >
@@ -1273,18 +1269,18 @@ const HrTasks = () => {
                       </td>
 
                       {/* Status */}
-                      <td className="py-4 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${statusMeta.bg}`}
+                          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[12px] font-semibold ${statusMeta.bg}`}
                         >
                           {statusMeta.label}
                         </span>
                       </td>
 
                       {/* Due Date */}
-                      <td className="py-4 px-4 whitespace-nowrap">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <div className="space-y-1">
-                          <div className={`font-medium text-xs ${dueMeta.color}`}>
+                          <div className={`font-medium text-[12px] ${dueMeta.color}`}>
                             {dueMeta.text}
                           </div>
                           {dueMeta.tag && (
@@ -1298,19 +1294,19 @@ const HrTasks = () => {
                       </td>
 
                       {/* Last Updated */}
-                      <td className="py-4 px-4 whitespace-nowrap text-slate-400 text-xs">
+                      <td className="py-3 px-4 whitespace-nowrap text-slate-400 text-[12px]">
                         {getRelativeTime(task.lastUpdated || task.updatedAt)}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-4 px-4 whitespace-nowrap text-right">
+                      <td className="py-3 px-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {/* HR: Start Task if Pending */}
                           {!isManager && task.status === "Pending" && (
                             <button
                               onClick={() => handleStartTask(task)}
                               disabled={submittingAction}
-                              className="px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] shadow-xs transition-all cursor-pointer"
                             >
                               Start
                             </button>
@@ -1324,7 +1320,7 @@ const HrTasks = () => {
                                   setSelectedTask(task);
                                   setIsDetailDrawerOpen(true);
                                 }}
-                                className="px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-xs transition-all cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] shadow-xs transition-all cursor-pointer"
                               >
                                 Submit Work
                               </button>
@@ -1338,7 +1334,7 @@ const HrTasks = () => {
                                 setReviewDecision("Approved");
                                 setIsReviewModalOpen(true);
                               }}
-                              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-sm shadow-purple-500/25 transition-all cursor-pointer ring-2 ring-purple-400/30"
+                              className="px-3 py-1.5 rounded-lg bg-[image:var(--btn-gradient-bg)] hover:brightness-110 text-white font-semibold text-[12px] shadow-sm shadow-[color:var(--btn-glow-shadow)] transition-all cursor-pointer ring-2 ring-purple-400/30"
                             >
                               Review
                             </button>
@@ -1410,6 +1406,8 @@ const HrTasks = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         hrUsers={hrUsers}
+        isManager={isManager}
+        currentUser={currentUser}
         onTaskCreated={() => {
           setIsCreateModalOpen(false);
           fetchData(true);
@@ -1467,7 +1465,7 @@ const HrTasks = () => {
             className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-5"
           >
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <FiCheckCircle className="w-5 h-5 text-purple-500" />
                 Review Submitted Task
               </h3>
@@ -1481,14 +1479,14 @@ const HrTasks = () => {
 
             <div className="space-y-3">
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <div className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   Task Title
                 </div>
-                <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
                   {selectedTask.title}
                 </div>
                 {selectedTask.submission?.notes && (
-                  <div className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                  <div className="mt-2 text-[12px] text-slate-600 dark:text-slate-300">
                     <span className="font-semibold text-purple-600 dark:text-purple-400">
                       HR Submission Note:
                     </span>{" "}
@@ -1499,14 +1497,14 @@ const HrTasks = () => {
 
               {/* Decision Radio */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                   Review Decision
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setReviewDecision("Approved")}
-                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-[12px] font-bold transition-all cursor-pointer ${
                       reviewDecision === "Approved"
                         ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20"
                         : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
@@ -1519,7 +1517,7 @@ const HrTasks = () => {
                   <button
                     type="button"
                     onClick={() => setReviewDecision("Changes Requested")}
-                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${
+                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-[12px] font-bold transition-all cursor-pointer ${
                       reviewDecision === "Changes Requested"
                         ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20"
                         : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
@@ -1533,7 +1531,7 @@ const HrTasks = () => {
 
               {/* Feedback Input */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                   {reviewDecision === "Changes Requested"
                     ? "Feedback for HR (Required)"
                     : "Approval Comments (Optional)"}
@@ -1547,7 +1545,7 @@ const HrTasks = () => {
                       ? "Explain clearly what changes or additions HR needs to make..."
                       : "Add positive feedback or completion note..."
                   }
-                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 text-xs focus:outline-hidden focus:border-indigo-500"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 text-[12px] focus:outline-hidden focus:border-[var(--color-brand-primary)]"
                 />
               </div>
             </div>
@@ -1556,7 +1554,7 @@ const HrTasks = () => {
               <button
                 type="button"
                 onClick={() => setIsReviewModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                className="px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
               >
                 Cancel
               </button>
@@ -1564,7 +1562,7 @@ const HrTasks = () => {
                 type="button"
                 disabled={submittingAction}
                 onClick={handleReviewTask}
-                className={`px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md transition-all cursor-pointer ${
+                className={`px-5 py-2 rounded-xl text-[12px] font-bold text-white shadow-md transition-all cursor-pointer ${
                   reviewDecision === "Approved"
                     ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/25"
                     : "bg-amber-600 hover:bg-amber-500 shadow-amber-500/25"
@@ -1591,7 +1589,7 @@ const HrTasks = () => {
             className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4"
           >
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
                 <FiAlertTriangle className="w-5 h-5" />
                 Flag a Task Blocker
               </h3>
@@ -1603,12 +1601,12 @@ const HrTasks = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-[12px] text-slate-500 dark:text-slate-400">
               Reporting a blocker will highlight this task with an urgent alert and immediately notify the Manager to help unblock you.
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                 Describe the Blocker / Issue
               </label>
               <textarea
@@ -1616,7 +1614,7 @@ const HrTasks = () => {
                 value={blockerText}
                 onChange={(e) => setBlockerText(e.target.value)}
                 placeholder="E.g. Waiting on candidate documents from client, system access credentials missing..."
-                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 text-xs focus:outline-hidden focus:border-rose-500"
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 text-[12px] focus:outline-hidden focus:border-rose-500"
               />
             </div>
 
@@ -1624,7 +1622,7 @@ const HrTasks = () => {
               <button
                 type="button"
                 onClick={() => setIsBlockerModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400"
+                className="px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-600 dark:text-slate-400"
               >
                 Cancel
               </button>
@@ -1632,7 +1630,7 @@ const HrTasks = () => {
                 type="button"
                 disabled={submittingAction}
                 onClick={() => handleToggleBlocker(true)}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/25 transition-all cursor-pointer"
+                className="px-5 py-2 rounded-xl text-[12px] font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/25 transition-all cursor-pointer"
               >
                 {submittingAction ? "Flagging..." : "Flag Blocker"}
               </button>
@@ -1652,11 +1650,11 @@ const HrTasks = () => {
           >
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <FiUsers className="w-5 h-5 text-indigo-500" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FiUsers className="w-5 h-5 text-[var(--color-brand-primary)]" />
                   HR Team Workload Overview
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-[12px] text-slate-500 dark:text-slate-400">
                   Monitor active task distribution and overdue workloads across HR team members.
                 </p>
               </div>
@@ -1670,7 +1668,7 @@ const HrTasks = () => {
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-1">
               {!metrics?.workload || metrics.workload.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-xs">
+                <div className="p-8 text-center text-slate-400 text-[12px]">
                   No HR members registered yet.
                 </div>
               ) : (
@@ -1689,51 +1687,51 @@ const HrTasks = () => {
                             className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/30"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-xs flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-[12px] flex items-center justify-center">
                             {getInitials(user.name)}
                           </div>
                         )}
                         <div>
-                          <div className="font-bold text-slate-900 dark:text-white text-sm">
+                          <div className="font-bold text-slate-900 dark:text-white text-[13px]">
                             {user.name}
                           </div>
-                          <div className="text-xs text-slate-400">
+                          <div className="text-[12px] text-slate-400">
                             {user.email} &bull; {user.department || "Human Resources"}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs font-semibold">
+                      <div className="flex items-center gap-4 text-[12px] font-semibold">
                         <div className="text-center">
-                          <div className="text-slate-900 dark:text-white text-sm font-black">
+                          <div className="text-slate-900 dark:text-white text-[13px] font-black">
                             {w.activeTasks}
                           </div>
                           <div className="text-[10px] text-slate-400">Active</div>
                         </div>
 
                         <div className="text-center">
-                          <div className="text-blue-600 dark:text-blue-400 text-sm font-black">
+                          <div className="text-blue-600 dark:text-blue-400 text-[13px] font-black">
                             {w.inProgress}
                           </div>
                           <div className="text-[10px] text-slate-400">In Progress</div>
                         </div>
 
                         <div className="text-center">
-                          <div className="text-purple-600 dark:text-purple-400 text-sm font-black">
+                          <div className="text-purple-600 dark:text-purple-400 text-[13px] font-black">
                             {w.submitted}
                           </div>
                           <div className="text-[10px] text-slate-400">Submitted</div>
                         </div>
 
                         <div className="text-center">
-                          <div className="text-rose-600 dark:text-rose-400 text-sm font-black">
+                          <div className="text-rose-600 dark:text-rose-400 text-[13px] font-black">
                             {w.overdue}
                           </div>
                           <div className="text-[10px] text-slate-400">Overdue</div>
                         </div>
 
                         <div className="text-center">
-                          <div className="text-emerald-600 dark:text-emerald-400 text-sm font-black">
+                          <div className="text-emerald-600 dark:text-emerald-400 text-[13px] font-black">
                             {w.completed}
                           </div>
                           <div className="text-[10px] text-slate-400">Completed</div>
@@ -1748,7 +1746,7 @@ const HrTasks = () => {
             <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={() => setIsWorkloadModalOpen(false)}
-                className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs"
+                className="px-5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[12px]"
               >
                 Close
               </button>
@@ -1763,7 +1761,7 @@ const HrTasks = () => {
 // ==========================================
 // CREATE TASK MODAL COMPONENT (Manager)
 // ==========================================
-const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
+const CreateTaskModal = ({ isOpen, onClose, hrUsers, isManager, currentUser, onTaskCreated }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("General HR");
@@ -1776,10 +1774,16 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (hrUsers && hrUsers.length > 0 && !assignedTo) {
+    if (!isManager) {
+      // HR user: always self-assign
+      const myId = currentUser?._id || currentUser?.id;
+      if (myId && assignedTo !== myId) {
+        setAssignedTo(myId);
+      }
+    } else if (hrUsers && hrUsers.length > 0 && !assignedTo) {
       setAssignedTo(hrUsers[0]._id);
     }
-  }, [hrUsers, assignedTo]);
+  }, [hrUsers, assignedTo, isManager, currentUser]);
 
   if (!isOpen) return null;
 
@@ -1824,7 +1828,8 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
       toast.error("Please specify a due date");
       return;
     }
-    if (!assignedTo) {
+    // HR users self-assign; backend also enforces this using the logged-in user
+    if (isManager && !assignedTo) {
       toast.error("Please select an HR assignee");
       return;
     }
@@ -1841,7 +1846,7 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
         category,
         priority,
         dueDate,
-        assignedTo,
+        assignedTo: isManager ? assignedTo : undefined,
         checklist: cleanChecklist,
         attachments,
       });
@@ -1867,12 +1872,14 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
       >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FiBriefcase className="w-5 h-5 text-indigo-500" />
-              Assign New HR Task
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <FiBriefcase className="w-5 h-5 text-[var(--color-brand-primary)]" />
+              {isManager ? "Assign New HR Task" : "Add My Task"}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Create and delegate human resource tasks with checklists and due dates.
+            <p className="text-[12px] text-slate-500 dark:text-slate-400">
+              {isManager
+                ? "Create and delegate human resource tasks with checklists and due dates."
+                : "Create a task for yourself with a checklist and due date."}
             </p>
           </div>
           <button
@@ -1886,7 +1893,7 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
               Task Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -1895,13 +1902,13 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="E.g. Complete Q4 Payroll Reconciliation & Tax Verification"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-hidden focus:border-indigo-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-[12px] sm:text-[13px] focus:outline-hidden focus:border-[var(--color-brand-primary)]"
             />
           </div>
 
           {/* Description */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
               Instructions & Description
             </label>
             <textarea
@@ -1909,7 +1916,7 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide full instructions, guidelines, and expectations for the HR member..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-xs focus:outline-hidden focus:border-indigo-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-[12px] focus:outline-hidden focus:border-[var(--color-brand-primary)]"
             />
           </div>
 
@@ -1917,13 +1924,13 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Category */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                 HR Category
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-hidden focus:border-indigo-500"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)]"
               >
                 {HR_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -1935,13 +1942,13 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
 
             {/* Priority */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                 Priority
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-hidden focus:border-indigo-500"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)]"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -1952,7 +1959,7 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
 
             {/* Due Date */}
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                 Due Date <span className="text-red-500">*</span>
               </label>
               <input
@@ -1960,20 +1967,26 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
                 required
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-hidden focus:border-indigo-500"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)]"
               />
             </div>
           </div>
 
-          {/* HR Assignee */}
+          {/* HR Assignee (Manager only; HR users self-assign) */}
+          {!isManager && (
+            <div className="px-3.5 py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 text-[12px] font-semibold text-indigo-700 dark:text-indigo-300">
+              This task will be assigned to you ({currentUser?.name || "me"}).
+            </div>
+          )}
+          {isManager && (
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
               Assign to HR Team Member <span className="text-red-500">*</span>
             </label>
             <select
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:border-indigo-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-[12px] sm:text-[13px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)]"
             >
               <option value="">Select HR team member</option>
               {hrUsers.map((u) => (
@@ -1983,18 +1996,19 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
               ))}
             </select>
           </div>
+          )}
 
           {/* Checklist Builder */}
           <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <LuClipboardCheck className="w-4 h-4 text-indigo-500" />
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <LuClipboardCheck className="w-4 h-4 text-[var(--color-brand-primary)]" />
                 Task Checklist Items
               </label>
               <button
                 type="button"
                 onClick={handleAddChecklistItem}
-                className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline flex items-center gap-1"
+                className="text-[12px] text-[var(--color-brand-primary)] dark:text-[var(--color-brand-primary)] font-semibold hover:underline flex items-center gap-1"
               >
                 <FiPlus className="w-3.5 h-3.5" />
                 Add Item
@@ -2012,7 +2026,7 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
                     value={item}
                     onChange={(e) => handleChecklistChange(index, e.target.value)}
                     placeholder={`Checklist item ${index + 1}...`}
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-indigo-500"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-[12px] text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-[var(--color-brand-primary)]"
                   />
                   {checklist.length > 1 && (
                     <button
@@ -2030,12 +2044,12 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
 
           {/* Attachments */}
           <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <FiPaperclip className="w-4 h-4 text-indigo-500" />
+            <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <FiPaperclip className="w-4 h-4 text-[var(--color-brand-primary)]" />
               Attachments / References
             </label>
             <div className="flex items-center gap-3">
-              <label className="cursor-pointer px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 hover:bg-slate-100 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2 transition-all">
+              <label className="cursor-pointer px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 hover:bg-slate-100 text-[12px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2 transition-all">
                 <FiPaperclip className="w-3.5 h-3.5" />
                 <span>{uploading ? "Uploading..." : "Attach File"}</span>
                 <input
@@ -2058,7 +2072,7 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
                     key={i}
                     className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300 flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
                   >
-                    <FiFileText className="w-3 h-3 text-indigo-500" />
+                    <FiFileText className="w-3 h-3 text-[var(--color-brand-primary)]" />
                     {att.name}
                   </span>
                 ))}
@@ -2071,16 +2085,16 @@ const CreateTaskModal = ({ isOpen, onClose, hrUsers, onTaskCreated }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              className="px-4 py-2.5 rounded-xl text-[12px] font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs sm:text-sm shadow-md shadow-indigo-600/25 transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-[image:var(--btn-gradient-bg)] hover:brightness-110 text-white font-semibold text-[12px] sm:text-[13px] shadow-md shadow-[color:var(--btn-glow-shadow)] transition-all cursor-pointer"
             >
-              {submitting ? "Assigning..." : "Assign Task to HR"}
+              {submitting ? "Saving..." : isManager ? "Assign Task to HR" : "Add Task"}
             </button>
           </div>
         </form>
@@ -2159,8 +2173,8 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
         className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4 my-8"
       >
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <FiEdit className="w-5 h-5 text-indigo-500" />
+          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <FiEdit className="w-5 h-5 text-[var(--color-brand-primary)]" />
             Edit / Reassign Task
           </h3>
           <button
@@ -2173,7 +2187,7 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
               Task Title
             </label>
             <input
@@ -2181,31 +2195,31 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-hidden focus:border-indigo-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-[12px] sm:text-[13px] focus:outline-hidden focus:border-[var(--color-brand-primary)]"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
               Instructions / Description
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-xs focus:outline-hidden focus:border-indigo-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-[12px] focus:outline-hidden focus:border-[var(--color-brand-primary)]"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                 Category
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-hidden focus:border-indigo-500"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)]"
               >
                 {HR_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -2216,13 +2230,13 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                 Priority
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-hidden focus:border-indigo-500"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)]"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -2232,7 +2246,7 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                 Due Date
               </label>
               <input
@@ -2240,20 +2254,20 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
                 required
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-hidden focus:border-indigo-500"
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 text-[12px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)]"
               />
             </div>
           </div>
 
           {/* Reassign Assignee */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
               HR Assignee (Reassign)
             </label>
             <select
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-hidden focus:border-indigo-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-900 dark:text-white text-[12px] sm:text-[13px] font-semibold focus:outline-hidden focus:border-[var(--color-brand-primary)]"
             >
               {hrUsers.map((u) => (
                 <option key={u._id} value={u._id}>
@@ -2266,13 +2280,13 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
           {/* Checklist */}
           <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
                 Checklist
               </label>
               <button
                 type="button"
                 onClick={handleAddChecklist}
-                className="text-xs text-indigo-500 font-semibold hover:underline flex items-center gap-1"
+                className="text-[12px] text-[var(--color-brand-primary)] font-semibold hover:underline flex items-center gap-1"
               >
                 <FiPlus className="w-3.5 h-3.5" />
                 Add Item
@@ -2285,7 +2299,7 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
                     type="text"
                     value={item.item || ""}
                     onChange={(e) => handleChecklistChange(index, e.target.value)}
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-xs text-slate-800 dark:text-slate-200"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-[12px] text-slate-800 dark:text-slate-200"
                   />
                   <button
                     type="button"
@@ -2303,14 +2317,14 @@ const EditTaskModal = ({ isOpen, task, hrUsers, onClose, onTaskUpdated }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400"
+              className="px-4 py-2.5 rounded-xl text-[12px] font-semibold text-slate-600 dark:text-slate-400"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm shadow-md transition-all cursor-pointer"
+              className="px-6 py-2.5 rounded-xl bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] sm:text-[13px] shadow-md transition-all cursor-pointer"
             >
               {submitting ? "Updating..." : "Save Changes"}
             </button>
@@ -2374,7 +2388,7 @@ const TaskDetailsDrawer = ({
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${priorityMeta.bg}`}>
                 {task.priority} Priority
               </span>
-              <span className={`px-2.5 py-0.5 rounded-lg text-xs font-semibold ${statusMeta.bg}`}>
+              <span className={`px-2.5 py-0.5 rounded-lg text-[12px] font-semibold ${statusMeta.bg}`}>
                 {statusMeta.label}
               </span>
             </div>
@@ -2399,7 +2413,7 @@ const TaskDetailsDrawer = ({
             </div>
           </div>
 
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white mt-3">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white mt-3">
             {task.title}
           </h2>
 
@@ -2428,7 +2442,7 @@ const TaskDetailsDrawer = ({
               </div>
               <div className="min-w-0">
                 <div className="text-[10px] text-slate-400 font-medium">HR Assignee</div>
-                <div className="font-bold text-slate-800 dark:text-slate-200 text-xs truncate">
+                <div className="font-bold text-slate-800 dark:text-slate-200 text-[12px] truncate">
                   {task.assignedTo?.name || "Unassigned"}
                 </div>
               </div>
@@ -2457,20 +2471,20 @@ const TaskDetailsDrawer = ({
               </div>
               <div className="min-w-0">
                 <div className="text-[10px] text-slate-400 font-medium">Assigned By</div>
-                <div className="font-bold text-slate-800 dark:text-slate-200 text-xs truncate">
+                <div className="font-bold text-slate-800 dark:text-slate-200 text-[12px] truncate">
                   {task.createdBy?.name || "Manager"}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mt-2.5 flex-wrap">
+          <div className="flex items-center gap-4 text-[12px] text-slate-500 dark:text-slate-400 mt-2.5 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <FiCalendar className="w-3.5 h-3.5 text-indigo-500" />
+              <FiCalendar className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
               <span>Due: <strong className="text-slate-800 dark:text-slate-200">{formatDate(task.dueDate)}</strong></span>
             </div>
             <div className="flex items-center gap-1.5">
-              <FiFolder className="w-3.5 h-3.5 text-indigo-500" />
+              <FiFolder className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
               <span>{task.category || "General HR"}</span>
             </div>
           </div>
@@ -2482,10 +2496,10 @@ const TaskDetailsDrawer = ({
             <div className="flex items-start gap-2.5">
               <FiAlertTriangle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-bold text-rose-800 dark:text-rose-300">
+                <div className="text-[12px] font-bold text-rose-800 dark:text-rose-300">
                   Active Blocker Reported
                 </div>
-                <div className="text-xs text-rose-700 dark:text-rose-400 mt-0.5">
+                <div className="text-[12px] text-rose-700 dark:text-rose-400 mt-0.5">
                   "{task.blocker?.description || "Issue encountered"}"
                 </div>
               </div>
@@ -2503,11 +2517,11 @@ const TaskDetailsDrawer = ({
         {/* Review Feedback Banner (if Changes Requested) */}
         {task.status === "Changes Requested" && task.review?.feedback && (
           <div className="mx-5 mt-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 space-y-1">
-            <div className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+            <div className="text-[12px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
               <LuRotateCcw className="w-3.5 h-3.5 text-amber-600" />
               Manager Requested Changes
             </div>
-            <div className="text-xs text-amber-700 dark:text-amber-400">
+            <div className="text-[12px] text-amber-700 dark:text-amber-400">
               "{task.review.feedback}"
             </div>
           </div>
@@ -2516,7 +2530,7 @@ const TaskDetailsDrawer = ({
         {/* Description / Instructions */}
         {task.description && (
           <div className="px-5 pt-4">
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/80 text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-100 dark:border-slate-800/80 text-[12px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
               {task.description}
             </div>
           </div>
@@ -2529,7 +2543,7 @@ const TaskDetailsDrawer = ({
             <button
               onClick={onStartTask}
               disabled={submittingAction}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] shadow-md transition-all cursor-pointer"
             >
               <FiCheck className="w-3.5 h-3.5" />
               Start Task
@@ -2540,7 +2554,7 @@ const TaskDetailsDrawer = ({
           {!isManager && !hasBlocker && task.status !== "Completed" && (
             <button
               onClick={onOpenBlockerModal}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-300 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 text-xs font-semibold transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-300 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 text-[12px] font-semibold transition-all cursor-pointer"
             >
               <FiAlertTriangle className="w-3.5 h-3.5" />
               Flag Blocker
@@ -2551,7 +2565,7 @@ const TaskDetailsDrawer = ({
           {isManager && task.status === "Submitted" && (
             <button
               onClick={onOpenReviewModal}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md shadow-purple-600/25 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[image:var(--btn-gradient-bg)] hover:brightness-110 text-white font-bold text-[12px] shadow-md shadow-[color:var(--btn-glow-shadow)] transition-all cursor-pointer"
             >
               <FiCheckCircle className="w-3.5 h-3.5" />
               Review & Approve Work
@@ -2570,9 +2584,9 @@ const TaskDetailsDrawer = ({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`pb-2.5 px-2 text-xs font-bold border-b-2 transition-all cursor-pointer ${
+              className={`pb-2.5 px-2 text-[12px] font-bold border-b-2 transition-all cursor-pointer ${
                 activeTab === tab.id
-                  ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
+                  ? "border-indigo-600 text-[var(--color-brand-primary)] dark:text-[var(--color-brand-primary)]"
                   : "border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
               }`}
             >
@@ -2588,7 +2602,7 @@ const TaskDetailsDrawer = ({
             <div className="space-y-4">
               {/* Progress bar */}
               <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <div className="flex justify-between text-[12px] font-semibold text-slate-500 dark:text-slate-400">
                   <span>Progress Completion</span>
                   <span>{checklistPercent}%</span>
                 </div>
@@ -2603,7 +2617,7 @@ const TaskDetailsDrawer = ({
               {/* Items */}
               <div className="space-y-2">
                 {(!task.checklist || task.checklist.length === 0) ? (
-                  <p className="text-xs text-slate-400 text-center py-4">
+                  <p className="text-[12px] text-slate-400 text-center py-4">
                     No checklist items defined for this task.
                   </p>
                 ) : (
@@ -2614,7 +2628,7 @@ const TaskDetailsDrawer = ({
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
                         c.completed
                           ? "bg-slate-50/70 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800/60"
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-[var(--color-brand-primary)]"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -2628,7 +2642,7 @@ const TaskDetailsDrawer = ({
                           {c.completed && <FiCheck className="w-3.5 h-3.5" />}
                         </div>
                         <span
-                          className={`text-xs ${
+                          className={`text-[12px] ${
                             c.completed
                               ? "line-through text-slate-400 dark:text-slate-500 font-medium"
                               : "text-slate-800 dark:text-slate-200 font-semibold"
@@ -2652,7 +2666,7 @@ const TaskDetailsDrawer = ({
               {!isManager &&
                 (task.status === "In Progress" || task.status === "Changes Requested") && (
                   <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/20 space-y-3 mt-4">
-                    <div className="text-xs font-bold text-purple-900 dark:text-purple-300 flex items-center gap-2">
+                    <div className="text-[12px] font-bold text-purple-900 dark:text-purple-300 flex items-center gap-2">
                       <FiSend className="w-3.5 h-3.5 text-purple-600" />
                       Submit Work for Manager Review
                     </div>
@@ -2661,13 +2675,13 @@ const TaskDetailsDrawer = ({
                       value={submissionNotes}
                       onChange={(e) => setSubmissionNotes(e.target.value)}
                       placeholder="Add submission notes, outcomes, or links for the manager..."
-                      className="w-full p-2.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-purple-500"
+                      className="w-full p-2.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 text-[12px] text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-[var(--color-brand-primary)]"
                     />
                     <button
                       type="button"
                       disabled={submittingAction}
                       onClick={onSubmitWork}
-                      className="w-full py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-md shadow-purple-600/25 transition-all cursor-pointer"
+                      className="w-full py-2 rounded-lg bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-bold text-[12px] shadow-md shadow-[color:var(--btn-glow-shadow)] transition-all cursor-pointer"
                     >
                       {submittingAction ? "Submitting..." : "Submit Completed Work"}
                     </button>
@@ -2681,14 +2695,14 @@ const TaskDetailsDrawer = ({
             <div className="space-y-4">
               <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {(!task.comments || task.comments.length === 0) ? (
-                  <p className="text-xs text-slate-400 text-center py-6">
+                  <p className="text-[12px] text-slate-400 text-center py-6">
                     No comments or progress notes yet.
                   </p>
                 ) : (
                   task.comments.map((cm, idx) => (
                     <div
                       key={idx}
-                      className={`p-3 rounded-xl text-xs space-y-1 ${
+                      className={`p-3 rounded-xl text-[12px] space-y-1 ${
                         cm.isFeedback
                           ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50"
                           : "bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800"
@@ -2704,7 +2718,7 @@ const TaskDetailsDrawer = ({
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-[9px] flex items-center justify-center">
+                              <div className="w-full h-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-bold text-[10px] flex items-center justify-center">
                                 {getInitials(cm.user?.name)}
                               </div>
                             )}
@@ -2732,12 +2746,12 @@ const TaskDetailsDrawer = ({
                   value={newCommentText}
                   onChange={(e) => setNewCommentText(e.target.value)}
                   placeholder="Write a progress note or update..."
-                  className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-indigo-500"
+                  className="flex-1 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-[12px] text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-[var(--color-brand-primary)]"
                 />
                 <button
                   type="submit"
                   disabled={submittingAction || !newCommentText.trim()}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                 >
                   Post
                 </button>
@@ -2749,17 +2763,17 @@ const TaskDetailsDrawer = ({
           {activeTab === "attachments" && (
             <div className="space-y-3">
               {(!task.attachments || task.attachments.length === 0) ? (
-                <p className="text-xs text-slate-400 text-center py-6">
+                <p className="text-[12px] text-slate-400 text-center py-6">
                   No attachments on this task.
                 </p>
               ) : (
                 task.attachments.map((att, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 flex items-center justify-between text-[12px]"
                   >
                     <div className="flex items-center gap-2.5">
-                      <FiFileText className="w-4 h-4 text-indigo-500" />
+                      <FiFileText className="w-4 h-4 text-[var(--color-brand-primary)]" />
                       <div>
                         <div className="font-semibold text-slate-800 dark:text-slate-200">
                           {att.name}
@@ -2773,7 +2787,7 @@ const TaskDetailsDrawer = ({
                       href={att.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                      className="p-2 rounded-lg bg-[color-mix(in_srgb,var(--color-brand-primary)_12%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-brand-primary)_18%,transparent)] text-[var(--color-brand-primary)] hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
                     >
                       <FiDownload className="w-3.5 h-3.5" />
                     </a>
@@ -2787,7 +2801,7 @@ const TaskDetailsDrawer = ({
           {activeTab === "history" && (
             <div className="space-y-3">
               {(!task.activityHistory || task.activityHistory.length === 0) ? (
-                <p className="text-xs text-slate-400 text-center py-6">
+                <p className="text-[12px] text-slate-400 text-center py-6">
                   No history recorded yet.
                 </p>
               ) : (
@@ -2796,7 +2810,7 @@ const TaskDetailsDrawer = ({
                     .slice()
                     .reverse()
                     .map((h, i) => (
-                      <div key={i} className="relative text-xs">
+                      <div key={i} className="relative text-[12px]">
                         <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-slate-900" />
                         <div className="font-bold text-slate-800 dark:text-slate-200">
                           {h.action}
