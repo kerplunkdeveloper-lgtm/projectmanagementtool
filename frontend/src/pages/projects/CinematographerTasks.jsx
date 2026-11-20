@@ -622,18 +622,7 @@ const CinematographerTasks = () => {
     );
   };
 
-  // Loading Screen
-  if (clientsLoading && (!clients || clients.length === 0)) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <div className="w-10 h-10 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
-        <p className="text-xs font-bold text-slate-500 tracking-wider uppercase animate-pulse">
-          Loading Cinematographer Workspace...
-        </p>
-      </div>
-    );
-  };
-
+  // NOTE: must stay above any early return (Rules of Hooks)
   const memoizedClientSwitcherNode = useMemo(() => {
     return renderClientSwitcherNode();
   }, [
@@ -649,6 +638,18 @@ const CinematographerTasks = () => {
     creatingProject,
     clientDropdownCoords,
   ]);
+
+  // Loading Screen
+  if (clientsLoading && (!clients || clients.length === 0)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <div className="w-10 h-10 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+        <p className="text-xs font-bold text-slate-500 tracking-wider uppercase animate-pulse">
+          Loading Cinematographer Workspace...
+        </p>
+      </div>
+    );
+  }
 
   // Empty State: Specific Client has NO projects
   if (
