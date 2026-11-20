@@ -3,6 +3,7 @@ const Notification = require("../models/Notification");
 const Project = require("../models/Project");
 const Task = require("../models/Task");
 const User = require("../models/User");
+const ClientSplitHistory = require("../models/ClientSplitHistory");
 
 const isSocialMediaManagerUser = (user) => {
   if (!user) return false;
@@ -433,6 +434,27 @@ exports.reassignClient = async (req, res) => {
       .populate("createdBy", "name email role")
       .populate("assignedTo", "name email role department");
 
+    // Record the move for the Client Split "Move History" tab
+    let historyEntry = null;
+    try {
+      const fromUser = await User.findById(fromUserId).select("_id name");
+      historyEntry = await ClientSplitHistory.create({
+        client: client._id,
+        clientName: client.companyName || "",
+        branch: client.branch || "",
+        fromUser: fromUser?._id || fromUserId,
+        fromUserName: fromUser?.name || "",
+        toUser: toUser._id,
+        toUserName: toUser.name || "",
+        movedBy: req.user._id,
+        movedByName: req.user.name || "",
+        movedTasks: taskResult.modifiedCount || 0,
+        movedSubtasks: subtaskResult.modifiedCount || 0,
+      });
+    } catch (historyError) {
+      console.error("Failed to save client split history:", historyError.message);
+    }
+
     if (toUserId.toString() !== req.user._id.toString()) {
       const notification = await Notification.create({
         recipient: toUserId,
@@ -452,7 +474,29 @@ exports.reassignClient = async (req, res) => {
       data: populated,
       movedTasks: taskResult.modifiedCount || 0,
       movedSubtasks: subtaskResult.modifiedCount || 0,
+      history: historyEntry,
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// @desc    Client Split move history (newest first)
+// @route   GET /api/clients/split-history
+// @access  Private
+exports.getClientSplitHistory = async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 500, 2000);
+    const history = await ClientSplitHistory.find({})
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("fromUser", "name")
+      .populate("toUser", "name")
+      .populate("movedBy", "name")
+      .lean();
+
+    res.status(200).json({ success: true, count: history.length, data: history });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

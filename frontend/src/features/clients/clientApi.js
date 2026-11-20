@@ -52,6 +52,12 @@ export const reassignClientAPI = async (id, fromUserId, toUserId) => {
   return response.data;
 };
 
+// CLIENT SPLIT MOVE HISTORY
+export const getClientSplitHistoryAPI = async () => {
+  const response = await axiosInstance.get("/clients/split-history");
+  return response.data;
+};
+
 
 
 // DELETE CLIENT

@@ -9,11 +9,14 @@ import {
   LuArrowRightLeft,
   LuX,
   LuCircleCheck,
+  LuHistory,
+  LuLayoutGrid,
+  LuSearch,
 } from "react-icons/lu";
 import toast from "react-hot-toast";
 import { useTheme } from "../../../context/ThemeContext";
 import { getUsers } from "../../../features/users/userSlice";
-import { getClientsAPI, reassignClientAPI } from "../../../features/clients/clientApi";
+import { getClientsAPI, reassignClientAPI, getClientSplitHistoryAPI } from "../../../features/clients/clientApi";
 import { clientReassigned } from "../../../features/clients/clientslice";
 
 // Same rule as the backend: only admin / operation manager / finance can move clients
@@ -67,6 +70,24 @@ const getAvatar = (u) => {
 const initials = (name = "") =>
   name.split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "SM";
 
+const formatDate = (d) =>
+  d
+    ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "-";
+const formatTime = (d) =>
+  d ? new Date(d).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";
+
+// "Today", "Yesterday", "3 days ago" ...
+const relativeDay = (d) => {
+  if (!d) return "";
+  const start = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((start(new Date()) - start(new Date(d))) / 86400000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days} days ago`;
+  return "";
+};
+
 
 const ClientSplit = () => {
   const dispatch = useDispatch();
@@ -84,6 +105,59 @@ const ClientSplit = () => {
   const [dropTarget, setDropTarget] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [pendingMove, setPendingMove] = useState(null);
+
+  // Right-side tab: "split" (board) | "history" (move history table)
+  const [view, setView] = useState("split");
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const [historyOrder, setHistoryOrder] = useState("recent"); // "recent" | "past"
+  const [historySearch, setHistorySearch] = useState("");
+
+  // Load the move history the first time the History tab is opened
+  useEffect(() => {
+    if (view !== "history" || historyLoaded) return;
+    let alive = true;
+    setHistoryLoading(true);
+    setHistoryError("");
+    (async () => {
+      try {
+        const res = await getClientSplitHistoryAPI();
+        if (alive) {
+          setHistory(res?.data || []);
+          setHistoryLoaded(true);
+        }
+      } catch (e) {
+        if (alive) setHistoryError(e?.response?.data?.message || "Failed to load move history");
+      } finally {
+        if (alive) setHistoryLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [view, historyLoaded]);
+
+  const historyRows = useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    const rows = history.map((h) => ({
+      ...h,
+      clientLabel: h.clientName || "Unknown client",
+      fromLabel: h.fromUser?.name || h.fromUserName || "Unknown",
+      toLabel: h.toUser?.name || h.toUserName || "Unknown",
+      byLabel: h.movedBy?.name || h.movedByName || "-",
+    }));
+    const filtered = q
+      ? rows.filter((r) =>
+          [r.clientLabel, r.fromLabel, r.toLabel, r.byLabel, r.branch].some((v) => (v || "").toLowerCase().includes(q))
+        )
+      : rows;
+    return filtered.sort((a, b) => {
+      const diff = new Date(b.createdAt) - new Date(a.createdAt);
+      return historyOrder === "recent" ? diff : -diff;
+    });
+  }, [history, historyOrder, historySearch]);
 
   // Close the confirm modal with Escape
   useEffect(() => {
@@ -223,6 +297,18 @@ const ClientSplit = () => {
         setClients((list) => list.map((c) => (c._id === client._id ? res.data : c)));
         dispatch(clientReassigned(res.data));
       }
+      // Keep the History tab in sync without refetching
+      if (res?.history && historyLoaded) {
+        setHistory((list) => [
+          {
+            ...res.history,
+            fromUser: move.fromUser ? { _id: move.fromUser._id, name: move.fromUser.name } : res.history.fromUser,
+            toUser: move.toUser ? { _id: move.toUser._id, name: move.toUser.name } : res.history.toUser,
+            movedBy: currentUser ? { _id: currentUser._id, name: currentUser.name } : res.history.movedBy,
+          },
+          ...list,
+        ]);
+      }
       const moved = (res?.movedTasks || 0) + (res?.movedSubtasks || 0);
       toast.success(`${client.companyName} moved to ${toName}${moved ? ` · ${moved} open task(s) reassigned` : ""}`);
     } catch (e) {
@@ -282,6 +368,26 @@ const ClientSplit = () => {
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Tabs: board / move history */}
+          <div className="flex items-center p-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+            {[
+              { key: "split", label: "Client Split", icon: LuLayoutGrid },
+              { key: "history", label: "Split Moved History", icon: LuHistory },
+            ].map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setView(t.key)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold cursor-pointer transition-all ${
+                  view === t.key
+                    ? `bg-[image:var(--btn-gradient-bg)] ${onAccent} shadow-sm`
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <t.icon className="w-3.5 h-3.5" />
+                {t.label}
+              </button>
+            ))}
+          </div>
           <div className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-[11px]">
             <span className="font-bold text-slate-900 dark:text-white">{columns.length}</span>{" "}
             <span className="text-slate-600 dark:text-slate-300">Executives</span>
@@ -293,8 +399,134 @@ const ClientSplit = () => {
         </div>
       </div>
 
+      {/* Split moved history */}
+      {view === "history" && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-lg shadow-slate-200/60 dark:shadow-black/30 overflow-hidden">
+          <div className={`relative px-4 py-2 bg-[image:var(--btn-gradient-bg)] ${onAccent} flex items-center justify-between overflow-hidden`}>
+            <div className="absolute -right-8 -top-10 w-28 h-28 rounded-full bg-white/10" />
+            <div className="relative flex items-center gap-2">
+              <LuHistory className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold tracking-[0.18em] uppercase">Split Moved History</span>
+            </div>
+            <span className="relative text-[10px] font-semibold px-2 py-0.5 rounded-full bg-black/15">
+              {historyRows.length} {historyRows.length === 1 ? "Move" : "Moves"}
+            </span>
+          </div>
+
+          {/* Toolbar: order + search */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-center p-0.5 rounded-lg bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-slate-700 w-fit">
+              {[
+                { key: "recent", label: "Recent" },
+                { key: "past", label: "Past" },
+              ].map((o) => (
+                <button
+                  key={o.key}
+                  onClick={() => setHistoryOrder(o.key)}
+                  className={`px-3 py-1 rounded-md text-[11px] font-semibold cursor-pointer transition-all ${
+                    historyOrder === o.key
+                      ? `bg-[var(--color-brand-primary)] ${onAccent}`
+                      : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <div className="relative sm:w-64">
+              <LuSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                placeholder="Search client or executive..."
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg text-[12px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-[var(--color-brand-primary)]"
+              />
+            </div>
+          </div>
+
+          {historyLoading ? (
+            <div className="p-12 text-center text-[12px] text-slate-400 animate-pulse">Loading move history...</div>
+          ) : historyError ? (
+            <div className="p-12 text-center text-[12px] text-rose-500">{historyError}</div>
+          ) : historyRows.length === 0 ? (
+            <div className="p-12 text-center text-[12px] text-slate-400">
+              {history.length === 0 ? "No clients have been moved yet." : "No moves match your search."}
+            </div>
+          ) : (
+            <div className="overflow-auto max-h-[calc(100vh-260px)]">
+              <table className="w-full border-separate border-spacing-0 text-left text-[12px]">
+                <thead className="sticky top-0 z-10">
+                  <tr>
+                    {["#", "Date & Time", "Client", "Branch", "From", "", "To", "Moved By", "Tasks Moved"].map((h, i) => (
+                      <th
+                        key={i}
+                        className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyRows.map((r, i) => {
+                    const rel = relativeDay(r.createdAt);
+                    const tasks = (r.movedTasks || 0) + (r.movedSubtasks || 0);
+                    return (
+                      <tr
+                        key={r._id || i}
+                        className="even:bg-slate-50/60 dark:even:bg-white/[0.02] hover:bg-[color-mix(in_srgb,var(--color-brand-primary)_7%,transparent)] transition-colors"
+                      >
+                        <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-700/70 text-slate-400">{i + 1}</td>
+                        <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-700/70 whitespace-nowrap">
+                          <div className="font-semibold text-slate-900 dark:text-white">{formatDate(r.createdAt)}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                            {formatTime(r.createdAt)}
+                            {rel && <span className="ml-1.5 text-[var(--color-brand-primary)] font-semibold">· {rel}</span>}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-700/70 font-semibold text-slate-900 dark:text-white">
+                          {r.clientLabel}
+                        </td>
+                        <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-700/70 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                          {r.branch || "-"}
+                        </td>
+                        <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-700/70 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-200 text-[9px] font-bold flex items-center justify-center">
+                              {initials(r.fromLabel)}
+                            </span>
+                            <span className="text-slate-700 dark:text-slate-200">{r.fromLabel}</span>
+                          </span>
+                        </td>
+                        <td className="px-1 py-2 border-b border-slate-200 dark:border-slate-700/70">
+                          <LuArrowRight className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
+                        </td>
+                        <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-700/70 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className={`w-6 h-6 rounded-full bg-[image:var(--btn-gradient-bg)] ${onAccent} text-[9px] font-bold flex items-center justify-center`}>
+                              {initials(r.toLabel)}
+                            </span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{r.toLabel}</span>
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-700/70 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                          {r.byLabel}
+                        </td>
+                        <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-700/70 text-slate-600 dark:text-slate-300">
+                          {tasks}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Branch filter */}
-      {branches.length > 0 && (
+      {view === "split" && branches.length > 0 && (
         <div className="flex items-center gap-2 flex-wrap">
           <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
             <LuMapPin className="w-3.5 h-3.5" />
@@ -320,7 +552,7 @@ const ClientSplit = () => {
       )}
 
       {/* Premium sheet-style card */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-lg shadow-slate-200/60 dark:shadow-black/30 overflow-hidden">
+      <div className={`${view === "split" ? "" : "hidden"} bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-lg shadow-slate-200/60 dark:shadow-black/30 overflow-hidden`}>
         {loading ? (
           <div className="p-12 text-center text-[12px] text-slate-400 animate-pulse">Loading clients...</div>
         ) : error ? (

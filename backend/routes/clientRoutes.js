@@ -8,6 +8,7 @@ const {
   getClient,
   updateClient,
   reassignClient,
+  getClientSplitHistory,
   deleteClient,
 } = require("../controllers/clientController");
 
@@ -32,6 +33,15 @@ router.get(
   protect,
   authorize("admin", "operationmanager", "team", "socialmediamanager"),
   getClients
+);
+
+
+// CLIENT SPLIT MOVE HISTORY (must be before "/:id")
+router.get(
+  "/split-history",
+  protect,
+  authorize("admin", "operationmanager", "team", "socialmediamanager"),
+  getClientSplitHistory
 );
 
 

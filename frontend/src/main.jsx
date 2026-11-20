@@ -7,6 +7,9 @@ import "./index.css";
 import { store } from "./app/store";
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from "./context/ThemeContext";
+import { installSuccessToastSound } from "./utils/successSound";
+
+installSuccessToastSound();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <Provider store={store}>
