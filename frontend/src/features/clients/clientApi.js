@@ -46,6 +46,14 @@ export const updateClientAPI =
 
 
 
+// REASSIGN CLIENT (move from one executive to another)
+export const reassignClientAPI = async (id, fromUserId, toUserId) => {
+  const response = await axiosInstance.put(`/clients/${id}/reassign`, { fromUserId, toUserId });
+  return response.data;
+};
+
+
+
 // DELETE CLIENT
 export const deleteClientAPI =
   async (id) => {

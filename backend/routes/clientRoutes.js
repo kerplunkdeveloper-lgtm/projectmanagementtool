@@ -7,6 +7,7 @@ const {
   getClients,
   getClient,
   updateClient,
+  reassignClient,
   deleteClient,
 } = require("../controllers/clientController");
 
@@ -40,6 +41,15 @@ router.get(
   protect,
   authorize("admin", "operationmanager", "team", "socialmediamanager"),
   getClient
+);
+
+
+// REASSIGN CLIENT (Client Split drag & drop)
+router.put(
+  "/:id/reassign",
+  protect,
+  authorize("admin", "operationmanager", "team", "socialmediamanager"),
+  reassignClient
 );
 
 

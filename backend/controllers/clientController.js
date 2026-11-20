@@ -1,5 +1,8 @@
 const Client = require("../models/Client");
 const Notification = require("../models/Notification");
+const Project = require("../models/Project");
+const Task = require("../models/Task");
+const User = require("../models/User");
 
 const isSocialMediaManagerUser = (user) => {
   if (!user) return false;
@@ -370,6 +373,88 @@ exports.updateClient = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+
+// @desc    Move a client from one executive to another (Client Split drag & drop).
+//          Projects follow automatically (project access is based on client.assignedTo);
+//          open tasks of that client are reassigned from the old executive to the new one.
+// @route   PUT /api/clients/:id/reassign
+// @access  Private (admin / operation manager / finance)
+exports.reassignClient = async (req, res) => {
+  try {
+    if (!isPrivilegedClientUser(req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to reassign clients",
+      });
+    }
+
+    const { fromUserId, toUserId } = req.body;
+    if (!fromUserId || !toUserId) {
+      return res.status(400).json({ success: false, message: "fromUserId and toUserId are required" });
+    }
+    if (fromUserId.toString() === toUserId.toString()) {
+      return res.status(400).json({ success: false, message: "Client is already with this executive" });
+    }
+
+    const client = await Client.findById(req.params.id);
+    if (!client) {
+      return res.status(404).json({ success: false, message: "Client not found" });
+    }
+
+    const toUser = await User.findById(toUserId).select("_id name");
+    if (!toUser) {
+      return res.status(404).json({ success: false, message: "Target executive not found" });
+    }
+
+    // Swap the executive in the client's team, keeping the rest (designers etc.) intact
+    const ids = (client.assignedTo || []).map((id) => id.toString()).filter((id) => id !== fromUserId.toString());
+    if (!ids.includes(toUserId.toString())) ids.push(toUserId.toString());
+    client.assignedTo = ids;
+    await client.save();
+
+    // Reassign open tasks / subtasks of this client's projects from old -> new executive
+    const projectIds = (await Project.find({ client: client._id }).select("_id").lean()).map((p) => p._id);
+    const taskScope = { $or: [{ client: client._id }, { project: { $in: projectIds } }] };
+
+    const taskResult = await Task.updateMany(
+      { ...taskScope, assignedTo: fromUserId, status: { $ne: "Completed" } },
+      { $set: { assignedTo: toUserId } }
+    );
+    const subtaskResult = await Task.updateMany(
+      { ...taskScope, subtasks: { $elemMatch: { assignedTo: fromUserId, status: { $ne: "Completed" } } } },
+      { $set: { "subtasks.$[s].assignedTo": toUserId } },
+      { arrayFilters: [{ "s.assignedTo": fromUserId, "s.status": { $ne: "Completed" } }] }
+    );
+
+    const populated = await Client.findById(client._id)
+      .populate("createdBy", "name email role")
+      .populate("assignedTo", "name email role department");
+
+    if (toUserId.toString() !== req.user._id.toString()) {
+      const notification = await Notification.create({
+        recipient: toUserId,
+        sender: req.user._id,
+        type: "client_assigned",
+        message: `You have been assigned to Client: "${client.companyName}"`,
+      });
+      const io = req.app.get("io");
+      if (io) {
+        const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+        io.to(toUserId.toString()).emit("notification", populatedNotification);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: populated,
+      movedTasks: taskResult.modifiedCount || 0,
+      movedSubtasks: subtaskResult.modifiedCount || 0,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

@@ -115,7 +115,12 @@ const clientSlice = createSlice({
     error: null,
   },
 
-  reducers: {},
+  reducers: {
+    // Replace a client in the list (used after Client Split drag & drop reassign)
+    clientReassigned: (state, action) => {
+      state.clients = state.clients.map((c) => (c._id === action.payload._id ? action.payload : c));
+    },
+  },
 
   extraReducers: (builder) => {
     builder
@@ -216,5 +221,7 @@ const clientSlice = createSlice({
       );
   },
 });
+
+export const { clientReassigned } = clientSlice.actions;
 
 export default clientSlice.reducer;
