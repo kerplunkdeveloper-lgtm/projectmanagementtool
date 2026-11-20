@@ -596,7 +596,13 @@ exports.getTasks = async (req, res) => {
       const deptOr = [
         { assignedTo: { $in: userIds } },
         { "subtasks.assignedTo": { $in: userIds } },
-        { department: { $regex: isGraphic ? /graphic|design/i : isCinema ? /cinema|video|edit/i : deptStr, $options: "i" } }
+        // Note: a RegExp literal with flags must NOT be combined with $options — MongoDB throws
+        // "options set in both $regex and $options" (500 for Graphic/Cinema departments).
+        isGraphic
+          ? { department: { $regex: /graphic|design/i } }
+          : isCinema
+            ? { department: { $regex: /cinema|video|edit/i } }
+            : { department: { $regex: deptStr, $options: "i" } }
       ];
       if (req.query.include_unassigned === 'true') {
         deptOr.push({ assignedTo: null }, { assignedTo: { $exists: false } });
