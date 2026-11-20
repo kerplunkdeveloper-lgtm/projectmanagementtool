@@ -98,8 +98,17 @@ const ClientSplit = () => {
       cur.count += 1;
       m.set(key, cur);
     });
-    return [...m.values()].sort((a, b) => a.label.localeCompare(b.label));
+    // Fixed order: Pondicherry first, then Chennai, then any others alphabetically
+    const rank = (k) => {
+      if (k.startsWith("pond")) return 0;
+      if (k.startsWith("chennai")) return 1;
+      return 2;
+    };
+    return [...m.values()].sort((a, b) => rank(a.key) - rank(b.key) || a.label.localeCompare(b.label));
   }, [activeClients]);
+
+  // No "All" option — default to the first branch (Pondicherry)
+  const activeBranch = branches.some((b) => b.key === branchFilter) ? branchFilter : branches[0]?.key || "all";
 
   // One column per executive: their active clients + designers working on those clients
   const columns = useMemo(() => {
@@ -109,7 +118,7 @@ const ClientSplit = () => {
     );
 
     activeClients
-      .filter((c) => branchFilter === "all" || (c.branch || "").trim().toLowerCase() === branchFilter)
+      .filter((c) => activeBranch === "all" || (c.branch || "").trim().toLowerCase() === activeBranch)
       .forEach((c) => {
         const members = (Array.isArray(c.assignedTo) ? c.assignedTo : c.assignedTo ? [c.assignedTo] : [])
           .map((m) => usersById.get((m?._id || m)?.toString()) || (typeof m === "object" ? m : null))
@@ -125,13 +134,13 @@ const ClientSplit = () => {
       });
 
     return [...map.values()]
-      .filter((col) => branchFilter === "all" || col.clients.length > 0)
+      .filter((col) => activeBranch === "all" || col.clients.length > 0)
       .map((col) => {
         col.clients.sort((a, b) => (a.companyName || "").localeCompare(b.companyName || ""));
         return { ...col, shown: col.clients };
       })
       .sort((a, b) => b.clients.length - a.clients.length || a.user.name.localeCompare(b.user.name));
-  }, [activeClients, users, usersById, branchFilter]);
+  }, [activeClients, users, usersById, activeBranch]);
 
   // Light accent colors need dark text on the gradient for readable contrast
   const { accentColor } = useTheme();
@@ -177,18 +186,18 @@ const ClientSplit = () => {
             <LuMapPin className="w-3.5 h-3.5" />
             Branch
           </span>
-          {[{ key: "all", label: "All", count: activeClients.length }, ...branches].map((b) => (
+          {branches.map((b) => (
             <button
               key={b.key}
               onClick={() => setBranchFilter(b.key)}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer transition-all border ${
-                branchFilter === b.key
+                activeBranch === b.key
                   ? `bg-[var(--color-brand-primary)] border-transparent ${onAccent}`
                   : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-[var(--color-brand-primary)]"
               }`}
             >
               {b.label}
-              <span className={`ml-1.5 ${branchFilter === b.key ? "opacity-80" : "text-slate-500 dark:text-slate-400"}`}>
+              <span className={`ml-1.5 ${activeBranch === b.key ? "opacity-80" : "text-slate-500 dark:text-slate-400"}`}>
                 {b.count}
               </span>
             </button>
