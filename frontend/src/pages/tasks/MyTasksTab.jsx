@@ -1208,6 +1208,7 @@ const MyTasksTab = ({
   user,
   setSelectedTaskId,
   loading,
+  partialLoading = false,
   dateFilter: dateFilterProp,
   setDateFilter: setDateFilterProp,
 }) => {
@@ -3125,10 +3126,16 @@ const MyTasksTab = ({
             );
           })}
         </div>
+        {partialLoading && (
+          <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+            <span className="animate-spin rounded-full h-3 w-3 border-2 border-blue-500 border-t-transparent"></span>
+            Loading all tasks…
+          </div>
+        )}
       </div>
 
       {/* TASK LIST CONTAINER */}
-      {loading ? (
+      {loading || (partialLoading && filteredTasks.length === 0) ? (
         <div className="flex justify-center items-center py-20">
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent"></div>
         </div>
@@ -3213,7 +3220,7 @@ const MyTasksTab = ({
                               <div className="flex justify-between items-start flex-wrap gap-1.5">
                                 <div className="flex items-center gap-1.5">
                                   <span
-                                    className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase ${getPriorityStyle(task.priority || "Medium")}`}
+                                    className={`px-2.5 py-1 rounded-lg text-[9px] font-medium tracking-wider  ${getPriorityStyle(task.priority || "Medium")}`}
                                   >
                                     {task.priority || "Medium"}
                                   </span>

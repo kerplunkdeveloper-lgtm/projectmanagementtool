@@ -646,7 +646,15 @@ exports.getTasks = async (req, res) => {
       res.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
     }
 
-    let mongooseQuery = Task.find(query).sort({ updatedAt: -1 });
+    // Optional `limit` → newest-created tasks first (used for fast first paint on My Tasks;
+    // the full list is fetched in the background).
+    const limitNum = parseInt(req.query.limit, 10);
+    let mongooseQuery = Task.find(query).sort(
+      limitNum > 0 ? { createdAt: -1 } : { updatedAt: -1 }
+    );
+    if (limitNum > 0) {
+      mongooseQuery = mongooseQuery.limit(Math.min(limitNum, 500));
+    }
 
     if (req.query.minimal === "true") {
       // Blazing fast minimal mode for Workload & fast overviews (<30ms)

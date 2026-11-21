@@ -1438,75 +1438,129 @@ span.badge-span:hover {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Priority: Top High with spinning border animation */
+/* Uniform width for all status badges/dropdowns in task tables */
+select.badge-select.badge-status-fixed-width,
+span.badge-span.badge-status-fixed-width {
+  width: 11rem !important;
+  min-width: 11rem !important;
+  max-width: 11rem !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+  text-align-last: center !important;
+}
+
+/* Priority: Top High — gradient pill with spinning gold/red ring + soft glow */
 .badge-priority-top-high {
   position: relative !important;
-  z-index: 1 !important;
+  isolation: isolate !important;
   overflow: hidden !important;
   background: transparent !important;
   color: #ffffff !important;
   border: none !important;
+  border-radius: 9999px !important;
+  padding: 0.0625rem 0.875rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-shadow: 0 1px 1px rgba(76, 5, 25, 0.45) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-shadow: 0 3px 8px rgba(225, 29, 72, 0.2) !important;
+  animation: top-high-glow 2.4s ease-in-out infinite !important;
 }
 
-select.badge-priority-top-high {
-  background: #e11d48 !important;
-  /* solid rose/red background */
-  color: #ffffff !important;
-  border: 2px solid #ffea00 !important;
-  /* Gold border to indicate Top High */
-  display: inline-block !important;
-}
-
-.badge-priority-top-high::before {
+/* Spinning conic ring (visible as a 2px border around the pill) */
+span.badge-priority-top-high::before {
   content: '' !important;
   position: absolute !important;
-  top: -60% !important;
-  left: -60% !important;
-  width: 220% !important;
-  height: 220% !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 260% !important;
+  aspect-ratio: 1 / 1 !important;
   background: conic-gradient(from 0deg,
-      #ff0000,
-      #ffea00,
-      #ff0000,
-      #ffea00,
-      #ff0000) !important;
-  animation: border-spin 2s linear infinite !important;
+      #e11d48 0deg,
+      #e11d48 120deg,
+      #fb923c 170deg,
+      #fde047 200deg,
+      #fffbeb 215deg,
+      #fde047 230deg,
+      #fb923c 260deg,
+      #e11d48 310deg,
+      #e11d48 360deg) !important;
+  transform: translate(-50%, -50%) rotate(0deg);
+  animation: top-high-ring-spin 2.2s linear infinite !important;
   z-index: -2 !important;
-  border-radius: 50% !important;
 }
 
-.badge-priority-top-high::after {
+/* Inner fill + moving sheen */
+span.badge-priority-top-high::after {
   content: '' !important;
   position: absolute !important;
-  top: 2px !important;
-  left: 2px !important;
-  right: 2px !important;
-  bottom: 2px !important;
-  background: #e11d48 !important;
-  /* bg-rose-600 */
-  border-radius: 5px !important;
-  /* 15px - 2px */
+  inset: 2px !important;
+  border-radius: 9999px !important;
+  background:
+    linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%) no-repeat,
+    linear-gradient(135deg, #fb7185 0%, #e11d48 45%, #be123c 100%) !important;
+  background-size: 250% 100%, 100% 100% !important;
+  animation: top-high-sheen 3s ease-in-out infinite !important;
   z-index: -1 !important;
 }
 
-.dark .badge-priority-top-high {
-  box-shadow: 0 4px 14px rgba(255, 0, 0, 0.55) !important;
-}
-
-.dark select.badge-priority-top-high {
-  background: #9f1239 !important;
-  /* darker red background for dark mode */
+/* <select> can't render pseudo-elements: gradient + gold ring + sheen instead */
+select.badge-priority-top-high {
+  background:
+    linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.3) 50%, transparent 65%) no-repeat,
+    linear-gradient(135deg, #fb7185 0%, #e11d48 45%, #be123c 100%) !important;
+  background-size: 250% 100%, 100% 100% !important;
+  border: 2px solid #fbbf24 !important;
   color: #ffffff !important;
-  border: 2px solid #ffea00 !important;
+  display: inline-block !important;
+  animation: top-high-glow 2.4s ease-in-out infinite, top-high-sheen 3s ease-in-out infinite !important;
 }
 
-.dark .badge-priority-top-high::after {
-  background: #9f1239 !important;
-  /* bg-rose-800 for dark mode */
+select.badge-priority-top-high option {
+  color: #0f172a;
+  background: #ffffff;
+  text-shadow: none;
+}
+
+.dark span.badge-priority-top-high::after,
+.dark select.badge-priority-top-high {
+  background:
+    linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.22) 50%, transparent 65%) no-repeat,
+    linear-gradient(135deg, #e11d48 0%, #be123c 50%, #881337 100%) !important;
+  background-size: 250% 100%, 100% 100% !important;
+}
+
+@keyframes top-high-ring-spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes top-high-sheen {
+  0%, 35% {
+    background-position: 150% 0, 0 0;
+  }
+  100% {
+    background-position: -60% 0, 0 0;
+  }
+}
+
+@keyframes top-high-glow {
+  0%, 100% {
+    box-shadow: 0 2px 6px rgba(225, 29, 72, 0.25), 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+  50% {
+    box-shadow: 0 4px 14px rgba(225, 29, 72, 0.45), 0 0 0 3px rgba(251, 191, 36, 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-priority-top-high,
+  span.badge-priority-top-high::before,
+  span.badge-priority-top-high::after {
+    animation: none !important;
+  }
 }
 
 @keyframes border-spin {
