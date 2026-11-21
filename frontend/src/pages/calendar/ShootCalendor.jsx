@@ -7,7 +7,6 @@ import { enUS } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import axiosInstance from "../../services/axiosInstance";
 import { toast } from "react-hot-toast";
-import { useTheme } from "../../context/ThemeContext";
 import {
   FiPlus,
   FiX,
@@ -26,18 +25,10 @@ import {
   FiCheckSquare,
   FiAlertCircle,
   FiAlertTriangle,
-  FiCheck,
   FiEdit2,
   FiEye,
-  FiGrid,
-  FiSearch,
   FiList,
-  FiSun,
-  FiCloudRain,
-  FiWind,
   FiRefreshCw,
-  FiCloud,
-  FiDroplet,
 } from "react-icons/fi";
 
 // Weather code decoder for Open-Meteo free API
@@ -186,7 +177,7 @@ const getStatusStyles = (status) => {
         borderLeft: "border-l-emerald-500",
         cardBorder:
           "border-emerald-300/80 dark:border-emerald-500/35 hover:border-emerald-400 dark:hover:border-emerald-400/80 shadow-emerald-500/5",
-        cardBg: "bg-emerald-50/20 dark:bg-emerald-950/15",
+        cardBg: "bg-emerald-50 dark:bg-emerald-500/10",
         chipBg:
           "bg-emerald-50/90 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-500/30 shadow-xs",
       };
@@ -199,7 +190,7 @@ const getStatusStyles = (status) => {
         borderLeft: "border-l-blue-500",
         cardBorder:
           "border-blue-300/80 dark:border-blue-500/35 hover:border-blue-400 dark:hover:border-blue-400/80 shadow-blue-500/5",
-        cardBg: "bg-blue-50/20 dark:bg-blue-950/15",
+        cardBg: "bg-blue-50 dark:bg-blue-500/10",
         chipBg:
           "bg-blue-50/90 dark:bg-blue-500/15 hover:bg-blue-100 dark:hover:bg-blue-500/25 text-blue-900 dark:text-blue-200 border-blue-200 dark:border-blue-500/30 shadow-xs",
       };
@@ -212,7 +203,7 @@ const getStatusStyles = (status) => {
         borderLeft: "border-l-purple-500",
         cardBorder:
           "border-purple-300/80 dark:border-purple-500/35 hover:border-purple-400 dark:hover:border-purple-400/80 shadow-purple-500/5",
-        cardBg: "bg-purple-50/20 dark:bg-purple-950/15",
+        cardBg: "bg-purple-50 dark:bg-purple-500/10",
         chipBg:
           "bg-purple-50/90 dark:bg-purple-500/15 hover:bg-purple-100 dark:hover:bg-purple-500/25 text-purple-900 dark:text-purple-200 border-purple-200 dark:border-purple-500/30 shadow-xs",
       };
@@ -225,7 +216,7 @@ const getStatusStyles = (status) => {
         borderLeft: "border-l-amber-500",
         cardBorder:
           "border-amber-300/80 dark:border-amber-500/35 hover:border-amber-400 dark:hover:border-amber-400/80 shadow-amber-500/5",
-        cardBg: "bg-amber-50/20 dark:bg-amber-950/15",
+        cardBg: "bg-amber-50 dark:bg-amber-500/10",
         chipBg:
           "bg-amber-50/90 dark:bg-amber-500/15 hover:bg-amber-100 dark:hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 border-amber-200 dark:border-amber-500/30 shadow-xs",
       };
@@ -238,7 +229,7 @@ const getStatusStyles = (status) => {
         borderLeft: "border-l-rose-500",
         cardBorder:
           "border-rose-300/80 dark:border-rose-500/35 hover:border-rose-400 dark:hover:border-rose-400/80 shadow-rose-500/5",
-        cardBg: "bg-rose-50/20 dark:bg-rose-950/15",
+        cardBg: "bg-rose-50 dark:bg-rose-500/10",
         chipBg:
           "bg-rose-50/90 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-900 dark:text-rose-200 border-rose-200 dark:border-rose-500/30 shadow-xs",
       };
@@ -251,7 +242,7 @@ const getStatusStyles = (status) => {
         borderLeft: "border-l-teal-500",
         cardBorder:
           "border-teal-300/80 dark:border-teal-500/35 hover:border-teal-400 dark:hover:border-teal-400/80 shadow-teal-500/5",
-        cardBg: "bg-teal-50/20 dark:bg-teal-950/15",
+        cardBg: "bg-teal-50 dark:bg-teal-500/10",
         chipBg:
           "bg-teal-50/90 dark:bg-teal-500/15 hover:bg-teal-100 dark:hover:bg-teal-500/25 text-teal-900 dark:text-teal-200 border-teal-200 dark:border-teal-500/30 shadow-xs",
       };
@@ -264,7 +255,7 @@ const getStatusStyles = (status) => {
         borderLeft: "border-l-slate-400 dark:border-l-slate-500",
         cardBorder:
           "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
-        cardBg: "bg-slate-100/40 dark:bg-slate-800/30",
+        cardBg: "bg-slate-100 dark:bg-slate-800/50",
         chipBg:
           "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-600",
       };
@@ -277,7 +268,7 @@ const getStatusStyles = (status) => {
         borderLeft: "border-l-emerald-500",
         cardBorder:
           "border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500",
-        cardBg: "bg-slate-50/20 dark:bg-slate-800/20",
+        cardBg: "bg-white dark:bg-[#0e1726]",
         chipBg:
           "bg-emerald-50/90 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 text-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-500/30 shadow-xs",
       };
@@ -440,7 +431,7 @@ const CustomEvent = React.memo(({ event }) => {
         e.stopPropagation();
         resource.onView && resource.onView();
       }}
-      className={`group relative flex flex-col gap-1.5 p-2 rounded-xl border text-xs transition-all duration-200 shadow-2xs hover:shadow-md cursor-pointer mb-2 overflow-hidden bg-white/95 dark:bg-[#0e1726]/95 ${
+      className={`group relative flex flex-col gap-1.5 p-2 rounded-xl border text-xs transition-all duration-200 shadow-2xs hover:shadow-md cursor-pointer mb-2 overflow-hidden ${statusStyle.cardBg} ${
         statusStyle.cardBorder || "border-slate-200 dark:border-slate-700"
       } hover:-translate-y-0.5`}
     >
@@ -453,7 +444,7 @@ const CustomEvent = React.memo(({ event }) => {
           </span>
         </div>
         {resource.shootType && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-[#192338] text-slate-600 dark:text-slate-300 shrink-0 border border-slate-200/50 dark:border-slate-700/50">
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/70 dark:bg-black/20 text-slate-600 dark:text-slate-300 shrink-0 border border-slate-200/50 dark:border-slate-700/50">
             {resource.shootType}
           </span>
         )}
@@ -508,7 +499,7 @@ const CustomEvent = React.memo(({ event }) => {
         </span>
 
         {/* View, Edit, Delete icon buttons based on roles & permissions */}
-        <div className="flex items-center gap-1 bg-slate-50 dark:bg-[#141d2e] px-1.5 py-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+        <div className="flex items-center gap-1 bg-white/70 dark:bg-black/20 px-1.5 py-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
           <button
             type="button"
             onClick={(e) => {
@@ -828,7 +819,6 @@ const ShootCalendor = () => {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewShoot, setViewShoot] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [liveWeather, setLiveWeather] = useState(null);
   const [isFetchingWeather, setIsFetchingWeather] = useState(false);
   const [isCustomShootType, setIsCustomShootType] = useState(false);
 
@@ -903,7 +893,7 @@ const ShootCalendor = () => {
           lat = pos.coords.latitude;
           lon = pos.coords.longitude;
           locName = "Your GPS Location";
-        } catch (posErr) {
+        } catch {
           // fallback
         }
       }
@@ -927,15 +917,6 @@ const ShootCalendor = () => {
           wind_speed_10m,
         )} km/h)`;
 
-        setLiveWeather({
-          temp: Math.round(temperature_2m),
-          label: info.label,
-          emoji: info.emoji,
-          humidity: relative_humidity_2m,
-          wind: Math.round(wind_speed_10m),
-          location: locName,
-          fullString: weatherString,
-        });
 
         setFormData((prev) => ({
           ...prev,
@@ -965,31 +946,14 @@ const ShootCalendor = () => {
     }
   }, []);
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      const { data } = await axiosInstance.get("/users");
-      setUsers(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-    }
-  }, []);
-
-  const fetchClients = useCallback(async () => {
-    try {
-      const { data } = await axiosInstance.get("/clients");
-      setClients(data.data || []);
-    } catch (error) {
-      console.error("Failed to fetch clients:", error);
-    }
-  }, []);
-
-  const fetchAllData = useCallback(async () => {
+  const fetchAllData = useCallback(async (isActive = () => true) => {
     try {
       const [shootsRes, clientsRes, usersRes] = await Promise.all([
         axiosInstance.get("/shoot-calendar"),
         axiosInstance.get("/clients"),
         axiosInstance.get("/users"),
       ]);
+      if (!isActive()) return;
       setShoots(shootsRes.data?.data || []);
       setClients(clientsRes.data?.data || []);
       setUsers(usersRes.data?.data || []);
@@ -1000,7 +964,11 @@ const ShootCalendor = () => {
   }, []);
 
   useEffect(() => {
-    fetchAllData();
+    let active = true;
+    Promise.resolve().then(() => fetchAllData(() => active));
+    return () => {
+      active = false;
+    };
   }, [fetchAllData]);
 
   useEffect(() => {
@@ -2097,40 +2065,40 @@ const ShootCalendor = () => {
 
       {/* Schedule / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-xs p-0 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-slate-800 rounded-t-2xl sm:rounded-2xl max-w-3xl w-full max-h-[94vh] sm:max-h-[90vh] flex flex-col shadow-2xl overflow-hidden sm:my-auto">
             {/* Header */}
-            <div className="px-8 py-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-[#0c1322] shrink-0">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+            <div className="px-4 sm:px-6 py-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-[#0c1322] shrink-0">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 <span className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg border border-emerald-500/20">
-                  <FiCalendar size={18} />
+                  <FiCalendar size={15} />
                 </span>
                 {selectedShoot ? "Edit Shoot Details" : "Schedule New Shoot"}
               </h2>
               <button
                 onClick={closeModal}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-[#131b2e] hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full p-2 transition-all cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-[#131b2e] hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full p-1.5 transition-all cursor-pointer"
               >
-                <FiX size={20} />
+                <FiX size={18} />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-8 overflow-y-auto bg-slate-50/50 dark:bg-[#080d1a]">
+            <div className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto flex-1 bg-slate-50/50 dark:bg-[#080d1a]">
               <form
                 id="shoot-form"
                 onSubmit={handleSubmit}
-                className="space-y-8"
+                className="space-y-5"
               >
                 {/* Core Details */}
                 <div>
-                  <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
+                  <h3 className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
                     Core Details
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Client <span className="text-red-500">*</span>
                       </label>
                       <select
@@ -2138,7 +2106,7 @@ const ShootCalendor = () => {
                         required
                         value={formData.client}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                       >
                         <option value="" className="dark:bg-[#131b2e]">
                           Select a client
@@ -2156,7 +2124,7 @@ const ShootCalendor = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Shoot Title <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -2165,14 +2133,14 @@ const ShootCalendor = () => {
                         required
                         value={formData.shootTitle}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Diwali Special Video"
                       />
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center justify-between gap-2 mb-1 min-h-[18px]">
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                           Shoot Type <span className="text-red-500">*</span>
                         </label>
                         <button
@@ -2190,7 +2158,7 @@ const ShootCalendor = () => {
                               }));
                             }
                           }}
-                          className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+                          className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
                         >
                           {isCustomShootType
                             ? "← Choose from list"
@@ -2206,7 +2174,7 @@ const ShootCalendor = () => {
                             required
                             value={formData.shootType}
                             onChange={handleInputChange}
-                            className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                            className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                             placeholder="Enter custom shoot type (e.g. Reels Shoot, Podcast, Drone)"
                             autoFocus
                           />
@@ -2227,7 +2195,7 @@ const ShootCalendor = () => {
                               handleInputChange(e);
                             }
                           }}
-                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
+                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                         >
                           {allShootTypes.map((type) => (
                             <option
@@ -2250,14 +2218,14 @@ const ShootCalendor = () => {
 
                     {selectedShoot && (
                       <div>
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                           Status
                         </label>
                         <select
                           name="status"
                           value={formData.status}
                           onChange={handleInputChange}
-                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
+                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                         >
                           {SHOOT_STATUSES.map((status) => (
                             <option
@@ -2276,13 +2244,13 @@ const ShootCalendor = () => {
 
                 {/* Schedule & Location */}
                 <div>
-                  <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
+                  <h3 className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
                     Schedule & Location
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-3">
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Date <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -2291,12 +2259,12 @@ const ShootCalendor = () => {
                         required
                         value={formData.shootDate}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Start Time <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -2305,12 +2273,12 @@ const ShootCalendor = () => {
                         required
                         value={formData.startTime}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         End Time <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -2319,12 +2287,12 @@ const ShootCalendor = () => {
                         required
                         value={formData.endTime}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                       />
                     </div>
 
-                    <div className="md:col-span-3">
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    <div className="col-span-2 md:col-span-3">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Location
                       </label>
                       <input
@@ -2332,7 +2300,7 @@ const ShootCalendor = () => {
                         name="location"
                         value={formData.location}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Studio A, ECR Road, Chennai"
                       />
                     </div>
@@ -2341,20 +2309,20 @@ const ShootCalendor = () => {
 
                 {/* Team & Resources */}
                 <div>
-                  <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
+                  <h3 className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
                     Team & Resources
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Assigned To (Lead)
                       </label>
                       <select
                         name="assignedTo"
                         value={formData.assignedTo}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm cursor-pointer"
                       >
                         <option value="" className="dark:bg-[#131b2e]">
                           Select Assignee
@@ -2372,7 +2340,7 @@ const ShootCalendor = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex justify-between items-center">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex justify-between items-center">
                         Shoot Team
                         <span className="text-[10px] font-normal text-slate-400 dark:text-slate-500">
                           Hold Ctrl/Cmd for multiple
@@ -2383,7 +2351,7 @@ const ShootCalendor = () => {
                         multiple
                         value={formData.shootTeam}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm custom-scrollbar"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm custom-scrollbar"
                         size="3"
                       >
                         {users.map((user) => (
@@ -2437,7 +2405,7 @@ const ShootCalendor = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Transport Needs
                       </label>
                       <input
@@ -2445,14 +2413,14 @@ const ShootCalendor = () => {
                         name="transport"
                         value={formData.transport}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Agency Vehicle required"
                       />
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between gap-1 mb-1.5">
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center justify-between gap-1 mb-1 min-h-[18px]">
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                           Estimated Budget (₹)
                         </label>
                         {!isSuperOrAdmin && (
@@ -2467,7 +2435,7 @@ const ShootCalendor = () => {
                         value={formData.estimatedBudget}
                         onChange={handleInputChange}
                         disabled={!isSuperOrAdmin}
-                        className={`w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm ${
+                        className={`w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm ${
                           !isSuperOrAdmin
                             ? "opacity-60 cursor-not-allowed bg-slate-100/90 dark:bg-slate-800/80"
                             : ""
@@ -2480,13 +2448,13 @@ const ShootCalendor = () => {
 
                 {/* Scope & Details */}
                 <div>
-                  <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
+                  <h3 className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
                     Scope & Details
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Purpose
                       </label>
                       <input
@@ -2494,13 +2462,13 @@ const ShootCalendor = () => {
                         name="purpose"
                         value={formData.purpose}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Menu Photos & Reels"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Content Use
                       </label>
                       <input
@@ -2508,22 +2476,22 @@ const ShootCalendor = () => {
                         name="contentUse"
                         value={formData.contentUse}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="e.g. Instagram, Facebook"
                       />
                     </div>
 
                     {/* Weather / Environment with Live Weather integration */}
-                    <div className="md:col-span-2">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    <div className="sm:col-span-2">
+                      <div className="flex items-center justify-between gap-2 mb-1 min-h-[18px]">
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                           Weather / Environment
                         </label>
                         <button
                           type="button"
                           onClick={() => fetchLiveWeather()}
                           disabled={isFetchingWeather}
-                          className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200/70 dark:border-amber-800/60 px-3 py-1 rounded-xl transition-all shadow-2xs cursor-pointer active:scale-95 disabled:opacity-60"
+                          className="flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200/70 dark:border-amber-800/60 px-2 py-0.5 rounded-lg transition-all shadow-2xs cursor-pointer active:scale-95 disabled:opacity-60"
                           title="Fetch current live weather for your location"
                         >
                           <FiRefreshCw
@@ -2544,7 +2512,7 @@ const ShootCalendor = () => {
                           name="weather"
                           value={formData.weather}
                           onChange={handleInputChange}
-                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                          className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                           placeholder="e.g. ☀️ 32°C Clear Sky (Indoor AC / Outdoor Clear)"
                         />
                       </div>
@@ -2582,7 +2550,7 @@ const ShootCalendor = () => {
                                 weather: preset.val,
                               }))
                             }
-                            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-[#151f33] dark:hover:bg-[#1e2a44] text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 transition-all cursor-pointer shadow-2xs active:scale-95"
+                            className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-[#151f33] dark:hover:bg-[#1e2a44] text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 transition-all cursor-pointer shadow-2xs active:scale-95"
                           >
                             {preset.label}
                           </button>
@@ -2594,13 +2562,13 @@ const ShootCalendor = () => {
 
                 {/* Client Contact */}
                 <div>
-                  <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-5 flex items-center gap-2">
+                  <h3 className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                     <div className="w-6 h-[2px] bg-emerald-500 rounded-full"></div>{" "}
                     Client Contact
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Contact Name
                       </label>
                       <input
@@ -2608,12 +2576,12 @@ const ShootCalendor = () => {
                         name="clientContactName"
                         value={formData.clientContactName}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="Name of SPOC"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Contact Phone
                       </label>
                       <input
@@ -2621,7 +2589,7 @@ const ShootCalendor = () => {
                         name="clientContactPhone"
                         value={formData.clientContactPhone}
                         onChange={handleInputChange}
-                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
+                        className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-2xs text-sm"
                         placeholder="+91 9876543210"
                       />
                     </div>
@@ -2629,9 +2597,9 @@ const ShootCalendor = () => {
                 </div>
 
                 {/* Descriptions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Description
                     </label>
                     <textarea
@@ -2639,12 +2607,12 @@ const ShootCalendor = () => {
                       value={formData.description}
                       onChange={handleInputChange}
                       rows="3"
-                      className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3.5 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none transition-all shadow-2xs text-sm"
+                      className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none transition-all shadow-2xs text-sm"
                       placeholder="Additional details about the shoot..."
                     ></textarea>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Special Instructions / Notes
                     </label>
                     <textarea
@@ -2652,7 +2620,7 @@ const ShootCalendor = () => {
                       value={formData.notes}
                       onChange={handleInputChange}
                       rows="3"
-                      className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-2xl px-4 py-3.5 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none transition-all shadow-2xs text-sm"
+                      className="w-full border border-slate-200/90 dark:border-slate-700/80 rounded-xl px-3 py-2 bg-slate-50/60 dark:bg-[#131b2e] text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 focus:bg-white dark:focus:bg-[#131b2e] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none resize-none transition-all shadow-2xs text-sm"
                       placeholder="e.g. Focus on new menu items. Capture close-ups for reels."
                     ></textarea>
                   </div>
@@ -2661,24 +2629,24 @@ const ShootCalendor = () => {
             </div>
 
             {/* Footer */}
-            <div className="px-8 py-5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] flex justify-between items-center shrink-0">
+            <div className="px-4 sm:px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1322] flex flex-wrap justify-between items-center gap-2 shrink-0">
               {selectedShoot && canDeleteShoot(selectedShoot) ? (
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200/50 dark:border-rose-800/50 px-4 py-2 rounded-xl transition-colors flex items-center gap-2 text-sm font-bold cursor-pointer"
+                  className="text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200/50 dark:border-rose-800/50 px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 text-xs sm:text-sm font-bold cursor-pointer"
                 >
-                  <FiTrash2 size={16} /> Delete Shoot
+                  <FiTrash2 size={14} /> Delete Shoot
                 </button>
               ) : (
                 <div></div>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex gap-2 ml-auto">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-6 py-2.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#131b2e] rounded-xl font-bold transition-colors text-sm cursor-pointer"
+                  className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#131b2e] rounded-xl font-bold transition-colors text-sm cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2686,7 +2654,7 @@ const ShootCalendor = () => {
                   type="submit"
                   form="shoot-form"
                   disabled={loading}
-                  className="px-6 py-2.5 theme-bg-accent text-white rounded-xl font-bold transition-all shadow-md hover:opacity-95 disabled:opacity-70 flex items-center gap-2 text-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                  className="px-4 sm:px-5 py-2 theme-bg-accent text-white rounded-xl font-bold transition-all shadow-md hover:opacity-95 disabled:opacity-70 flex items-center gap-2 text-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {loading ? "Saving..." : "Save Shoot Details"}
                 </button>
