@@ -1,5 +1,6 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, current } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
+import { isTaskAtRisk } from "../../utils/smCommitmentUtils";
 import {
   getSocialmediaTasksAPI,
   getSocialmediaStatsAPI,
@@ -57,12 +58,16 @@ export const createSocialmediaTask = createAsyncThunk(
 );
 
 // UPDATE TASK
+// Options (all optional, passed in the arg object):
+//   optimistic: true → apply `data` to the task in the store immediately (instant UI),
+//                      roll back automatically if the request fails.
+//   silent: true     → skip the generic "Task updated successfully" toast (caller shows its own).
 export const updateSocialmediaTask = createAsyncThunk(
   "socialmediaTasks/updateSocialmediaTask",
-  async ({ id, data }, thunkAPI) => {
+  async ({ id, data, silent }, thunkAPI) => {
     try {
       const response = await updateSocialmediaTaskAPI(id, data);
-      toast.success("Task updated successfully");
+      if (!silent) toast.success("Task updated successfully");
       return response;
     } catch (error) {
       const msg = error.response?.data?.message || "Failed to update task";
@@ -171,6 +176,10 @@ const initialState = {
   loading: false,
   statsLoading: false,
   error: null,
+  // requestId → { id, prevFields } for rolling back optimistic updates on failure
+  optimisticUpdates: {},
+  // taskId → requestId of the most recent update; older responses must not overwrite newer state
+  latestUpdateReq: {},
 };
 
 const recalcStats = (state) => {
@@ -186,13 +195,7 @@ const recalcStats = (state) => {
     ['In QC', 'Scheduled', 'In progress', 'Not started'].includes(t.status) &&
     new Date(t.publishDate) >= now
   ).length;
-  const atRisk = commitments.filter((t) => {
-    if (['Completed', 'Live'].includes(t.status)) return false;
-    const targetDate = t.publishDate || t.dueDate;
-    if (!targetDate) return false;
-    const diffHours = (new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60);
-    return diffHours >= 0 && diffHours <= 24;
-  }).length;
+  const atRisk = commitments.filter((t) => isTaskAtRisk(t, now.getTime())).length;
   const achievement = total > 0 ? parseFloat(((completed / total) * 100).toFixed(1)) : 0;
   const activeClients = new Set(commitments.map((t) => t.clientName).filter(Boolean)).size;
 
@@ -273,13 +276,51 @@ const socialmediaTaskSlice = createSlice({
       })
 
       // UPDATE TASK
+      .addCase(updateSocialmediaTask.pending, (state, action) => {
+        const { id, data, optimistic } = action.meta.arg || {};
+        if (!id) return;
+        if (!state.latestUpdateReq) state.latestUpdateReq = {};
+        if (!state.optimisticUpdates) state.optimisticUpdates = {};
+        state.latestUpdateReq[id] = action.meta.requestId;
+        if (!optimistic || !data) return;
+        const index = state.tasks.findIndex((t) => t._id === id);
+        if (index === -1) return;
+        // Snapshot only the fields being changed so they can be restored on failure
+        const snapshot = current(state.tasks[index]);
+        const prevFields = {};
+        Object.keys(data).forEach((k) => {
+          prevFields[k] = snapshot[k];
+        });
+        state.optimisticUpdates[action.meta.requestId] = { id, prevFields };
+        Object.assign(state.tasks[index], data);
+      })
       .addCase(updateSocialmediaTask.fulfilled, (state, action) => {
-        if (action.payload.data) {
+        const { requestId, arg } = action.meta;
+        if (state.optimisticUpdates) delete state.optimisticUpdates[requestId];
+        const id = arg?.id || action.payload?.data?._id;
+        // If a newer update for this task is still in flight, don't overwrite its (newer)
+        // optimistic state with this older server response — the newer response will settle it.
+        const isLatest = !state.latestUpdateReq || state.latestUpdateReq[id] === requestId;
+        if (state.latestUpdateReq && isLatest) delete state.latestUpdateReq[id];
+        if (action.payload.data && isLatest) {
           const index = state.tasks.findIndex((t) => t._id === action.payload.data._id);
           if (index !== -1) {
             state.tasks[index] = action.payload.data;
           }
-          recalcStats(state);
+        }
+        recalcStats(state);
+      })
+      .addCase(updateSocialmediaTask.rejected, (state, action) => {
+        const { requestId, arg } = action.meta;
+        const backup = state.optimisticUpdates?.[requestId];
+        if (backup) delete state.optimisticUpdates[requestId];
+        const id = arg?.id;
+        const isLatest = state.latestUpdateReq?.[id] === requestId;
+        if (isLatest) delete state.latestUpdateReq[id];
+        // Roll back the optimistic change (only if no newer update has replaced it)
+        if (backup && isLatest) {
+          const index = state.tasks.findIndex((t) => t._id === backup.id);
+          if (index !== -1) Object.assign(state.tasks[index], backup.prevFields);
         }
       })
 

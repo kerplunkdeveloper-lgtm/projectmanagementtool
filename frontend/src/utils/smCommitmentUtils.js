@@ -23,6 +23,33 @@ export const formatCommitmentDate = (dateVal, includeYear = false) => {
   }
 };
 
+// Statuses that count as "done" for At Risk purposes (lowercase; covers both
+// "CLient"/"Client" spellings). Must stay in sync with the backend stats rule.
+const AT_RISK_DONE_STATUSES = new Set([
+  "completed",
+  "live",
+  "published",
+  "published live",
+  "completed and wait client approval",
+]);
+
+/**
+ * Single source of truth for "At Risk":
+ * a commitment task that is not done and whose publish (or due) time is
+ * within the next 24 hours. Already-passed tasks are Overdue, not At Risk.
+ */
+export const isTaskAtRisk = (task, now = Date.now()) => {
+  if (!task || !task.commitment) return false;
+  const s = (task.status || "").trim().toLowerCase();
+  if (AT_RISK_DONE_STATUSES.has(s)) return false;
+  const target = task.publishDate || task.dueDate;
+  if (!target) return false;
+  const time = new Date(target).getTime();
+  if (isNaN(time)) return false;
+  const diffHours = (time - now) / (1000 * 60 * 60);
+  return diffHours >= 0 && diffHours <= 24;
+};
+
 /**
  * Check if a task belongs to Reel category
  */
@@ -292,22 +319,16 @@ export const computeAllClientsCommitments = (
   // Total At Risk and Awaiting approval from active tasks
   (tasks || []).forEach((t) => {
     const s = (t.status || "").trim().toLowerCase();
-    // Finished only if purely Live/Published or Completed without client approval
-    const isPureCompleted = s === "completed" || s === "live" || s === "published" || s === "published live";
     const isApprovalPending = s === "qc" || s === "in qc" || s.includes("client approval");
 
     if (isApprovalPending) {
       awaitingApprovalCount++;
     }
 
-    if (!isPureCompleted && !isApprovalPending) {
-      const target = t.publishDate || t.dueDate;
-      if (target) {
-        const diffHours = (new Date(target).getTime() - now) / (1000 * 60 * 60);
-        if (diffHours <= 24) {
-          atRiskCount++;
-        }
-      }
+    // Same rule as the At Risk filter, so the card count matches the tasks shown on click
+    // (previously this also counted overdue and non-commitment tasks).
+    if (isTaskAtRisk(t, now)) {
+      atRiskCount++;
     }
   });
 

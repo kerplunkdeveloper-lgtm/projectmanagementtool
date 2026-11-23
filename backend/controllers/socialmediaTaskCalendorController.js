@@ -41,32 +41,6 @@ const isCommitmentTask = (bodyOrDoc) => {
   return cat === 'content calendar' || cat === 'content calendor' || cat === 'content';
 };
 
-// Helper to remove any duplicate tasks based on taskTitle + clientName + publishDate (manual endpoint only)
-const cleanDuplicates = async () => {
-  try {
-    const all = await SocialmediaTaskCalendor.find().sort({ createdAt: 1 });
-    const seen = new Set();
-    const toDelete = [];
-
-    for (const doc of all) {
-      const pDate = doc.publishDate ? new Date(doc.publishDate).toISOString().slice(0, 10) : 'nodate';
-      const key = `${(doc.taskTitle || '').trim().toLowerCase()}___${(doc.clientName || '').trim().toLowerCase()}___${pDate}`;
-      if (seen.has(key)) {
-        toDelete.push(doc._id);
-      } else {
-        seen.add(key);
-      }
-    }
-
-    if (toDelete.length > 0) {
-      await SocialmediaTaskCalendor.deleteMany({ _id: { $in: toDelete } });
-      console.log(`[SocialmediaTaskCalendor] Cleaned ${toDelete.length} duplicate tasks from database`);
-    }
-  } catch (err) {
-    console.error('[SocialmediaTaskCalendor] Deduplication error:', err);
-  }
-};
-
 // @desc    Get metadata (dynamic clients and users) for task creation/editing
 // @route   GET /api/socialmedia-task-calendar/meta
 // @access  Private
@@ -277,10 +251,15 @@ exports.getSocialmediaTasks = async (req, res) => {
       const start = new Date(y, normalizedMonth, 1 - 10, 0, 0, 0, 0);
       const end = new Date(y, normalizedMonth + 1, 10, 23, 59, 59, 999);
 
-      query.$or = [
-        { publishDate: { $gte: start, $lte: end } },
-        { publishDate: null, dueDate: { $gte: start, $lte: end } },
-      ];
+      // Pushed into andClauses (not query.$or): another single $or clause (e.g. the
+      // non-privileged user condition) used to be Object.assign'ed over query.$or, silently
+      // dropping this month filter and making the API return every month's tasks.
+      dateCondition = {
+        $or: [
+          { publishDate: { $gte: start, $lte: end } },
+          { publishDate: null, dueDate: { $gte: start, $lte: end } },
+        ],
+      };
     }
 
     // Restrict strictly to Chennai branch clients for Social Media Head
@@ -877,12 +856,8 @@ exports.updateSocialmediaTask = async (req, res) => {
       }
     }
 
-    // Authorization check for regular users
+    // Authorization check for regular users (reuses `existing` fetched above — no second DB read)
     if (req.user) {
-      const existing = await SocialmediaTaskCalendor.findById(req.params.id);
-      if (!existing) {
-        return res.status(404).json({ success: false, message: 'Task not found' });
-      }
       const isCreator = existing.createdBy && existing.createdBy.toString() === req.user._id.toString();
       const isAssignee = existing.assignee && existing.assignee.toString() === req.user._id.toString();
       if (!isCreator && !isAssignee) {
@@ -1116,34 +1091,6 @@ exports.bulkDeleteSocialmediaTasks = async (req, res) => {
     });
   } catch (error) {
     console.error('[SocialmediaTaskCalendor] bulkDeleteSocialmediaTasks error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Server error',
-    });
-  }
-};
-
-// @desc    Manually clean duplicate tasks
-// @route   POST /api/socialmedia-task-calendar/clean-duplicates
-// @access  Private
-exports.cleanDuplicateTasks = async (req, res) => {
-  try {
-    const userRole = (req.user?.role || '').toLowerCase().replace(/[\s_]/g, '');
-    if (userRole === 'admin' || userRole === 'operationmanager' || isSocialMediaHeadUser(req.user)) {
-      return res.status(403).json({
-        success: false,
-        message: 'You have read-only access to Content Calendar',
-      });
-    }
-
-    await cleanDuplicates();
-    const remainingCount = await SocialmediaTaskCalendor.countDocuments();
-    res.status(200).json({
-      success: true,
-      message: 'Duplicate tasks cleaned successfully',
-      remainingCount,
-    });
-  } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message || 'Server error',

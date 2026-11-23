@@ -49,7 +49,7 @@ import {
 import toast from "react-hot-toast";
 import ClientBadge from "../../components/common/ClientBadge";
 import PendingCommitmentModal from "../../components/common/PendingCommitmentModal";
-import { computeAllClientsCommitments } from "../../utils/smCommitmentUtils";
+import { computeAllClientsCommitments, isTaskAtRisk } from "../../utils/smCommitmentUtils";
 import {
   getSocialmediaTasks,
   getSocialmediaStats,
@@ -953,12 +953,13 @@ const SmTasks = () => {
     return ["All", ...Array.from(set)];
   }, [activeClients, tasks, isTaskFromInactiveClient, inactiveClientIdentSet]);
 
-  // Deduplicate tasks by taskTitle + clientName and filter out inactive client tasks
+  // Deduplicate tasks by document _id (NOT by title — different tasks can share the same title)
+  // and filter out inactive client tasks
   const uniqueTasks = useMemo(() => {
     const seen = new Set();
     return tasks.filter((t) => {
       if (isTaskFromInactiveClient(t)) return false;
-      const key = `${(t.taskTitle || '').trim().toLowerCase()}___${(t.clientName || '').trim().toLowerCase()}`;
+      const key = t._id ? t._id.toString() : JSON.stringify(t);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -1138,14 +1139,7 @@ const SmTasks = () => {
       }
 
       // At risk toggle
-      if (atRiskOnly) {
-        if (!task.commitment) return false;
-        if (["Completed", "Live", "Published", "Published Live", "Completed and wait CLient Approval", "Completed and wait Client Approval"].includes(task.status)) return false;
-        const targetDate = task.publishDate || task.dueDate;
-        if (!targetDate) return false;
-        const diffHours = (new Date(targetDate).getTime() - Date.now()) / (1000 * 60 * 60);
-        if (diffHours > 24) return false;
-      }
+      if (atRiskOnly && !isTaskAtRisk(task)) return false;
 
       // Comprehensive Date filter
       if ((dateFilterPreset !== "All" && dateFilterPreset !== "All Time") || customStartDate || customEndDate) {
@@ -1694,16 +1688,18 @@ const SmTasks = () => {
             completedPlatforms: newCompleted,
             platforms: newPlatforms,
           },
+          optimistic: true, // instant tick, auto-rollback on failure
+          silent: true,
         })
       ).unwrap();
 
       if (!isCompleted) {
-        toast.success(`✓ ${platformId} marked as completed`);
+        toast.success(`✓ ${platformId} marked as completed`, { id: `plat-${task._id}` });
       } else {
-        toast(`Unchecked ${platformId}`, { icon: "↩️" });
+        toast(`Unchecked ${platformId}`, { icon: "↩️", id: `plat-${task._id}` });
       }
-    } catch (err) {
-      toast.error(err?.message || "Failed to update platform status");
+    } catch {
+      // Error toast already shown by the thunk; optimistic change has been rolled back.
     }
   };
 
@@ -1734,11 +1730,13 @@ const SmTasks = () => {
             completedPlatforms: updatedCompleted,
             platform: updatedPlatforms[0] || "",
           },
+          optimistic: true, // instant UI, auto-rollback on failure
+          silent: true,
         })
       ).unwrap();
-      toast.success(exists ? `Removed ${platformId}` : `Added ${platformId} sub-task`);
-    } catch (err) {
-      toast.error(err?.message || "Failed to update platform assignment");
+      toast.success(exists ? `Removed ${platformId}` : `Added ${platformId} sub-task`, { id: `plat-${task._id}` });
+    } catch {
+      // Error toast already shown by the thunk; optimistic change has been rolled back.
     }
   };
 

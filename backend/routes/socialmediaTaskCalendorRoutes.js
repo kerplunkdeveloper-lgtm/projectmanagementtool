@@ -10,7 +10,6 @@ const {
   rescheduleSocialmediaTask,
   deleteSocialmediaTask,
   bulkDeleteSocialmediaTasks,
-  cleanDuplicateTasks,
   getSocialmediaMetadata,
   bulkImportSocialmediaTasks,
 } = require('../controllers/socialmediaTaskCalendorController');
@@ -34,7 +33,6 @@ router.patch('/daily-schedule/toggle-subtask', toggleSubtaskCompletion);
 router.get('/daily-schedule/executives-summary', getExecutivesSummary);
 
 router.get('/meta', getSocialmediaMetadata);
-router.post('/clean-duplicates', cleanDuplicateTasks);
 router.post('/bulk-import', bulkImportSocialmediaTasks);
 router.post('/bulk-delete', bulkDeleteSocialmediaTasks);
 

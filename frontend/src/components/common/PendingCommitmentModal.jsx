@@ -69,11 +69,14 @@ const PendingCommitmentModal = ({
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
 
+  // Depend on the length, not the array: `usersState?.users || []` is a new array every render,
+  // which made this effect re-run (and re-dispatch getUsers) on every render while users were empty.
+  const usersCount = users?.length || 0;
   useEffect(() => {
-    if (!users || users.length === 0) {
+    if (usersCount === 0) {
       dispatch(getUsers());
     }
-  }, [dispatch, users]);
+  }, [dispatch, usersCount]);
 
   // Role check: Admin and Operation Manager should NOT see + Task button
   const userRole = (user?.role || "").toLowerCase().replace(/[\s_]/g, "");

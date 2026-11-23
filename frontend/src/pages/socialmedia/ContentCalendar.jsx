@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
@@ -67,6 +67,7 @@ import {
   computeAllClientsCommitments,
   computeSingleClientCommitments,
   formatCommitmentDate,
+  isTaskAtRisk,
 } from "../../utils/smCommitmentUtils";
 import { formatLocalDateKey } from "../../utils/dateUtils";
 import calendarMascotImg from "../../../public/assets/calendorchar.png";
@@ -96,6 +97,10 @@ const MONTH_NAMES = [
 ];
 
 const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Stable empty array so `state.x || EMPTY_ARRAY` doesn't create a new reference every render
+// (a fresh [] would invalidate every useMemo/useCallback that depends on it).
+const EMPTY_ARRAY = [];
 
 const CATEGORIES = [
   "All",
@@ -274,7 +279,7 @@ const ContentCalendar = () => {
 
   const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
   const clientsState = useSelector((state) => state.clients);
-  const clients = clientsState?.clients || [];
+  const clients = clientsState?.clients || EMPTY_ARRAY;
 
   // Active clients list (filter out inactive clients)
   const activeClients = useMemo(() => {
@@ -309,7 +314,7 @@ const ContentCalendar = () => {
     [inactiveClientIdentSet]
   );
   const usersState = useSelector((state) => state.users);
-  const users = usersState?.users || [];
+  const users = usersState?.users || EMPTY_ARRAY;
 
   // Helper to extract clean avatar image URL from various User/Profile structures
   const extractAvatarUrl = useCallback((target) => {
@@ -349,8 +354,9 @@ const ContentCalendar = () => {
     return map;
   }, [users, user]);
 
-  // Resolve user information (prefer assigned member, fallback to creator)
-  const getUserInfo = useCallback(
+  // Resolve user information (prefer assigned member, fallback to creator).
+  // Uncached — use getUserInfo (defined after uniqueTasks) which serves precomputed results.
+  const resolveUserInfo = useCallback(
     (task) => {
       const assignee = task?.assignee;
       const createdBy = task?.createdBy;
@@ -412,9 +418,6 @@ const ContentCalendar = () => {
     [usersMap, extractAvatarUrl]
   );
 
-  // Backward compatible alias for existing logic
-  const getCreatorInfo = getUserInfo;
-
   // Month & Year state (Dynamic current date)
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState("Month"); // "Month" | "Week" | "List"
@@ -463,6 +466,8 @@ const ContentCalendar = () => {
 
   // Multi-Select & Bulk Delete State
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
+  // O(1) lookup for "is this task selected?" — used on every card/row render
+  const selectedIdSet = useMemo(() => new Set(selectedTaskIds), [selectedTaskIds]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -566,6 +571,9 @@ const ContentCalendar = () => {
       ? currentCompleted.filter((p) => p.toLowerCase() !== platformId.toLowerCase())
       : [...currentCompleted, platformId];
 
+    // optimistic: tick shows instantly, server save happens in the background and is
+    // rolled back automatically (with an error toast from the thunk) if it fails.
+    // silent: avoid a second generic "Task updated" toast on top of the one below.
     try {
       await dispatch(
         updateSocialmediaTask({
@@ -573,16 +581,18 @@ const ContentCalendar = () => {
           data: {
             completedPlatforms: newCompleted,
           },
+          optimistic: true,
+          silent: true,
         })
       ).unwrap();
 
       if (!isCompleted) {
-        toast.success(`✓ ${platformId} marked as completed`);
+        toast.success(`✓ ${platformId} marked as completed`, { id: `plat-${task._id}` });
       } else {
-        toast(`Unchecked ${platformId}`, { icon: "↩️" });
+        toast(`Unchecked ${platformId}`, { icon: "↩️", id: `plat-${task._id}` });
       }
-    } catch (err) {
-      toast.error(err?.message || "Failed to update platform tick");
+    } catch {
+      // Error toast already shown by the thunk; optimistic change has been rolled back.
     }
   };
 
@@ -692,6 +702,23 @@ const ContentCalendar = () => {
       return true;
     });
   }, [tasks, isTaskFromInactiveClient]);
+
+  // Precompute user info once per task. getUserInfo is called many times per task per render
+  // (filters, KPI stats, search, every card/row). Redux task objects are immutable, so a WeakMap
+  // keyed by task object is safe; it's rebuilt only when tasks or users change.
+  const userInfoByTask = useMemo(() => {
+    const map = new WeakMap();
+    uniqueTasks.forEach((t) => map.set(t, resolveUserInfo(t)));
+    return map;
+  }, [uniqueTasks, resolveUserInfo]);
+
+  const getUserInfo = useCallback(
+    (task) => (task && userInfoByTask.get(task)) || resolveUserInfo(task),
+    [userInfoByTask, resolveUserInfo]
+  );
+
+  // Backward compatible alias for existing logic
+  const getCreatorInfo = getUserInfo;
 
   // Sets of Chennai branch client IDs and Names for Social Media Head filtering
   const { chennaiClientIdSet, chennaiClientNameSet } = useMemo(() => {
@@ -900,14 +927,7 @@ const ContentCalendar = () => {
       if (selectedPriority !== "All" && task.priority !== selectedPriority) return false;
 
 
-      if (atRiskOnly) {
-        if (!task.commitment) return false;
-        if (["Completed", "Live"].includes(task.status)) return false;
-        const targetDate = task.publishDate || task.dueDate;
-        if (!targetDate) return false;
-        const diffHours = (new Date(targetDate).getTime() - Date.now()) / (1000 * 60 * 60);
-        if (diffHours < 0 || diffHours > 24) return false;
-      }
+      if (atRiskOnly && !isTaskAtRisk(task)) return false;
 
       return true;
     });
@@ -1043,13 +1063,6 @@ const ContentCalendar = () => {
         return pub.getTime() >= nowTime;
       }).length;
 
-      const atRiskCount = userMonthlyCommitments.filter((t) => {
-        if (["Completed", "Live", "Published", "Published Live", "Completed and wait CLient Approval"].includes(t.status)) return false;
-        const targetDate = t.publishDate || t.dueDate;
-        if (!targetDate) return false;
-        const diffHours = (new Date(targetDate).getTime() - nowTime) / (1000 * 60 * 60);
-        return diffHours >= 0 && diffHours <= 24;
-      }).length;
 
       const achievement = totalCommitments > 0
         ? parseFloat(((completedCount / totalCommitments) * 100).toFixed(1))
@@ -1060,7 +1073,8 @@ const ContentCalendar = () => {
         completed: completedCount,
         pending: pendingCount,
         overdue: overdueCount,
-        atRisk: atRiskCount,
+        // Same source as the At Risk card, so pill count = card count = tasks shown on click
+        atRisk: commitmentOverview.atRiskCount,
         achievement,
       };
     }
@@ -1070,7 +1084,7 @@ const ContentCalendar = () => {
       completed: stats?.completed ?? 0,
       pending: stats?.pending ?? 0,
       overdue: stats?.overdue ?? 0,
-      atRisk: stats?.atRisk ?? 0,
+      atRisk: commitmentOverview.atRiskCount,
       achievement: stats?.achievement ?? 0,
     };
   }, [
@@ -1082,13 +1096,16 @@ const ContentCalendar = () => {
     currentMonth,
     stats,
     getCreatorInfo,
+    commitmentOverview,
   ]);
 
   // Filtered tasks for Table View (with dedicated search)
+  // Deferred so typing in the search box stays responsive; the heavy table re-filter runs at lower priority
+  const deferredTableSearch = useDeferredValue(tableSearch);
   const tableFilteredTasks = useMemo(() => {
     let list = calendarTasks;
-    if (tableSearch.trim()) {
-      const q = tableSearch.toLowerCase().trim();
+    if (deferredTableSearch.trim()) {
+      const q = deferredTableSearch.toLowerCase().trim();
       list = list.filter((t) => {
         const creator = getCreatorInfo(t);
         return (
@@ -1102,7 +1119,7 @@ const ContentCalendar = () => {
       });
     }
     return list;
-  }, [calendarTasks, tableSearch, getCreatorInfo]);
+  }, [calendarTasks, deferredTableSearch, getCreatorInfo]);
 
   const tableTotalPages = Math.ceil(tableFilteredTasks.length / itemsPerPage) || 1;
   const tablePaginatedTasks = useMemo(() => {
@@ -1123,13 +1140,13 @@ const ContentCalendar = () => {
   const isAllSelected = useMemo(() => {
     return (
       selectableIds.length > 0 &&
-      selectableIds.every((id) => selectedTaskIds.includes(id))
+      selectableIds.every((id) => selectedIdSet.has(id))
     );
   }, [selectableIds, selectedTaskIds]);
 
   const isSomeSelected = useMemo(() => {
     return (
-      selectableIds.some((id) => selectedTaskIds.includes(id)) && !isAllSelected
+      selectableIds.some((id) => selectedIdSet.has(id)) && !isAllSelected
     );
   }, [selectableIds, selectedTaskIds, isAllSelected]);
 
@@ -1306,6 +1323,24 @@ const ContentCalendar = () => {
 
   const handleToday = () => {
     setCurrentDate(new Date());
+  };
+
+  // At Risk card / pill click: turn the filter on and bring the at-risk tasks into view.
+  // Accepts a value or an updater fn (SmTaskCards calls it as setAtRiskOnly(prev => !prev)).
+  const handleToggleAtRisk = (nextOrUpdater) => {
+    const next = typeof nextOrUpdater === "function" ? nextOrUpdater(atRiskOnly) : nextOrUpdater;
+    setAtRiskOnly(next);
+    if (!next) return;
+    // At-risk = due in the next 24h, so they only exist around today — jump to the current month
+    const today = new Date();
+    if (today.getMonth() !== currentMonth || today.getFullYear() !== currentYear) {
+      setCurrentDate(today);
+    }
+    // Clear filters that would hide at-risk tasks. The current view (Month/Week/Table/List)
+    // is kept — the filter applies to whichever view the user is on.
+    setSelectedStatus("All");
+    setTableSearch("");
+    setTablePage(1);
   };
 
   // Open modal to create a task on that day
@@ -1838,7 +1873,7 @@ const ContentCalendar = () => {
         commitmentOverview={commitmentOverview}
         onOpenPendingCommitment={() => setIsPendingCommitmentOpen(true)}
         atRiskOnly={atRiskOnly}
-        setAtRiskOnly={setAtRiskOnly}
+        setAtRiskOnly={handleToggleAtRisk}
         selectedStatus={selectedStatus}
         setSelectedStatus={setSelectedStatus}
         setCurrentPage={setTablePage}
@@ -2134,7 +2169,7 @@ const ContentCalendar = () => {
           {/* At Risk Pill Button */}
           <button
             type="button"
-            onClick={() => setAtRiskOnly(!atRiskOnly)}
+            onClick={() => handleToggleAtRisk(!atRiskOnly)}
             className={`toolbar-filter-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
               atRiskOnly
                 ? "!bg-rose-500/15 dark:!bg-rose-950/60 !text-rose-600 dark:!text-rose-300 !border-rose-400 dark:!border-rose-700/80 shadow-xs"
@@ -2267,11 +2302,11 @@ const ContentCalendar = () => {
                                 {!isReadOnly && (isSelectMode || selectedTaskIds.length > 0) && (
                                   <input
                                     type="checkbox"
-                                    checked={postsForDay.every((p) => selectedTaskIds.includes(p._id))}
+                                    checked={postsForDay.every((p) => selectedIdSet.has(p._id))}
                                     onChange={(e) => {
                                       e.stopPropagation();
                                       const dayIds = postsForDay.map((p) => p._id).filter(Boolean);
-                                      const allDaySel = dayIds.every((id) => selectedTaskIds.includes(id));
+                                      const allDaySel = dayIds.every((id) => selectedIdSet.has(id));
                                       if (allDaySel) {
                                         setSelectedTaskIds((prev) => prev.filter((id) => !dayIds.includes(id)));
                                       } else {
@@ -2306,13 +2341,7 @@ const ContentCalendar = () => {
                         <div className="space-y-1.5 flex-1 overflow-hidden">
                           {displayedPosts.map((post) => {
                             const clientColor = post.clientColor || "#6366f1";
-                            const postDiffHours = post.publishDate
-                              ? (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
-                              : -1;
-                            const isRisk =
-                              !["Completed", "Live"].includes(post.status) &&
-                              postDiffHours >= 0 &&
-                              postDiffHours <= 24;
+                            const isRisk = isTaskAtRisk(post);
                             const typeStyle = getContentTypeStyle(post.contentType);
                             const statusStyle = getStatusCardStyles(post.status, isRisk);
                             const userInfo = getUserInfo(post);
@@ -2332,7 +2361,7 @@ const ContentCalendar = () => {
                                   handleCardClick(post, e);
                                 }}
                                 className={`p-2 rounded-xl border ${statusStyle.card} hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer relative overflow-hidden group/card flex flex-col justify-between gap-1.5 shadow-2xs ${
-                                  selectedTaskIds.includes(post._id)
+                                  selectedIdSet.has(post._id)
                                     ? "ring-2 ring-indigo-500 shadow-md bg-indigo-50/60 dark:bg-indigo-950/50"
                                     : ""
                                 }`}
@@ -2344,7 +2373,7 @@ const ContentCalendar = () => {
                                     {!isReadOnly && (isSelectMode || selectedTaskIds.length > 0) && (
                                       <input
                                         type="checkbox"
-                                        checked={selectedTaskIds.includes(post._id)}
+                                        checked={selectedIdSet.has(post._id)}
                                         onChange={(e) => handleToggleSelect(post._id, e)}
                                         onClick={(e) => e.stopPropagation()}
                                         className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0 mr-0.5"
@@ -2674,14 +2703,14 @@ const ContentCalendar = () => {
                         key={t._id}
                         onClick={() => handleCardClick(t)}
                         className={`hover:bg-slate-50/80 dark:hover:bg-[#101726] transition-colors cursor-pointer group ${
-                          selectedTaskIds.includes(t._id) ? "bg-indigo-50/70 dark:bg-indigo-950/40" : ""
+                          selectedIdSet.has(t._id) ? "bg-indigo-50/70 dark:bg-indigo-950/40" : ""
                         }`}
                       >
                         {!isReadOnly && (
                           <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                             <input
                               type="checkbox"
-                              checked={selectedTaskIds.includes(t._id)}
+                              checked={selectedIdSet.has(t._id)}
                               onChange={(e) => handleToggleSelect(t._id, e)}
                               className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
                             />
@@ -2928,13 +2957,7 @@ const ContentCalendar = () => {
                     {postsForDay.map((p) => {
                       const creator = getCreatorInfo(p);
                       const typeStyle = getContentTypeStyle(p.contentType);
-                      const pDiffHours = p.publishDate
-                        ? (new Date(p.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
-                        : -1;
-                      const isRisk =
-                        !["Completed", "Live"].includes(p.status) &&
-                        pDiffHours >= 0 &&
-                        pDiffHours <= 24;
+                      const isRisk = isTaskAtRisk(p);
                       const statusStyle = getStatusCardStyles(p.status, isRisk);
 
                       return (
@@ -2951,7 +2974,7 @@ const ContentCalendar = () => {
                             handleCardClick(p, e);
                           }}
                           className={`p-2 rounded-xl border ${statusStyle.card} text-xs shadow-2xs hover:shadow-md transition-all cursor-pointer space-y-1.5 ${
-                            selectedTaskIds.includes(p._id) ? "ring-2 ring-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/50" : ""
+                            selectedIdSet.has(p._id) ? "ring-2 ring-indigo-500 bg-indigo-50/60 dark:bg-indigo-950/50" : ""
                           }`}
                           style={{ borderLeftWidth: "3.5px", borderLeftColor: p.clientColor || "#6366f1" }}
                         >
@@ -2960,7 +2983,7 @@ const ContentCalendar = () => {
                               {!isReadOnly && (isSelectMode || selectedTaskIds.length > 0) && (
                                 <input
                                   type="checkbox"
-                                  checked={selectedTaskIds.includes(p._id)}
+                                  checked={selectedIdSet.has(p._id)}
                                   onChange={(e) => handleToggleSelect(p._id, e)}
                                   onClick={(e) => e.stopPropagation()}
                                   className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0 mr-0.5"
@@ -3089,13 +3112,7 @@ const ContentCalendar = () => {
               calendarTasks.map((task) => {
                 const creator = getCreatorInfo(task);
                 const typeStyle = getContentTypeStyle(task.contentType);
-                const taskDiffHours = task.publishDate
-                  ? (new Date(task.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
-                  : -1;
-                const isRisk =
-                  !["Completed", "Live"].includes(task.status) &&
-                  taskDiffHours >= 0 &&
-                  taskDiffHours <= 24;
+                const isRisk = isTaskAtRisk(task);
                 const statusStyle = getStatusCardStyles(task.status, isRisk);
 
                 return (
@@ -3110,7 +3127,7 @@ const ContentCalendar = () => {
                       handleCardClick(task, e);
                     }}
                     className={`p-3.5 rounded-xl border ${statusStyle.card} hover:shadow-xs transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 ${
-                      selectedTaskIds.includes(task._id) ? "ring-2 ring-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40" : ""
+                      selectedIdSet.has(task._id) ? "ring-2 ring-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40" : ""
                     }`}
                     style={{ borderLeftWidth: "4px", borderLeftColor: task.clientColor || "#6366f1" }}
                   >
@@ -3119,7 +3136,7 @@ const ContentCalendar = () => {
                         <div className="shrink-0 flex items-center pr-1" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
-                            checked={selectedTaskIds.includes(task._id)}
+                            checked={selectedIdSet.has(task._id)}
                             onChange={(e) => handleToggleSelect(task._id, e)}
                             className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
                           />
@@ -3228,7 +3245,7 @@ const ContentCalendar = () => {
                     type="button"
                     onClick={() => {
                       const dayIds = selectedDayPosts.posts.map((p) => p._id).filter(Boolean);
-                      const allDaySel = dayIds.every((id) => selectedTaskIds.includes(id));
+                      const allDaySel = dayIds.every((id) => selectedIdSet.has(id));
                       if (allDaySel) {
                         setSelectedTaskIds((prev) => prev.filter((id) => !dayIds.includes(id)));
                       } else {
@@ -3238,7 +3255,7 @@ const ContentCalendar = () => {
                     }}
                     className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                   >
-                    {selectedDayPosts.posts.every((p) => selectedTaskIds.includes(p._id))
+                    {selectedDayPosts.posts.every((p) => selectedIdSet.has(p._id))
                       ? "Deselect Day"
                       : "Select Day"}
                   </button>
@@ -3256,13 +3273,7 @@ const ContentCalendar = () => {
               {selectedDayPosts.posts.map((post) => {
                 const creator = getCreatorInfo(post);
                 const typeStyle = getContentTypeStyle(post.contentType);
-                const popDiffHours = post.publishDate
-                  ? (new Date(post.publishDate).getTime() - Date.now()) / (1000 * 60 * 60)
-                  : -1;
-                const isRisk =
-                  !["Completed", "Live"].includes(post.status) &&
-                  popDiffHours >= 0 &&
-                  popDiffHours <= 24;
+                const isRisk = isTaskAtRisk(post);
                 const statusStyle = getStatusCardStyles(post.status, isRisk);
 
                 return (
@@ -3278,7 +3289,7 @@ const ContentCalendar = () => {
                       handleCardClick(post, e);
                     }}
                     className={`p-3 rounded-xl border ${statusStyle.card} hover:shadow-xs transition-all cursor-pointer space-y-2 ${
-                      selectedTaskIds.includes(post._id)
+                      selectedIdSet.has(post._id)
                         ? "ring-2 ring-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40"
                         : ""
                     }`}
@@ -3289,7 +3300,7 @@ const ContentCalendar = () => {
                         {!isReadOnly && (
                           <input
                             type="checkbox"
-                            checked={selectedTaskIds.includes(post._id)}
+                            checked={selectedIdSet.has(post._id)}
                             onChange={(e) => handleToggleSelect(post._id, e)}
                             onClick={(e) => e.stopPropagation()}
                             className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600 shrink-0"
@@ -3387,7 +3398,9 @@ const ContentCalendar = () => {
         commitmentOnly={true}
       />
 
-      {/* Pending Commitment Modal (Detailed Client Breakdown) */}
+      {/* Pending Commitment Modal (Detailed Client Breakdown) — mounted only when open, so its
+          all-clients × all-tasks commitment computation doesn't run on every task change while hidden */}
+      {isPendingCommitmentOpen && (
       <PendingCommitmentModal
         isOpen={isPendingCommitmentOpen}
         onClose={() => setIsPendingCommitmentOpen(false)}
@@ -3408,6 +3421,7 @@ const ContentCalendar = () => {
           setIsModalOpen(true);
         }}
       />
+      )}
 
       {/* Platform Verification Warning Modal */}
       <SmPlatformWarningModal
