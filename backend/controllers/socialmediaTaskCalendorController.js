@@ -2,6 +2,7 @@ const SocialmediaTaskCalendor = require('../models/SocialmediaTaskCalendor');
 const Client = require('../models/Client');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const { isChennaiClient } = require('../utils/smHeadBranch');
 
 // Helper to determine if a user belongs to Social Media Head department
 const isSocialMediaHeadUser = (user) => {
@@ -716,7 +717,12 @@ exports.createSocialmediaTask = async (req, res) => {
           }
         }
 
-        const finalRecipients = Array.from(recipientMap.values());
+        // Social Media Head only gets notified for Chennai-branch client tasks
+        const taskClientId = task.client && (task.client._id || task.client);
+        const isChennaiTask = await isChennaiClient(taskClientId, task.clientName);
+        const finalRecipients = Array.from(recipientMap.values()).filter(
+          (u) => isChennaiTask || !isSocialMediaHeadUser(u)
+        );
         if (finalRecipients.length > 0) {
           const notifPromises = finalRecipients.map((r) =>
             Notification.create({

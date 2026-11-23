@@ -49,6 +49,8 @@ import {
 import toast from "react-hot-toast";
 import ClientBadge from "../../components/common/ClientBadge";
 import PendingCommitmentModal from "../../components/common/PendingCommitmentModal";
+import BranchTabs from "../../components/common/BranchTabs";
+import { useBranchTab, useBranchFilter } from "../../hooks/useBranchFilter";
 import { computeAllClientsCommitments, isTaskAtRisk } from "../../utils/smCommitmentUtils";
 import {
   getSocialmediaTasks,
@@ -603,10 +605,18 @@ const SmTasks = () => {
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || [];
 
-  // Active clients list (strictly exclude inactive clients)
+  // Branch tabs (Pondicherry / Chennai) for Admin & Operation Manager
+  const branchRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
+  const canSwitchBranch = branchRoleClean === "admin" || branchRoleClean === "operationmanager";
+  const [branchTab, setBranchTab] = useBranchTab();
+  const { isClientInBranch, isTaskInBranch } = useBranchFilter(clients, branchTab, canSwitchBranch);
+
+  // Active clients list (strictly exclude inactive clients, and filter by selected branch tab)
   const activeClients = useMemo(() => {
-    return (clients || []).filter((c) => (c.status || "Active").toLowerCase() !== "inactive");
-  }, [clients]);
+    return (clients || []).filter(
+      (c) => (c.status || "Active").toLowerCase() !== "inactive" && isClientInBranch(c)
+    );
+  }, [clients, isClientInBranch]);
 
   // Set of inactive client identifiers (companyName lowercase, _id, id)
   const inactiveClientIdentSet = useMemo(() => {
@@ -769,6 +779,16 @@ const SmTasks = () => {
 
   // Filter States
   const [selectedClient, setSelectedClient] = useState("All");
+
+  // Reset client filter when the branch tab changes (skip first render)
+  const branchTabMountedRef = useRef(false);
+  useEffect(() => {
+    if (!branchTabMountedRef.current) {
+      branchTabMountedRef.current = true;
+      return;
+    }
+    setSelectedClient("All");
+  }, [branchTab]);
   const [selectedCreatedBy, setSelectedCreatedBy] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState(
     initialTabIsSme || initialTabIsDaily ? "All" : "Content Calendar"
@@ -945,13 +965,14 @@ const SmTasks = () => {
     });
     tasks.forEach((t) => {
       if (isTaskFromInactiveClient(t)) return;
+      if (!isTaskInBranch(t)) return;
       if (t.clientName && !inactiveClientIdentSet.has(t.clientName.trim().toLowerCase())) {
         set.add(t.clientName);
       }
     });
     set.add("Others");
     return ["All", ...Array.from(set)];
-  }, [activeClients, tasks, isTaskFromInactiveClient, inactiveClientIdentSet]);
+  }, [activeClients, tasks, isTaskFromInactiveClient, isTaskInBranch, inactiveClientIdentSet]);
 
   // Deduplicate tasks by document _id (NOT by title — different tasks can share the same title)
   // and filter out inactive client tasks
@@ -959,12 +980,13 @@ const SmTasks = () => {
     const seen = new Set();
     return tasks.filter((t) => {
       if (isTaskFromInactiveClient(t)) return false;
+      if (!isTaskInBranch(t)) return false;
       const key = t._id ? t._id.toString() : JSON.stringify(t);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [tasks, isTaskFromInactiveClient]);
+  }, [tasks, isTaskFromInactiveClient, isTaskInBranch]);
 
   // Dynamic unique creators list for Admin & Operation Manager filter - ONLY Social Media Executives
   const createdByOptions = useMemo(() => {
@@ -2176,6 +2198,11 @@ const SmTasks = () => {
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
               />
             </div>
+          )}
+
+          {/* Branch Tabs (Admin / Operation Manager only) */}
+          {canSwitchBranch && activeTab !== "daily" && (
+            <BranchTabs value={branchTab} onChange={setBranchTab} />
           )}
 
           {/* Create Task Button (or Read-only View badge) */}

@@ -63,6 +63,8 @@ import SmPlatformWarningModal from "./SmPlatformWarningModal";
 import SmImportExcelModal from "./SmImportExcelModal";
 import SearchableDropdown from "../../components/common/SearchableDropdown";
 import PendingCommitmentModal from "../../components/common/PendingCommitmentModal";
+import BranchTabs from "../../components/common/BranchTabs";
+import { useBranchTab, useBranchFilter } from "../../hooks/useBranchFilter";
 import {
   computeAllClientsCommitments,
   computeSingleClientCommitments,
@@ -281,10 +283,18 @@ const ContentCalendar = () => {
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || EMPTY_ARRAY;
 
-  // Active clients list (filter out inactive clients)
+  // Branch tabs (Pondicherry / Chennai) for Admin & Operation Manager
+  const canSwitchBranch =
+    (userRoleClean === "admin" || userRoleClean === "operationmanager") && !isSocialMediaHead;
+  const [branchTab, setBranchTab] = useBranchTab();
+  const { isClientInBranch, isTaskInBranch } = useBranchFilter(clients, branchTab, canSwitchBranch);
+
+  // Active clients list (filter out inactive clients, and by selected branch tab)
   const activeClients = useMemo(() => {
-    return (clients || []).filter((c) => (c.status || "Active").toLowerCase() !== "inactive");
-  }, [clients]);
+    return (clients || []).filter(
+      (c) => (c.status || "Active").toLowerCase() !== "inactive" && isClientInBranch(c)
+    );
+  }, [clients, isClientInBranch]);
 
   // Set of inactive client identifiers (companyName lowercase, _id, id)
   const inactiveClientIdentSet = useMemo(() => {
@@ -424,6 +434,11 @@ const ContentCalendar = () => {
 
   // Filter States
   const [selectedClient, setSelectedClient] = useState("All");
+
+  // Reset client filter when the branch tab changes
+  useEffect(() => {
+    setSelectedClient("All");
+  }, [branchTab]);
   const [selectedCategory, setSelectedCategory] = useState("Content Calendar");
   const [selectedContentType, setSelectedContentType] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
@@ -696,12 +711,13 @@ const ContentCalendar = () => {
     const seen = new Set();
     return (tasks || []).filter((t) => {
       if (isTaskFromInactiveClient(t)) return false;
+      if (!isTaskInBranch(t)) return false;
       const key = t._id ? t._id.toString() : JSON.stringify(t);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [tasks, isTaskFromInactiveClient]);
+  }, [tasks, isTaskFromInactiveClient, isTaskInBranch]);
 
   // Precompute user info once per task. getUserInfo is called many times per task per render
   // (filters, KPI stats, search, every card/row). Redux task objects are immutable, so a WeakMap
@@ -1769,6 +1785,9 @@ const ContentCalendar = () => {
           >
             <FiRefreshCw size={14} className={isCalendarLoading ? "animate-spin text-indigo-500" : ""} />
           </button>
+
+          {/* Branch Tabs (Admin / Operation Manager only) */}
+          {canSwitchBranch && <BranchTabs value={branchTab} onChange={setBranchTab} />}
 
           {/* View Mode Switcher (Matching 2nd Reference Image) */}
           <div className="flex items-center bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-[#1e2a40] rounded-xl p-1 shadow-xs">

@@ -1,11 +1,13 @@
 const Notification = require('../models/Notification');
+const { isSocialMediaHeadUser, filterNotificationsForSmHead } = require('../utils/smHeadBranch');
 
 // @desc    Get user notifications
 // @route   GET /api/notifications
 // @access  Private
 exports.getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ recipient: req.user._id })
+    const isSmHead = isSocialMediaHeadUser(req.user);
+    let notifications = await Notification.find({ recipient: req.user._id })
       .sort('-createdAt')
       .populate({
         path: 'sender',
@@ -43,8 +45,13 @@ exports.getNotifications = async (req, res) => {
         path: 'hrTask',
         select: 'title category status priority dueDate',
       })
-      .limit(30)
+      .limit(isSmHead ? 150 : 30)
       .lean();
+
+    // Social Media Head: show only Chennai-branch client related notifications
+    if (isSmHead) {
+      notifications = (await filterNotificationsForSmHead(notifications)).slice(0, 30);
+    }
 
     res.status(200).json({
       success: true,
