@@ -637,6 +637,29 @@ exports.getTasks = async (req, res) => {
       }
     }
 
+    // Created-time range filter (used by Status Overview date filter)
+    if (req.query.created_from || req.query.created_to) {
+      const createdRange = {};
+      const from = req.query.created_from ? new Date(req.query.created_from) : null;
+      const to = req.query.created_to ? new Date(req.query.created_to) : null;
+      if (from && !isNaN(from.getTime())) createdRange.$gte = from;
+      if (to && !isNaN(to.getTime())) createdRange.$lte = to;
+      if (Object.keys(createdRange).length > 0) {
+        andConditions.push({ createdAt: createdRange });
+      }
+    }
+
+    // Overdue filter: open tasks whose due date is before `due_before`
+    if (req.query.overdue === "true") {
+      const dueBefore = req.query.due_before ? new Date(req.query.due_before) : new Date();
+      if (!isNaN(dueBefore.getTime())) {
+        andConditions.push({
+          dueDate: { $lt: dueBefore },
+          status: { $nin: ["Completed", "Rejected"] },
+        });
+      }
+    }
+
     const query = andConditions.length > 1
       ? { $and: andConditions }
       : (andConditions[0] || {});
@@ -649,8 +672,9 @@ exports.getTasks = async (req, res) => {
     // Optional `limit` → newest-created tasks first (used for fast first paint on My Tasks;
     // the full list is fetched in the background).
     const limitNum = parseInt(req.query.limit, 10);
+    const isStatusOverview = req.query.status_overview === "true";
     let mongooseQuery = Task.find(query).sort(
-      limitNum > 0 ? { createdAt: -1 } : { updatedAt: -1 }
+      limitNum > 0 || isStatusOverview ? { createdAt: -1 } : { updatedAt: -1 }
     );
     if (limitNum > 0) {
       mongooseQuery = mongooseQuery.limit(Math.min(limitNum, 500));
@@ -715,6 +739,23 @@ exports.getTasks = async (req, res) => {
           .populate("feedbacks.addedBy", "name email department")
           .populate("correctionHistory.requestedBy", "name email department")
           .populate("rejectionHistory.rejectedBy", "name email department");
+      } else if (isStatusOverview) {
+        // Status Overview: send ONLY the fields the table uses (much smaller payload)
+        mongooseQuery = mongooseQuery.select(
+          [
+            "title status priority workType department contentType type",
+            "client project assignedTo createdBy createdByName",
+            "startDate dueDate createdAt updatedAt completedAt actualStartTime autoPaused",
+            "holdReason reason reviewStartedAt lastReviewStartedAt approvalWaitingMs reviewCycles.startedAt",
+            "totalTrackedTime",
+            "statusHistory.status statusHistory.reason statusHistory.comment statusHistory.startTime statusHistory.endTime statusHistory.duration statusHistory.relatedTaskId",
+            "correctionHistory.reason rejectionHistory.reason",
+            "subtasks.assignedTo subtasks.status subtasks.client subtasks.totalTrackedTime subtasks.actualStartTime subtasks.autoPaused subtasks.holdReason subtasks.reason",
+            "subtasks.statusHistory.status subtasks.statusHistory.reason subtasks.statusHistory.comment subtasks.statusHistory.startTime subtasks.statusHistory.endTime subtasks.statusHistory.duration subtasks.statusHistory.relatedTaskId",
+          ].join(" ")
+        )
+        // Hold reason "Another Task" → show which task it was paused for
+        .populate({ path: "statusHistory.relatedTaskId", select: "title" });
       } else {
         // Omit massive nested arrays (comments, attachments, feedbacks, histories) for blazing fast speed (<50ms)
         mongooseQuery = mongooseQuery.select(

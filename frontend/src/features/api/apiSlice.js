@@ -143,6 +143,10 @@ export const apiSlice = createApi({
         if (params.all) queryParams.append('all', params.all);
         if (params.status_overview) queryParams.append('status_overview', params.status_overview);
         if (params.limit) queryParams.append('limit', params.limit);
+        if (params.created_from) queryParams.append('created_from', params.created_from);
+        if (params.created_to) queryParams.append('created_to', params.created_to);
+        if (params.overdue) queryParams.append('overdue', params.overdue);
+        if (params.due_before) queryParams.append('due_before', params.due_before);
         return `/tasks?${queryParams.toString()}`;
       },
       providesTags: ["Task"],

@@ -160,6 +160,9 @@ app.set('trust proxy', 1); // Trust reverse proxy (e.g. Nginx, Cloudflare) so re
 // raw request body to verify Meta's X-Hub-Signature-256 HMAC.
 app.use('/api/webhooks/meta', require('./routes/metaWebhookRoutes'));
 
+// Gzip API responses (large JSON lists like /api/tasks shrink ~80-90%)
+app.use(require('compression')());
+
 // Body parser with high limit for image uploads & content calendar bulk import
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));

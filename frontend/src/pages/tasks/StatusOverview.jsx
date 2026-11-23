@@ -11,6 +11,8 @@ import {
   addDays,
   startOfDay,
   endOfDay,
+  startOfMonth,
+  endOfMonth,
   isBefore,
   isAfter,
   differenceInCalendarDays,
@@ -37,11 +39,8 @@ import {
 import { LuListChecks, LuPalette, LuVideo, LuBuilding2, LuFolderKanban } from "react-icons/lu";
 import { TbPencilHeart, TbFlame } from "react-icons/tb";
 
-import axiosInstance from "../../services/axiosInstance";
 import { useGetTasksQuery } from "../../features/api/apiSlice";
-import { getTasks } from "../../features/tasks/taskSlice";
 import { getClients } from "../../features/clients/clientslice";
-import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
 import ClientBadge from "../../components/common/ClientBadge";
 import SearchableDropdown from "../../components/common/SearchableDropdown";
@@ -205,57 +204,45 @@ const classifyTeamText = (text) => {
   return null;
 };
 
-// Resolve Hold Reason from task, subtasks, or statusHistory
-const getTaskHoldReason = (task) => {
-  if (!task) return null;
+// Resolve the CURRENT hold reason (latest "On Hold" entry only — never a stale older one)
+const textOrNull = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
 
-  // Direct holdReason on task
-  if (task.holdReason && typeof task.holdReason === "string" && task.holdReason.trim()) {
-    return task.holdReason.trim();
-  }
-
-  // Look up latest 'On Hold' entry in statusHistory
-  if (Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
-    for (let i = task.statusHistory.length - 1; i >= 0; i--) {
-      const h = task.statusHistory[i];
-      if ((h?.status || "").toLowerCase() === "on hold") {
-        if (h.reason && typeof h.reason === "string" && h.reason.trim()) {
-          return h.reason.trim();
-        }
-        if (h.comment && typeof h.comment === "string" && h.comment.trim()) {
-          return h.comment.trim();
-        }
-      }
+const getLatestHoldReason = (item) => {
+  if (!item) return null;
+  if (Array.isArray(item.statusHistory)) {
+    for (let i = item.statusHistory.length - 1; i >= 0; i--) {
+      const h = item.statusHistory[i];
+      if ((h?.status || "").toLowerCase() !== "on hold") continue;
+      // Only the most recent hold entry counts
+      const reason = textOrNull(h.reason) || textOrNull(h.comment);
+      if (!reason) return null;
+      const relatedTitle =
+        h.relatedTaskId && typeof h.relatedTaskId === "object" ? textOrNull(h.relatedTaskId.title) : null;
+      return relatedTitle && reason === "Another Task" ? `Another Task: ${relatedTitle}` : reason;
     }
   }
+  return null;
+};
 
-  // Check top-level task.reason if status is On Hold
-  if ((task.status || "").toLowerCase() === "on hold" && task.reason && typeof task.reason === "string" && task.reason.trim()) {
-    return task.reason.trim();
+const getTaskHoldReason = (task) => {
+  if (!task) return null;
+  const isOnHold = (s) => {
+    const v = (s || "").toLowerCase();
+    return v.includes("hold") || v.includes("pause");
+  };
+
+  // 1. Task itself on hold → its latest hold entry, then direct fields
+  if (isOnHold(task.status)) {
+    const r = getLatestHoldReason(task) || textOrNull(task.holdReason) || textOrNull(task.reason);
+    if (r) return r;
   }
 
-  // Subtasks fallback
+  // 2. Subtasks that are currently on hold
   if (Array.isArray(task.subtasks)) {
     for (const sub of task.subtasks) {
-      if (sub?.holdReason && typeof sub.holdReason === "string" && sub.holdReason.trim()) {
-        return sub.holdReason.trim();
-      }
-      if (Array.isArray(sub?.statusHistory)) {
-        for (let i = sub.statusHistory.length - 1; i >= 0; i--) {
-          const sh = sub.statusHistory[i];
-          if ((sh?.status || "").toLowerCase() === "on hold") {
-            if (sh.reason && typeof sh.reason === "string" && sh.reason.trim()) {
-              return sh.reason.trim();
-            }
-            if (sh.comment && typeof sh.comment === "string" && sh.comment.trim()) {
-              return sh.comment.trim();
-            }
-          }
-        }
-      }
-      if ((sub?.status || "").toLowerCase() === "on hold" && sub.reason && typeof sub.reason === "string" && sub.reason.trim()) {
-        return sub.reason.trim();
-      }
+      if (!isOnHold(sub?.status)) continue;
+      const r = getLatestHoldReason(sub) || textOrNull(sub.holdReason) || textOrNull(sub.reason);
+      if (r) return r;
     }
   }
 
@@ -464,86 +451,6 @@ const StatusOverview = () => {
   // Active Tab: 'designer' | 'cinematographer'
   const [activeTab, setActiveTab] = useState("designer");
 
-  // RTK Query Hooks - directly mirrors GraphicDesignerDashboard and Dashboardmain
-  const {
-    data: rtkGdActiveTasks = [],
-    isLoading: isGdActiveLoading,
-    refetch: refetchGdActive,
-  } = useGetTasksQuery(
-    { active_only: true, department: "Graphic Designer", status_overview: "true" },
-    { refetchOnMountOrArgChange: true }
-  );
-
-  const {
-    data: rtkGdAllTasks = [],
-    isLoading: isGdAllLoading,
-    refetch: refetchGdAll,
-  } = useGetTasksQuery(
-    { department: "Graphic Designer", status_overview: "true" },
-    { refetchOnMountOrArgChange: true }
-  );
-
-  const {
-    data: rtkCinemaActiveTasks = [],
-    isLoading: isCinemaActiveLoading,
-    refetch: refetchCinemaActive,
-  } = useGetTasksQuery(
-    { active_only: true, department: "Cinematographer", status_overview: "true" },
-    { refetchOnMountOrArgChange: true }
-  );
-
-  const {
-    data: rtkCinemaAllTasks = [],
-    isLoading: isCinemaAllLoading,
-    refetch: refetchCinemaAll,
-  } = useGetTasksQuery(
-    { department: "Cinematographer", status_overview: "true" },
-    { refetchOnMountOrArgChange: true }
-  );
-
-  const {
-    data: rtkDashboardTasks = [],
-    isLoading: isDashboardLoading,
-    refetch: refetchDashboard,
-  } = useGetTasksQuery(
-    { active_only: true, status_overview: "true" },
-    { refetchOnMountOrArgChange: true }
-  );
-
-  const {
-    data: rtkAllTasks = [],
-    isLoading: isAllTasksLoading,
-    refetch: refetchAllTasks,
-  } = useGetTasksQuery({ status_overview: "true" }, { refetchOnMountOrArgChange: true });
-
-  const {
-    data: rtkStatusOverviewTasks = [],
-    isLoading: isStatusOverviewLoading,
-    refetch: refetchStatusOverview,
-  } = useGetTasksQuery(
-    { all: "true", status_overview: "true" },
-    { refetchOnMountOrArgChange: true }
-  );
-
-  // Fallback direct axios fetch across all clients
-  const [fallbackTasks, setFallbackTasks] = useState([]);
-  const [fallbackLoading, setFallbackLoading] = useState(false);
-
-  const fetchTasksData = useCallback(async () => {
-    try {
-      setFallbackLoading(true);
-      const res = await axiosInstance.get("/tasks?all=true&status_overview=true");
-      const list = res.data?.data || (Array.isArray(res.data) ? res.data : []);
-      if (Array.isArray(list)) {
-        setFallbackTasks(list);
-      }
-    } catch (err) {
-      console.warn("[StatusOverview] Fallback fetch:", err?.message);
-    } finally {
-      setFallbackLoading(false);
-    }
-  }, []);
-
   // Filters state - Default date filter is "Today"
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -557,6 +464,50 @@ const StatusOverview = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // ── Single API call ──────────────────────────────────────────────
+  // The date filter is applied on the server (created-time range), so only
+  // the tasks needed for the selected range are downloaded.
+  const selectedDayKey = format(selectedCalendarDate, "yyyy-MM-dd");
+  const queryArgs = useMemo(() => {
+    const args = { status_overview: "true" };
+    const now = new Date();
+    const range = (from, to) => {
+      args.created_from = startOfDay(from).toISOString();
+      args.created_to = endOfDay(to).toISOString();
+    };
+    if (dateFilter === "Today") range(now, now);
+    else if (dateFilter === "Yesterday") range(subDays(now, 1), subDays(now, 1));
+    else if (dateFilter === "Date" || dateFilter.startsWith("20")) {
+      const [y, m, d] = selectedDayKey.split("-").map(Number);
+      const day = new Date(y, m - 1, d);
+      range(day, day);
+    } else if (dateFilter === "Last 7 Days") range(subDays(now, 6), now);
+    else if (dateFilter === "This Month") range(startOfMonth(now), endOfMonth(now));
+    else if (dateFilter === "Overdue") {
+      args.overdue = "true";
+      args.due_before = startOfDay(now).toISOString();
+    }
+    return args;
+  }, [dateFilter, selectedDayKey]);
+
+  const {
+    currentData: fullTasksData,
+    isFetching: tasksFetching,
+    isError: tasksError,
+    refetch: refetchTasks,
+  } = useGetTasksQuery(queryArgs, { refetchOnMountOrArgChange: 30 });
+
+  // "All Time" has no date range → the full list is big. Fetch the newest
+  // 300 tasks in parallel so the table paints fast, then swap in the full list.
+  const isUnboundedRange = !queryArgs.created_from && !queryArgs.overdue;
+  const { currentData: quickTasksData } = useGetTasksQuery(
+    { ...queryArgs, limit: 300 },
+    { skip: !isUnboundedRange, refetchOnMountOrArgChange: 30 }
+  );
+
+  const tasksData = fullTasksData ?? (isUnboundedRange ? quickTasksData : undefined);
+  const loadingMoreTasks = isUnboundedRange && !fullTasksData && !!quickTasksData;
 
   // Redux state
   const { clients = [] } = useSelector((state) => state.clients || {});
@@ -884,87 +835,39 @@ const StatusOverview = () => {
     [currentUserId, getTaskCreator]
   );
 
-  // Initial fetch
+  // Initial fetch — load clients/users only if not already in the store
   useEffect(() => {
-    fetchTasksData();
-    dispatch(getClients());
-    dispatch(getProjects());
-    dispatch(getUsers());
-  }, [fetchTasksData, dispatch]);
+    if (!clients || clients.length === 0) dispatch(getClients());
+    if (!users || users.length === 0) dispatch(getUsers());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
   const handleRefresh = () => {
-    refetchGdActive();
-    refetchGdAll();
-    refetchCinemaActive();
-    refetchCinemaAll();
-    refetchDashboard();
-    refetchAllTasks();
-    refetchStatusOverview();
-    fetchTasksData();
+    refetchTasks();
     dispatch(getClients());
-    dispatch(getProjects());
     dispatch(getUsers());
   };
 
-  // Consolidate all tasks from all RTK Query sources + fallback (deduplicated by _id)
+  // Tasks for the selected date range (role scoping is also enforced by the backend)
   const allTasks = useMemo(() => {
-    const map = new Map();
-    const addList = (list) => {
-      if (!Array.isArray(list)) return;
-      list.forEach((t) => {
-        if (!t?._id) return;
-        const idStr = String(t._id);
-        if (!map.has(idStr)) {
-          map.set(idStr, t);
-        } else {
-          const prev = map.get(idStr);
-          map.set(idStr, { ...prev, ...t });
-        }
-      });
-    };
-
-    addList(rtkGdAllTasks);
-    addList(rtkCinemaAllTasks);
-    addList(rtkGdActiveTasks);
-    addList(rtkCinemaActiveTasks);
-    addList(rtkStatusOverviewTasks);
-    addList(rtkDashboardTasks);
-    addList(rtkAllTasks);
-    addList(fallbackTasks);
-
-    const consolidated = Array.from(map.values());
+    const list = Array.isArray(tasksData) ? tasksData : [];
     if (isSocialMediaExecutive) {
-      return consolidated.filter((t) => isTaskCreatedByCurrentUser(t));
+      return list.filter((t) => isTaskCreatedByCurrentUser(t));
     }
     if (isSocialMediaHead) {
-      return consolidated.filter((t) => isTaskFromChennaiClient(t));
+      return list.filter((t) => isTaskFromChennaiClient(t));
     }
-    return consolidated;
+    return list;
   }, [
-    rtkGdAllTasks,
-    rtkCinemaAllTasks,
-    rtkGdActiveTasks,
-    rtkCinemaActiveTasks,
-    rtkStatusOverviewTasks,
-    rtkDashboardTasks,
-    rtkAllTasks,
-    fallbackTasks,
+    tasksData,
     isSocialMediaExecutive,
     isTaskCreatedByCurrentUser,
     isSocialMediaHead,
     isTaskFromChennaiClient,
   ]);
 
-  const tasksLoading =
-    allTasks.length === 0 &&
-    (isGdActiveLoading ||
-      isGdAllLoading ||
-      isCinemaActiveLoading ||
-      isCinemaAllLoading ||
-      isStatusOverviewLoading ||
-      isDashboardLoading ||
-      isAllTasksLoading ||
-      fallbackLoading);
+  // Show skeleton while the data for the current filter has not arrived yet
+  const tasksLoading = tasksFetching && !tasksData;
 
   // Helper to resolve assignee object for any task (checking top-level and subtasks)
   const getTaskAssignee = useCallback(
@@ -1447,11 +1350,11 @@ const StatusOverview = () => {
           <button
             type="button"
             onClick={handleRefresh}
-            disabled={tasksLoading}
+            disabled={tasksFetching}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
             title="Refresh Tasks"
           >
-            <FiRefreshCw size={13} className={tasksLoading ? "animate-spin" : ""} />
+            <FiRefreshCw size={13} className={tasksFetching ? "animate-spin" : ""} />
             <span>Refresh</span>
           </button>
         </div>
@@ -1790,14 +1693,64 @@ const StatusOverview = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-[9.5px] font-medium">
-              {tasksLoading && paginatedTasks.length === 0 ? (
+              {tasksLoading ? (
+                Array.from({ length: itemsPerPage }).map((_, i) => (
+                  <tr key={`skeleton-${i}`} className="animate-pulse">
+                    {/* Task name */}
+                    <td className="py-2 px-2.5">
+                      <div className="h-2.5 w-40 rounded bg-slate-200 dark:bg-slate-700/70" />
+                      <div className="mt-1.5 h-2 w-16 rounded bg-slate-100 dark:bg-slate-800" />
+                    </td>
+                    {/* Client */}
+                    <td className="py-2 px-2.5">
+                      <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-700/70" />
+                    </td>
+                    {/* Created by / Assignee */}
+                    {[0, 1].map((k) => (
+                      <td key={k} className="py-2 px-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700/70 shrink-0" />
+                          <div className="space-y-1">
+                            <div className="h-2.5 w-16 rounded bg-slate-200 dark:bg-slate-700/70" />
+                            <div className="h-2 w-12 rounded bg-slate-100 dark:bg-slate-800" />
+                          </div>
+                        </div>
+                      </td>
+                    ))}
+                    {/* Dates */}
+                    <td className="py-2 px-2.5">
+                      <div className="h-2.5 w-24 rounded bg-slate-200 dark:bg-slate-700/70" />
+                      <div className="mt-1.5 h-2.5 w-20 rounded bg-slate-100 dark:bg-slate-800" />
+                    </td>
+                    {/* Productivity */}
+                    <td className="py-2 px-2.5">
+                      <div className="h-5 w-20 rounded-lg bg-slate-200 dark:bg-slate-700/70" />
+                    </td>
+                    {/* Status */}
+                    <td className="py-2 px-2.5">
+                      <div className="h-4 w-16 rounded-lg bg-slate-200 dark:bg-slate-700/70" />
+                    </td>
+                    {/* Approval */}
+                    <td className="py-2 px-2.5">
+                      <div className="h-4 w-20 rounded bg-slate-200 dark:bg-slate-700/70" />
+                    </td>
+                  </tr>
+                ))
+              ) : tasksError && !tasksData ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <FiRefreshCw size={26} className="animate-spin text-indigo-500" />
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                        Loading tasks across all clients...
+                  <td colSpan={8} className="py-14 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <FiAlertCircle size={22} className="text-rose-500" />
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Could not load tasks
                       </span>
+                      <button
+                        type="button"
+                        onClick={handleRefresh}
+                        className="mt-1 px-3 py-1 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                      >
+                        Retry
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -2093,10 +2046,15 @@ const StatusOverview = () => {
                         </span>
                         {isHold && (
                           <div
-                            className="mt-0.5 text-[8px] font-semibold text-amber-700 dark:text-amber-300 truncate max-w-35"
-                            title={holdReason ? `Hold reason: ${holdReason}` : "No reason given"}
+                            className="mt-1 max-w-40 text-[8.5px] leading-snug line-clamp-2 whitespace-normal break-words"
+                            title={holdReason ? `Reason for hold: ${holdReason}` : "No reason given"}
                           >
-                            {holdReason ? holdReason : <span className="italic font-medium opacity-70">No reason</span>}
+                            <span className="font-bold text-slate-500 dark:text-slate-400">Reason: </span>
+                            {holdReason ? (
+                              <span className="font-semibold text-amber-700 dark:text-amber-300">{holdReason}</span>
+                            ) : (
+                              <span className="italic text-slate-400 dark:text-slate-500">Not given</span>
+                            )}
                           </div>
                         )}
                       </td>
@@ -2171,6 +2129,12 @@ const StatusOverview = () => {
                 </strong>{" "}
                 of <strong className="text-slate-700 dark:text-slate-200">{filteredTasks.length}</strong> tasks
               </span>
+              {loadingMoreTasks && (
+                <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-indigo-600 dark:text-indigo-400">
+                  <FiRefreshCw size={10} className="animate-spin" />
+                  Loading older tasks…
+                </span>
+              )}
               <span className="text-slate-300 dark:text-slate-700">•</span>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10.5px]">Per page:</span>

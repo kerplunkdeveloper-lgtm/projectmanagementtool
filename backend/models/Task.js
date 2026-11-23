@@ -142,6 +142,16 @@ const SubtaskSchema = new mongoose.Schema({
         type: String,
         default: "",
       },
+      // Hold reason (was missing → subtask hold reasons were silently dropped)
+      reason: {
+        type: String,
+        default: "",
+      },
+      relatedTaskId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Task",
+        default: null,
+      },
     },
   ],
   correctionHistory: [
@@ -486,6 +496,7 @@ TaskSchema.index({ assignedTo: 1, status: 1 });
 TaskSchema.index({ project: 1, status: 1 });
 TaskSchema.index({ "subtasks.assignedTo": 1 });
 TaskSchema.index({ updatedAt: -1 });
+TaskSchema.index({ createdAt: -1 }); // Status Overview: created-date filter + sort
 TaskSchema.index({ completedAt: -1 });
 TaskSchema.index({ rejectedAt: -1 });
 TaskSchema.index({ startDate: 1 });
