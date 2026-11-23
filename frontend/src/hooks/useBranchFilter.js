@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
-export const BRANCH_TABS = ["All", "Pondicherry", "Chennai"];
+export const BRANCH_TABS = ["Pondicherry", "Chennai"];
+const DEFAULT_BRANCH = "Pondicherry";
 const STORAGE_KEY = "smBranchTab";
 
 const normBranch = (b) => (b || "").trim().toLowerCase();
@@ -12,9 +13,9 @@ export const useBranchTab = () => {
   const [branchTab, setBranchTabState] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return BRANCH_TABS.includes(saved) ? saved : "All";
+      return BRANCH_TABS.includes(saved) ? saved : DEFAULT_BRANCH;
     } catch {
-      return "All";
+      return DEFAULT_BRANCH;
     }
   });
 
