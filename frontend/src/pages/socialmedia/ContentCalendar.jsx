@@ -3270,7 +3270,29 @@ const ContentCalendar = () => {
             </div>
 
             <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-              {selectedDayPosts.posts.map((post) => {
+              {selectedDayPosts.posts.map((rawPost) => {
+                // The modal holds a snapshot of the day's posts; overlay live platform
+                // tick state from the store so ticks made here update instantly.
+                const liveTask = Array.isArray(tasks)
+                  ? tasks.find((t) => t._id === rawPost._id)
+                  : null;
+                const post = liveTask
+                  ? {
+                      ...rawPost,
+                      platforms: liveTask.platforms ?? rawPost.platforms,
+                      platform: liveTask.platform ?? rawPost.platform,
+                      completedPlatforms: liveTask.completedPlatforms ?? rawPost.completedPlatforms,
+                    }
+                  : rawPost;
+                const assignedPlatforms =
+                  Array.isArray(post.platforms) && post.platforms.length > 0
+                    ? post.platforms
+                    : post.platform
+                    ? [post.platform]
+                    : [];
+                const completedPlatforms = Array.isArray(post.completedPlatforms)
+                  ? post.completedPlatforms
+                  : [];
                 const creator = getCreatorInfo(post);
                 const typeStyle = getContentTypeStyle(post.contentType);
                 const isRisk = isTaskAtRisk(post);
@@ -3319,6 +3341,51 @@ const ContentCalendar = () => {
                     <div className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2">
                       {post.taskTitle || "Untitled Task"}
                     </div>
+
+                    {/* Platform tick checklist (same behaviour as the calendar card) */}
+                    {assignedPlatforms.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        {assignedPlatforms.map((platId) => {
+                          const platObj = ALL_PLATFORMS_MAP.find(
+                            (p) => p.id.toLowerCase() === String(platId).toLowerCase()
+                          ) || { id: platId, name: platId, icon: FiLayers, color: "#6366f1" };
+                          const IconComp = platObj.icon;
+                          const isTicked = completedPlatforms.some(
+                            (cp) => String(cp).toLowerCase() === String(platId).toLowerCase()
+                          );
+                          return (
+                            <button
+                              key={platId}
+                              type="button"
+                              disabled={isReadOnly}
+                              onClick={(e) => handleTogglePlatformSubtask(post, platId, e)}
+                              title={
+                                isTicked
+                                  ? `✓ ${platObj.name} (Posted - click to untick)`
+                                  : `○ ${platObj.name} (Pending - click to tick)`
+                              }
+                              className={`group/tick inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10.5px] font-bold transition-all duration-150 cursor-pointer active:scale-95 disabled:cursor-not-allowed ${
+                                isTicked
+                                  ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-300/90 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100"
+                                  : "bg-white dark:bg-[#131d31] border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-emerald-400 hover:bg-emerald-50/30"
+                              }`}
+                            >
+                              <span
+                                className={`w-3.5 h-3.5 rounded flex items-center justify-center border transition-colors shrink-0 ${
+                                  isTicked
+                                    ? "bg-emerald-500 border-emerald-600 text-white"
+                                    : "border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 group-hover/tick:border-emerald-400 text-transparent"
+                                }`}
+                              >
+                                <FiCheck className="stroke-[3]" size={9} />
+                              </span>
+                              <IconComp size={12} className="shrink-0" style={{ color: platObj.color }} />
+                              <span>{platObj.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <div className={`flex items-center justify-between pt-1.5 border-t ${statusStyle.divider} text-xs`}>
                       <span className="font-bold text-[11px]" style={{ color: post.clientColor || "#6366f1" }}>
