@@ -19,6 +19,8 @@ import {
   LuCalendarRange,
   LuListTodo,
   LuListChecks,
+  LuTarget,
+  LuContact,
 } from "react-icons/lu";
 import { TbPencilHeart } from "react-icons/tb";
 import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings, FiFileText, FiKey } from "react-icons/fi";
@@ -50,6 +52,14 @@ export const sidebarConfig = {
         { name: "Shoot Calendar", path: "/admin/Shootcalendor", icon: LuCalendarDays },
         { name: "Content Calendar", path: "/admin/content-calendar", icon: LuCalendarRange },
         { name: "Calendar", path: "/admin/event-calendar", icon: LuCalendarCheck },
+      ],
+    },
+    {
+      name: "CRM",
+      path: "/admin/crm/leads",
+      icon: LuTarget,
+      children: [
+        { name: "Leads", path: "/admin/crm/leads", icon: LuContact },
       ],
     },
     { name: "Workload", path: "/admin/workload", icon: LuActivity },

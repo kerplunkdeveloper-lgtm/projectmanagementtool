@@ -105,6 +105,7 @@ const HrTasks = lazyWithRetry(
 const StatusOverview = lazyWithRetry(
   () => import("../pages/tasks/StatusOverview.jsx"),
 );
+const Leads = lazyWithRetry(() => import("../pages/crm/Leads.jsx"));
 
 // Dictionary of route preloading functions for hover-intent preloading
 export const routePreloaders = {
@@ -134,6 +135,7 @@ export const routePreloaders = {
   contentCalendar: () => import("../pages/socialmedia/ContentCalendar.jsx"),
   hrTasks: () => import("../pages/hrTasks/HrTasks.jsx"),
   statusOverview: () => import("../pages/tasks/StatusOverview.jsx"),
+  leads: () => import("../pages/crm/Leads.jsx"),
 };
 
 export const preloadRoute = (path) => {
@@ -143,6 +145,7 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/designer-tasks")) routePreloaders.designerTasks?.();
   else if (p.endsWith("/cinematographer-tasks")) routePreloaders.cinematographerTasks?.();
   else if (p.endsWith("/status-overview")) routePreloaders.statusOverview?.();
+  else if (p.endsWith("/crm/leads")) routePreloaders.leads?.();
   else if (p.endsWith("/sm-tasks") || p.endsWith("/sm-task")) routePreloaders.smTasks?.();
   else if (p.endsWith("/content-calendar") || p.endsWith("/content-calendor")) routePreloaders.contentCalendar?.();
   else if (p.endsWith("/hr-tasks") || p.endsWith("/hr-task")) routePreloaders.hrTasks?.();
@@ -268,6 +271,7 @@ const AppRoutes = () => {
             }
           />
 
+          <Route path="crm/leads" element={<Leads />} />
           <Route path="sm-tasks" element={<SmTasks />} />
           <Route path="sm-task" element={<SmTasks />} />
           <Route path="content-calendar" element={<ContentCalendar />} />

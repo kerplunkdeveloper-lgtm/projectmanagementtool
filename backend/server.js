@@ -156,6 +156,10 @@ connectDB().then(() => {
 const app = express();
 app.set('trust proxy', 1); // Trust reverse proxy (e.g. Nginx, Cloudflare) so req.ip is real client IP
 
+// Meta Lead Ads webhook — must be mounted BEFORE express.json() because it needs the
+// raw request body to verify Meta's X-Hub-Signature-256 HMAC.
+app.use('/api/webhooks/meta', require('./routes/metaWebhookRoutes'));
+
 // Body parser with high limit for image uploads & content calendar bulk import
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -306,6 +310,7 @@ app.use('/api/calendar-events', calendarEventRoutes);
 app.use('/api/socialmedia-task-calendar', socialmediaTaskCalendorRoutes);
 app.use('/api/socialmedia-task-calendor', socialmediaTaskCalendorRoutes);
 app.use('/api/social-media-tasks', socialmediaTaskCalendorRoutes);
+app.use('/api/leads', require('./routes/leadRoutes'));
 
 
 
