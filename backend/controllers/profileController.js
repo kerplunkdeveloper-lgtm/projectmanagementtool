@@ -174,16 +174,29 @@ exports.deleteProfileImage = async (req, res) => {
 
   try {
 
-    const user = await User.findById(req.user._id)
-      .populate("profile");
+    const user = await User.findById(req.user._id);
 
-    const profile = await Profile.findById(user.profile._id);
+    const profile = user && user.profile
+      ? await Profile.findById(user.profile)
+      : null;
 
-    if (profile.profileImage && profile.profileImage.public_id) {
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found",
+      });
+    }
 
-      await cloudinary.uploader.destroy(
-        profile.profileImage.public_id
-      );
+    if (profile.profileImage && (profile.profileImage.public_id || profile.profileImage.url)) {
+
+      if (profile.profileImage.public_id) {
+        try {
+          await cloudinary.uploader.destroy(profile.profileImage.public_id);
+        } catch (err) {
+          // Don't block removal from the profile if Cloudinary fails (e.g. missing credentials)
+          console.error("Cloudinary destroy error:", err.message || err);
+        }
+      }
 
       profile.profileImage = {
         public_id: "",
