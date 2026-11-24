@@ -113,6 +113,12 @@ const socialmediaTaskCalendorSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    // Content pillar (theme/category of the commitment post)
+    pillars: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

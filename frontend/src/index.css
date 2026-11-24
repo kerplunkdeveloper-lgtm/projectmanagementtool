@@ -1175,6 +1175,16 @@ select.table-status-select {
   cursor: pointer !important;
 }
 
+select.table-status-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.dark select.table-status-select option {
+  background-color: #131d31;
+  color: #e2e8f0;
+}
+
 select.table-status-select:disabled {
   background-image: none !important;
   padding-right: 0.55rem !important;

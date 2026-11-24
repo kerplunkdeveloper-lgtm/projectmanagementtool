@@ -256,6 +256,7 @@ const SmTaskModal = ({
     priority: "Medium",
     qc: "-",
     notes: "",
+    pillars: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -367,6 +368,7 @@ const SmTaskModal = ({
         priority: task.priority || "Medium",
         qc: task.qc || "-",
         notes: task.notes || "",
+        pillars: task.pillars || "",
       });
     } else {
       const defaultIsCommitment = commitmentOnly
@@ -405,6 +407,7 @@ const SmTaskModal = ({
         priority: "Medium",
         qc: "-",
         notes: "",
+        pillars: "",
       });
     }
   }, [isOpen, task, initialDate, activeClients, users, currentUser, initialCommitment, commitmentOnly]);
@@ -648,6 +651,7 @@ const SmTaskModal = ({
         priority: formData.priority,
         qc: isCal ? formData.qc : "-",
         notes: formData.notes,
+        pillars: isCal ? (formData.pillars || "").trim() : "",
       };
 
       if (task?._id) {
@@ -702,6 +706,36 @@ const SmTaskModal = ({
     CONTENT_TYPES_CONFIG.find((c) => c.id.toLowerCase() === (formData.contentType || "").toLowerCase()) ||
     CONTENT_TYPES_CONFIG[0];
   const CurrentTypeIcon = currentTypeConfig.icon;
+
+  const fieldLabelCls = "block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1";
+
+  const pillarsField = (
+    <div>
+      <label className={fieldLabelCls}>Pillars</label>
+      <input
+        type="text"
+        value={formData.pillars || ""}
+        onChange={(e) => setFormData({ ...formData, pillars: e.target.value })}
+        disabled={isReadOnly}
+        placeholder="e.g. Brand Story, Testimonials, Festival Offers"
+        className="w-full h-10 px-3 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] font-medium disabled:opacity-85 disabled:cursor-not-allowed"
+      />
+    </div>
+  );
+
+  const notesField = (
+    <div>
+      <label className={fieldLabelCls}>Notes &amp; Brief</label>
+      <textarea
+        rows={3}
+        value={formData.notes}
+        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+        disabled={isReadOnly}
+        placeholder="Add task notes, details, reference links..."
+        className="w-full px-3 py-2 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] resize-none font-medium leading-relaxed disabled:opacity-85 disabled:cursor-not-allowed"
+      />
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
@@ -775,7 +809,7 @@ const SmTaskModal = ({
                   placeholder="e.g. Create Diwali reel, Weekend lineup carousel..."
                   value={formData.taskTitle}
                   onChange={(e) => setFormData({ ...formData, taskTitle: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] transition-all disabled:opacity-85 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg h-10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] transition-all disabled:opacity-85 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -790,7 +824,7 @@ const SmTaskModal = ({
                     onChange={handleClientSelect}
                     required
                     disabled={isReadOnly}
-                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+                    className="w-full h-10 px-2.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     <option value="" className="dark:bg-[#131d31] dark:text-white">Select Client</option>
                     {!isCommitment && (
@@ -815,7 +849,7 @@ const SmTaskModal = ({
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                     Created By
                   </label>
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100/80 dark:bg-[#162033] border border-slate-200/80 dark:border-[#22324f] text-xs">
+                  <div className="flex items-center gap-1.5 h-10 px-2.5 rounded-lg bg-slate-100/80 dark:bg-[#162033] border border-slate-200/80 dark:border-[#22324f] text-xs">
                     <div className="relative shrink-0 w-4 h-4">
                       {creatorInfo.avatarUrl ? (
                         <img
@@ -850,7 +884,7 @@ const SmTaskModal = ({
                     <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                       Category
                     </label>
-                    <div className="w-full px-2.5 py-1.5 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-300/80 dark:border-emerald-500/30 rounded-lg text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 select-none shadow-2xs">
+                    <div className="w-full h-10 px-2.5 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-300/80 dark:border-emerald-500/30 rounded-lg text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 select-none shadow-2xs">
                       <FiCalendar size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span>Content Calendar</span>
                     </div>
@@ -864,7 +898,7 @@ const SmTaskModal = ({
                       value={formData.category}
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       disabled={isReadOnly}
-                      className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed truncate"
+                      className="w-full h-10 px-2.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed truncate"
                     >
                       {SME_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat} className="dark:bg-[#131d31] dark:text-white">
@@ -884,7 +918,7 @@ const SmTaskModal = ({
                       type="button"
                       disabled={isReadOnly}
                       onClick={() => setIsContentTypeOpen(!isContentTypeOpen)}
-                      className="w-full px-2.5 py-1.5 bg-white dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold flex items-center justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs disabled:cursor-not-allowed"
+                      className="w-full h-10 px-2.5 bg-white dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold flex items-center justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-2xs disabled:cursor-not-allowed"
                     >
                       <div className="flex items-center gap-1.5 min-w-0">
                         <CurrentTypeIcon size={13} className={currentTypeConfig.color} />
@@ -928,7 +962,7 @@ const SmTaskModal = ({
                     <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                       Content Type
                     </label>
-                    <div className="w-full px-2.5 py-1.5 bg-slate-100 dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-between select-none shadow-2xs">
+                    <div className="w-full h-10 px-2.5 bg-slate-100 dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center justify-between select-none shadow-2xs">
                       <span className="flex items-center gap-1.5">
                         <FiLayers size={12} className="text-slate-400 dark:text-slate-500" />
                         <span>Others Task</span>
@@ -1026,22 +1060,8 @@ const SmTaskModal = ({
                 </div>
               )}
 
-              {/* Notes & Brief - Hidden on Commitment tab, visible on SME tasks tab */}
-              {!isContentCalendar && (
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                    Notes &amp; Brief
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    disabled={isReadOnly}
-                    placeholder="Add task notes, details, reference links..."
-                    className="w-full px-3 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-[#182338] resize-none font-medium leading-relaxed disabled:opacity-85 disabled:cursor-not-allowed"
-                  />
-                </div>
-              )}
+              {/* Notes & Brief - SME tasks keep it in the left column */}
+              {!isContentCalendar && notesField}
             </div>
 
             {/* RIGHT COLUMN: Schedule, Commitment & Workflow (5 of 12 cols) */}
@@ -1085,7 +1105,7 @@ const SmTaskModal = ({
                             }));
                           }}
                           disabled={isReadOnly}
-                          className="w-full px-2.5 py-1.5 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+                          className="w-full h-10 px-2.5 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                         />
                       </div>
 
@@ -1098,7 +1118,7 @@ const SmTaskModal = ({
                           value={formData.publishTime}
                           onChange={(e) => setFormData({ ...formData, publishTime: e.target.value })}
                           disabled={isReadOnly}
-                          className="w-full px-2.5 py-1.5 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+                          className="w-full h-10 px-2.5 bg-white dark:bg-[#162033] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -1127,7 +1147,7 @@ const SmTaskModal = ({
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     disabled={isReadOnly}
-                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 disabled:opacity-85 disabled:cursor-not-allowed"
+                    className="w-full h-10 px-2.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 disabled:opacity-85 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -1139,7 +1159,7 @@ const SmTaskModal = ({
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                     disabled={isReadOnly}
-                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
+                    className="w-full h-10 px-2.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
                   >
                     {PRIORITIES.map((pr) => (
                       <option key={pr} value={pr} className="dark:bg-[#131d31] dark:text-white">
@@ -1174,7 +1194,7 @@ const SmTaskModal = ({
                     }
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     disabled={isReadOnly}
-                    className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed truncate"
+                    className="w-full h-10 px-2.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed truncate"
                   >
                     {(isCommitment ? COMMITMENT_STATUSES : NON_COMMITMENT_STATUSES).map((st) => (
                       <option key={st} value={st} className="dark:bg-[#131d31] dark:text-white">
@@ -1184,6 +1204,14 @@ const SmTaskModal = ({
                   </select>
                 </div>
               </div>
+
+              {/* Pillars & Notes - Commitment tasks (balances the two columns) */}
+              {isContentCalendar && (
+                <>
+                  {pillarsField}
+                  {notesField}
+                </>
+              )}
             </div>
           </div>
 

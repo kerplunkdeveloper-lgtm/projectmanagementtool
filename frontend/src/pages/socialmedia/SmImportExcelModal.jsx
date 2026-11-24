@@ -146,7 +146,8 @@ const parseCSV = (text) => {
   const headerMap = {};
 
   rawHeaders.forEach((h, idx) => {
-    if (h.includes("client") || h.includes("company")) headerMap.client = idx;
+    if (h.includes("pillar")) headerMap.pillars = idx;
+    else if (h.includes("client") || h.includes("company")) headerMap.client = idx;
     else if (h.includes("title") || h.includes("topic") || h.includes("task")) headerMap.taskTitle = idx;
     else if (h.includes("type") || h.includes("format")) headerMap.contentType = idx;
     else if (h.includes("platform") || h.includes("channel")) headerMap.platforms = idx;
@@ -173,6 +174,7 @@ const parseCSV = (text) => {
     const status = (headerMap.status !== undefined ? row[headerMap.status] : row[8]) || "Not started";
     const notes = (headerMap.notes !== undefined ? row[headerMap.notes] : row[9]) || "";
     const assignee = (headerMap.assignee !== undefined ? row[headerMap.assignee] : row[10]) || "";
+    const pillars = (headerMap.pillars !== undefined ? row[headerMap.pillars] : row[11]) || "";
 
     // Parse platforms list
     const platforms = rawPlatforms
@@ -211,6 +213,7 @@ const parseCSV = (text) => {
       status: status.trim() || "Not started",
       notes: notes.trim(),
       assigneeName: assignee.trim(),
+      pillars: String(pillars).trim(),
     });
   }
 
@@ -263,6 +266,7 @@ export default function SmImportExcelModal({
       "Status",
       "Notes / Caption",
       "Assignee",
+      "Pillars",
     ];
 
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -283,6 +287,7 @@ export default function SmImportExcelModal({
         `"Not started"`,
         `"Special celebration post with pricing caption"`,
         `"${sampleUser}"`,
+        `"Festival Offers"`,
       ],
       [
         `"${sampleClient1}"`,
@@ -296,6 +301,7 @@ export default function SmImportExcelModal({
         `"In progress"`,
         `"Short video with trending audio"`,
         `"${sampleUser}"`,
+        `"Brand Story"`,
       ],
       [
         `"${sampleClient2}"`,
@@ -309,6 +315,7 @@ export default function SmImportExcelModal({
         `"Not started"`,
         `"5-star feedback screenshot with thank you sticker"`,
         `"${sampleUser}"`,
+        `"Testimonials"`,
       ],
     ];
 
@@ -559,6 +566,7 @@ export default function SmImportExcelModal({
                       <th className="py-2.5 px-3">Client</th>
                       <th className="py-2.5 px-3">Task Title</th>
                       <th className="py-2.5 px-3">Format</th>
+                      <th className="py-2.5 px-3">Pillars</th>
                       <th className="py-2.5 px-3">Platforms</th>
                       <th className="py-2.5 px-3">Publish Date & Time</th>
                       <th className="py-2.5 px-3">Assignee</th>
@@ -609,6 +617,9 @@ export default function SmImportExcelModal({
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
                               {row.contentType}
                             </span>
+                          </td>
+                          <td className="py-2 px-3 text-slate-700 dark:text-slate-300 truncate max-w-[120px]" title={row.pillars}>
+                            {row.pillars || <span className="text-slate-400">-</span>}
                           </td>
                           <td className="py-2 px-3">
                             <div className="flex items-center gap-1 flex-wrap">

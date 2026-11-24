@@ -160,7 +160,7 @@ const formatPublishDateTime = (dateVal) => {
  * If status is Live/Completed: green background with Live indicator
  * If status is NOT Live and due date is past/today: red background with overdue days count
  */
-const renderDueDateBadge = (dueDate, status) => {
+const renderDueDateBadge = (dueDate, status, dateOnly = false) => {
   if (!dueDate) return <span className="text-slate-400 font-medium">-</span>;
 
   const due = new Date(dueDate);
@@ -171,7 +171,7 @@ const renderDueDateBadge = (dueDate, status) => {
   // Status QC or Completed and wait client approval -> show "Waiting" below the date ("date kila")
   const s = (status || "").trim().toLowerCase();
   const isWaiting = s === "qc" || s === "in qc" || s.includes("client approval");
-  if (isWaiting) {
+  if (isWaiting && !dateOnly) {
     return (
       <div className="flex flex-col items-start gap-0.5">
         <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
@@ -205,9 +205,11 @@ const renderDueDateBadge = (dueDate, status) => {
       >
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
         <span>{dateStr}</span>
-        <span className="text-[9px] font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-400 pl-0.5">
-          • {["Live", "Published", "Published Live"].includes(status) ? "Published Live" : "Done"}
-        </span>
+        {!dateOnly && (
+          <span className="text-[9px] font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-400 pl-0.5">
+            • {["Live", "Published", "Published Live"].includes(status) ? "Published Live" : "Done"}
+          </span>
+        )}
       </span>
     );
   }
@@ -223,9 +225,11 @@ const renderDueDateBadge = (dueDate, status) => {
       >
         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
         <span>{dateStr}</span>
-        <span className="text-[9px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
-          • {dayLabel}
-        </span>
+        {!dateOnly && (
+          <span className="text-[9px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
+            • {dayLabel}
+          </span>
+        )}
       </span>
     );
   }
@@ -239,9 +243,11 @@ const renderDueDateBadge = (dueDate, status) => {
       >
         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
         <span>{dateStr}</span>
-        <span className="text-[9px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
-          • Due today
-        </span>
+        {!dateOnly && (
+          <span className="text-[9px] font-black uppercase tracking-wide text-rose-600 dark:text-rose-400 pl-0.5">
+            • Due today
+          </span>
+        )}
       </span>
     );
   }
@@ -255,9 +261,11 @@ const renderDueDateBadge = (dueDate, status) => {
     >
       <FiCalendar size={11} className="text-slate-400 shrink-0" />
       <span>{dateStr}</span>
-      <span className="text-[9px] text-slate-400 font-medium pl-0.5">
-        • {dayLabel}
-      </span>
+      {!dateOnly && (
+        <span className="text-[9px] text-slate-400 font-medium pl-0.5">
+          • {dayLabel}
+        </span>
+      )}
     </span>
   );
 };
@@ -560,31 +568,27 @@ const getDisplayStatusForTask = (task, selectedCommitment) => {
 
 const getTableStatusStyle = (status) => {
   const s = (status || "").toLowerCase().trim();
+  // Soft tinted badge style (light bg + dark same-hue text + thin border),
+  // matching the Due Date badge. Hex + "!" so global select styles / theme can't override.
   if (s.includes("not started")) {
-    return "bg-slate-100 text-slate-700 dark:bg-[#131d31] dark:text-slate-200 border-slate-200 dark:border-white/10";
+    return "!bg-[#fff1f2] !text-[#be123c] !border !border-solid !border-[#fecdd3] dark:!bg-[rgba(136,19,55,0.35)] dark:!text-[#fda4af] dark:!border-[rgba(190,18,60,0.45)]";
   }
   if (s.includes("inprogress") || s.includes("in progress")) {
-    return "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300";
+    return "!bg-[#eff6ff] !text-[#1d4ed8] !border !border-solid !border-[#bfdbfe] dark:!bg-[rgba(30,58,138,0.35)] dark:!text-[#93c5fd] dark:!border-[rgba(37,99,235,0.45)]";
   }
-  if (s === "qc" || s.includes("in qc")) {
-    return "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300";
-  }
-  if (s.includes("client approval") || s.includes("approval")) {
-    return "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-300 font-semibold";
+  if (s === "qc" || s.includes("in qc") || s.includes("client approval") || s.includes("approval")) {
+    return "!bg-[#fffbeb] !text-[#b45309] !border !border-solid !border-[#fde68a] dark:!bg-[rgba(120,53,15,0.35)] dark:!text-[#fcd34d] dark:!border-[rgba(217,119,6,0.45)]";
   }
   if (s.includes("waiting for response") || s.includes("response")) {
-    return "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border-purple-300 font-semibold";
+    return "!bg-[#faf5ff] !text-[#7e22ce] !border !border-solid !border-[#e9d5ff] dark:!bg-[rgba(88,28,135,0.35)] dark:!text-[#d8b4fe] dark:!border-[rgba(147,51,234,0.45)]";
   }
-  if (s.includes("published live") || s.includes("published") || s === "live") {
-    return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 font-bold";
-  }
-  if (s.includes("completed")) {
-    return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 font-bold";
+  if (s.includes("published live") || s.includes("published") || s === "live" || s.includes("completed")) {
+    return "!bg-[#ecfdf5] !text-[#047857] !border !border-solid !border-[#a7f3d0] dark:!bg-[rgba(6,78,59,0.35)] dark:!text-[#6ee7b7] dark:!border-[rgba(5,150,105,0.45)]";
   }
   if (s.includes("overdue")) {
-    return "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300";
+    return "!bg-[#fff1f2] !text-[#e11d48] !border !border-solid !border-[#fecdd3] dark:!bg-[rgba(136,19,55,0.35)] dark:!text-[#fda4af] dark:!border-[rgba(190,18,60,0.45)]";
   }
-  return "bg-slate-100 text-slate-700 dark:bg-[#131d31] dark:text-slate-200 border-slate-200 dark:border-white/10";
+  return "!bg-[#f8fafc] !text-[#334155] !border !border-solid !border-[#e2e8f0] dark:!bg-[rgba(30,41,59,0.6)] dark:!text-[#cbd5e1] dark:!border-[rgba(255,255,255,0.1)]";
 };
 
 const SmTasks = () => {
@@ -2328,24 +2332,37 @@ const SmTasks = () => {
 
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-[11px] leading-tight">
+              <table
+                className={`w-full text-left leading-tight ${
+                  selectedCommitment !== "No"
+                    ? "text-[10px] [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-1.5"
+                    : "text-[11px]"
+                }`}
+              >
                 <thead>
                   <tr className="border-b border-slate-200/80 dark:border-white/10 bg-slate-50/80 dark:bg-[#131d31] text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-300">
-                    <th className="py-2.5 px-2 text-center whitespace-nowrap w-10 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
-                    <th className="py-2.5 px-3 min-w-[180px]">Task</th>
+                    {selectedCommitment === "No" && (
+                      <th className="py-2.5 px-2 text-center whitespace-nowrap w-10 font-bold text-slate-500 dark:text-slate-400">Sl.No</th>
+                    )}
+                    <th className={`py-2.5 px-3 ${selectedCommitment === "No" ? "min-w-[180px]" : "min-w-[150px]"}`}>Task</th>
                     <th className="py-2.5 px-3 whitespace-nowrap">Client</th>
-                    <th className="py-2.5 px-2.5 whitespace-nowrap">Category</th>
+                    {selectedCommitment === "No" && (
+                      <th className="py-2.5 px-2.5 whitespace-nowrap">Category</th>
+                    )}
                     <th className="py-2.5 px-2.5 whitespace-nowrap">Content Type</th>
+                    {selectedCommitment !== "No" && (
+                      <th className="py-2.5 px-2.5 whitespace-nowrap">Pillars</th>
+                    )}
                     {selectedCommitment !== "No" && (
                       <th className="py-2.5 px-2.5 font-bold whitespace-nowrap">Platforms</th>
                     )}
                     <th className="py-2.5 px-3 whitespace-nowrap">Created by</th>
                     <th className="py-2.5 px-2.5 whitespace-nowrap">Due Date</th>
                     <th className="py-2.5 px-2 text-center whitespace-nowrap w-[90px]">Status</th>
-                    <th className="py-2.5 px-2 text-center whitespace-nowrap">Priority</th>
                     {selectedCommitment === "No" && (
-                      <th className="py-2.5 px-3 min-w-[160px] max-w-[240px] whitespace-nowrap">Notes &amp; Brief</th>
+                      <th className="py-2.5 px-2 text-center whitespace-nowrap">Priority</th>
                     )}
+                    <th className="py-2.5 px-3 min-w-[160px] max-w-[240px] whitespace-nowrap">Notes &amp; Brief</th>
                     {selectedCommitment !== "No" && (
                       <th className="py-2.5 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
                     )}
@@ -2361,10 +2378,12 @@ const SmTasks = () => {
                         key={`sm-task-skeleton-${idx}`}
                         className="animate-pulse border-b border-slate-100 dark:border-slate-800/60"
                       >
-                        {/* Sl.No */}
-                        <td className="py-2 px-2 text-center">
-                          <div className="h-3 w-4 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
-                        </td>
+                        {/* Sl.No (SME tasks only) */}
+                        {selectedCommitment === "No" && (
+                          <td className="py-2 px-2 text-center">
+                            <div className="h-3 w-4 bg-slate-200 dark:bg-slate-700/60 rounded mx-auto" />
+                          </td>
+                        )}
 
                         {/* Task */}
                         <td className="py-2 px-3">
@@ -2380,14 +2399,23 @@ const SmTasks = () => {
                         </td>
 
                         {/* Category */}
-                        <td className="py-2 px-2.5">
-                          <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
-                        </td>
+                        {selectedCommitment === "No" && (
+                          <td className="py-2 px-2.5">
+                            <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
+                          </td>
+                        )}
 
                         {/* Content Type */}
                         <td className="py-2 px-2.5">
                           <div className="h-4 w-14 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
                         </td>
+
+                        {/* Pillars (if Commitment) */}
+                        {selectedCommitment !== "No" && (
+                          <td className="py-2 px-2.5">
+                            <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-16" />
+                          </td>
+                        )}
 
                         {/* Platforms (if Commitment) */}
                         {selectedCommitment !== "No" && (
@@ -2419,16 +2447,16 @@ const SmTasks = () => {
                         </td>
 
                         {/* Priority */}
-                        <td className="py-2 px-2">
-                          <div className="h-4 w-10 bg-slate-200 dark:bg-slate-700/60 rounded-full mx-auto" />
-                        </td>
-
-                        {/* Notes & Brief Skeleton for SME tasks */}
                         {selectedCommitment === "No" && (
-                          <td className="py-2 px-3">
-                            <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-28" />
+                          <td className="py-2 px-2">
+                            <div className="h-4 w-10 bg-slate-200 dark:bg-slate-700/60 rounded-full mx-auto" />
                           </td>
                         )}
+
+                        {/* Notes & Brief Skeleton */}
+                        <td className="py-2 px-3">
+                          <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-28" />
+                        </td>
 
                         {/* Publish Date */}
                         {selectedCommitment !== "No" && (
@@ -2450,7 +2478,7 @@ const SmTasks = () => {
                     ))
                   ) : paginatedTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={selectedCommitment === "No" ? (hideCommitmentAction ? 10 : 11) : (hideCommitmentAction ? 11 : 12)} className="py-12 text-center">
+                      <td colSpan={selectedCommitment === "No" ? (hideCommitmentAction ? 10 : 11) : (hideCommitmentAction ? 10 : 11)} className="py-12 text-center">
                         <div className="flex flex-col items-center justify-center py-6">
                           <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-[#162033] flex items-center justify-center text-blue-500 mb-3">
                             <FiCalendar size={22} />
@@ -2486,10 +2514,12 @@ const SmTasks = () => {
                               : "hover:bg-slate-50/80 dark:hover:bg-[#162033]/60"
                           }`}
                         >
-                          {/* SL.NO */}
-                          <td className="py-2 px-2 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[10px] whitespace-nowrap">
-                            {(currentPage - 1) * itemsPerPage + index + 1}
-                          </td>
+                          {/* SL.NO (SME tasks only) */}
+                          {selectedCommitment === "No" && (
+                            <td className="py-2 px-2 text-center font-bold text-slate-500 dark:text-slate-400 font-mono text-[10px] whitespace-nowrap">
+                              {(currentPage - 1) * itemsPerPage + index + 1}
+                            </td>
+                          )}
 
                           {/* TASK NAME with Left Accent Line & SME Completion Checkbox */}
                           <td className="py-2 px-3">
@@ -2548,19 +2578,21 @@ const SmTasks = () => {
                           </td>
 
                           {/* CATEGORY (Sleek Tag Badge with Dot) */}
-                          <td className="py-2 px-2.5">
-                            {(() => {
-                              const catStyle = getCategoryStyle(task.category);
-                              return (
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
-                                >
-                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
-                                  <span className="whitespace-nowrap">{task.category || "Content"}</span>
-                                </span>
-                              );
-                            })()}
-                          </td>
+                          {selectedCommitment === "No" && (
+                            <td className="py-2 px-2.5">
+                              {(() => {
+                                const catStyle = getCategoryStyle(task.category);
+                                return (
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9.5px] font-bold border transition-colors shadow-2xs ${catStyle.bg} ${catStyle.text} ${catStyle.border}`}
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${catStyle.dot}`} />
+                                    <span className="whitespace-nowrap">{task.category || "Content"}</span>
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                          )}
 
                           {/* CONTENT TYPE (Pill Badge with Format Micro-Icon) */}
                           <td className="py-2 px-2.5">
@@ -2577,6 +2609,22 @@ const SmTasks = () => {
                               );
                             })()}
                           </td>
+
+                          {/* PILLARS (Commitment only) */}
+                          {selectedCommitment !== "No" && (
+                            <td className="py-2 px-2.5 max-w-[140px]">
+                              {task.pillars && task.pillars.trim() ? (
+                                <span
+                                  className="text-slate-700 dark:text-slate-200 font-semibold line-clamp-2 leading-snug block"
+                                  title={task.pillars}
+                                >
+                                  {task.pillars}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 dark:text-slate-500 italic text-[10px]">-</span>
+                              )}
+                            </td>
+                          )}
 
                           {/* PLATFORMS SUB-TASKS (Checklist with ticks) */}
                           {selectedCommitment !== "No" && (
@@ -2622,7 +2670,7 @@ const SmTasks = () => {
 
                           {/* DUE DATE */}
                           <td className="py-2 px-2.5">
-                            {renderDueDateBadge(task.dueDate, task.status)}
+                            {renderDueDateBadge(task.dueDate, task.status, selectedCommitment !== "No")}
                           </td>
 
                           {/* STATUS - Interactive quick-change dropdown or Compact Read-only badge */}
@@ -2692,14 +2740,16 @@ const SmTasks = () => {
                           </td>
 
                           {/* PRIORITY */}
-                          <td className="py-2 px-2 text-center font-bold text-[10px]">
-                            {task.priority === "High" && <span className="text-rose-600 dark:text-rose-400">High</span>}
-                            {task.priority === "Medium" && <span className="text-amber-600 dark:text-amber-400">Medium</span>}
-                            {task.priority === "Low" && <span className="text-slate-500 dark:text-slate-400">Low</span>}
-                          </td>
-
-                          {/* Notes & Brief - Visible in SME tasks tab */}
                           {selectedCommitment === "No" && (
+                            <td className="py-2 px-2 text-center font-bold text-[10px]">
+                              {task.priority === "High" && <span className="text-rose-600 dark:text-rose-400">High</span>}
+                              {task.priority === "Medium" && <span className="text-amber-600 dark:text-amber-400">Medium</span>}
+                              {task.priority === "Low" && <span className="text-slate-500 dark:text-slate-400">Low</span>}
+                            </td>
+                          )}
+
+                          {/* Notes & Brief - Visible in both Commitment and SME tasks tabs */}
+                          {(
                             <td className="py-2 px-3 max-w-[240px]">
                               {task.notes && task.notes.trim() ? (
                                 <span

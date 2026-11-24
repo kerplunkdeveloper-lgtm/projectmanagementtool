@@ -1359,6 +1359,7 @@ exports.bulkImportSocialmediaTasks = async (req, res) => {
         commitment: true,
         onCalendar: true,
         notes: (row.notes || row.caption || '').trim(),
+        pillars: String(row.pillars || row.pillar || '').trim(),
         createdBy: req.user ? (req.user._id || req.user.id) : null,
         createdByName: req.user ? req.user.name : 'Imported',
       };
