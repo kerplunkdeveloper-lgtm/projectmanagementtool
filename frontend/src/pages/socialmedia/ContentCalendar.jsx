@@ -971,11 +971,50 @@ const ContentCalendar = () => {
         return b === "chennai" || !b;
       });
     }
-    if (selectedClient === "All") return list;
-    return list.filter(
-      (c) => (c.companyName || "").trim().toLowerCase() === selectedClient.trim().toLowerCase()
-    );
-  }, [activeClients, selectedClient, isSocialMediaHead]);
+    if (selectedClient !== "All") {
+      list = list.filter(
+        (c) => (c.companyName || "").trim().toLowerCase() === selectedClient.trim().toLowerCase()
+      );
+    }
+
+    // Created By filter: only count "committed" from clients that belong to the selected user
+    // (assigned to them on the client record, or clients they have created tasks for).
+    if (isPrivileged && selectedAssignee !== "All") {
+      const selectedLower = selectedAssignee.trim().toLowerCase();
+      const selectedUser = usersMap.get(selectedLower);
+      const selectedId = (selectedUser?._id || selectedUser?.id)?.toString();
+
+      const userClientKeys = new Set();
+      (uniqueTasks || []).forEach((t) => {
+        const creator = t.createdBy?.name || t.createdByName;
+        const assignee = t.assignee?.name || t.assigneeName;
+        const creatorInfo = getCreatorInfo(t);
+        const isUserTask =
+          (creator && creator.trim().toLowerCase() === selectedLower) ||
+          (assignee && assignee.trim().toLowerCase() === selectedLower) ||
+          (creatorInfo?.name && creatorInfo.name.trim().toLowerCase() === selectedLower);
+        if (!isUserTask) return;
+        const tId = t.client && typeof t.client === "object" ? t.client._id : t.client;
+        if (tId) userClientKeys.add(tId.toString());
+        const tName = (t.clientName || t.client?.companyName || "").trim().toLowerCase();
+        if (tName) userClientKeys.add(tName);
+      });
+
+      list = list.filter((c) => {
+        const assigned = Array.isArray(c.assignedTo) ? c.assignedTo : c.assignedTo ? [c.assignedTo] : [];
+        const isAssigned = assigned.some((a) => {
+          const aId = (a?._id || a)?.toString();
+          const aName = (a?.name || "").trim().toLowerCase();
+          return (selectedId && aId === selectedId) || (aName && aName === selectedLower);
+        });
+        if (isAssigned) return true;
+        if (c._id && userClientKeys.has(c._id.toString())) return true;
+        return userClientKeys.has((c.companyName || "").trim().toLowerCase());
+      });
+    }
+
+    return list;
+  }, [activeClients, selectedClient, isSocialMediaHead, isPrivileged, selectedAssignee, usersMap, uniqueTasks, getCreatorInfo]);
 
   const tasksForCommitments = useMemo(() => {
     let list = uniqueTasks || [];
