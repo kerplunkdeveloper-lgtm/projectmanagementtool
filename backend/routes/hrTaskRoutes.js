@@ -12,11 +12,7 @@ const {
   updateHrTask,
   updateHrTaskStatus,
   toggleChecklistItem,
-  flagBlocker,
-  submitHrTask,
-  reviewHrTask,
   addComment,
-  cancelHrTask,
   deleteHrTask,
   uploadAttachment,
 } = require("../controllers/hrTaskController");
@@ -44,10 +40,6 @@ router.route("/:id")
 // Task status & actions
 router.patch("/:id/status", updateHrTaskStatus);
 router.patch("/:id/checklist/:itemId", toggleChecklistItem);
-router.post("/:id/blocker", flagBlocker);
-router.post("/:id/submit", submitHrTask);
-router.post("/:id/review", reviewHrTask);
 router.post("/:id/comments", addComment);
-router.post("/:id/cancel", cancelHrTask);
 
 module.exports = router;

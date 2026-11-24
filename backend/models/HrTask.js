@@ -77,15 +77,27 @@ const HrTaskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: [
-        "Pending",
-        "In Progress",
-        "Submitted",
-        "Completed",
-        "Changes Requested",
-        "Cancelled",
-      ],
-      default: "Pending",
+      enum: ["Not Started", "In Progress", "On Hold", "Completed"],
+      default: "Not Started",
+    },
+    // Reason captured when a task is put On Hold
+    holdReason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    startedAt: {
+      type: Date,
+      default: null,
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+    completedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
     dueDate: {
       type: Date,
@@ -103,72 +115,6 @@ const HrTaskSchema = new mongoose.Schema(
     },
     checklist: [ChecklistItemSchema],
     attachments: [AttachmentSchema],
-
-    // Blocker status
-    blocker: {
-      hasBlocker: {
-        type: Boolean,
-        default: false,
-      },
-      description: {
-        type: String,
-        default: "",
-      },
-      flaggedAt: {
-        type: Date,
-        default: null,
-      },
-      flaggedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      resolved: {
-        type: Boolean,
-        default: false,
-      },
-      resolvedAt: {
-        type: Date,
-        default: null,
-      },
-    },
-
-    // Work Submission for Manager review
-    submission: {
-      notes: {
-        type: String,
-        default: "",
-      },
-      submittedAt: {
-        type: Date,
-        default: null,
-      },
-      submittedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      attachments: [AttachmentSchema],
-    },
-
-    // Manager Review decision
-    review: {
-      decision: {
-        type: String,
-        enum: ["Approved", "Changes Requested", null],
-        default: null,
-      },
-      feedback: {
-        type: String,
-        default: "",
-      },
-      reviewedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      reviewedAt: {
-        type: Date,
-        default: null,
-      },
-    },
 
     // Comments & Progress Notes
     comments: [
@@ -236,5 +182,7 @@ HrTaskSchema.index({ createdBy: 1, status: 1 });
 HrTaskSchema.index({ dueDate: 1 });
 HrTaskSchema.index({ status: 1 });
 HrTaskSchema.index({ createdAt: -1 });
+
+HrTaskSchema.statics.STATUSES = ["Not Started", "In Progress", "On Hold", "Completed"];
 
 module.exports = mongoose.model("HrTask", HrTaskSchema);

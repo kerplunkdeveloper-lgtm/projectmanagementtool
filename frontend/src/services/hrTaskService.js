@@ -30,8 +30,8 @@ export const updateHrTask = async (id, taskData) => {
   return response.data;
 };
 
-export const updateHrTaskStatus = async (id, status) => {
-  const response = await axiosInstance.patch(`/hr-tasks/${id}/status`, { status });
+export const updateHrTaskStatus = async (id, status, reason = "") => {
+  const response = await axiosInstance.patch(`/hr-tasks/${id}/status`, { status, reason });
   return response.data;
 };
 
@@ -40,28 +40,8 @@ export const toggleChecklistItem = async (id, itemId) => {
   return response.data;
 };
 
-export const flagBlocker = async (id, payload) => {
-  const response = await axiosInstance.post(`/hr-tasks/${id}/blocker`, payload);
-  return response.data;
-};
-
-export const submitHrTask = async (id, payload) => {
-  const response = await axiosInstance.post(`/hr-tasks/${id}/submit`, payload);
-  return response.data;
-};
-
-export const reviewHrTask = async (id, payload) => {
-  const response = await axiosInstance.post(`/hr-tasks/${id}/review`, payload);
-  return response.data;
-};
-
 export const addComment = async (id, payload) => {
   const response = await axiosInstance.post(`/hr-tasks/${id}/comments`, payload);
-  return response.data;
-};
-
-export const cancelHrTask = async (id) => {
-  const response = await axiosInstance.post(`/hr-tasks/${id}/cancel`);
   return response.data;
 };
 
@@ -88,11 +68,7 @@ export default {
   updateHrTask,
   updateHrTaskStatus,
   toggleChecklistItem,
-  flagBlocker,
-  submitHrTask,
-  reviewHrTask,
   addComment,
-  cancelHrTask,
   deleteHrTask,
   uploadAttachment,
 };

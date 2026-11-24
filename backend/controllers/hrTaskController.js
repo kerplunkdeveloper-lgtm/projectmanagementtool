@@ -3,6 +3,41 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { uploadMedia } = require("../config/s3");
 
+// ------------------------------------------------------------------
+// Status model
+//   Not Started -> In Progress -> Completed
+//   Any open status <-> On Hold (reason required)
+//   Completed -> In Progress (reopen, managers only)
+// ------------------------------------------------------------------
+const STATUSES = ["Not Started", "In Progress", "On Hold", "Completed"];
+const OPEN_STATUSES = ["Not Started", "In Progress", "On Hold"];
+
+// Old statuses from the previous submit/review workflow
+const LEGACY_STATUS_MAP = {
+  Pending: "Not Started",
+  Submitted: "In Progress",
+  "Changes Requested": "In Progress",
+  Cancelled: "On Hold",
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const startOfDay = (d = new Date()) =>
+  new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+// A task is overdue once its due *day* has fully passed and it isn't completed
+const isTaskOverdue = (task, now = new Date()) =>
+  task.status !== "Completed" && new Date(task.dueDate) < startOfDay(now);
+
+const isTaskDueSoon = (task, now = new Date()) => {
+  if (task.status === "Completed") return false;
+  const due = new Date(task.dueDate);
+  const today = startOfDay(now);
+  return due >= today && due < new Date(today.getTime() + 4 * DAY_MS);
+};
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // Helper to check if user is manager or admin
 const isManagerOrAdmin = (user) => {
   if (!user) return false;
@@ -17,6 +52,13 @@ const isManagerOrAdmin = (user) => {
   );
 };
 
+const idOf = (ref) => (ref && ref._id ? ref._id.toString() : ref ? ref.toString() : "");
+
+const isAssignee = (task, user) => idOf(task.assignedTo) === user._id.toString();
+
+// Managers can access everything; HR users only tasks assigned to them
+const canAccessTask = (task, user) => isManagerOrAdmin(user) || isAssignee(task, user);
+
 // Reusable populate config to always populate users and their Profile pictures
 const hrTaskPopulateConfig = [
   {
@@ -29,6 +71,7 @@ const hrTaskPopulateConfig = [
     select: "name email role department profileImage profile",
     populate: { path: "profile", select: "profileImage" },
   },
+  { path: "completedBy", select: "name email" },
   { path: "checklist.completedBy", select: "name email" },
   {
     path: "comments.user",
@@ -40,17 +83,19 @@ const hrTaskPopulateConfig = [
     select: "name email role profileImage profile",
     populate: { path: "profile", select: "profileImage" },
   },
-  {
-    path: "review.reviewedBy",
-    select: "name email role profileImage profile",
-    populate: { path: "profile", select: "profileImage" },
-  },
-  {
-    path: "submission.submittedBy",
-    select: "name email role profileImage profile",
-    populate: { path: "profile", select: "profileImage" },
-  },
 ];
+
+const loadPopulated = (id) => HrTask.findById(id).populate(hrTaskPopulateConfig);
+
+const logActivity = (task, user, action, details = "") => {
+  task.activityHistory.push({
+    action,
+    details,
+    performedBy: user._id,
+    timestamp: new Date(),
+  });
+  task.lastUpdated = new Date();
+};
 
 // Helper to send real-time notification
 const sendNotification = async (io, { recipientId, senderId, type, message, hrTaskId }) => {
@@ -79,6 +124,55 @@ const sendNotification = async (io, { recipientId, senderId, type, message, hrTa
   }
 };
 
+// Notify "the other side" of the task (assignee <-> creator)
+const notifyCounterpart = (req, task, type, message) => {
+  const io = req.app.get("io");
+  const recipientId = isAssignee(task, req.user) ? idOf(task.createdBy) : idOf(task.assignedTo);
+  return sendNotification(io, {
+    recipientId,
+    senderId: req.user._id,
+    type,
+    message,
+    hrTaskId: task._id,
+  });
+};
+
+const serverError = (res, label, error, fallback) => {
+  console.error(`[${label} Error]:`, error);
+  return res.status(500).json({
+    success: false,
+    message: error.message || fallback,
+  });
+};
+
+const notFound = (res) =>
+  res.status(404).json({ success: false, message: "HR Task not found" });
+
+const forbidden = (res, message = "You do not have access to this HR task") =>
+  res.status(403).json({ success: false, message });
+
+// One-time migration of tasks still using the old workflow statuses
+const migrateLegacyStatuses = async () => {
+  try {
+    for (const [oldStatus, newStatus] of Object.entries(LEGACY_STATUS_MAP)) {
+      const update = { $set: { status: newStatus } };
+      if (oldStatus === "Cancelled") update.$set.holdReason = "Cancelled (moved from old workflow)";
+      const result = await HrTask.collection.updateMany({ status: oldStatus }, update);
+      if (result.modifiedCount) {
+        console.log(`[HrTask] Migrated ${result.modifiedCount} task(s): ${oldStatus} -> ${newStatus}`);
+      }
+    }
+    // Completed tasks without completedAt (approved under the old workflow)
+    await HrTask.collection.updateMany(
+      { status: "Completed", completedAt: { $in: [null] } },
+      [{ $set: { completedAt: { $ifNull: ["$review.reviewedAt", "$lastUpdated"] } } }]
+    );
+  } catch (err) {
+    console.error("[HrTask] Legacy status migration failed:", err.message);
+  }
+};
+exports.migrateLegacyStatuses = migrateLegacyStatuses;
+
 // @desc    Get all HR tasks with flexible filtering & search
 // @route   GET /api/hr-tasks
 // @access  Private
@@ -100,30 +194,17 @@ exports.getHrTasks = async (req, res) => {
 
     // Role-based visibility
     if (!isManager) {
-      // HR user: see only tasks assigned to them by default
       query.assignedTo = req.user._id;
     } else if (assignedTo && assignedTo !== "all") {
       query.assignedTo = assignedTo;
     }
 
-    // Status filter
-    if (status && status !== "all") {
-      query.status = status;
-    }
+    if (status && status !== "all" && STATUSES.includes(status)) query.status = status;
+    if (priority && priority !== "all") query.priority = priority;
+    if (category && category !== "all") query.category = category;
 
-    // Priority filter
-    if (priority && priority !== "all") {
-      query.priority = priority;
-    }
-
-    // Category filter
-    if (category && category !== "all") {
-      query.category = category;
-    }
-
-    // Search filter (title, description, category)
     if (search && search.trim()) {
-      const searchRegex = new RegExp(search.trim(), "i");
+      const searchRegex = new RegExp(escapeRegex(search.trim()), "i");
       query.$or = [
         { title: searchRegex },
         { description: searchRegex },
@@ -131,205 +212,109 @@ exports.getHrTasks = async (req, res) => {
       ];
     }
 
-    // Due date filter
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    // Due date filters (day based, open tasks only except "completed")
+    const today = startOfDay();
+    const tomorrow = new Date(today.getTime() + DAY_MS);
+
+    const openOnly = () => {
+      if (!query.status) query.status = { $in: OPEN_STATUSES };
+    };
 
     if (dueDateFilter === "overdue") {
-      // Overdue: past due date and active, excluding Submitted tasks awaiting review
-      query.dueDate = { $lt: now };
-      query.status = { $in: ["Pending", "In Progress", "Changes Requested"] };
+      query.dueDate = { $lt: today };
+      if (query.status === "Completed") query.status = "__none__";
+      openOnly();
     } else if (dueDateFilter === "due_soon") {
-      // Due soon: within next 3 days and active
-      query.dueDate = { $gte: now, $lte: threeDaysLater };
-      query.status = { $nin: ["Completed", "Cancelled"] };
+      query.dueDate = { $gte: today, $lt: new Date(today.getTime() + 4 * DAY_MS) };
+      openOnly();
     } else if (dueDateFilter === "today") {
-      query.dueDate = { $gte: startOfToday, $lte: endOfToday };
+      query.dueDate = { $gte: today, $lt: tomorrow };
     } else if (dueDateFilter === "this_week") {
-      query.dueDate = { $gte: startOfToday, $lte: sevenDaysLater };
+      query.dueDate = { $gte: today, $lt: new Date(today.getTime() + 7 * DAY_MS) };
     } else if (dueDateFilter === "completed") {
       query.status = "Completed";
     }
 
-    const sortObj = {};
-    sortObj[sortBy] = sortOrder === "asc" ? 1 : -1;
+    const allowedSort = ["createdAt", "dueDate", "lastUpdated", "priority", "title", "status"];
+    const sortField = allowedSort.includes(sortBy) ? sortBy : "createdAt";
+    const sortObj = { [sortField]: sortOrder === "asc" ? 1 : -1 };
 
-    const tasks = await HrTask.find(query)
-      .populate(hrTaskPopulateConfig)
-      .sort(sortObj);
+    const tasks = await HrTask.find(query).populate(hrTaskPopulateConfig).sort(sortObj);
 
-    res.status(200).json({
-      success: true,
-      count: tasks.length,
-      data: tasks,
-    });
+    res.status(200).json({ success: true, count: tasks.length, data: tasks });
   } catch (error) {
-    console.error("[getHrTasks Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error fetching HR tasks",
-    });
+    serverError(res, "getHrTasks", error, "Server Error fetching HR tasks");
   }
 };
 
-// @desc    Get dashboard counts & workload metrics for Manager & HR
+// Count statuses / overdue / due soon for a set of tasks
+const summarize = (tasks, now) => {
+  const counts = {
+    total: tasks.length,
+    open: 0,
+    notStarted: 0,
+    inProgress: 0,
+    onHold: 0,
+    completed: 0,
+    overdue: 0,
+    dueSoon: 0,
+  };
+  tasks.forEach((t) => {
+    if (t.status === "Not Started") counts.notStarted++;
+    else if (t.status === "In Progress") counts.inProgress++;
+    else if (t.status === "On Hold") counts.onHold++;
+    else if (t.status === "Completed") counts.completed++;
+    if (OPEN_STATUSES.includes(t.status)) counts.open++;
+    if (isTaskOverdue(t, now)) counts.overdue++;
+    if (isTaskDueSoon(t, now)) counts.dueSoon++;
+  });
+  counts.completionRate = counts.total ? Math.round((counts.completed / counts.total) * 100) : 0;
+  return counts;
+};
+
+// @desc    Dashboard counts & workload metrics
 // @route   GET /api/hr-tasks/metrics
 // @access  Private
 exports.getHrTaskMetrics = async (req, res) => {
   try {
     const now = new Date();
-    const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const userId = req.user._id;
+    const isManager = isManagerOrAdmin(req.user);
+    const userId = req.user._id.toString();
 
-    // 1. Manager All-tasks Metrics
-    const allTasks = await HrTask.find({}).select("status dueDate assignedTo");
+    const scope = isManager ? {} : { assignedTo: req.user._id };
+    const tasks = await HrTask.find(scope).select("status dueDate assignedTo");
 
-    const managerCounts = {
-      totalActive: 0,
-      inProgress: 0,
-      submittedForReview: 0,
-      overdue: 0,
-      completed: 0,
-      changesRequested: 0,
-      pending: 0,
-      cancelled: 0,
-    };
-
-    allTasks.forEach((task) => {
-      const isPastDue = new Date(task.dueDate) < now;
-      const isDueSoon =
-        new Date(task.dueDate) >= now && new Date(task.dueDate) <= threeDaysLater;
-
-      if (["Pending", "In Progress", "Changes Requested"].includes(task.status)) {
-        managerCounts.totalActive++;
-      }
-
-      if (task.status === "Pending") managerCounts.pending++;
-      if (task.status === "In Progress") managerCounts.inProgress++;
-      if (task.status === "Submitted") managerCounts.submittedForReview++;
-      if (task.status === "Completed") managerCounts.completed++;
-      if (task.status === "Changes Requested") managerCounts.changesRequested++;
-      if (task.status === "Cancelled") managerCounts.cancelled++;
-
-      // Overdue: active excluding Submitted tasks awaiting review
-      if (
-        isPastDue &&
-        ["Pending", "In Progress", "Changes Requested"].includes(task.status)
-      ) {
-        managerCounts.overdue++;
-      }
-    });
-
-    // 2. HR Metrics (for current logged-in user)
-    const hrUserTasks = allTasks.filter(
-      (t) => t.assignedTo && t.assignedTo.toString() === userId.toString()
+    const counts = summarize(tasks, now);
+    const myCounts = summarize(
+      tasks.filter((t) => idOf(t.assignedTo) === userId),
+      now
     );
 
-    const hrCounts = {
-      myActiveTasks: 0,
-      dueSoon: 0,
-      changesRequested: 0,
-      submittedForReview: 0,
-      completed: 0,
-      overdue: 0,
-    };
+    let workload = [];
+    if (isManager) {
+      const hrUsers = await User.find({
+        $or: [{ role: "humanresource" }, { department: { $regex: /human resource|hr/i } }],
+        employmentStatus: { $ne: "relieved" },
+        accountStatus: { $ne: "inactive" },
+      })
+        .select("name email role department profileImage profile")
+        .populate("profile", "profileImage");
 
-    hrUserTasks.forEach((task) => {
-      const isPastDue = new Date(task.dueDate) < now;
-      const isDueSoon =
-        new Date(task.dueDate) >= now && new Date(task.dueDate) <= threeDaysLater;
-
-      if (["Pending", "In Progress", "Changes Requested"].includes(task.status)) {
-        hrCounts.myActiveTasks++;
-      }
-
-      if (task.status === "Submitted") hrCounts.submittedForReview++;
-      if (task.status === "Changes Requested") hrCounts.changesRequested++;
-      if (task.status === "Completed") hrCounts.completed++;
-
-      if (
-        isDueSoon &&
-        ["Pending", "In Progress", "Changes Requested"].includes(task.status)
-      ) {
-        hrCounts.dueSoon++;
-      }
-
-      // HR overdue rule: submitted tasks awaiting review are NOT overdue for HR
-      if (
-        isPastDue &&
-        ["Pending", "In Progress", "Changes Requested"].includes(task.status)
-      ) {
-        hrCounts.overdue++;
-      }
-    });
-
-    // 3. HR Team Members Workload Breakdown (for Manager)
-    const hrUsers = await User.find({
-      $or: [
-        { role: "humanresource" },
-        { department: { $regex: /human resource|hr/i } },
-      ],
-      employmentStatus: { $ne: "relieved" },
-      accountStatus: { $ne: "inactive" },
-    })
-      .select("name email role department profileImage profile")
-      .populate("profile", "profileImage");
-
-    const workload = hrUsers.map((user) => {
-      const userTasks = allTasks.filter(
-        (t) => t.assignedTo && t.assignedTo.toString() === user._id.toString()
-      );
-
-      let active = 0;
-      let inProgress = 0;
-      let submitted = 0;
-      let overdue = 0;
-      let completed = 0;
-      let changesRequested = 0;
-
-      userTasks.forEach((t) => {
-        const isPastDue = new Date(t.dueDate) < now;
-        if (["Pending", "In Progress", "Changes Requested"].includes(t.status)) {
-          active++;
-        }
-        if (t.status === "In Progress") inProgress++;
-        if (t.status === "Submitted") submitted++;
-        if (t.status === "Completed") completed++;
-        if (t.status === "Changes Requested") changesRequested++;
-        if (isPastDue && ["Pending", "In Progress", "Changes Requested"].includes(t.status)) {
-          overdue++;
-        }
-      });
-
-      return {
+      workload = hrUsers.map((user) => ({
         user,
-        totalTasks: userTasks.length,
-        activeTasks: active,
-        inProgress,
-        submitted,
-        overdue,
-        completed,
-        changesRequested,
-      };
-    });
+        ...summarize(
+          tasks.filter((t) => idOf(t.assignedTo) === user._id.toString()),
+          now
+        ),
+      }));
+    }
 
     res.status(200).json({
       success: true,
-      data: {
-        managerCounts,
-        hrCounts,
-        workload,
-      },
+      data: { counts, myCounts, workload },
     });
   } catch (error) {
-    console.error("[getHrTaskMetrics Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error fetching metrics",
-    });
+    serverError(res, "getHrTaskMetrics", error, "Server Error fetching metrics");
   }
 };
 
@@ -338,12 +323,8 @@ exports.getHrTaskMetrics = async (req, res) => {
 // @access  Private
 exports.getHrUsers = async (req, res) => {
   try {
-    // Find all users who are HR or have HR in department
     let users = await User.find({
-      $or: [
-        { role: "humanresource" },
-        { department: { $regex: /human resource|hr/i } },
-      ],
+      $or: [{ role: "humanresource" }, { department: { $regex: /human resource|hr/i } }],
       employmentStatus: { $ne: "relieved" },
       accountStatus: { $ne: "inactive" },
     })
@@ -360,17 +341,9 @@ exports.getHrUsers = async (req, res) => {
         .populate("profile", "profileImage");
     }
 
-    res.status(200).json({
-      success: true,
-      count: users.length,
-      data: users,
-    });
+    res.status(200).json({ success: true, count: users.length, data: users });
   } catch (error) {
-    console.error("[getHrUsers Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error fetching HR users",
-    });
+    serverError(res, "getHrUsers", error, "Server Error fetching HR users");
   }
 };
 
@@ -379,32 +352,19 @@ exports.getHrUsers = async (req, res) => {
 // @access  Private
 exports.getHrTaskById = async (req, res) => {
   try {
-    const task = await HrTask.findById(req.params.id)
-      .populate(hrTaskPopulateConfig);
+    const task = await loadPopulated(req.params.id);
+    if (!task) return notFound(res);
+    if (!canAccessTask(task, req.user)) return forbidden(res);
 
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: task,
-    });
+    res.status(200).json({ success: true, data: task });
   } catch (error) {
-    console.error("[getHrTaskById Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error fetching task details",
-    });
+    serverError(res, "getHrTaskById", error, "Server Error fetching task details");
   }
 };
 
-// @desc    Create new HR task (Manager/Admin)
+// @desc    Create new HR task (Manager assigns; HR self-assigns)
 // @route   POST /api/hr-tasks
-// @access  Private (Manager/Admin)
+// @access  Private
 exports.createHrTask = async (req, res) => {
   try {
     const {
@@ -417,26 +377,16 @@ exports.createHrTask = async (req, res) => {
       attachments = [],
     } = req.body;
 
-    // Managers/Admins can assign to any HR member; HR users can only self-assign
     const isManager = isManagerOrAdmin(req.user);
     const assignedTo = isManager ? req.body.assignedTo : req.user._id;
-    const isSelfAssigned =
-      !!assignedTo && assignedTo.toString() === req.user._id.toString();
+    const isSelfAssigned = !!assignedTo && assignedTo.toString() === req.user._id.toString();
 
     if (!title || !title.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a task title",
-      });
+      return res.status(400).json({ success: false, message: "Please provide a task title" });
     }
-
-    if (!dueDate) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a due date",
-      });
+    if (!dueDate || isNaN(new Date(dueDate).getTime())) {
+      return res.status(400).json({ success: false, message: "Please provide a valid due date" });
     }
-
     if (!assignedTo) {
       return res.status(400).json({
         success: false,
@@ -446,31 +396,25 @@ exports.createHrTask = async (req, res) => {
 
     const assignedUser = await User.findById(assignedTo);
     if (!assignedUser) {
-      return res.status(404).json({
-        success: false,
-        message: "Assigned user not found",
-      });
+      return res.status(404).json({ success: false, message: "Assigned user not found" });
     }
 
-    // Format checklist items
-    const formattedChecklist = checklist
-      .filter((item) => item && (typeof item === "string" ? item.trim() : item.item?.trim()))
-      .map((item) => ({
-        item: typeof item === "string" ? item.trim() : item.item.trim(),
-        completed: typeof item === "object" ? !!item.completed : false,
-      }));
+    const formattedChecklist = (Array.isArray(checklist) ? checklist : [])
+      .map((item) => (typeof item === "string" ? item : item?.item || "").trim())
+      .filter(Boolean)
+      .map((item) => ({ item, completed: false }));
 
     const newTask = new HrTask({
       title: title.trim(),
       description: (description || "").trim(),
-      category: category.trim(),
+      category: (category || "General HR").trim(),
       priority,
-      status: "Pending",
+      status: "Not Started",
       dueDate: new Date(dueDate),
       assignedTo,
       createdBy: req.user._id,
       checklist: formattedChecklist,
-      attachments: attachments || [],
+      attachments: Array.isArray(attachments) ? attachments : [],
       activityHistory: [
         {
           action: "Task Created",
@@ -486,13 +430,7 @@ exports.createHrTask = async (req, res) => {
 
     await newTask.save();
 
-    // Populate for response & real-time notification
-    const populatedTask = await HrTask.findById(newTask._id)
-      .populate(hrTaskPopulateConfig);
-
-    // Real-time Notification to HR Assignee
-    const io = req.app.get("io");
-    await sendNotification(io, {
+    await sendNotification(req.app.get("io"), {
       recipientId: assignedTo,
       senderId: req.user._id,
       type: "hr_task_assigned",
@@ -503,14 +441,10 @@ exports.createHrTask = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "HR task created successfully",
-      data: populatedTask,
+      data: await loadPopulated(newTask._id),
     });
   } catch (error) {
-    console.error("[createHrTask Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error creating task",
-    });
+    serverError(res, "createHrTask", error, "Server Error creating task");
   }
 };
 
@@ -519,123 +453,102 @@ exports.createHrTask = async (req, res) => {
 // @access  Private (Manager/Admin)
 exports.updateHrTask = async (req, res) => {
   try {
-    const task = await HrTask.findById(req.params.id);
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
+    if (!isManagerOrAdmin(req.user)) {
+      return forbidden(res, "Only Managers or Admins can edit HR task details");
     }
 
-    const {
-      title,
-      description,
-      category,
-      priority,
-      dueDate,
-      assignedTo,
-      checklist,
-      attachments,
-    } = req.body;
+    const task = await HrTask.findById(req.params.id);
+    if (!task) return notFound(res);
 
+    const { title, description, category, priority, dueDate, assignedTo, checklist, attachments } =
+      req.body;
     const changes = [];
+    const io = req.app.get("io");
 
-    // Track Title change
     if (title && title.trim() !== task.title) {
       changes.push(`Title updated from "${task.title}" to "${title.trim()}"`);
       task.title = title.trim();
     }
 
-    // Track Description change
-    if (description !== undefined && description !== task.description) {
+    if (description !== undefined && (description || "").trim() !== task.description) {
       task.description = (description || "").trim();
       changes.push("Description updated");
     }
 
-    // Track Category change
     if (category && category !== task.category) {
       changes.push(`Category changed from ${task.category} to ${category}`);
       task.category = category;
     }
 
-    // Track Priority change
     if (priority && priority !== task.priority) {
       changes.push(`Priority changed from ${task.priority} to ${priority}`);
       task.priority = priority;
     }
 
-    // Track Due Date change (explicit requirement: show in activity history!)
     if (dueDate && new Date(dueDate).getTime() !== new Date(task.dueDate).getTime()) {
-      const oldDue = new Date(task.dueDate).toLocaleDateString();
-      const newDue = new Date(dueDate).toLocaleDateString();
-      changes.push(`Due date changed from ${oldDue} to ${newDue}`);
+      changes.push(
+        `Due date changed from ${new Date(task.dueDate).toLocaleDateString()} to ${new Date(
+          dueDate
+        ).toLocaleDateString()}`
+      );
       task.dueDate = new Date(dueDate);
-      task.dueSoonNotified = false; // Reset notification trigger if date changed
+      task.dueSoonNotified = false;
     }
 
-    // Track Reassignment change (explicit requirement: record in activity history!)
-    let oldAssigneeId = task.assignedTo?.toString();
+    const oldAssigneeId = idOf(task.assignedTo);
+    let reassignedTo = null;
     if (assignedTo && assignedTo.toString() !== oldAssigneeId) {
-      const newAssignee = await User.findById(assignedTo);
-      const oldAssignee = await User.findById(oldAssigneeId);
-      const oldName = oldAssignee ? oldAssignee.name : "Previous Assignee";
-      const newName = newAssignee ? newAssignee.name : "New Assignee";
-
-      changes.push(`Reassigned from ${oldName} to ${newName}`);
+      const [newAssignee, oldAssignee] = await Promise.all([
+        User.findById(assignedTo),
+        User.findById(oldAssigneeId),
+      ]);
+      if (!newAssignee) {
+        return res.status(404).json({ success: false, message: "Assigned user not found" });
+      }
+      changes.push(
+        `Reassigned from ${oldAssignee ? oldAssignee.name : "Previous Assignee"} to ${newAssignee.name}`
+      );
       task.assignedTo = assignedTo;
+      reassignedTo = assignedTo;
+    }
 
-      // Notify new assignee
-      const io = req.app.get("io");
+    if (Array.isArray(checklist)) {
+      const existing = new Map(task.checklist.map((c) => [c._id.toString(), c]));
+      task.checklist = checklist
+        .filter((c) => c && (c.item || "").trim())
+        .map((c) => {
+          const prev = c._id ? existing.get(c._id.toString()) : null;
+          return {
+            _id: prev ? prev._id : undefined,
+            item: c.item.trim(),
+            completed: prev ? prev.completed : false,
+            completedAt: prev ? prev.completedAt : null,
+            completedBy: prev ? prev.completedBy : null,
+          };
+        });
+      changes.push("Checklist updated");
+    }
+
+    if (Array.isArray(attachments)) task.attachments = attachments;
+
+    if (changes.length > 0) logActivity(task, req.user, "Task Updated", changes.join(" | "));
+
+    await task.save();
+
+    if (reassignedTo) {
       await sendNotification(io, {
-        recipientId: assignedTo,
+        recipientId: reassignedTo,
         senderId: req.user._id,
         type: "hr_task_assigned",
         message: `HR task reassigned to you: "${task.title}"`,
         hrTaskId: task._id,
       });
-    }
-
-    // Update Checklist if provided
-    if (Array.isArray(checklist)) {
-      task.checklist = checklist.map((c) => ({
-        _id: c._id || undefined,
-        item: c.item,
-        completed: !!c.completed,
-        completedAt: c.completed ? c.completedAt || new Date() : null,
-        completedBy: c.completed ? c.completedBy || req.user._id : null,
-      }));
-      changes.push("Checklist updated");
-    }
-
-    // Update attachments if provided
-    if (Array.isArray(attachments)) {
-      task.attachments = attachments;
-    }
-
-    // If changes occurred, append to Activity History
-    if (changes.length > 0) {
-      task.activityHistory.push({
-        action: "Task Updated",
-        details: changes.join(" | "),
-        performedBy: req.user._id,
-        timestamp: new Date(),
-      });
-      task.lastUpdated = new Date();
-    }
-
-    await task.save();
-
-    const populatedTask = await HrTask.findById(task._id)
-      .populate(hrTaskPopulateConfig);
-
-    // Send update notification to current assignee
-    const io = req.app.get("io");
-    if (task.assignedTo?.toString() !== req.user._id.toString()) {
+    } else if (changes.length > 0) {
       await sendNotification(io, {
         recipientId: task.assignedTo,
         senderId: req.user._id,
         type: "hr_task_updated",
-        message: `Task "${task.title}" was updated by Manager`,
+        message: `Task "${task.title}" was updated by ${req.user.name || "Manager"}`,
         hrTaskId: task._id,
       });
     }
@@ -643,390 +556,175 @@ exports.updateHrTask = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "HR task updated successfully",
-      data: populatedTask,
+      data: await loadPopulated(task._id),
     });
   } catch (error) {
-    console.error("[updateHrTask Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error updating task",
-    });
+    serverError(res, "updateHrTask", error, "Server Error updating task");
   }
 };
 
-// @desc    Update task status (Start task: Pending -> In Progress, etc.)
+// @desc    Change task status: Not Started | In Progress | On Hold | Completed
 // @route   PATCH /api/hr-tasks/:id/status
-// @access  Private
+// @body    { status, reason? }  (reason required for On Hold)
+// @access  Private (Assignee or Manager)
 exports.updateHrTaskStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const task = await HrTask.findById(req.params.id);
+    const reason = (req.body.reason || "").trim();
 
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
-    }
-
-    const validStatuses = [
-      "Pending",
-      "In Progress",
-      "Submitted",
-      "Completed",
-      "Changes Requested",
-      "Cancelled",
-    ];
-
-    if (!validStatuses.includes(status)) {
+    if (!STATUSES.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid status: ${status}`,
+        message: `Invalid status. Allowed: ${STATUSES.join(", ")}`,
       });
     }
 
-    const oldStatus = task.status;
-    task.status = status;
-    task.lastUpdated = new Date();
+    const task = await HrTask.findById(req.params.id);
+    if (!task) return notFound(res);
 
-    task.activityHistory.push({
-      action: status === "In Progress" ? "Task Started" : "Status Changed",
-      details: `Status changed from ${oldStatus} to ${status}`,
-      performedBy: req.user._id,
-      timestamp: new Date(),
-    });
+    const isManager = isManagerOrAdmin(req.user);
+    if (!canAccessTask(task, req.user)) return forbidden(res);
+
+    const oldStatus = task.status;
+    if (oldStatus === status && !(status === "On Hold" && reason)) {
+      return res.status(200).json({
+        success: true,
+        message: `Task is already ${status}`,
+        data: await loadPopulated(task._id),
+      });
+    }
+
+    // Reopening a completed task is a manager decision
+    if (oldStatus === "Completed" && !isManager) {
+      return forbidden(res, "Only a Manager can reopen a completed task");
+    }
+
+    if (status === "On Hold" && !reason) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a reason for putting the task On Hold",
+      });
+    }
+
+    const now = new Date();
+    task.status = status;
+
+    if (status === "On Hold") {
+      task.holdReason = reason;
+    } else {
+      task.holdReason = "";
+    }
+
+    if (status === "In Progress" && !task.startedAt) task.startedAt = now;
+
+    if (status === "Completed") {
+      task.completedAt = now;
+      task.completedBy = req.user._id;
+      if (!task.startedAt) task.startedAt = now;
+    } else {
+      task.completedAt = null;
+      task.completedBy = null;
+    }
+
+    let action = "Status Changed";
+    if (status === "In Progress" && oldStatus === "Not Started") action = "Task Started";
+    else if (status === "In Progress" && oldStatus === "On Hold") action = "Task Resumed";
+    else if (status === "In Progress" && oldStatus === "Completed") action = "Task Reopened";
+    else if (status === "On Hold") action = "Task Put On Hold";
+    else if (status === "Completed") action = "Task Completed";
+
+    logActivity(
+      task,
+      req.user,
+      action,
+      `Status changed from ${oldStatus} to ${status}${reason ? ` — Reason: "${reason}"` : ""}`
+    );
+
+    // Hold reason also goes to the notes so both sides see it in discussion
+    if (status === "On Hold") {
+      task.comments.push({
+        user: req.user._id,
+        text: `On Hold: ${reason}`,
+        isFeedback: true,
+        createdAt: now,
+      });
+    }
 
     await task.save();
 
-    const populatedTask = await HrTask.findById(task._id)
-      .populate(hrTaskPopulateConfig);
+    const verb =
+      status === "Completed"
+        ? "completed"
+        : status === "On Hold"
+        ? `put On Hold (${reason.slice(0, 60)})`
+        : status === "In Progress"
+        ? oldStatus === "Not Started"
+          ? "started"
+          : "moved to In Progress"
+        : "moved to Not Started";
+
+    await notifyCounterpart(
+      req,
+      task,
+      "hr_task_status",
+      `"${task.title}" was ${verb} by ${req.user.name || "a team member"}`
+    );
 
     res.status(200).json({
       success: true,
       message: `Task status updated to ${status}`,
-      data: populatedTask,
+      data: await loadPopulated(task._id),
     });
   } catch (error) {
-    console.error("[updateHrTaskStatus Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error updating status",
-    });
+    serverError(res, "updateHrTaskStatus", error, "Server Error updating status");
   }
 };
 
-// @desc    Toggle checklist item (HR user or Manager)
+// @desc    Toggle checklist item (Assignee or Manager)
 // @route   PATCH /api/hr-tasks/:id/checklist/:itemId
 // @access  Private
 exports.toggleChecklistItem = async (req, res) => {
   try {
     const { id, itemId } = req.params;
     const task = await HrTask.findById(id);
+    if (!task) return notFound(res);
+    if (!canAccessTask(task, req.user)) return forbidden(res);
 
-    if (!task) {
-      return res.status(404).json({
+    if (task.status === "Completed") {
+      return res.status(400).json({
         success: false,
-        message: "HR Task not found",
+        message: "Task is completed. Reopen it to change the checklist.",
       });
     }
 
     const item = task.checklist.id(itemId);
     if (!item) {
-      return res.status(404).json({
-        success: false,
-        message: "Checklist item not found",
-      });
+      return res.status(404).json({ success: false, message: "Checklist item not found" });
     }
 
     item.completed = !item.completed;
     item.completedAt = item.completed ? new Date() : null;
     item.completedBy = item.completed ? req.user._id : null;
-    task.lastUpdated = new Date();
 
-    // If starting any checklist item and status was Pending, auto-transition to In Progress
-    if (item.completed && task.status === "Pending") {
+    // Ticking the first item starts the task automatically
+    if (item.completed && task.status === "Not Started") {
       task.status = "In Progress";
-      task.activityHistory.push({
-        action: "Task Started",
-        details: "Task automatically started on checklist progress",
-        performedBy: req.user._id,
-        timestamp: new Date(),
-      });
+      if (!task.startedAt) task.startedAt = new Date();
+      logActivity(task, req.user, "Task Started", "Task automatically started on checklist progress");
     }
 
-    task.activityHistory.push({
-      action: "Checklist Item Updated",
-      details: `"${item.item}" marked as ${item.completed ? "Completed" : "Incomplete"}`,
-      performedBy: req.user._id,
-      timestamp: new Date(),
-    });
+    logActivity(
+      task,
+      req.user,
+      "Checklist Item Updated",
+      `"${item.item}" marked as ${item.completed ? "Done" : "Not Done"}`
+    );
 
     await task.save();
 
-    const populatedTask = await HrTask.findById(task._id)
-      .populate(hrTaskPopulateConfig);
-
-    res.status(200).json({
-      success: true,
-      data: populatedTask,
-    });
+    res.status(200).json({ success: true, data: await loadPopulated(task._id) });
   } catch (error) {
-    console.error("[toggleChecklistItem Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error toggling checklist item",
-    });
-  }
-};
-
-// @desc    Flag or resolve a blocker (HR user requirement)
-// @route   POST /api/hr-tasks/:id/blocker
-// @access  Private
-exports.flagBlocker = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { hasBlocker, description } = req.body;
-    const task = await HrTask.findById(id);
-
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
-    }
-
-    if (hasBlocker) {
-      task.blocker = {
-        hasBlocker: true,
-        description: (description || "").trim(),
-        flaggedAt: new Date(),
-        flaggedBy: req.user._id,
-        resolved: false,
-        resolvedAt: null,
-      };
-
-      task.activityHistory.push({
-        action: "Blocker Flagged",
-        details: `Blocker reported: "${(description || "Issue encountered").trim()}"`,
-        performedBy: req.user._id,
-        timestamp: new Date(),
-      });
-
-      // Notify Manager
-      const io = req.app.get("io");
-      await sendNotification(io, {
-        recipientId: task.createdBy,
-        senderId: req.user._id,
-        type: "hr_task_blocker",
-        message: `HR Blocker Flagged on "${task.title}": ${(description || "").slice(0, 80)}`,
-        hrTaskId: task._id,
-      });
-    } else {
-      task.blocker.hasBlocker = false;
-      task.blocker.resolved = true;
-      task.blocker.resolvedAt = new Date();
-
-      task.activityHistory.push({
-        action: "Blocker Resolved",
-        details: "Blocker marked as resolved",
-        performedBy: req.user._id,
-        timestamp: new Date(),
-      });
-    }
-
-    task.lastUpdated = new Date();
-    await task.save();
-
-    const populatedTask = await HrTask.findById(task._id)
-      .populate(hrTaskPopulateConfig);
-
-    res.status(200).json({
-      success: true,
-      message: hasBlocker ? "Blocker flagged successfully" : "Blocker resolved",
-      data: populatedTask,
-    });
-  } catch (error) {
-    console.error("[flagBlocker Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error setting blocker",
-    });
-  }
-};
-
-// @desc    Submit completed work for manager review (HR user requirement)
-// @route   POST /api/hr-tasks/:id/submit
-// @access  Private (HR Assignee or Admin)
-exports.submitHrTask = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { notes = "", attachments = [] } = req.body;
-    const task = await HrTask.findById(id);
-
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
-    }
-
-    task.status = "Submitted";
-    task.submission = {
-      notes: notes.trim(),
-      submittedAt: new Date(),
-      submittedBy: req.user._id,
-      attachments: attachments || [],
-    };
-
-    task.activityHistory.push({
-      action: "Work Submitted for Review",
-      details: notes ? `Submission notes: "${notes.trim()}"` : "Work submitted for manager review",
-      performedBy: req.user._id,
-      timestamp: new Date(),
-    });
-
-    task.lastUpdated = new Date();
-    await task.save();
-
-    // Notify Manager
-    const io = req.app.get("io");
-    await sendNotification(io, {
-      recipientId: task.createdBy,
-      senderId: req.user._id,
-      type: "hr_task_submitted",
-      message: `HR task submitted for review: "${task.title}" by ${req.user.name}`,
-      hrTaskId: task._id,
-    });
-
-    const populatedTask = await HrTask.findById(task._id)
-      .populate(hrTaskPopulateConfig);
-
-    res.status(200).json({
-      success: true,
-      message: "Work submitted for review successfully",
-      data: populatedTask,
-    });
-  } catch (error) {
-    console.error("[submitHrTask Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error submitting task",
-    });
-  }
-};
-
-// @desc    Review submitted task: Approve or Request Changes (Manager requirement)
-// @route   POST /api/hr-tasks/:id/review
-// @access  Private (Manager/Admin)
-exports.reviewHrTask = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { decision, feedback = "" } = req.body; // 'Approved' | 'Changes Requested'
-    const task = await HrTask.findById(id);
-
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
-    }
-
-    if (!["Approved", "Changes Requested"].includes(decision)) {
-      return res.status(400).json({
-        success: false,
-        message: "Decision must be either 'Approved' or 'Changes Requested'",
-      });
-    }
-
-    if (decision === "Changes Requested" && !feedback.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide review feedback when requesting changes",
-      });
-    }
-
-    const io = req.app.get("io");
-
-    if (decision === "Approved") {
-      task.status = "Completed";
-      task.review = {
-        decision: "Approved",
-        feedback: feedback.trim(),
-        reviewedBy: req.user._id,
-        reviewedAt: new Date(),
-      };
-
-      task.activityHistory.push({
-        action: "Submission Approved",
-        details: feedback
-          ? `Approved with note: "${feedback.trim()}"`
-          : "Work approved and marked Completed",
-        performedBy: req.user._id,
-        timestamp: new Date(),
-      });
-
-      // Notify HR Assignee
-      await sendNotification(io, {
-        recipientId: task.assignedTo,
-        senderId: req.user._id,
-        type: "hr_task_reviewed",
-        message: `Great job! Your submission for "${task.title}" was approved by ${req.user.name}`,
-        hrTaskId: task._id,
-      });
-    } else {
-      task.status = "Changes Requested";
-      task.review = {
-        decision: "Changes Requested",
-        feedback: feedback.trim(),
-        reviewedBy: req.user._id,
-        reviewedAt: new Date(),
-      };
-
-      task.activityHistory.push({
-        action: "Changes Requested",
-        details: `Manager requested changes: "${feedback.trim()}"`,
-        performedBy: req.user._id,
-        timestamp: new Date(),
-      });
-
-      // Also append feedback as a system feedback comment so HR can easily view in discussion
-      task.comments.push({
-        user: req.user._id,
-        text: `Review Feedback: ${feedback.trim()}`,
-        isFeedback: true,
-        createdAt: new Date(),
-      });
-
-      // Notify HR Assignee
-      await sendNotification(io, {
-        recipientId: task.assignedTo,
-        senderId: req.user._id,
-        type: "hr_task_reviewed",
-        message: `Changes requested on "${task.title}": ${feedback.slice(0, 80)}`,
-        hrTaskId: task._id,
-      });
-    }
-
-    task.lastUpdated = new Date();
-    await task.save();
-
-    const populatedTask = await HrTask.findById(task._id)
-      .populate(hrTaskPopulateConfig);
-
-    res.status(200).json({
-      success: true,
-      message:
-        decision === "Approved"
-          ? "Task approved and completed!"
-          : "Changes requested from HR assignee",
-      data: populatedTask,
-    });
-  } catch (error) {
-    console.error("[reviewHrTask Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error reviewing task",
-    });
+    serverError(res, "toggleChecklistItem", error, "Server Error toggling checklist item");
   }
 };
 
@@ -1036,123 +734,39 @@ exports.reviewHrTask = async (req, res) => {
 exports.addComment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { text, isFeedback = false } = req.body;
+    const { text } = req.body;
     const task = await HrTask.findById(id);
-
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
-    }
+    if (!task) return notFound(res);
+    if (!canAccessTask(task, req.user)) return forbidden(res);
 
     if (!text || !text.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Comment text cannot be empty",
-      });
+      return res.status(400).json({ success: false, message: "Comment text cannot be empty" });
     }
 
-    const newComment = {
+    task.comments.push({
       user: req.user._id,
       text: text.trim(),
-      isFeedback: !!isFeedback,
+      isFeedback: false,
       createdAt: new Date(),
-    };
-
-    task.comments.push(newComment);
-    task.lastUpdated = new Date();
-
-    task.activityHistory.push({
-      action: isFeedback ? "Feedback Note Added" : "Comment Added",
-      details: text.trim().slice(0, 100),
-      performedBy: req.user._id,
-      timestamp: new Date(),
     });
+    logActivity(task, req.user, "Comment Added", text.trim().slice(0, 100));
 
     await task.save();
 
-    // Determine notification recipient (opposite party)
-    const isAssignee = task.assignedTo?.toString() === req.user._id.toString();
-    const recipientId = isAssignee ? task.createdBy : task.assignedTo;
-
-    const io = req.app.get("io");
-    await sendNotification(io, {
-      recipientId,
-      senderId: req.user._id,
-      type: "hr_task_comment",
-      message: `New note on "${task.title}": ${text.trim().slice(0, 70)}`,
-      hrTaskId: task._id,
-    });
-
-    const populatedTask = await HrTask.findById(task._id)
-      .populate(hrTaskPopulateConfig);
+    await notifyCounterpart(
+      req,
+      task,
+      "hr_task_comment",
+      `New note on "${task.title}": ${text.trim().slice(0, 70)}`
+    );
 
     res.status(201).json({
       success: true,
       message: "Comment added successfully",
-      data: populatedTask,
+      data: await loadPopulated(task._id),
     });
   } catch (error) {
-    console.error("[addComment Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error adding comment",
-    });
-  }
-};
-
-// @desc    Cancel HR Task (Manager/Admin requirement: excluded from active task counts)
-// @route   POST /api/hr-tasks/:id/cancel
-// @access  Private (Manager/Admin)
-exports.cancelHrTask = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const task = await HrTask.findById(id);
-
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
-    }
-
-    task.status = "Cancelled";
-    task.lastUpdated = new Date();
-
-    task.activityHistory.push({
-      action: "Task Cancelled",
-      details: `Task cancelled by ${req.user.name}`,
-      performedBy: req.user._id,
-      timestamp: new Date(),
-    });
-
-    await task.save();
-
-    // Notify HR Assignee
-    const io = req.app.get("io");
-    await sendNotification(io, {
-      recipientId: task.assignedTo,
-      senderId: req.user._id,
-      type: "hr_task_cancelled",
-      message: `HR task "${task.title}" has been cancelled by manager`,
-      hrTaskId: task._id,
-    });
-
-    const populatedTask = await HrTask.findById(task._id)
-      .populate(hrTaskPopulateConfig);
-
-    res.status(200).json({
-      success: true,
-      message: "Task has been cancelled",
-      data: populatedTask,
-    });
-  } catch (error) {
-    console.error("[cancelHrTask Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error cancelling task",
-    });
+    serverError(res, "addComment", error, "Server Error adding comment");
   }
 };
 
@@ -1161,39 +775,20 @@ exports.cancelHrTask = async (req, res) => {
 // @access  Private (Manager/Admin)
 exports.deleteHrTask = async (req, res) => {
   try {
-    const isManager = isManagerOrAdmin(req.user);
-    if (!isManager) {
-      return res.status(403).json({
-        success: false,
-        message: "Only Managers or Admins can delete HR tasks",
-      });
+    if (!isManagerOrAdmin(req.user)) {
+      return forbidden(res, "Only Managers or Admins can delete HR tasks");
     }
 
     const { id } = req.params;
     const task = await HrTask.findById(id);
-
-    if (!task) {
-      return res.status(404).json({
-        success: false,
-        message: "HR Task not found",
-      });
-    }
+    if (!task) return notFound(res);
 
     await HrTask.findByIdAndDelete(id);
-
-    // Clean up related notifications
     await Notification.deleteMany({ hrTask: id });
 
-    res.status(200).json({
-      success: true,
-      message: "HR Task deleted successfully",
-    });
+    res.status(200).json({ success: true, message: "HR Task deleted successfully" });
   } catch (error) {
-    console.error("[deleteHrTask Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error deleting task",
-    });
+    serverError(res, "deleteHrTask", error, "Server Error deleting task");
   }
 };
 
@@ -1203,10 +798,7 @@ exports.deleteHrTask = async (req, res) => {
 exports.uploadAttachment = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "No file uploaded",
-      });
+      return res.status(400).json({ success: false, message: "No file uploaded" });
     }
 
     let fileUrl = "";
@@ -1231,10 +823,6 @@ exports.uploadAttachment = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("[uploadAttachment Error]:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message || "Server Error uploading attachment",
-    });
+    serverError(res, "uploadAttachment", error, "Server Error uploading attachment");
   }
 };

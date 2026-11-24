@@ -12,7 +12,6 @@ import {
   FiClock,
   FiCheckCircle,
   FiAlertCircle,
-  FiAlertTriangle,
   FiUser,
   FiUsers,
   FiMoreVertical,
@@ -21,7 +20,6 @@ import {
   FiX,
   FiCheck,
   FiRefreshCw,
-  FiSend,
   FiEdit,
   FiTrash2,
   FiChevronRight,
@@ -31,14 +29,12 @@ import {
   FiDownload,
   FiArrowRight,
   FiFolder,
+  FiPauseCircle,
 } from "react-icons/fi";
 import {
   LuListTodo,
   LuClipboardCheck,
   LuClockAlert,
-  LuCircleAlert,
-  LuUserCheck,
-  LuRotateCcw,
 } from "react-icons/lu";
 
 import hrTaskService from "../../services/hrTaskService";
@@ -141,45 +137,70 @@ const getPriorityBadge = (priority) => {
   }
 };
 
-// Status badge styling
-const getStatusBadge = (status) => {
-  switch (status) {
-    case "Pending":
-      return {
-        bg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700",
-        label: "Pending",
-      };
-    case "In Progress":
-      return {
-        bg: "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60",
-        label: "In Progress",
-      };
-    case "Submitted":
-      return {
-        bg: "bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 animate-pulse",
-        label: "Submitted (Review)",
-      };
-    case "Changes Requested":
-      return {
-        bg: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60",
-        label: "Changes Requested",
-      };
-    case "Completed":
-      return {
-        bg: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60",
-        label: "Completed",
-      };
-    case "Cancelled":
-      return {
-        bg: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60",
-        label: "Cancelled",
-      };
-    default:
-      return {
-        bg: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700",
-        label: status || "Unknown",
-      };
-  }
+// ------------------------------------------------------------------
+// Status model: Not Started -> In Progress -> Completed, any open <-> On Hold
+// ------------------------------------------------------------------
+const HR_STATUSES = ["Not Started", "In Progress", "On Hold", "Completed"];
+
+const STATUS_META = {
+  "Not Started": {
+    bg: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700",
+    dot: "bg-slate-400",
+  },
+  "In Progress": {
+    bg: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60",
+    dot: "bg-blue-500",
+  },
+  "On Hold": {
+    bg: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60",
+    dot: "bg-amber-500",
+  },
+  Completed: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60",
+    dot: "bg-emerald-500",
+  },
+};
+
+const getStatusBadge = (status) => ({
+  ...(STATUS_META[status] || STATUS_META["Not Started"]),
+  label: status || "Not Started",
+});
+
+// Status dropdown used in the table and the details drawer
+const StatusSelect = ({ task, canEdit, canReopen, onChange, size = "sm" }) => {
+  const meta = getStatusBadge(task.status);
+  const locked = !canEdit || (task.status === "Completed" && !canReopen);
+  return (
+    <div className="relative inline-flex items-center" onClick={(e) => e.stopPropagation()}>
+      <span className={`absolute left-2.5 w-1.5 h-1.5 rounded-full pointer-events-none ${meta.dot}`} />
+      <select
+        value={task.status}
+        disabled={locked}
+        onChange={(e) => onChange(task, e.target.value)}
+        title={
+          !canEdit
+            ? "Only the assignee or a manager can change status"
+            : locked
+            ? "Only a manager can reopen a completed task"
+            : "Change status"
+        }
+        className={`appearance-none pl-6 pr-7 rounded-lg font-semibold focus:outline-hidden focus:ring-2 focus:ring-[var(--color-brand-primary)]/40 transition-all ${
+          size === "lg" ? "py-1.5 text-[12px]" : "py-1 text-[12px]"
+        } ${meta.bg} ${locked ? "cursor-not-allowed opacity-90" : "cursor-pointer"}`}
+      >
+        {HR_STATUSES.map((s) => (
+          <option key={s} value={s} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+            {s}
+          </option>
+        ))}
+      </select>
+      {!locked && (
+        <svg className="absolute right-2 w-3 h-3 pointer-events-none opacity-60" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+        </svg>
+      )}
+    </div>
+  );
 };
 
 // HR Categories
@@ -272,15 +293,10 @@ const HrTasks = () => {
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [isBlockerModalOpen, setIsBlockerModalOpen] = useState(false);
   const [isWorkloadModalOpen, setIsWorkloadModalOpen] = useState(false);
 
   // Action states
-  const [reviewDecision, setReviewDecision] = useState("Approved");
-  const [reviewFeedback, setReviewFeedback] = useState("");
-  const [blockerText, setBlockerText] = useState("");
-  const [submissionNotes, setSubmissionNotes] = useState("");
+  const [holdDialog, setHoldDialog] = useState(null); // { task, reason }
   const [newCommentText, setNewCommentText] = useState("");
   const [submittingAction, setSubmittingAction] = useState(false);
 
@@ -389,20 +405,89 @@ const HrTasks = () => {
     }
   }, [searchTaskId, tasks, loading, notifications, dispatch]);
 
-  // Handle Starting Task (HR)
-  const handleStartTask = async (task) => {
+  const canEditStatus = useCallback(
+    (task) => {
+      if (isManager) return true;
+      const myId = currentUser?._id || currentUser?.id;
+      return (task.assignedTo?._id || task.assignedTo) === myId;
+    },
+    [isManager, currentUser]
+  );
+
+  // Replace a task in local state after any server update
+  const applyTaskUpdate = useCallback((updated) => {
+    if (!updated) return;
+    setTasks((prev) => prev.map((t) => (t._id === updated._id ? updated : t)));
+    setSelectedTask((prev) => (prev && prev._id === updated._id ? updated : prev));
+  }, []);
+
+  const refreshMetrics = useCallback(async () => {
+    try {
+      const res = await hrTaskService.getHrTaskMetrics();
+      if (res.success) setMetrics(res.data || null);
+    } catch {
+      /* non-critical */
+    }
+  }, []);
+
+  const saveStatus = async (task, status, reason = "") => {
     try {
       setSubmittingAction(true);
-      const res = await hrTaskService.updateHrTaskStatus(task._id, "In Progress");
+      const res = await hrTaskService.updateHrTaskStatus(task._id, status, reason);
       if (res.success) {
-        toast.success("Task started! Status moved to In Progress.");
-        fetchData(true);
+        toast.success(`Status updated to ${status}`);
+        applyTaskUpdate(res.data);
+        // Keep list consistent with the active status filter
+        if (statusFilter !== "all" && statusFilter !== status) {
+          setTasks((prev) => prev.filter((t) => t._id !== task._id));
+        }
+        refreshMetrics();
+        return true;
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to start task");
+      toast.error(err.response?.data?.message || "Failed to update status");
     } finally {
       setSubmittingAction(false);
     }
+    return false;
+  };
+
+  // Status dropdown change
+  const handleStatusChange = async (task, status) => {
+    if (!status || status === task.status) return;
+
+    if (status === "On Hold") {
+      setHoldDialog({ task, reason: "" });
+      return;
+    }
+
+    if (status === "Completed") {
+      const pending = (task.checklist || []).filter((c) => !c.completed).length;
+      if (
+        pending > 0 &&
+        !window.confirm(
+          `${pending} checklist item(s) are still pending. Mark "${task.title}" as Completed anyway?`
+        )
+      ) {
+        return;
+      }
+    }
+
+    if (task.status === "Completed" && !window.confirm(`Reopen "${task.title}" as ${status}?`)) {
+      return;
+    }
+
+    await saveStatus(task, status);
+  };
+
+  const handleConfirmHold = async () => {
+    if (!holdDialog) return;
+    if (!holdDialog.reason.trim()) {
+      toast.error("Please enter a reason for putting this task On Hold");
+      return;
+    }
+    const ok = await saveStatus(holdDialog.task, "On Hold", holdDialog.reason.trim());
+    if (ok) setHoldDialog(null);
   };
 
   // Handle Checklist Item Toggle
@@ -410,95 +495,11 @@ const HrTasks = () => {
     try {
       const res = await hrTaskService.toggleChecklistItem(taskId, itemId);
       if (res.success) {
-        // update local list
-        setTasks((prev) =>
-          prev.map((t) => (t._id === taskId ? res.data : t))
-        );
-        if (selectedTask?._id === taskId) {
-          setSelectedTask(res.data);
-        }
+        applyTaskUpdate(res.data);
+        refreshMetrics();
       }
     } catch (err) {
-      toast.error("Failed to update checklist");
-    }
-  };
-
-  // Handle Submitting Work for Review (HR)
-  const handleSubmitWork = async () => {
-    if (!selectedTask) return;
-    try {
-      setSubmittingAction(true);
-      const res = await hrTaskService.submitHrTask(selectedTask._id, {
-        notes: submissionNotes,
-      });
-      if (res.success) {
-        toast.success("Work submitted for manager review!");
-        setSubmissionNotes("");
-        setSelectedTask(res.data);
-        fetchData(true);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to submit work");
-    } finally {
-      setSubmittingAction(false);
-    }
-  };
-
-  // Handle Review Decision (Manager: Approve or Request Changes)
-  const handleReviewTask = async () => {
-    if (!selectedTask) return;
-    if (reviewDecision === "Changes Requested" && !reviewFeedback.trim()) {
-      toast.error("Please provide review feedback when requesting changes");
-      return;
-    }
-    try {
-      setSubmittingAction(true);
-      const res = await hrTaskService.reviewHrTask(selectedTask._id, {
-        decision: reviewDecision,
-        feedback: reviewFeedback,
-      });
-      if (res.success) {
-        toast.success(
-          reviewDecision === "Approved"
-            ? "Task approved and marked Completed!"
-            : "Feedback sent! Changes requested."
-        );
-        setIsReviewModalOpen(false);
-        setReviewFeedback("");
-        setSelectedTask(res.data);
-        fetchData(true);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to process review");
-    } finally {
-      setSubmittingAction(false);
-    }
-  };
-
-  // Handle Flag/Resolve Blocker
-  const handleToggleBlocker = async (flagNew) => {
-    if (!selectedTask) return;
-    if (flagNew && !blockerText.trim()) {
-      toast.error("Please describe the blocker issue");
-      return;
-    }
-    try {
-      setSubmittingAction(true);
-      const res = await hrTaskService.flagBlocker(selectedTask._id, {
-        hasBlocker: flagNew,
-        description: blockerText,
-      });
-      if (res.success) {
-        toast.success(flagNew ? "Blocker flagged! Manager notified." : "Blocker resolved!");
-        setIsBlockerModalOpen(false);
-        setBlockerText("");
-        setSelectedTask(res.data);
-        fetchData(true);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to update blocker");
-    } finally {
-      setSubmittingAction(false);
+      toast.error(err.response?.data?.message || "Failed to update checklist");
     }
   };
 
@@ -513,27 +514,12 @@ const HrTasks = () => {
       });
       if (res.success) {
         setNewCommentText("");
-        setSelectedTask(res.data);
-        fetchData(true);
+        applyTaskUpdate(res.data);
       }
     } catch (err) {
       toast.error("Failed to post comment");
     } finally {
       setSubmittingAction(false);
-    }
-  };
-
-  // Handle Cancel Task (Manager)
-  const handleCancelTask = async (task) => {
-    if (!window.confirm(`Are you sure you want to cancel "${task.title}"?`)) return;
-    try {
-      const res = await hrTaskService.cancelHrTask(task._id);
-      if (res.success) {
-        toast.success("Task cancelled");
-        fetchData(true);
-      }
-    } catch (err) {
-      toast.error("Failed to cancel task");
     }
   };
 
@@ -556,57 +542,48 @@ const HrTasks = () => {
     }
   };
 
-  // Due Date Badge Logic
-  const getDueDateInfo = (dueDateStr, status) => {
+  // Due Date Badge Logic (day based: a task due today is not overdue)
+  const getDueDateInfo = (task) => {
+    const dueDateStr = task?.dueDate;
     if (!dueDateStr) return { text: "-", color: "text-slate-500", tag: null };
-    const now = new Date();
-    const due = new Date(dueDateStr);
-    const isCompleted = status === "Completed";
-    const isSubmitted = status === "Submitted";
-    const isCancelled = status === "Cancelled";
 
-    if (isCompleted) {
+    if (task.status === "Completed") {
+      const done = task.completedAt ? new Date(task.completedAt) : null;
+      const due = new Date(dueDateStr);
+      const late = done && done.setHours(0, 0, 0, 0) > due.setHours(0, 0, 0, 0);
       return {
         text: formatDate(dueDateStr),
         color: "text-slate-500 dark:text-slate-400",
-        tag: null,
+        tag: task.completedAt ? (late ? "Done late" : "Done on time") : null,
+        tagClass: late
+          ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300"
+          : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300",
       };
     }
 
-    if (isCancelled) {
-      return {
-        text: formatDate(dueDateStr),
-        color: "text-slate-400 line-through",
-        tag: null,
-      };
-    }
-
-    const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDay = new Date(dueDateStr);
+    dueDay.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((dueDay - today) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      // Overdue rule: submitted tasks awaiting review are tracked separately
-      if (isSubmitted) {
-        return {
-          text: formatDate(dueDateStr),
-          color: "text-purple-600 dark:text-purple-400 font-medium",
-          tag: "Under Review",
-          tagClass: "bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300",
-        };
-      }
       return {
         text: formatDate(dueDateStr),
         color: "text-rose-600 dark:text-rose-400 font-semibold",
         tag: `Overdue by ${Math.abs(diffDays)}d`,
         tagClass: "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 ring-1 ring-rose-500/30",
       };
-    } else if (diffDays === 0) {
+    }
+    if (diffDays === 0) {
       return {
         text: formatDate(dueDateStr),
         color: "text-amber-600 dark:text-amber-400 font-semibold",
         tag: "Due Today",
         tagClass: "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300",
       };
-    } else if (diffDays <= 3) {
+    }
+    if (diffDays <= 3) {
       return {
         text: formatDate(dueDateStr),
         color: "text-amber-600 dark:text-amber-400 font-medium",
@@ -614,12 +591,10 @@ const HrTasks = () => {
         tagClass: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-300/40",
       };
     }
-    return {
-      text: formatDate(dueDateStr),
-      color: "text-slate-700 dark:text-slate-300",
-      tag: null,
-    };
+    return { text: formatDate(dueDateStr), color: "text-slate-700 dark:text-slate-300", tag: null };
   };
+
+  const counts = metrics?.counts || {};
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#070b13] text-slate-800 dark:text-slate-100 p-3 sm:p-5 lg:p-6 space-y-4">
@@ -639,8 +614,8 @@ const HrTasks = () => {
               </h1>
               <p className="text-[12px] sm:text-[13px] text-slate-500 dark:text-slate-400">
                 {isManager
-                  ? "Assign work to HR team members, monitor real-time progress, and review submissions."
-                  : "View and execute assigned tasks, update checklist progress, and submit work for manager review."}
+                  ? "Assign work to HR team members and track progress by status: Not Started, In Progress, On Hold, Completed."
+                  : "Work through your tasks, tick off checklist items, and update the status as you go."}
               </p>
             </div>
           </div>
@@ -696,240 +671,92 @@ const HrTasks = () => {
 
       {/* 2. KPI METRICS / DASHBOARD COUNTS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {isManager ? (
-          <>
-            {/* Manager KPI 1: Total Active */}
+        {[
+          {
+            key: "Not Started",
+            label: "Not Started",
+            value: counts.notStarted,
+            sub: `${counts.open ?? 0} open total`,
+            icon: LuListTodo,
+            tone: "text-slate-700 dark:text-slate-200",
+            chip: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300",
+            onClick: () => { setStatusFilter("Not Started"); setDueDateFilter("all"); },
+          },
+          {
+            key: "In Progress",
+            label: "In Progress",
+            value: counts.inProgress,
+            sub: "Ongoing",
+            icon: FiClock,
+            tone: "text-blue-600 dark:text-blue-400",
+            chip: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400",
+            onClick: () => { setStatusFilter("In Progress"); setDueDateFilter("all"); },
+          },
+          {
+            key: "On Hold",
+            label: "On Hold",
+            value: counts.onHold,
+            sub: "Paused",
+            icon: FiPauseCircle,
+            tone: "text-amber-600 dark:text-amber-400",
+            chip: "bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400",
+            highlight: (counts.onHold ?? 0) > 0,
+            onClick: () => { setStatusFilter("On Hold"); setDueDateFilter("all"); },
+          },
+          {
+            key: "overdue",
+            label: "Overdue",
+            value: counts.overdue,
+            sub: "Past due date",
+            icon: LuClockAlert,
+            tone: "text-rose-600 dark:text-rose-400",
+            chip: "bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400",
+            highlight: (counts.overdue ?? 0) > 0,
+            onClick: () => { setStatusFilter("all"); setDueDateFilter("overdue"); },
+          },
+          {
+            key: "Completed",
+            label: "Completed",
+            value: counts.completed,
+            sub: `${counts.completionRate ?? 0}% of all tasks`,
+            icon: FiCheckCircle,
+            tone: "text-emerald-600 dark:text-emerald-400",
+            chip: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400",
+            onClick: () => { setStatusFilter("Completed"); setDueDateFilter("all"); },
+          },
+        ].map((card, i) => {
+          const Icon = card.icon;
+          const active =
+            card.key === "overdue" ? dueDateFilter === "overdue" : statusFilter === card.key;
+          return (
             <div
-              onClick={() => {
-                setStatusFilter("all");
-                setDueDateFilter("all");
-              }}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-[var(--color-brand-primary)] dark:hover:border-[var(--color-brand-primary)] transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Total Active Tasks
-                </span>
-                <span className="p-2 rounded-xl bg-[color-mix(in_srgb,var(--color-brand-primary)_12%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-brand-primary)_18%,transparent)] text-[var(--color-brand-primary)] dark:text-[var(--color-brand-primary)]">
-                  <LuListTodo className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-slate-900 dark:text-white">
-                  {metrics?.managerCounts?.totalActive ?? 0}
-                </span>
-                <span className="text-[11px] text-slate-400">Active</span>
-              </div>
-            </div>
-
-            {/* Manager KPI 2: In Progress */}
-            <div
-              onClick={() => setStatusFilter("In Progress")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  In Progress
-                </span>
-                <span className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
-                  <FiClock className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                  {metrics?.managerCounts?.inProgress ?? 0}
-                </span>
-                <span className="text-[11px] text-slate-400">Ongoing</span>
-              </div>
-            </div>
-
-            {/* Manager KPI 3: Submitted for Review (Highlight) */}
-            <div
-              onClick={() => setStatusFilter("Submitted")}
-              className={`bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border shadow-xs transition-all cursor-pointer group ${
-                (metrics?.managerCounts?.submittedForReview ?? 0) > 0
-                  ? "border-purple-400 dark:border-purple-600/70 ring-2 ring-purple-500/20"
+              key={card.key}
+              onClick={card.onClick}
+              className={`bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border shadow-xs transition-all cursor-pointer ${
+                i === 4 ? "col-span-2 sm:col-span-1" : ""
+              } ${
+                active
+                  ? "border-[var(--color-brand-primary)] ring-2 ring-[var(--color-brand-primary)]/20"
+                  : card.highlight
+                  ? "border-amber-300 dark:border-amber-700/60"
                   : "border-slate-200/80 dark:border-white/5 hover:border-[var(--color-brand-primary)]"
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Submitted for Review
+                  {card.label}
                 </span>
-                <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
-                  <FiAlertCircle className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                  {metrics?.managerCounts?.submittedForReview ?? 0}
-                </span>
-                <span className="text-[11px] font-medium text-purple-500">
-                  {(metrics?.managerCounts?.submittedForReview ?? 0) > 0 ? "Review Ready" : "None"}
-                </span>
-              </div>
-            </div>
-
-            {/* Manager KPI 4: Overdue */}
-            <div
-              onClick={() => {
-                setStatusFilter("all");
-                setDueDateFilter("overdue");
-              }}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-rose-400 dark:hover:border-rose-500 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Overdue
-                </span>
-                <span className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
-                  <LuClockAlert className="w-4 h-4" />
+                <span className={`p-2 rounded-xl ${card.chip}`}>
+                  <Icon className="w-4 h-4" />
                 </span>
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                  {metrics?.managerCounts?.overdue ?? 0}
-                </span>
-                <span className="text-[11px] text-rose-400">Delayed</span>
+                <span className={`text-xl font-bold ${card.tone}`}>{card.value ?? 0}</span>
+                <span className="text-[11px] text-slate-400">{card.sub}</span>
               </div>
             </div>
-
-            {/* Manager KPI 5: Completed */}
-            <div
-              onClick={() => setStatusFilter("Completed")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer group col-span-2 sm:col-span-1"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Completed
-                </span>
-                <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
-                  <FiCheckCircle className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {metrics?.managerCounts?.completed ?? 0}
-                </span>
-                <span className="text-[11px] text-emerald-500">Approved</span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* HR KPI 1: My Active Tasks */}
-            <div
-              onClick={() => {
-                setStatusFilter("all");
-                setDueDateFilter("all");
-              }}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-[var(--color-brand-primary)] dark:hover:border-[var(--color-brand-primary)] transition-all cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  My Active Tasks
-                </span>
-                <span className="p-2 rounded-xl bg-[color-mix(in_srgb,var(--color-brand-primary)_12%,transparent)] dark:bg-[color-mix(in_srgb,var(--color-brand-primary)_18%,transparent)] text-[var(--color-brand-primary)] dark:text-[var(--color-brand-primary)]">
-                  <LuListTodo className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-slate-900 dark:text-white">
-                  {metrics?.hrCounts?.myActiveTasks ?? 0}
-                </span>
-                <span className="text-[11px] text-slate-400">Active</span>
-              </div>
-            </div>
-
-            {/* HR KPI 2: Due Soon (Next 3 Days) */}
-            <div
-              onClick={() => setDueDateFilter("due_soon")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-amber-400 dark:hover:border-amber-500 transition-all cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Due Soon
-                </span>
-                <span className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
-                  <LuClockAlert className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-amber-600 dark:text-amber-400">
-                  {metrics?.hrCounts?.dueSoon ?? 0}
-                </span>
-                <span className="text-[11px] text-amber-500 font-medium">&le; 3 Days</span>
-              </div>
-            </div>
-
-            {/* HR KPI 3: Changes Requested */}
-            <div
-              onClick={() => setStatusFilter("Changes Requested")}
-              className={`bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border shadow-xs transition-all cursor-pointer ${
-                (metrics?.hrCounts?.changesRequested ?? 0) > 0
-                  ? "border-rose-400 dark:border-rose-500 ring-2 ring-rose-500/20"
-                  : "border-slate-200/80 dark:border-white/5 hover:border-rose-400"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Changes Requested
-                </span>
-                <span className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400">
-                  <LuRotateCcw className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-rose-600 dark:text-rose-400">
-                  {metrics?.hrCounts?.changesRequested ?? 0}
-                </span>
-                <span className="text-[11px] text-rose-500 font-medium">Action Needed</span>
-              </div>
-            </div>
-
-            {/* HR KPI 4: Submitted for Review */}
-            <div
-              onClick={() => setStatusFilter("Submitted")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-[var(--color-brand-primary)] dark:hover:border-[var(--color-brand-primary)] transition-all cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Submitted for Review
-                </span>
-                <span className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
-                  <FiClock className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                  {metrics?.hrCounts?.submittedForReview ?? 0}
-                </span>
-                <span className="text-[11px] text-purple-500">Awaiting Manager</span>
-              </div>
-            </div>
-
-            {/* HR KPI 5: Completed */}
-            <div
-              onClick={() => setStatusFilter("Completed")}
-              className="bg-white dark:bg-slate-900/90 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/5 shadow-xs hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer col-span-2 sm:col-span-1"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Completed
-                </span>
-                <span className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
-                  <FiCheckCircle className="w-4 h-4" />
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {metrics?.hrCounts?.completed ?? 0}
-                </span>
-                <span className="text-[11px] text-emerald-500">Approved</span>
-              </div>
-            </div>
-          </>
-        )}
+          );
+        })}
       </div>
 
       {/* 3. SEARCH & FILTER TOOLBAR */}
@@ -1012,7 +839,6 @@ const HrTasks = () => {
               <option value="today">Due Today</option>
               <option value="this_week">This Week</option>
               <option value="overdue">Overdue Tasks</option>
-              <option value="completed">Completed Tasks</option>
             </select>
 
             {/* Reset Filters button if any filter active */}
@@ -1042,13 +868,11 @@ const HrTasks = () => {
         {/* Status Filter Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-t border-slate-100 dark:border-slate-800/60 pt-3">
           {[
-            { id: "all", label: "All Tasks" },
-            { id: "Pending", label: "Pending" },
-            { id: "In Progress", label: "In Progress" },
-            { id: "Submitted", label: "Submitted (Review)" },
-            { id: "Changes Requested", label: "Changes Requested" },
-            { id: "Completed", label: "Completed" },
-            { id: "Cancelled", label: "Cancelled" },
+            { id: "all", label: "All Tasks", count: counts.total },
+            { id: "Not Started", label: "Not Started", count: counts.notStarted },
+            { id: "In Progress", label: "In Progress", count: counts.inProgress },
+            { id: "On Hold", label: "On Hold", count: counts.onHold },
+            { id: "Completed", label: "Completed", count: counts.completed },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1060,6 +884,17 @@ const HrTasks = () => {
               }`}
             >
               {tab.label}
+              {typeof tab.count === "number" && (
+                <span
+                  className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[10px] ${
+                    statusFilter === tab.id
+                      ? "bg-white/25 text-white"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -1115,15 +950,14 @@ const HrTasks = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-[12px] sm:text-[13px]">
                 {tasks.map((task) => {
                   const priorityMeta = getPriorityBadge(task.priority);
-                  const statusMeta = getStatusBadge(task.status);
-                  const dueMeta = getDueDateInfo(task.dueDate, task.status);
+                  const dueMeta = getDueDateInfo(task);
 
                   const checklistDone = (task.checklist || []).filter((c) => c.completed).length;
                   const checklistTotal = (task.checklist || []).length;
                   const checklistPercent =
                     checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
 
-                  const hasBlocker = task.blocker?.hasBlocker;
+                  const isOnHold = task.status === "On Hold";
 
                   return (
                     <tr
@@ -1150,10 +984,13 @@ const HrTasks = () => {
                             >
                               {task.title}
                             </span>
-                            {hasBlocker && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white flex items-center gap-1 animate-pulse">
-                                <FiAlertTriangle className="w-2.5 h-2.5" />
-                                Blocker
+                            {isOnHold && task.holdReason && (
+                              <span
+                                title={`On Hold: ${task.holdReason}`}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1 max-w-[160px]"
+                              >
+                                <FiPauseCircle className="w-2.5 h-2.5 shrink-0" />
+                                <span className="truncate">{task.holdReason}</span>
                               </span>
                             )}
                             {taskHasUnreadAlert(task._id) && (
@@ -1270,11 +1107,12 @@ const HrTasks = () => {
 
                       {/* Status */}
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[12px] font-semibold ${statusMeta.bg}`}
-                        >
-                          {statusMeta.label}
-                        </span>
+                        <StatusSelect
+                          task={task}
+                          canEdit={canEditStatus(task) && !submittingAction}
+                          canReopen={isManager}
+                          onChange={handleStatusChange}
+                        />
                       </td>
 
                       {/* Due Date */}
@@ -1301,45 +1139,6 @@ const HrTasks = () => {
                       {/* Actions */}
                       <td className="py-3 px-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* HR: Start Task if Pending */}
-                          {!isManager && task.status === "Pending" && (
-                            <button
-                              onClick={() => handleStartTask(task)}
-                              disabled={submittingAction}
-                              className="px-2.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] shadow-xs transition-all cursor-pointer"
-                            >
-                              Start
-                            </button>
-                          )}
-
-                          {/* HR: Submit Work if In Progress or Changes Requested */}
-                          {!isManager &&
-                            (task.status === "In Progress" || task.status === "Changes Requested") && (
-                              <button
-                                onClick={() => {
-                                  setSelectedTask(task);
-                                  setIsDetailDrawerOpen(true);
-                                }}
-                                className="px-2.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] shadow-xs transition-all cursor-pointer"
-                              >
-                                Submit Work
-                              </button>
-                            )}
-
-                          {/* Manager: Review Button (if Submitted) */}
-                          {isManager && task.status === "Submitted" && (
-                            <button
-                              onClick={() => {
-                                setSelectedTask(task);
-                                setReviewDecision("Approved");
-                                setIsReviewModalOpen(true);
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-[image:var(--btn-gradient-bg)] hover:brightness-110 text-white font-semibold text-[12px] shadow-sm shadow-[color:var(--btn-glow-shadow)] transition-all cursor-pointer ring-2 ring-purple-400/30"
-                            >
-                              Review
-                            </button>
-                          )}
-
                           {/* View Details */}
                           <button
                             onClick={() => {
@@ -1353,7 +1152,7 @@ const HrTasks = () => {
                           </button>
 
                           {/* Manager: Edit */}
-                          {isManager && task.status !== "Cancelled" && (
+                          {isManager && (
                             <button
                               onClick={() => {
                                 setSelectedTask(task);
@@ -1365,19 +1164,6 @@ const HrTasks = () => {
                               <FiEdit className="w-4 h-4" />
                             </button>
                           )}
-
-                          {/* Manager: Cancel */}
-                          {isManager &&
-                            task.status !== "Completed" &&
-                            task.status !== "Cancelled" && (
-                              <button
-                                onClick={() => handleCancelTask(task)}
-                                className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-500 hover:text-rose-700 transition-all cursor-pointer"
-                                title="Cancel Task"
-                              >
-                                <FiX className="w-4 h-4" />
-                              </button>
-                            )}
 
                           {/* Manager / Admin: Delete */}
                           {isManager && (
@@ -1438,16 +1224,10 @@ const HrTasks = () => {
           currentUser={currentUser}
           onClose={() => setIsDetailDrawerOpen(false)}
           onToggleChecklist={(itemId) => handleToggleChecklist(selectedTask._id, itemId)}
-          onStartTask={() => handleStartTask(selectedTask)}
-          onSubmitWork={() => {
-            handleSubmitWork();
-          }}
-          submissionNotes={submissionNotes}
-          setSubmissionNotes={setSubmissionNotes}
+          canEditStatus={canEditStatus(selectedTask)}
+          onStatusChange={handleStatusChange}
+          dueMeta={getDueDateInfo(selectedTask)}
           submittingAction={submittingAction}
-          onOpenReviewModal={() => setIsReviewModalOpen(true)}
-          onOpenBlockerModal={() => setIsBlockerModalOpen(true)}
-          onResolveBlocker={() => handleToggleBlocker(false)}
           newCommentText={newCommentText}
           setNewCommentText={setNewCommentText}
           onAddComment={handleAddComment}
@@ -1455,184 +1235,68 @@ const HrTasks = () => {
         />
       )}
 
-      {/* 8. MANAGER REVIEW MODAL */}
-      {isReviewModalOpen && selectedTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+      {/* 8. ON HOLD REASON MODAL */}
+      {holdDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-5"
-          >
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <FiCheckCircle className="w-5 h-5 text-purple-500" />
-                Review Submitted Task
-              </h3>
-              <button
-                onClick={() => setIsReviewModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
-                <div className="text-[12px] font-semibold text-slate-500 dark:text-slate-400">
-                  Task Title
-                </div>
-                <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
-                  {selectedTask.title}
-                </div>
-                {selectedTask.submission?.notes && (
-                  <div className="mt-2 text-[12px] text-slate-600 dark:text-slate-300">
-                    <span className="font-semibold text-purple-600 dark:text-purple-400">
-                      HR Submission Note:
-                    </span>{" "}
-                    "{selectedTask.submission.notes}"
-                  </div>
-                )}
-              </div>
-
-              {/* Decision Radio */}
-              <div className="space-y-2">
-                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
-                  Review Decision
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setReviewDecision("Approved")}
-                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-[12px] font-bold transition-all cursor-pointer ${
-                      reviewDecision === "Approved"
-                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20"
-                        : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}
-                  >
-                    <FiCheck className="w-4 h-4 text-emerald-500" />
-                    Approve (Complete)
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setReviewDecision("Changes Requested")}
-                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 text-[12px] font-bold transition-all cursor-pointer ${
-                      reviewDecision === "Changes Requested"
-                        ? "bg-amber-50 dark:bg-amber-950/40 border-amber-500 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/20"
-                        : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}
-                  >
-                    <LuRotateCcw className="w-4 h-4 text-amber-500" />
-                    Request Changes
-                  </button>
-                </div>
-              </div>
-
-              {/* Feedback Input */}
-              <div className="space-y-1.5">
-                <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
-                  {reviewDecision === "Changes Requested"
-                    ? "Feedback for HR (Required)"
-                    : "Approval Comments (Optional)"}
-                </label>
-                <textarea
-                  rows={3}
-                  value={reviewFeedback}
-                  onChange={(e) => setReviewFeedback(e.target.value)}
-                  placeholder={
-                    reviewDecision === "Changes Requested"
-                      ? "Explain clearly what changes or additions HR needs to make..."
-                      : "Add positive feedback or completion note..."
-                  }
-                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 text-[12px] focus:outline-hidden focus:border-[var(--color-brand-primary)]"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setIsReviewModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={submittingAction}
-                onClick={handleReviewTask}
-                className={`px-5 py-2 rounded-xl text-[12px] font-bold text-white shadow-md transition-all cursor-pointer ${
-                  reviewDecision === "Approved"
-                    ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/25"
-                    : "bg-amber-600 hover:bg-amber-500 shadow-amber-500/25"
-                }`}
-              >
-                {submittingAction
-                  ? "Processing..."
-                  : reviewDecision === "Approved"
-                  ? "Approve Task"
-                  : "Submit Changes Request"}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* 9. HR BLOCKER MODAL */}
-      {isBlockerModalOpen && selectedTask && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
             className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-4"
           >
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
-                <FiAlertTriangle className="w-5 h-5" />
-                Flag a Task Blocker
+              <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                <FiPauseCircle className="w-5 h-5" />
+                Put Task On Hold
               </h3>
               <button
-                onClick={() => setIsBlockerModalOpen(false)}
+                onClick={() => setHoldDialog(null)}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <FiX className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-[12px] text-slate-500 dark:text-slate-400">
-              Reporting a blocker will highlight this task with an urgent alert and immediately notify the Manager to help unblock you.
-            </p>
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Task</div>
+              <div className="text-[13px] font-bold text-slate-900 dark:text-white mt-0.5">
+                {holdDialog.task.title}
+              </div>
+            </div>
 
             <div className="space-y-1.5">
               <label className="text-[12px] font-bold text-slate-700 dark:text-slate-300">
-                Describe the Blocker / Issue
+                Why is this task on hold? <span className="text-red-500">*</span>
               </label>
               <textarea
                 rows={3}
-                value={blockerText}
-                onChange={(e) => setBlockerText(e.target.value)}
-                placeholder="E.g. Waiting on candidate documents from client, system access credentials missing..."
-                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 text-[12px] focus:outline-hidden focus:border-rose-500"
+                autoFocus
+                value={holdDialog.reason}
+                onChange={(e) => setHoldDialog((d) => ({ ...d, reason: e.target.value }))}
+                placeholder="E.g. Waiting on candidate documents, pending approval from finance..."
+                className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 text-slate-800 dark:text-slate-200 placeholder-slate-400 text-[12px] focus:outline-hidden focus:border-amber-500"
               />
+              <p className="text-[11px] text-slate-400">
+                {isManager
+                  ? "The assignee will be notified with this reason."
+                  : "Your manager will be notified with this reason."}
+              </p>
             </div>
 
             <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
-                onClick={() => setIsBlockerModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-600 dark:text-slate-400"
+                onClick={() => setHoldDialog(null)}
+                className="px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={submittingAction}
-                onClick={() => handleToggleBlocker(true)}
-                className="px-5 py-2 rounded-xl text-[12px] font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/25 transition-all cursor-pointer"
+                disabled={submittingAction || !holdDialog.reason.trim()}
+                onClick={handleConfirmHold}
+                className="px-5 py-2 rounded-xl text-[12px] font-bold bg-amber-500 hover:bg-amber-400 text-white shadow-md shadow-amber-500/25 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submittingAction ? "Flagging..." : "Flag Blocker"}
+                {submittingAction ? "Saving..." : "Put On Hold"}
               </button>
             </div>
           </motion.div>
@@ -1702,40 +1366,18 @@ const HrTasks = () => {
                       </div>
 
                       <div className="flex items-center gap-4 text-[12px] font-semibold">
-                        <div className="text-center">
-                          <div className="text-slate-900 dark:text-white text-[13px] font-black">
-                            {w.activeTasks}
+                        {[
+                          { label: "Not Started", value: w.notStarted, cls: "text-slate-700 dark:text-slate-200" },
+                          { label: "In Progress", value: w.inProgress, cls: "text-blue-600 dark:text-blue-400" },
+                          { label: "On Hold", value: w.onHold, cls: "text-amber-600 dark:text-amber-400" },
+                          { label: "Overdue", value: w.overdue, cls: "text-rose-600 dark:text-rose-400" },
+                          { label: "Completed", value: w.completed, cls: "text-emerald-600 dark:text-emerald-400" },
+                        ].map((m) => (
+                          <div key={m.label} className="text-center">
+                            <div className={`text-[13px] font-black ${m.cls}`}>{m.value ?? 0}</div>
+                            <div className="text-[10px] text-slate-400 whitespace-nowrap">{m.label}</div>
                           </div>
-                          <div className="text-[10px] text-slate-400">Active</div>
-                        </div>
-
-                        <div className="text-center">
-                          <div className="text-blue-600 dark:text-blue-400 text-[13px] font-black">
-                            {w.inProgress}
-                          </div>
-                          <div className="text-[10px] text-slate-400">In Progress</div>
-                        </div>
-
-                        <div className="text-center">
-                          <div className="text-purple-600 dark:text-purple-400 text-[13px] font-black">
-                            {w.submitted}
-                          </div>
-                          <div className="text-[10px] text-slate-400">Submitted</div>
-                        </div>
-
-                        <div className="text-center">
-                          <div className="text-rose-600 dark:text-rose-400 text-[13px] font-black">
-                            {w.overdue}
-                          </div>
-                          <div className="text-[10px] text-slate-400">Overdue</div>
-                        </div>
-
-                        <div className="text-center">
-                          <div className="text-emerald-600 dark:text-emerald-400 text-[13px] font-black">
-                            {w.completed}
-                          </div>
-                          <div className="text-[10px] text-slate-400">Completed</div>
-                        </div>
+                        ))}
                       </div>
                     </div>
                   );
@@ -2345,14 +1987,10 @@ const TaskDetailsDrawer = ({
   currentUser,
   onClose,
   onToggleChecklist,
-  onStartTask,
-  onSubmitWork,
-  submissionNotes,
-  setSubmissionNotes,
+  canEditStatus,
+  onStatusChange,
+  dueMeta,
   submittingAction,
-  onOpenReviewModal,
-  onOpenBlockerModal,
-  onResolveBlocker,
   newCommentText,
   setNewCommentText,
   onAddComment,
@@ -2363,9 +2001,8 @@ const TaskDetailsDrawer = ({
   if (!isOpen || !task) return null;
 
   const priorityMeta = getPriorityBadge(task.priority);
-  const statusMeta = getStatusBadge(task.status);
-  const hasBlocker = task.blocker?.hasBlocker;
-  const isAssignee = task.assignedTo?._id === currentUser?._id;
+  const isCompleted = task.status === "Completed";
+  const checklistLocked = isCompleted || !canEditStatus;
 
   const checklistDone = (task.checklist || []).filter((c) => c.completed).length;
   const checklistTotal = (task.checklist || []).length;
@@ -2388,9 +2025,13 @@ const TaskDetailsDrawer = ({
               <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${priorityMeta.bg}`}>
                 {task.priority} Priority
               </span>
-              <span className={`px-2.5 py-0.5 rounded-lg text-[12px] font-semibold ${statusMeta.bg}`}>
-                {statusMeta.label}
-              </span>
+              <StatusSelect
+                task={task}
+                canEdit={canEditStatus && !submittingAction}
+                canReopen={isManager}
+                onChange={onStatusChange}
+                size="lg"
+              />
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -2482,7 +2123,27 @@ const TaskDetailsDrawer = ({
             <div className="flex items-center gap-1.5">
               <FiCalendar className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
               <span>Due: <strong className="text-slate-800 dark:text-slate-200">{formatDate(task.dueDate)}</strong></span>
+              {dueMeta?.tag && (
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${dueMeta.tagClass}`}>
+                  {dueMeta.tag}
+                </span>
+              )}
             </div>
+            {task.startedAt && (
+              <div className="flex items-center gap-1.5">
+                <FiClock className="w-3.5 h-3.5 text-blue-500" />
+                <span>Started {formatDate(task.startedAt)}</span>
+              </div>
+            )}
+            {isCompleted && task.completedAt && (
+              <div className="flex items-center gap-1.5">
+                <FiCheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                <span>
+                  Completed {formatDate(task.completedAt)}
+                  {task.completedBy?.name ? ` by ${task.completedBy.name}` : ""}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-1.5">
               <FiFolder className="w-3.5 h-3.5 text-[var(--color-brand-primary)]" />
               <span>{task.category || "General HR"}</span>
@@ -2490,40 +2151,29 @@ const TaskDetailsDrawer = ({
           </div>
         </div>
 
-        {/* Blocker Alert Banner */}
-        {hasBlocker && (
-          <div className="mx-5 mt-4 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-start justify-between gap-3 animate-pulse">
+        {/* On Hold Banner */}
+        {task.status === "On Hold" && (
+          <div className="mx-5 mt-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 flex items-start justify-between gap-3">
             <div className="flex items-start gap-2.5">
-              <FiAlertTriangle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+              <FiPauseCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
               <div>
-                <div className="text-[12px] font-bold text-rose-800 dark:text-rose-300">
-                  Active Blocker Reported
+                <div className="text-[12px] font-bold text-amber-800 dark:text-amber-300">
+                  Task is On Hold
                 </div>
-                <div className="text-[12px] text-rose-700 dark:text-rose-400 mt-0.5">
-                  "{task.blocker?.description || "Issue encountered"}"
+                <div className="text-[12px] text-amber-700 dark:text-amber-400 mt-0.5">
+                  {task.holdReason ? `"${task.holdReason}"` : "No reason provided"}
                 </div>
               </div>
             </div>
-
-            <button
-              onClick={onResolveBlocker}
-              className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-[11px] shrink-0"
-            >
-              Resolve
-            </button>
-          </div>
-        )}
-
-        {/* Review Feedback Banner (if Changes Requested) */}
-        {task.status === "Changes Requested" && task.review?.feedback && (
-          <div className="mx-5 mt-4 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 space-y-1">
-            <div className="text-[12px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-              <LuRotateCcw className="w-3.5 h-3.5 text-amber-600" />
-              Manager Requested Changes
-            </div>
-            <div className="text-[12px] text-amber-700 dark:text-amber-400">
-              "{task.review.feedback}"
-            </div>
+            {canEditStatus && (
+              <button
+                onClick={() => onStatusChange(task, "In Progress")}
+                disabled={submittingAction}
+                className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-white font-semibold text-[11px] shrink-0 cursor-pointer"
+              >
+                Resume
+              </button>
+            )}
           </div>
         )}
 
@@ -2536,42 +2186,39 @@ const TaskDetailsDrawer = ({
           </div>
         )}
 
-        {/* Actions Bar for HR / Manager */}
-        <div className="px-5 pt-4 flex items-center gap-2.5 flex-wrap">
-          {/* HR: Start Task if Pending */}
-          {!isManager && task.status === "Pending" && (
+        {/* Quick actions */}
+        {canEditStatus && !isCompleted && (
+          <div className="px-5 pt-4 flex items-center gap-2.5 flex-wrap">
+            {task.status === "Not Started" && (
+              <button
+                onClick={() => onStatusChange(task, "In Progress")}
+                disabled={submittingAction}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] shadow-md transition-all cursor-pointer"
+              >
+                <FiArrowRight className="w-3.5 h-3.5" />
+                Start Task
+              </button>
+            )}
+            {task.status !== "On Hold" && (
+              <button
+                onClick={() => onStatusChange(task, "On Hold")}
+                disabled={submittingAction}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-300 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 text-[12px] font-semibold transition-all cursor-pointer"
+              >
+                <FiPauseCircle className="w-3.5 h-3.5" />
+                Put On Hold
+              </button>
+            )}
             <button
-              onClick={onStartTask}
+              onClick={() => onStatusChange(task, "Completed")}
               disabled={submittingAction}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-semibold text-[12px] shadow-md transition-all cursor-pointer"
-            >
-              <FiCheck className="w-3.5 h-3.5" />
-              Start Task
-            </button>
-          )}
-
-          {/* HR: Flag a Blocker */}
-          {!isManager && !hasBlocker && task.status !== "Completed" && (
-            <button
-              onClick={onOpenBlockerModal}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-300 dark:border-rose-900/60 bg-rose-50/50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 text-[12px] font-semibold transition-all cursor-pointer"
-            >
-              <FiAlertTriangle className="w-3.5 h-3.5" />
-              Flag Blocker
-            </button>
-          )}
-
-          {/* Manager: Review Button */}
-          {isManager && task.status === "Submitted" && (
-            <button
-              onClick={onOpenReviewModal}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[image:var(--btn-gradient-bg)] hover:brightness-110 text-white font-bold text-[12px] shadow-md shadow-[color:var(--btn-glow-shadow)] transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[12px] font-semibold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
             >
               <FiCheckCircle className="w-3.5 h-3.5" />
-              Review & Approve Work
+              Mark Completed
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="px-5 pt-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
@@ -2624,8 +2271,11 @@ const TaskDetailsDrawer = ({
                   task.checklist.map((c) => (
                     <div
                       key={c._id}
-                      onClick={() => onToggleChecklist(c._id)}
-                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                      onClick={() => !checklistLocked && onToggleChecklist(c._id)}
+                      title={isCompleted ? "Reopen the task to change the checklist" : undefined}
+                      className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
+                        checklistLocked ? "cursor-default opacity-80" : "cursor-pointer"
+                      } ${
                         c.completed
                           ? "bg-slate-50/70 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800/60"
                           : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-[var(--color-brand-primary)]"
@@ -2662,31 +2312,20 @@ const TaskDetailsDrawer = ({
                 )}
               </div>
 
-              {/* Submit Work Form for HR Assignee */}
-              {!isManager &&
-                (task.status === "In Progress" || task.status === "Changes Requested") && (
-                  <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/20 space-y-3 mt-4">
-                    <div className="text-[12px] font-bold text-purple-900 dark:text-purple-300 flex items-center gap-2">
-                      <FiSend className="w-3.5 h-3.5 text-purple-600" />
-                      Submit Work for Manager Review
-                    </div>
-                    <textarea
-                      rows={2}
-                      value={submissionNotes}
-                      onChange={(e) => setSubmissionNotes(e.target.value)}
-                      placeholder="Add submission notes, outcomes, or links for the manager..."
-                      className="w-full p-2.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 text-[12px] text-slate-800 dark:text-slate-200 focus:outline-hidden focus:border-[var(--color-brand-primary)]"
-                    />
-                    <button
-                      type="button"
-                      disabled={submittingAction}
-                      onClick={onSubmitWork}
-                      className="w-full py-2 rounded-lg bg-[var(--color-brand-primary)] hover:brightness-110 text-white font-bold text-[12px] shadow-md shadow-[color:var(--btn-glow-shadow)] transition-all cursor-pointer"
-                    >
-                      {submittingAction ? "Submitting..." : "Submit Completed Work"}
-                    </button>
-                  </div>
-                )}
+              {!isCompleted && checklistTotal > 0 && checklistDone === checklistTotal && canEditStatus && (
+                <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/60 dark:bg-emerald-950/20 flex items-center justify-between gap-3">
+                  <span className="text-[12px] font-semibold text-emerald-800 dark:text-emerald-300">
+                    All checklist items are done. Ready to close this task?
+                  </span>
+                  <button
+                    onClick={() => onStatusChange(task, "Completed")}
+                    disabled={submittingAction}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] shrink-0 cursor-pointer"
+                  >
+                    Mark Completed
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

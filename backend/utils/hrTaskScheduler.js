@@ -9,19 +9,24 @@ const User = require("../models/User");
 async function checkDueSoonHrTasks(io) {
   try {
     const now = new Date();
-    const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const windowEnd = new Date(today.getTime() + 4 * DAY_MS); // today + next 3 days
 
-    // Active tasks due within 3 days and not completed/cancelled
+    // Open tasks due within the next 3 days (On Hold tasks are paused, skip them)
     const tasksApproachingDueDate = await HrTask.find({
-      dueDate: { $gte: now, $lte: threeDaysLater },
-      status: { $in: ["Pending", "In Progress", "Changes Requested"] },
+      dueDate: { $gte: today, $lt: windowEnd },
+      status: { $in: ["Not Started", "In Progress"] },
       dueSoonNotified: false,
     }).populate("assignedTo", "name email").populate("createdBy", "name email");
 
     if (tasksApproachingDueDate.length === 0) return;
 
     for (const task of tasksApproachingDueDate) {
-      const daysLeft = Math.ceil((new Date(task.dueDate) - now) / (1000 * 60 * 60 * 24));
+      const due = new Date(task.dueDate);
+      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      const daysLeft = Math.round((dueDay - today) / DAY_MS);
+      const dueText = daysLeft <= 0 ? "today" : `in ${daysLeft} day(s)`;
       const dueStr = new Date(task.dueDate).toLocaleDateString();
 
       // Notify Manager
@@ -30,7 +35,7 @@ async function checkDueSoonHrTasks(io) {
           recipient: task.createdBy._id,
           sender: task.assignedTo?._id || task.createdBy._id,
           type: "hr_task_due_soon",
-          message: `HR Task "${task.title}" assigned to ${task.assignedTo?.name || "HR"} is due in ${daysLeft} day(s) (${dueStr})`,
+          message: `HR Task "${task.title}" assigned to ${task.assignedTo?.name || "HR"} is due ${dueText} (${dueStr})`,
           hrTask: task._id,
         });
 
@@ -46,7 +51,7 @@ async function checkDueSoonHrTasks(io) {
           recipient: task.assignedTo._id,
           sender: task.createdBy?._id || task.assignedTo._id,
           type: "hr_task_due_soon",
-          message: `Reminder: HR Task "${task.title}" is due in ${daysLeft} day(s) (${dueStr})`,
+          message: `Reminder: HR Task "${task.title}" is due ${dueText} (${dueStr})`,
           hrTask: task._id,
         });
 
@@ -57,8 +62,7 @@ async function checkDueSoonHrTasks(io) {
       }
 
       // Mark as notified so we don't spam
-      task.dueSoonNotified = true;
-      await task.save();
+      await HrTask.updateOne({ _id: task._id }, { $set: { dueSoonNotified: true } });
       console.log(`[HrTaskScheduler] Sent due-soon notification for task: "${task.title}"`);
     }
   } catch (error) {
@@ -67,6 +71,9 @@ async function checkDueSoonHrTasks(io) {
 }
 
 function startHrTaskScheduler(app) {
+  // Convert tasks from the old submit/review workflow to the new 4-status model
+  const { migrateLegacyStatuses } = require("../controllers/hrTaskController");
+
   // Check every 10 minutes
   setInterval(() => {
     const io = app.get("io");
@@ -74,7 +81,8 @@ function startHrTaskScheduler(app) {
   }, 10 * 60 * 1000);
 
   // Run initial check after 10 seconds of startup
-  setTimeout(() => {
+  setTimeout(async () => {
+    await migrateLegacyStatuses();
     const io = app.get("io");
     checkDueSoonHrTasks(io);
   }, 10000);

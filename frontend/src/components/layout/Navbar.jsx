@@ -464,6 +464,7 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
       case "hr_task_due_soon":
       case "hr_task_cancelled":
       case "hr_task_comment":
+      case "hr_task_status":
         return {
           icon: FiBriefcase,
           bgColor:
