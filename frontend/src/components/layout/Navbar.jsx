@@ -112,6 +112,45 @@ const ACCENT_NAVBAR_MAP = {
   },
 };
 
+// Status words inside notification messages get their own colour
+const NOTIFICATION_STATUS_COLORS = {
+  "not started": "text-slate-500 dark:text-slate-400",
+  pending: "text-slate-500 dark:text-slate-400",
+  "in progress": "text-blue-600 dark:text-blue-400",
+  "in review": "text-violet-600 dark:text-violet-400",
+  review: "text-violet-600 dark:text-violet-400",
+  "on hold": "text-amber-600 dark:text-amber-400",
+  blocked: "text-amber-600 dark:text-amber-400",
+  correction: "text-orange-600 dark:text-orange-400",
+  rejected: "text-rose-600 dark:text-rose-400",
+  cancelled: "text-rose-600 dark:text-rose-400",
+  completed: "text-emerald-600 dark:text-emerald-400",
+  approved: "text-emerald-600 dark:text-emerald-400",
+  done: "text-emerald-600 dark:text-emerald-400",
+};
+
+// Matches statuses like "In Review", "in-progress", "On Hold" (whole words only)
+const NOTIFICATION_STATUS_REGEX =
+  /\b(not[\s-]started|in[\s-]progress|in[\s-]review|on[\s-]hold|pending|blocked|correction|rejected|cancelled|completed|approved)\b/gi;
+
+const renderNotificationMessage = (message) => {
+  if (!message) return null;
+  const parts = message.split(NOTIFICATION_STATUS_REGEX);
+  return parts.map((part, i) => {
+    // split() with a capture group puts matches at odd indexes
+    if (i % 2 === 0) return part;
+    const key = part.toLowerCase().replace("-", " ");
+    return (
+      <span
+        key={i}
+        className={`${NOTIFICATION_STATUS_COLORS[key] || "text-indigo-600 dark:text-indigo-400"} font-black`}
+      >
+        {part}
+      </span>
+    );
+  });
+};
+
 const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -1195,7 +1234,7 @@ const Navbar = ({ setSidebarOpen, sidebarOpen, presence }) => {
                                             !n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"
                                           }`}
                                         >
-                                          {n.message}
+                                          {renderNotificationMessage(n.message)}
                                         </p>
                                       </>
                                     );
