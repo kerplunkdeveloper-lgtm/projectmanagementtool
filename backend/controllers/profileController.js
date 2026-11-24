@@ -1,6 +1,6 @@
 const User = require("../models/User");
 const Profile = require("../models/Profile");
-const cloudinary = require("../config/cloudinary");
+const { uploadMedia, replaceMedia, deleteMedia } = require("../config/s3");
 
 
 // CREATE PROFILE
@@ -26,9 +26,7 @@ exports.createProfile = async (req, res) => {
 
     if (req.file) {
 
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "profiles",
-      });
+      const result = await uploadMedia(req.file, "profiles");
 
       imageData = {
         public_id: result.public_id,
@@ -115,30 +113,19 @@ exports.updateProfile = async (req, res) => {
 
     // IMAGE UPDATE
     if (req.file) {
-      // DELETE OLD IMAGE
-      if (profile.profileImage && profile.profileImage.public_id) {
-        try {
-          await cloudinary.uploader.destroy(profile.profileImage.public_id);
-        } catch (err) {
-          console.error("Cloudinary destroy error:", err);
-        }
-      }
-
-      // UPLOAD NEW IMAGE
+      // UPLOAD NEW IMAGE TO S3, THEN DELETE OLD ONE (S3 or old Cloudinary)
       try {
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: "profiles",
-        });
+        const result = await replaceMedia(profile.profileImage, req.file, "profiles");
 
         profile.profileImage = {
           public_id: result.public_id,
           url: result.secure_url,
         };
       } catch (uploadErr) {
-        console.error("CLOUDINARY UPLOAD REJECTED:", uploadErr);
+        console.error("S3 UPLOAD FAILED:", uploadErr);
         return res.status(400).json({
           success: false,
-          message: "Cloudinary rejected the image: " + (uploadErr.message || JSON.stringify(uploadErr)),
+          message: "Image upload failed: " + (uploadErr.message || JSON.stringify(uploadErr)),
         });
       }
     }
@@ -189,14 +176,8 @@ exports.deleteProfileImage = async (req, res) => {
 
     if (profile.profileImage && (profile.profileImage.public_id || profile.profileImage.url)) {
 
-      if (profile.profileImage.public_id) {
-        try {
-          await cloudinary.uploader.destroy(profile.profileImage.public_id);
-        } catch (err) {
-          // Don't block removal from the profile if Cloudinary fails (e.g. missing credentials)
-          console.error("Cloudinary destroy error:", err.message || err);
-        }
-      }
+      // Removes from S3 (or old Cloudinary); never blocks the profile update
+      await deleteMedia(profile.profileImage);
 
       profile.profileImage = {
         public_id: "",

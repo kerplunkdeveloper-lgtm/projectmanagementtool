@@ -1,7 +1,7 @@
 const HrTask = require("../models/HrTask");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
-const cloudinary = require("../config/cloudinary");
+const { uploadMedia } = require("../config/s3");
 
 // Helper to check if user is manager or admin
 const isManagerOrAdmin = (user) => {
@@ -1211,14 +1211,14 @@ exports.uploadAttachment = async (req, res) => {
 
     let fileUrl = "";
     try {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "hr_tasks",
-        resource_type: "auto",
-      });
+      const result = await uploadMedia(req.file, "hr_tasks");
       fileUrl = result.secure_url;
     } catch (uploadErr) {
-      // Fallback if Cloudinary is not configured or rejects
-      fileUrl = `/uploads/${req.file.filename}`;
+      console.error("[uploadAttachment S3 Error]:", uploadErr);
+      return res.status(500).json({
+        success: false,
+        message: "File upload failed: " + (uploadErr.message || "S3 error"),
+      });
     }
 
     res.status(200).json({

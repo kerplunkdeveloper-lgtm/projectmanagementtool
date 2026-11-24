@@ -2,7 +2,7 @@ const Message = require("../models/Message");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const ChatRoom = require("../models/ChatRoom");
-const cloudinary = require("../config/cloudinary");
+const { uploadMedia } = require("../config/s3");
 
 // @desc    Get direct messages between logged in user and another user
 // @route   GET /api/messages/direct/:userId
@@ -480,10 +480,7 @@ exports.uploadFile = async (req, res) => {
       return res.status(400).json({ success: false, message: "No file provided" });
     }
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "chat_attachments",
-      resource_type: "auto",
-    });
+    const result = await uploadMedia(req.file, "chat_attachments");
 
     let fileType = "document";
     const mime = req.file.mimetype;

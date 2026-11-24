@@ -1,5 +1,5 @@
 const EodReport = require("../models/EodReport");
-const cloudinary = require("../config/cloudinary");
+const { uploadMedia } = require("../config/s3");
 
 // ==========================================
 // CREATE EOD REPORT
@@ -183,10 +183,7 @@ exports.uploadEodAttachment = async (req, res) => {
       return res.status(400).json({ success: false, message: "No file provided" });
     }
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "eod_attachments",
-      resource_type: "auto",
-    });
+    const result = await uploadMedia(req.file, "eod_attachments");
 
     let fileType = "document";
     const mime = req.file.mimetype;

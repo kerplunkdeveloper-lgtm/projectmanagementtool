@@ -1,5 +1,5 @@
 const DesignerEodReport = require("../models/DesignerEodReport");
-const cloudinary = require("../config/cloudinary");
+const { uploadMedia } = require("../config/s3");
 
 // Helper function to notify admins, operation managers, and creators of the tasks in the report
 const sendEodReportNotifications = async (req, reportTasks) => {
@@ -313,10 +313,7 @@ exports.uploadDesignerEodAttachment = async (req, res) => {
       return res.status(400).json({ success: false, message: "No file provided" });
     }
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "designer_eod_attachments",
-      resource_type: "auto",
-    });
+    const result = await uploadMedia(req.file, "designer_eod_attachments");
 
     let fileType = "document";
     const mime = req.file.mimetype;

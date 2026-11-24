@@ -141,6 +141,25 @@ export const SOCIAL_PLATFORMS = [
   },
 ];
 
+// Saved/imported tasks may store platforms as "instagram", "FB", "Insta", "X"… — map them to the
+// canonical ids above so the editor shows them selected (the task list already matches case-insensitively).
+const PLATFORM_ALIASES = {
+  instagram: "Instagram", insta: "Instagram", ig: "Instagram",
+  facebook: "Facebook", fb: "Facebook", meta: "Facebook",
+  youtube: "YouTube", yt: "YouTube",
+  gmb: "GMB", "google my business": "GMB", "google business": "GMB", "google business profile": "GMB", google: "GMB",
+  twitter: "Twitter", x: "Twitter",
+  linkedin: "LinkedIn", "linked in": "LinkedIn",
+};
+
+export const normalizePlatformId = (p) => {
+  const key = String(p || "").trim().toLowerCase();
+  if (!key) return "";
+  return PLATFORM_ALIASES[key] || SOCIAL_PLATFORMS.find((s) => s.id.toLowerCase() === key)?.id || String(p).trim();
+};
+
+const normalizePlatformList = (list) => [...new Set((list || []).map(normalizePlatformId).filter(Boolean))];
+
 const COMMITMENT_STATUSES = [
   "Not started",
   "Inprogress",
@@ -156,7 +175,6 @@ const NON_COMMITMENT_STATUSES = [
 ];
 const STATUSES = COMMITMENT_STATUSES;
 const PRIORITIES = ["High", "Medium", "Low"];
-const QC_STATUSES = ["-", "Pending", "Passed", "Rejected"];
 
 const SmTaskModal = ({
   isOpen,
@@ -322,10 +340,11 @@ const SmTaskModal = ({
             : "Post")
         : "Others Task";
 
-      const initialPlatform = task.platform || (task.platforms && task.platforms[0]) || "Instagram";
-      const initialPlatforms = task.platforms && task.platforms.length > 0
-        ? task.platforms
-        : [initialPlatform];
+      const savedPlatforms = normalizePlatformList(
+        Array.isArray(task.platforms) && task.platforms.length > 0 ? task.platforms : [task.platform]
+      );
+      const initialPlatforms = savedPlatforms.length > 0 ? savedPlatforms : ["Instagram"];
+      const initialPlatform = initialPlatforms[0];
 
       setFormData({
         taskTitle: task.taskTitle || "",
@@ -408,9 +427,9 @@ const SmTaskModal = ({
   const handlePlatformSelect = (platId) => {
     if (isReadOnly) return;
     setFormData((prev) => {
-      const currentList = Array.isArray(prev.platforms)
-        ? prev.platforms
-        : (prev.platform ? [prev.platform] : []);
+      const currentList = normalizePlatformList(
+        Array.isArray(prev.platforms) ? prev.platforms : [prev.platform]
+      );
       const exists = currentList.includes(platId);
       const updated = exists
         ? currentList.filter((p) => p !== platId)
@@ -580,7 +599,7 @@ const SmTaskModal = ({
           : (formData.platform ? [formData.platform] : []);
         const completed = Array.isArray(task?.completedPlatforms) ? task.completedPlatforms : [];
         const unticked = targetPlatforms.filter(
-          (p) => !completed.some((cp) => cp.toLowerCase() === p.toLowerCase())
+          (p) => !completed.some((cp) => normalizePlatformId(cp) === normalizePlatformId(p))
         );
         if (unticked.length > 0) {
           const proceed = window.confirm(
@@ -927,7 +946,7 @@ const SmTaskModal = ({
                     <div className="flex items-center gap-1.5">
                       <label className="flex items-center gap-1 text-[11px] font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                         <FiShare2 size={12} className="text-indigo-500 dark:text-indigo-400" />
-                        <span>Platforms</span>
+                        <span>Post On</span>
                       </label>
                       <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-full bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-500/30">
                         {(formData.platforms || []).length}/{SOCIAL_PLATFORMS.length}
@@ -1001,6 +1020,9 @@ const SmTaskModal = ({
                       );
                     })}
                   </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    Where this content should be posted. After posting, tick each platform in the task list (✓ Posted).
+                  </p>
                 </div>
               )}
 
@@ -1128,8 +1150,8 @@ const SmTaskModal = ({
                 </div>
               </div>
 
-              {/* Status & QC */}
-              <div className={`grid ${isCommitment ? "grid-cols-2" : "grid-cols-1"} gap-2`}>
+              {/* Status */}
+              <div className="grid grid-cols-1 gap-2">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
                     Status
@@ -1161,26 +1183,6 @@ const SmTaskModal = ({
                     ))}
                   </select>
                 </div>
-
-                {isCommitment && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                      QC Status
-                    </label>
-                    <select
-                      value={formData.qc}
-                      onChange={(e) => setFormData({ ...formData, qc: e.target.value })}
-                      disabled={isReadOnly}
-                      className="w-full px-2.5 py-1.5 bg-slate-50/70 dark:bg-[#131d31] border border-slate-200 dark:border-[#22324f] rounded-lg text-slate-900 dark:text-white text-xs font-semibold focus:ring-2 focus:ring-indigo-500 cursor-pointer disabled:opacity-85 disabled:cursor-not-allowed"
-                    >
-                      {QC_STATUSES.map((q) => (
-                        <option key={q} value={q} className="dark:bg-[#131d31] dark:text-white">
-                          {q === "-" ? "None (-)" : q}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
             </div>
           </div>
