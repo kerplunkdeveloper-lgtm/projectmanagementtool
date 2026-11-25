@@ -38,6 +38,7 @@ import {
   FiPhoneCall,
   FiLock,
   FiMapPin,
+  FiRefreshCw,
 } from "react-icons/fi";
 import { FaRegBuilding } from "react-icons/fa";
 import {
@@ -45,6 +46,17 @@ import {
   CLIENT_COLORS,
   CLIENT_ICONS,
 } from "../../../utils/clientHelpers";
+import ServicePlanStep from "./ServicePlanStep";
+import {
+  SERVICE_CATALOG,
+  normalizeServiceDetails,
+  deriveProjectType,
+  validateServiceDetails,
+  getServiceLabel,
+  getServiceMeta,
+  getClientProjectFlags,
+  describeServiceSchedule,
+} from "../../../utils/serviceCatalog";
 
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -455,10 +467,12 @@ const MultiSelect = React.memo(({
 
   return (
     <div className="relative">
-      <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1.5">
-        {Icon && <Icon size={12} className="text-slate-450" />}
-        {label}
-      </label>
+      {label && (
+        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+          {Icon && <Icon size={12} className="text-slate-450" />}
+          {label}
+        </label>
+      )}
       <div
         onClick={() => setIsOpen(!isOpen)}
         className="w-full min-h-10 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 flex flex-wrap gap-1.5 items-center cursor-pointer outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all"
@@ -1020,6 +1034,7 @@ const INITIAL_CLIENT_FORM = {
   gst: "",
   totalBudget: "",
   service: [],
+  serviceDetails: [],
   reels: "",
   posts: "",
   story: "",
@@ -1092,6 +1107,8 @@ const Clients = () => {
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All");
+  // "All" | "Recurring" | "One-time" — a client with both kinds matches either
+  const [projectTypeFilter, setProjectTypeFilter] = useState("All");
   const [clientNameFilter, setClientNameFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [branchFilter, setBranchFilter] = useState("All");
@@ -1206,13 +1223,17 @@ const Clients = () => {
     
     // Phone number is optional
 
-    if (!formData.service || formData.service.length === 0) {
-      toast.error("Please select at least one service");
+    const serviceError = validateServiceDetails(formData.serviceDetails);
+    if (serviceError) {
+      toast.error(serviceError);
+      setActiveTab("service");
       return;
     }
 
     const payload = {
       ...formData,
+      service: formData.serviceDetails.map((d) => d.name),
+      projectType: deriveProjectType(formData.serviceDetails),
       budget: formData.budget === "" ? 0 : Number(formData.budget),
       gst: formData.gst === "" ? 18 : Number(formData.gst),
       reels: formData.reels === "" ? 0 : Number(formData.reels),
@@ -1268,8 +1289,9 @@ const Clients = () => {
     } else if (activeTab === "branding") {
       setActiveTab("service");
     } else if (activeTab === "service") {
-      if (!formData.service || formData.service.length === 0) {
-        toast.error("Please select at least one service");
+      const serviceError = validateServiceDetails(formData.serviceDetails);
+      if (serviceError) {
+        toast.error(serviceError);
         return;
       }
       if (canViewBudget) {
@@ -1295,6 +1317,7 @@ const Clients = () => {
         : client.service
           ? [client.service]
           : [],
+      serviceDetails: normalizeServiceDetails(client),
       assignedTo: Array.isArray(client.assignedTo)
         ? client.assignedTo.map((u) => u._id || u)
         : client.assignedTo
@@ -1423,6 +1446,12 @@ const Clients = () => {
                 ? client.service.includes(serviceFilter)
                 : client.service === serviceFilter;
 
+          const flags = getClientProjectFlags(client);
+          const matchesProjectType =
+            projectTypeFilter === "All" ||
+            (projectTypeFilter === "Recurring" && flags.recurring) ||
+            (projectTypeFilter === "One-time" && flags.oneTime);
+
           const matchesClientName =
             clientNameFilter === "All"
               ? true
@@ -1448,6 +1477,7 @@ const Clients = () => {
           return (
             matchesSearch &&
             matchesService &&
+            matchesProjectType &&
             matchesClientName &&
             matchesStatus &&
             matchesBranch &&
@@ -1465,6 +1495,7 @@ const Clients = () => {
     scopedClients,
     searchTerm,
     serviceFilter,
+    projectTypeFilter,
     clientNameFilter,
     memberFilter,
     statusFilter,
@@ -1474,7 +1505,7 @@ const Clients = () => {
   // Reset pagination to page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, serviceFilter, clientNameFilter, memberFilter, statusFilter, branchFilter]);
+  }, [searchTerm, serviceFilter, projectTypeFilter, clientNameFilter, memberFilter, statusFilter, branchFilter]);
 
   const totalItems = filteredClients.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -1532,6 +1563,33 @@ const Clients = () => {
           gradient: "from-rose-550 to-red-500",
           icon: FiVideo,
         };
+      case "Social Media Management":
+        return {
+          bg: "bg-sky-50/50 dark:bg-sky-950/10",
+          text: "text-sky-600 dark:text-sky-400",
+          border: "border-sky-100 dark:border-sky-900/30",
+          pill: "bg-sky-50 text-sky-700 border-sky-200/50 dark:bg-sky-950/20 dark:text-sky-400 dark:border-sky-800/50",
+          gradient: "from-sky-500 to-blue-500",
+          icon: FiUsers,
+        };
+      case "Content Marketing":
+        return {
+          bg: "bg-indigo-50/50 dark:bg-indigo-950/10",
+          text: "text-indigo-600 dark:text-indigo-400",
+          border: "border-indigo-100 dark:border-indigo-900/30",
+          pill: "bg-indigo-50 text-indigo-700 border-indigo-200/50 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-800/50",
+          gradient: "from-indigo-500 to-violet-500",
+          icon: FiBookOpen,
+        };
+      case "Branding & Identity":
+        return {
+          bg: "bg-fuchsia-50/50 dark:bg-fuchsia-950/10",
+          text: "text-fuchsia-600 dark:text-fuchsia-400",
+          border: "border-fuchsia-100 dark:border-fuchsia-900/30",
+          pill: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200/50 dark:bg-fuchsia-950/20 dark:text-fuchsia-400 dark:border-fuchsia-800/50",
+          gradient: "from-fuchsia-500 to-pink-500",
+          icon: FiTool,
+        };
       case "Others":
         return {
           bg: "bg-teal-50/50 dark:bg-teal-950/10",
@@ -1560,6 +1618,15 @@ const Clients = () => {
   const inactiveClientsCount = (scopedClients || []).filter(
     (c) => c.status === "Inactive",
   ).length;
+  const projectTypeCounts = (scopedClients || []).reduce(
+    (acc, c) => {
+      const f = getClientProjectFlags(c);
+      if (f.recurring) acc.recurring += 1;
+      if (f.oneTime) acc.oneTime += 1;
+      return acc;
+    },
+    { recurring: 0, oneTime: 0 },
+  );
 
   return (
     <div className="min-h-screen pb-12 transition-colors duration-300">
@@ -1627,6 +1694,58 @@ const Clients = () => {
               {inactiveClientsCount}
             </span>
           </button>
+        </div>
+
+        {/* PROJECT TYPE FILTER (Recurring / One-time) — click again to clear */}
+        <div className="flex items-center gap-1.5 sm:gap-2 sidebar-bg p-1.5 rounded-2xl shadow-2xs">
+          {[
+            {
+              id: "Recurring",
+              hint: "Ongoing monthly services (DM, SEO)",
+              icon: FiRefreshCw,
+              count: projectTypeCounts.recurring,
+              active:
+                "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-700",
+              iconCls: "text-emerald-600 dark:text-emerald-400",
+              countCls:
+                "bg-emerald-100/80 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300",
+            },
+            {
+              id: "One-time",
+              hint: "Fixed scope, start-end (Branding, Website)",
+              icon: FiLayers,
+              count: projectTypeCounts.oneTime,
+              active:
+                "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 ring-1 ring-violet-300 dark:ring-violet-700",
+              iconCls: "text-violet-600 dark:text-violet-400",
+              countCls:
+                "bg-violet-100/80 text-violet-700 dark:bg-violet-900/60 dark:text-violet-300",
+            },
+          ].map((t) => {
+            const isOn = projectTypeFilter === t.id;
+            const TIcon = t.icon;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                title={`${t.hint}${isOn ? " — click to show all" : ""}`}
+                aria-pressed={isOn}
+                onClick={() => setProjectTypeFilter(isOn ? "All" : t.id)}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isOn
+                    ? `${t.active} shadow-sm`
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+                }`}
+              >
+                <TIcon size={13} className={isOn ? t.iconCls : "opacity-60"} />
+                <span>{t.id} Project</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${t.countCls}`}>
+                  {t.count}
+                </span>
+                {isOn && <FiCheck size={12} className={`stroke-[3] ${t.iconCls}`} />}
+              </button>
+            );
+          })}
         </div>
 
         {/* Filter Results Count Indicator */}
@@ -1754,12 +1873,11 @@ const Clients = () => {
               className="w-full h-9 pl-3 pr-7 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none transition-all font-semibold cursor-pointer appearance-none truncate"
             >
               <option value="All">All Services</option>
-              <option value="Digital Marketing">Digital Marketing</option>
-              <option value="Website">Website Development</option>
-              <option value="SEO">SEO Strategy</option>
-              <option value="Additional work">Additional work</option>
-              <option value="Video Production">Video Production</option>
-              <option value="Others">Others</option>
+              {SERVICE_CATALOG.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
             </select>
             <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
               <svg
@@ -2254,27 +2372,74 @@ const Clients = () => {
                           </td>
                           <td className={cellClass}>
                             <div className="flex flex-col gap-1.5 py-0.5">
-                              {/* Service Pills (Digital Marketing, SEO, Website, etc.) */}
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {client.service &&
-                                  (Array.isArray(client.service)
+                              {/* Project type badge(s) + service pills (recurring first) */}
+                              {(() => {
+                                const flags = getClientProjectFlags(client);
+                                const svcList = (
+                                  Array.isArray(client.service)
                                     ? client.service
-                                    : [client.service || "Contract"]
-                                  ).map((svc, idx) => {
-                                    if (!svc) return null;
-                                    const sConf = getServiceStyles(svc);
-                                    const SIcon = sConf.icon;
-                                    return (
+                                    : client.service
+                                      ? [client.service]
+                                      : []
+                                ).filter(Boolean);
+                                const rank = (svc) =>
+                                  getServiceMeta(svc).type === "Recurring" ? 0 : 1;
+                                const sorted = [...svcList].sort((a, b) => rank(a) - rank(b));
+                                return (
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {flags.recurring && (
                                       <span
-                                        key={idx}
-                                        className={`inline-flex px-2 py-0.5 rounded-full text-[8.5px] font-extrabold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-2xs whitespace-nowrap shrink-0`}
+                                        title="Recurring project — ongoing, billed per cycle"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider bg-emerald-600 text-white shadow-2xs whitespace-nowrap"
                                       >
-                                        <SIcon size={9.5} />
-                                        {svc}
+                                        <FiRefreshCw size={9} /> Recurring
                                       </span>
-                                    );
-                                  })}
-                              </div>
+                                    )}
+                                    {flags.oneTime && (
+                                      <span
+                                        title="One-time project — fixed scope, start to end"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider bg-violet-600 text-white shadow-2xs whitespace-nowrap"
+                                      >
+                                        <FiLayers size={9} /> One-time
+                                      </span>
+                                    )}
+                                    {sorted.length > 0 && (flags.recurring || flags.oneTime) && (
+                                      <span className="w-px h-3.5 bg-slate-200 dark:bg-slate-700" />
+                                    )}
+                                    {sorted.map((svc) => {
+                                      const sConf = getServiceStyles(svc);
+                                      const SIcon = sConf.icon;
+                                      const isRecurring = rank(svc) === 0;
+                                      const detail = (client.serviceDetails || []).find(
+                                        (d) => d.name === svc,
+                                      );
+                                      return (
+                                        <span
+                                          key={svc}
+                                          title={`${getServiceLabel(svc)} — ${
+                                            detail
+                                              ? describeServiceSchedule(detail)
+                                              : isRecurring
+                                                ? "Recurring"
+                                                : "One-time"
+                                          }`}
+                                          className={`inline-flex px-2 py-0.5 rounded-full text-[8.5px] font-extrabold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-2xs whitespace-nowrap shrink-0`}
+                                        >
+                                          {isRecurring ? <FiRefreshCw size={9} /> : <SIcon size={9.5} />}
+                                          {svc}
+                                          {isRecurring &&
+                                            detail?.billingCycle &&
+                                            detail.billingCycle !== "Monthly" && (
+                                              <span className="opacity-70 normal-case">
+                                                · {detail.billingCycle}
+                                              </span>
+                                            )}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()}
 
                               {/* Members - User Name & Dept Name with Dept Background Colors */}
                               <div className="flex flex-wrap items-center gap-1.5 max-w-[380px]">
@@ -2675,7 +2840,7 @@ const Clients = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0, y: 12 }}
               transition={{ type: "spring", stiffness: 380, damping: 28 }}
-              className="client-modal bg-white dark:bg-[#0f172a] w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-[#1e293b] flex flex-col"
+              className={`client-modal bg-white dark:bg-[#0f172a] w-full ${activeTab === "service" ? "max-w-4xl" : "max-w-2xl"} rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-[#1e293b] flex flex-col transition-[max-width] duration-200`}
             >
               {/* MODAL HEADER */}
               <div className="client-modal-header px-6 py-3.5 border-b border-slate-100 dark:border-[#1e293b] flex items-center justify-between bg-slate-50/80 dark:bg-[#0b1120] shrink-0">
@@ -3162,34 +3327,12 @@ const Clients = () => {
                         transition={{ duration: 0.15 }}
                         className="space-y-3.5"
                       >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        <ServicePlanStep
+                          formData={formData}
+                          setFormData={setFormData}
+                          membersSlot={
                           <MultiSelect
-                            label="Core Contract Service"
-                            placeholder="Select Service Areas"
-                            options={[
-                              {
-                                value: "Digital Marketing",
-                                label: "Digital Marketing",
-                              },
-                              { value: "Website", label: "Website Development" },
-                              { value: "SEO", label: "SEO Strategy" },
-                              {
-                                value: "Additional work",
-                                label: "Additional work",
-                              },
-                              {
-                                value: "Video Production",
-                                label: "Video Production",
-                              },
-                              { value: "Others", label: "Others" },
-                            ]}
-                            selectedValues={formData.service || []}
-                            onChange={handleServiceChange}
-                            icon={FiLayers}
-                          />
-
-                          <MultiSelect
-                            label="Assign to members"
+                            label=""
                             placeholder="Select members"
                             options={allUsers.map((u) => ({
                               value: u._id,
@@ -3209,7 +3352,8 @@ const Clients = () => {
                             onChange={handleAssignedChange}
                             icon={FiUsers}
                           />
-                        </div>
+                          }
+                        />
 
                         {/* Commitments Dynamic Blocks */}
                         {formData.service &&
@@ -3514,8 +3658,11 @@ const Clients = () => {
                               <div className="text-[10px] text-slate-400 dark:text-slate-400 font-medium">Services</div>
                               <div className="font-bold text-slate-800 dark:text-white truncate">
                                 {Array.isArray(formData.service) && formData.service.length > 0
-                                  ? formData.service.join(", ")
+                                  ? formData.service.map(getServiceLabel).join(", ")
                                   : "None"}
+                              </div>
+                              <div className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                {deriveProjectType(formData.serviceDetails) || "—"} Project
                               </div>
                             </div>
                             <div>

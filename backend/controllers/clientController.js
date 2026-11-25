@@ -37,6 +37,65 @@ const isPrivilegedClientUser = (user) => {
   );
 };
 
+// Which services are billed on a cycle vs. delivered once (fixed scope).
+const RECURRING_SERVICES = new Set([
+  "Digital Marketing",
+  "Social Media Management",
+  "SEO",
+  "Content Marketing",
+]);
+
+/**
+ * Cleans serviceDetails from the request and derives `service` and
+ * `projectType` from it. Returns { error } or { service, serviceDetails, projectType }.
+ * Returns null when the request carries no serviceDetails (legacy clients).
+ */
+const normalizeServicePlan = (serviceDetails) => {
+  if (!Array.isArray(serviceDetails)) return null;
+  if (serviceDetails.length === 0) {
+    return { error: "Please select at least one service" };
+  }
+
+  const seen = new Set();
+  const cleaned = [];
+  for (const d of serviceDetails) {
+    if (!d || !d.name || seen.has(d.name)) continue;
+    seen.add(d.name);
+
+    const type = RECURRING_SERVICES.has(d.name) ? "Recurring" : "One-time";
+    const startDate = d.startDate ? new Date(d.startDate) : null;
+    const endDate = d.endDate ? new Date(d.endDate) : null;
+    const timeline = type === "One-time" ? d.timeline || "Fixed Duration" : "";
+
+    if (!startDate || Number.isNaN(startDate.getTime())) {
+      return { error: `${d.name}: start date is required` };
+    }
+    if (endDate && (Number.isNaN(endDate.getTime()) || endDate < startDate)) {
+      return { error: `${d.name}: end date cannot be before start date` };
+    }
+    if (type === "One-time" && timeline === "Fixed Duration" && !endDate) {
+      return { error: `${d.name}: end date is required for a fixed-duration project` };
+    }
+
+    cleaned.push({
+      name: d.name,
+      type,
+      billingCycle: type === "Recurring" ? d.billingCycle || "Monthly" : "",
+      timeline,
+      startDate,
+      endDate: timeline === "Open (TBD)" ? null : endDate,
+    });
+  }
+
+  const hasRecurring = cleaned.some((d) => d.type === "Recurring");
+  const hasOneTime = cleaned.some((d) => d.type === "One-time");
+
+  return {
+    serviceDetails: cleaned,
+    service: cleaned.map((d) => d.name),
+    projectType: hasRecurring && hasOneTime ? "Hybrid" : hasRecurring ? "Recurring" : "One-time",
+  };
+};
 
 // @desc    Create Client
 // @route   POST /api/clients
@@ -61,6 +120,7 @@ exports.createClient = async (req, res) => {
       budget,
       gst,
       service,
+      serviceDetails,
       reels,
       posts,
       story,
@@ -72,6 +132,11 @@ exports.createClient = async (req, res) => {
       color,
       icon,
     } = req.body;
+
+    const plan = normalizeServicePlan(serviceDetails);
+    if (plan?.error) {
+      return res.status(400).json({ success: false, message: plan.error });
+    }
 
     if (!branch || !branch.trim()) {
       return res.status(400).json({
@@ -95,7 +160,9 @@ exports.createClient = async (req, res) => {
       budget,
       gst,
       totalBudget,
-      service,
+      service: plan ? plan.service : service,
+      serviceDetails: plan ? plan.serviceDetails : [],
+      projectType: plan ? plan.projectType : "",
       reels,
       posts,
       story,
@@ -314,6 +381,18 @@ exports.updateClient = async (req, res) => {
 
       req.body.totalBudget =
         budget + (budget * gst) / 100;
+    }
+
+    // projectType / service are always derived from serviceDetails
+    delete req.body.projectType;
+    const plan = normalizeServicePlan(req.body.serviceDetails);
+    if (plan?.error) {
+      return res.status(400).json({ success: false, message: plan.error });
+    }
+    if (plan) {
+      req.body.serviceDetails = plan.serviceDetails;
+      req.body.service = plan.service;
+      req.body.projectType = plan.projectType;
     }
 
     if (req.body.assignedTo) {

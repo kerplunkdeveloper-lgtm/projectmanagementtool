@@ -63,14 +63,47 @@ const clientSchema = new mongoose.Schema(
       type: [String],
       enum: [
         "Digital Marketing",
-        "Website",
+        "Social Media Management",
         "SEO",
+        "Content Marketing",
+        "Branding & Identity",
+        "Website",
         "Additional work",
         "Video Production",
         "Others",
       ],
       required: true,
     },
+
+    // "Recurring" = only ongoing services, "One-time" = only fixed-scope,
+    // "Hybrid" = both. Derived from serviceDetails on save.
+    projectType: {
+      type: String,
+      enum: ["Recurring", "One-time", "Hybrid", ""],
+      default: "",
+    },
+
+    // Per-service schedule. `service` above stays the flat list of names
+    // so existing filters keep working.
+    serviceDetails: [
+      {
+        _id: false,
+        name: { type: String, required: true },
+        type: { type: String, enum: ["Recurring", "One-time"], required: true },
+        billingCycle: {
+          type: String,
+          enum: ["Monthly", "Quarterly", "Half-yearly", "Yearly", ""],
+          default: "",
+        },
+        timeline: {
+          type: String,
+          enum: ["Fixed Duration", "Open (TBD)", ""],
+          default: "",
+        },
+        startDate: { type: Date },
+        endDate: { type: Date, default: null },
+      },
+    ],
 
     // DIGITAL MARKETING
     reels: {
