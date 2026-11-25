@@ -28,7 +28,6 @@ import {
   FiCheckCircle,
   FiClock,
   FiAlertCircle,
-  FiAlertTriangle,
   FiRefreshCw,
   FiLayers,
   FiEye,
@@ -37,7 +36,7 @@ import {
   FiMenu,
 } from "react-icons/fi";
 import { LuListChecks, LuPalette, LuVideo, LuBuilding2, LuFolderKanban } from "react-icons/lu";
-import { TbPencilHeart, TbFlame } from "react-icons/tb";
+import { TbPencilHeart } from "react-icons/tb";
 
 import { useGetTasksQuery } from "../../features/api/apiSlice";
 import { getClients } from "../../features/clients/clientslice";
@@ -366,6 +365,7 @@ const getStatusBadgeStyle = (status) => {
       label: "Completed",
       classes: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
       dotClass: "bg-emerald-500",
+      rowClass: "bg-emerald-50/50 hover:bg-emerald-50 dark:bg-emerald-950/15 dark:hover:bg-emerald-950/30",
     };
   }
   if (s.includes("progress")) {
@@ -373,6 +373,7 @@ const getStatusBadgeStyle = (status) => {
       label: "In Progress",
       classes: "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border-blue-200 dark:border-blue-800/60",
       dotClass: "bg-blue-500 animate-pulse",
+      rowClass: "bg-blue-50/50 hover:bg-blue-50 dark:bg-blue-950/15 dark:hover:bg-blue-950/30",
     };
   }
   if (s.includes("review")) {
@@ -380,6 +381,7 @@ const getStatusBadgeStyle = (status) => {
       label: "In Review",
       classes: "bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border-purple-200 dark:border-purple-800/60",
       dotClass: "bg-purple-500",
+      rowClass: "bg-purple-50/50 hover:bg-purple-50 dark:bg-purple-950/15 dark:hover:bg-purple-950/30",
     };
   }
   if (s.includes("correction")) {
@@ -387,6 +389,7 @@ const getStatusBadgeStyle = (status) => {
       label: "Correction",
       classes: "bg-orange-50 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300 border-orange-200 dark:border-orange-800/60",
       dotClass: "bg-orange-500",
+      rowClass: "bg-orange-50/50 hover:bg-orange-50 dark:bg-orange-950/15 dark:hover:bg-orange-950/30",
     };
   }
   if (s.includes("hold") || s.includes("pause")) {
@@ -394,6 +397,7 @@ const getStatusBadgeStyle = (status) => {
       label: "On Hold",
       classes: "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
       dotClass: "bg-amber-500",
+      rowClass: "bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-950/15 dark:hover:bg-amber-950/30",
     };
   }
   if (s.includes("reject")) {
@@ -401,6 +405,7 @@ const getStatusBadgeStyle = (status) => {
       label: "Rejected",
       classes: "bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200 dark:border-rose-800/60",
       dotClass: "bg-rose-500",
+      rowClass: "bg-rose-50/50 hover:bg-rose-50 dark:bg-rose-950/15 dark:hover:bg-rose-950/30",
     };
   }
   return {
@@ -416,29 +421,54 @@ const getPriorityBadgeStyle = (priority) => {
   if (p.includes("top")) {
     return {
       label: "Top High",
-      classes: "bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border-red-200 dark:border-red-800/60",
-      icon: <TbFlame className="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" />,
+      level: 4,
+      classes: "bg-gradient-to-r from-red-500 to-rose-600 text-white border-red-600 shadow-sm shadow-red-500/30",
+      barOn: "bg-white",
+      barOff: "bg-white/35",
+      icon: null,
     };
   }
   if (p === "high") {
     return {
       label: "High",
-      classes: "bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200 dark:border-amber-800/60",
-      icon: <FiAlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />,
+      level: 3,
+      classes: "bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border-orange-300 dark:border-orange-800/70",
+      barOn: "bg-orange-500",
+      barOff: "bg-orange-200 dark:bg-orange-900/60",
+      icon: null,
     };
   }
   if (p === "medium") {
     return {
       label: "Medium",
-      classes: "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60",
-      icon: <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />,
+      level: 2,
+      classes: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 border-sky-200 dark:border-sky-800/70",
+      barOn: "bg-sky-500",
+      barOff: "bg-sky-200 dark:bg-sky-900/60",
+      icon: null,
     };
   }
   return {
     label: "Low",
-    classes: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60",
-    icon: <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />,
+    level: 1,
+    classes: "bg-slate-50 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+    barOn: "bg-slate-500 dark:bg-slate-400",
+    barOff: "bg-slate-200 dark:bg-slate-700",
+    icon: null,
   };
+};
+
+// Priority pill: label only
+const PriorityBadge = ({ priority }) => {
+  const b = getPriorityBadgeStyle(priority);
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-px rounded-full text-[7.5px] font-black uppercase tracking-wider border whitespace-nowrap ${b.classes}`}
+      title={`Priority: ${b.label}`}
+    >
+      {b.label}
+    </span>
+  );
 };
 
 const StatusOverview = () => {
@@ -1681,35 +1711,40 @@ const StatusOverview = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-100/80 dark:bg-[#131926] text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 select-none">
-                <th className="py-2 px-3 min-w-[240px]">Task Name</th>
-                <th className="py-2 px-3 min-w-[140px]">Client Name</th>
-                <th className="py-2 px-3 min-w-[140px]">Created By</th>
-                <th className="py-2 px-3 min-w-[140px]">Assignee</th>
-                <th className="py-2 px-3 min-w-[175px]">Start Date & End Date</th>
-                <th className="py-2 px-3 min-w-[140px]">Total Productivity</th>
-                <th className="py-2 px-3 min-w-[110px]">Status</th>
-                <th className="py-2 px-3 min-w-[140px]">Approval Info</th>
+              <tr className="bg-slate-100/80 dark:bg-[#131926] text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 select-none">
+                <th className="py-1.5 px-2 min-w-[240px]">Task Name</th>
+                <th className="py-1.5 px-2 min-w-[100px]">Priority</th>
+                <th className="py-1.5 px-2 min-w-[140px]">Client Name</th>
+                <th className="py-1.5 px-2 min-w-[140px]">Created By</th>
+                <th className="py-1.5 px-2 min-w-[140px]">Assignee</th>
+                <th className="py-1.5 px-2 min-w-[175px]">Start Date & End Date</th>
+                <th className="py-1.5 px-2 min-w-[140px]">Total Productivity</th>
+                <th className="py-1.5 px-2 min-w-[110px]">Status</th>
+                <th className="py-1.5 px-2 min-w-[140px]">Approval Info</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-[9.5px] font-medium">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-[8.5px] font-medium">
               {tasksLoading ? (
                 Array.from({ length: itemsPerPage }).map((_, i) => (
                   <tr key={`skeleton-${i}`} className="animate-pulse">
                     {/* Task name */}
-                    <td className="py-2 px-2.5">
+                    <td className="py-1 px-2">
                       <div className="h-2.5 w-40 rounded bg-slate-200 dark:bg-slate-700/70" />
                       <div className="mt-1.5 h-2 w-16 rounded bg-slate-100 dark:bg-slate-800" />
                     </td>
+                    {/* Priority */}
+                    <td className="py-1 px-2">
+                      <div className="h-4 w-16 rounded-full bg-slate-200 dark:bg-slate-700/70" />
+                    </td>
                     {/* Client */}
-                    <td className="py-2 px-2.5">
+                    <td className="py-1 px-2">
                       <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-700/70" />
                     </td>
                     {/* Created by / Assignee */}
                     {[0, 1].map((k) => (
-                      <td key={k} className="py-2 px-2.5">
+                      <td key={k} className="py-1 px-2">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700/70 shrink-0" />
+                          <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700/70 shrink-0" />
                           <div className="space-y-1">
                             <div className="h-2.5 w-16 rounded bg-slate-200 dark:bg-slate-700/70" />
                             <div className="h-2 w-12 rounded bg-slate-100 dark:bg-slate-800" />
@@ -1718,27 +1753,27 @@ const StatusOverview = () => {
                       </td>
                     ))}
                     {/* Dates */}
-                    <td className="py-2 px-2.5">
+                    <td className="py-1 px-2">
                       <div className="h-2.5 w-24 rounded bg-slate-200 dark:bg-slate-700/70" />
                       <div className="mt-1.5 h-2.5 w-20 rounded bg-slate-100 dark:bg-slate-800" />
                     </td>
                     {/* Productivity */}
-                    <td className="py-2 px-2.5">
+                    <td className="py-1 px-2">
                       <div className="h-5 w-20 rounded-lg bg-slate-200 dark:bg-slate-700/70" />
                     </td>
                     {/* Status */}
-                    <td className="py-2 px-2.5">
+                    <td className="py-1 px-2">
                       <div className="h-4 w-16 rounded-lg bg-slate-200 dark:bg-slate-700/70" />
                     </td>
                     {/* Approval */}
-                    <td className="py-2 px-2.5">
+                    <td className="py-1 px-2">
                       <div className="h-4 w-20 rounded bg-slate-200 dark:bg-slate-700/70" />
                     </td>
                   </tr>
                 ))
               ) : tasksError && !tasksData ? (
                 <tr>
-                  <td colSpan={8} className="py-14 text-center">
+                  <td colSpan={9} className="py-14 text-center">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <FiAlertCircle size={22} className="text-rose-500" />
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -1756,7 +1791,7 @@ const StatusOverview = () => {
                 </tr>
               ) : paginatedTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center">
+                  <td colSpan={9} className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
                         <LuListChecks size={24} />
@@ -1794,7 +1829,6 @@ const StatusOverview = () => {
                   const assigneeAvatar = getUserAvatarUrl(assigneeObj);
 
                   const statusBadge = getStatusBadgeStyle(t.status);
-                  const priorityBadge = getPriorityBadgeStyle(t.priority);
                   const overdueInfo = getOverdueInfo(t.dueDate, t.status);
                   const overdue = overdueInfo.isOverdue;
 
@@ -1810,39 +1844,32 @@ const StatusOverview = () => {
                   return (
                     <tr
                       key={t._id || idx}
-                      className="hover:bg-slate-50/80 dark:hover:bg-[#151c2e]/70 transition-colors"
+                      className={`transition-colors ${
+                        statusBadge.rowClass || "hover:bg-slate-50/80 dark:hover:bg-[#151c2e]/70"
+                      }`}
                     >
                       {/* 1. Task Name & Priority */}
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1 px-2">
                         <div className="flex items-start gap-1.5 max-w-[280px]">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span
-                                className="font-bold text-slate-900 dark:text-slate-100 text-[10.5px] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-[180px]"
+                                className="font-bold text-slate-900 dark:text-slate-100 text-[9.5px] hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer truncate max-w-[180px]"
                                 title={t.title || "Untitled Task"}
                                 onClick={() => handleViewTaskInBoard(t)}
                               >
                                 {t.title || "Untitled Task"}
                               </span>
-
-                              {/* Priority badge next to task name */}
-                              <span
-                                className={`inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider border shadow-2xs shrink-0 ${priorityBadge.classes}`}
-                                title={`Priority: ${priorityBadge.label}`}
-                              >
-                                {priorityBadge.icon}
-                                <span>{priorityBadge.label}</span>
-                              </span>
                             </div>
 
                             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                               {t.contentType && !t.contentType.toUpperCase().includes("MOM") && (
-                                <span className="inline-block px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-black">
+                                <span className="inline-block px-1.5 py-0.2 rounded text-[7.5px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-black">
                                   {t.contentType}
                                 </span>
                               )}
                               {t.workType && (
-                                <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium truncate max-w-[120px]">
+                                <span className="text-[7.5px] text-slate-400 dark:text-slate-500 font-medium truncate max-w-[120px]">
                                   {t.workType}
                                 </span>
                               )}
@@ -1851,11 +1878,16 @@ const StatusOverview = () => {
                         </div>
                       </td>
 
+                      {/* 2. Priority */}
+                      <td className="py-1 px-2">
+                        <PriorityBadge priority={t.priority} />
+                      </td>
+
                       {/* 3. Client Name */}
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1 px-2">
                         {clientObj ? (
                           clientObj.isProjectFallback ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                               <LuBuilding2 size={10} className="text-slate-500" />
                               <span className="truncate max-w-[120px]">{clientObj.companyName}</span>
                             </span>
@@ -1863,21 +1895,21 @@ const StatusOverview = () => {
                             <ClientBadge client={clientObj} size="sm" />
                           )
                         ) : (
-                          <span className="text-slate-400 dark:text-slate-500 text-[9.5px] italic">
+                          <span className="text-slate-400 dark:text-slate-500 text-[8.5px] italic">
                             — No Client —
                           </span>
                         )}
                       </td>
 
                       {/* 4. Created By */}
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1 px-2">
                         <div className="flex items-center gap-1.5 max-w-[150px]">
-                          <div className="relative shrink-0 w-5 h-5">
+                          <div className="relative shrink-0 w-4 h-4">
                             {creatorAvatar ? (
                               <img
                                 src={creatorAvatar}
                                 alt={creatorObj?.name || "User"}
-                                className="w-5 h-5 rounded-full object-cover border border-purple-200 dark:border-purple-800/80 shadow-2xs"
+                                className="w-4 h-4 rounded-full object-cover border border-purple-200 dark:border-purple-800/80 shadow-2xs"
                                 onError={(e) => {
                                   e.currentTarget.style.display = "none";
                                   const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
@@ -1886,7 +1918,7 @@ const StatusOverview = () => {
                               />
                             ) : null}
                             <div
-                              className="avatar-fallback w-5 h-5 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white font-extrabold text-[7.5px] items-center justify-center uppercase shadow-2xs"
+                              className="avatar-fallback w-4 h-4 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white font-extrabold text-[7px] items-center justify-center uppercase shadow-2xs"
                               style={{ display: creatorAvatar ? "none" : "flex" }}
                             >
                               {creatorObj?.name ? creatorObj.name.substring(0, 2) : "U"}
@@ -1894,14 +1926,14 @@ const StatusOverview = () => {
                           </div>
                           <div className="min-w-0 flex flex-col">
                             <span
-                              className="font-bold text-slate-800 dark:text-slate-200 text-[9.5px] truncate"
+                              className="font-bold text-slate-800 dark:text-slate-200 text-[8.5px] truncate"
                               title={creatorObj?.name || "System"}
                             >
                               {creatorObj?.name || "—"}
                             </span>
                             {creatorDept && (
                               <span
-                                className="inline-block text-[8px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50/80 dark:bg-purple-950/40 px-1 py-0.2 rounded border border-purple-100 dark:border-purple-900/40 truncate max-w-[110px]"
+                                className="inline-block text-[7.5px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-50/80 dark:bg-purple-950/40 px-1 py-0.2 rounded border border-purple-100 dark:border-purple-900/40 truncate max-w-[110px]"
                                 title={creatorDept}
                               >
                                 {creatorDept}
@@ -1912,15 +1944,15 @@ const StatusOverview = () => {
                       </td>
 
                       {/* 5. Assignee */}
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1 px-2">
                         {assigneeObj ? (
                           <div className="flex items-center gap-1.5 max-w-[150px]">
-                            <div className="relative shrink-0 w-5 h-5">
+                            <div className="relative shrink-0 w-4 h-4">
                               {assigneeAvatar ? (
                                 <img
                                   src={assigneeAvatar}
                                   alt={assigneeObj?.name || "Assignee"}
-                                  className="w-5 h-5 rounded-full object-cover border border-indigo-200 dark:border-indigo-800/80 shadow-2xs"
+                                  className="w-4 h-4 rounded-full object-cover border border-indigo-200 dark:border-indigo-800/80 shadow-2xs"
                                   onError={(e) => {
                                     e.currentTarget.style.display = "none";
                                     const fallback = e.currentTarget.parentElement?.querySelector(".avatar-fallback");
@@ -1929,7 +1961,7 @@ const StatusOverview = () => {
                                 />
                               ) : null}
                               <div
-                                className="avatar-fallback w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-600 to-sky-500 text-white font-extrabold text-[7.5px] items-center justify-center uppercase shadow-2xs"
+                                className="avatar-fallback w-4 h-4 rounded-full bg-gradient-to-tr from-indigo-600 to-sky-500 text-white font-extrabold text-[7px] items-center justify-center uppercase shadow-2xs"
                                 style={{ display: assigneeAvatar ? "none" : "flex" }}
                               >
                                 {assigneeObj?.name ? assigneeObj.name.substring(0, 2) : "U"}
@@ -1937,14 +1969,14 @@ const StatusOverview = () => {
                             </div>
                             <div className="min-w-0 flex flex-col">
                               <span
-                                className="font-bold text-slate-800 dark:text-slate-200 text-[9.5px] truncate"
+                                className="font-bold text-slate-800 dark:text-slate-200 text-[8.5px] truncate"
                                 title={assigneeObj?.name}
                               >
                                 {assigneeObj?.name}
                               </span>
                               {assigneeDept && (
                                 <span
-                                  className={`inline-block text-[8px] font-semibold px-1 py-0.2 rounded border truncate max-w-[110px] ${
+                                  className={`inline-block text-[7.5px] font-semibold px-1 py-0.2 rounded border truncate max-w-[110px] ${
                                     activeTab === "designer"
                                       ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-100 dark:border-indigo-900/40"
                                       : "text-amber-600 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-950/40 border-amber-100 dark:border-amber-900/40"
@@ -1957,27 +1989,27 @@ const StatusOverview = () => {
                             </div>
                           </div>
                         ) : (
-                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[7.5px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                             Unassigned
                           </span>
                         )}
                       </td>
 
                       {/* 6. Start Date and End Date */}
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1 px-2">
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
-                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 w-7">
+                            <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 w-7">
                               Start:
                             </span>
-                            <span className="font-semibold text-[9.5px]">{formatDate(t.startDate)}</span>
+                            <span className="font-semibold text-[8.5px]">{formatDate(t.startDate)}</span>
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 w-7">
+                            <span className="text-[7.5px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 w-7">
                               End:
                             </span>
                             <span
-                              className={`font-semibold text-[9.5px] ${
+                              className={`font-semibold text-[8.5px] ${
                                 overdue
                                   ? "text-rose-600 dark:text-rose-400 font-bold"
                                   : "text-slate-600 dark:text-slate-300"
@@ -1987,7 +2019,7 @@ const StatusOverview = () => {
                             </span>
                             {overdue && (
                               <span
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 shadow-2xs whitespace-nowrap"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[7.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 shadow-2xs whitespace-nowrap"
                                 title={`Task is ${overdueInfo.text}`}
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
@@ -1999,7 +2031,7 @@ const StatusOverview = () => {
                       </td>
 
                       {/* 7. Total Productivity */}
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1 px-2">
                         <div className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
                           <div
                             className={`w-4.5 h-4.5 rounded flex items-center justify-center shrink-0 ${
@@ -2015,7 +2047,7 @@ const StatusOverview = () => {
                           </div>
                           <div className="flex flex-col">
                             <div className="flex items-center gap-1">
-                              <span className="font-bold text-slate-800 dark:text-slate-100 text-[9.5px] font-mono leading-tight">
+                              <span className="font-bold text-slate-800 dark:text-slate-100 text-[8.5px] font-mono leading-tight">
                                 {formatProductivity(totalProdMs)}
                               </span>
                               {isTaskActiveInProgress && (
@@ -2025,7 +2057,7 @@ const StatusOverview = () => {
                                 />
                               )}
                             </div>
-                            <span className="text-[7.5px] text-slate-400 dark:text-slate-500 font-medium leading-none">
+                            <span className="text-[7px] text-slate-400 dark:text-slate-500 font-medium leading-none">
                               {isTaskActiveInProgress
                                 ? "Live Working"
                                 : totalProdMs > 0
@@ -2037,16 +2069,16 @@ const StatusOverview = () => {
                       </td>
 
                       {/* 8. Status */}
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1 px-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[9.5px] font-bold border shadow-2xs ${statusBadge.classes}`}
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[8.5px] font-bold border shadow-2xs ${statusBadge.classes}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${statusBadge.dotClass}`} />
                           <span>{statusBadge.label}</span>
                         </span>
                         {isHold && (
                           <div
-                            className="mt-1 max-w-40 text-[8.5px] leading-snug line-clamp-2 whitespace-normal break-words"
+                            className="mt-1 max-w-40 text-[7.5px] leading-snug line-clamp-2 whitespace-normal break-words"
                             title={holdReason ? `Reason for hold: ${holdReason}` : "No reason given"}
                           >
                             <span className="font-bold text-slate-500 dark:text-slate-400">Reason: </span>
@@ -2060,49 +2092,49 @@ const StatusOverview = () => {
                       </td>
 
                       {/* 10. Approval Info */}
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1 px-2">
                         {approvalInfo.type === "in_review" ? (
                           <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 shadow-2xs w-fit">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[7.5px] font-bold bg-purple-50 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 shadow-2xs w-fit">
                               <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse shrink-0" />
                               <span>Awaiting Approval</span>
                             </span>
                             {approvalInfo.durationMs > 0 && (
-                              <span className="text-[8px] font-semibold text-purple-600/80 dark:text-purple-400/80 font-mono">
+                              <span className="text-[7.5px] font-semibold text-purple-600/80 dark:text-purple-400/80 font-mono">
                                 Waiting: {formatProductivity(approvalInfo.durationMs)}
                               </span>
                             )}
                           </div>
                         ) : approvalInfo.type === "approved" ? (
                           <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-2xs w-fit">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[7.5px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-2xs w-fit">
                               <FiCheckCircle size={10} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                               <span>Approved</span>
                             </span>
-                            <span className="text-[8px] text-slate-400 dark:text-slate-500 font-medium">
+                            <span className="text-[7.5px] text-slate-400 dark:text-slate-500 font-medium">
                               {approvalInfo.completedAt ? formatDate(approvalInfo.completedAt) : "Completed"}
                               {approvalInfo.durationMs > 0 ? ` · took ${formatProductivity(approvalInfo.durationMs)}` : ""}
                             </span>
                           </div>
                         ) : approvalInfo.type === "correction" ? (
                           <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-orange-50 text-orange-700 dark:bg-orange-950/70 dark:text-orange-300 border border-orange-200 dark:border-orange-800/80 shadow-2xs w-fit">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[7.5px] font-bold bg-orange-50 text-orange-700 dark:bg-orange-950/70 dark:text-orange-300 border border-orange-200 dark:border-orange-800/80 shadow-2xs w-fit">
                               <FiAlertCircle size={10} className="text-orange-600 dark:text-orange-400 shrink-0" />
                               <span>Correction Sent</span>
                             </span>
                             {approvalInfo.reason && (
-                              <span className="text-[8px] text-orange-600/80 dark:text-orange-400/80 truncate max-w-[125px]" title={approvalInfo.reason}>
+                              <span className="text-[7.5px] text-orange-600/80 dark:text-orange-400/80 truncate max-w-[125px]" title={approvalInfo.reason}>
                                 "{approvalInfo.reason}"
                               </span>
                             )}
                           </div>
                         ) : approvalInfo.type === "rejected" ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 shadow-2xs w-fit">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[7.5px] font-bold bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-200 dark:border-rose-800/80 shadow-2xs w-fit">
                             <FiX size={10} className="text-rose-600 dark:text-rose-400 shrink-0" />
                             <span>Rejected</span>
                           </span>
                         ) : approvalInfo.type === "historical" ? (
-                          <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+                          <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400">
                             Took {formatProductivity(approvalInfo.durationMs)}
                           </span>
                         ) : (
