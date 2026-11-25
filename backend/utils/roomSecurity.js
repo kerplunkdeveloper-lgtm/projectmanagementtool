@@ -27,16 +27,9 @@ const normalizeRoomCode = (input) => {
 /** "ABCDEFGHJKMN" -> "ABCD-EFGH-JKMN" */
 const formatRoomCode = (code) => (code ? code.match(/.{1,4}/g).join("-") : "");
 
-/**
- * Long, unpredictable external meeting name (160 random bits).
- * Deliberately contains no room name, client name or user data.
- */
-const generateMeetingName = () => `Sorted${crypto.randomBytes(20).toString("hex")}`;
-
 module.exports = {
   generateRoomCode,
   normalizeRoomCode,
   formatRoomCode,
-  generateMeetingName,
   CODE_LENGTH,
 };

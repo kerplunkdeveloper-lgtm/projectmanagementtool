@@ -17,6 +17,7 @@
     "axios": "^1.16.1",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
+    "diff-match-patch": "^1.0.5",
     "framer-motion": "^12.38.0",
     "react": "^19.2.6",
     "react-big-calendar": "^1.19.4",

@@ -1,6 +1,6 @@
 # Sorted Rooms: implementation & setup notes
 
-Temporary, invite-only rooms for sharing files, shared notes and a voice/video meeting.
+Temporary, invite-only rooms for sharing files and real-time shared notes.
 Built on the existing Sorted stack: Express + MongoDB (Mongoose), JWT `protect`
 middleware, the existing AWS S3 client (`config/s3.js`), and socket.io.
 
@@ -11,7 +11,8 @@ middleware, the existing AWS S3 client (`config/s3.js`), and socket.io.
 | Config / limits | `config/rooms.js` |
 | Models | `models/SortedRoom.js`, `models/RoomFile.js` (new collections `sortedrooms`, `roomfiles`; no migration needed) |
 | API | `routes/roomRoutes.js`, `controllers/roomController.js`, mounted at `/api/rooms` in `server.js` |
-| Security helpers | `utils/roomSecurity.js` (codes, meeting names), `utils/roomFileValidation.js` (type + magic-byte checks) |
+| Real-time notes | `utils/roomSocket.js` (JWT-authenticated socket channel), `diff-match-patch` merging in the controller and `NotesTab.jsx` |
+| Security helpers | `utils/roomSecurity.js` (room codes), `utils/roomFileValidation.js` (type + magic-byte checks) |
 | Storage | `utils/roomStorage.js` (private S3 objects, presigned URLs) |
 | Cleanup job | `utils/roomCleanupScheduler.js`, started in `server.js` |
 | Frontend | `frontend/src/pages/rooms/*`, `frontend/src/services/roomService.js`, routes in `AppRoutes.jsx`, "Rooms" in `sidebarConfig.js`, invite redirect after login in `Login.jsx` |
@@ -28,10 +29,10 @@ middleware, the existing AWS S3 client (`config/s3.js`), and socket.io.
 | PATCH | `/api/rooms/:id` | host: name, clientLabel, locked, permissions, expiresInMinutes |
 | DELETE | `/api/rooms/:id` | host: ends the room and deletes everything |
 | POST | `/api/rooms/:id/rotate-code` | host: old code stops working immediately |
-| POST | `/api/rooms/:id/rotate-meeting` | host: new external meeting name |
 | DELETE | `/api/rooms/:id/members/:userId` | host: removes and blocks rejoining |
 | POST | `/api/rooms/:id/leave` | non-host member |
-| PUT | `/api/rooms/:id/notes` | member (if allowed): `{ content, version }` (409 on conflict) |
+| PUT | `/api/rooms/:id/notes` | member (if allowed): `{ patch, clientId }`, merged into the latest text |
+| POST | `/api/rooms/:id/notes/seen` | member: `{ seq }`, marks notes updates as seen |
 | GET | `/api/rooms/:id/files` | member |
 | POST | `/api/rooms/:id/files` | member (if uploads allowed): multipart `file` |
 | GET | `/api/rooms/:id/files/:fileId/url?mode=preview\|download` | member: short-lived signed URL |
@@ -66,10 +67,11 @@ expired or ended room get `410`.
     `sorted-rooms/<roomId>/<192 random bits>` (no file name in the key).
   - Downloads use presigned URLs that expire after `ROOM_SIGNED_URL_SECONDS` (default 120)
     and are issued only after a membership check. No AWS keys reach the browser.
-- **Real-time updates:** socket.io only sends content-free pings
+- **Real-time updates:** per-user socket rooms only get content-free pings
   (`sorted-room:changed {roomId, kind}`). Clients then refetch through the authenticated API.
   This matters because the app's existing socket `join` event trusts a client-supplied
-  user ID (a pre-existing weakness, unchanged here). So no room data is ever sent over sockets.
+  user ID (a pre-existing weakness, unchanged here). Notes content travels only on the
+  private channel described below.
 - **Expiry & deletion:** enforced on the server for every request, not just in the UI.
   `utils/roomCleanupScheduler.js` runs every `ROOM_CLEANUP_INTERVAL_MINUTES` (default 5):
   - It marks expired or ended rooms as ended.
@@ -78,29 +80,29 @@ expired or ended room get `410`.
   - If S3 deletion fails, the records are kept and the job retries on the next run.
   - Ending a room as host also purges it immediately.
 
-## Meeting (Jitsi Meet, public `meet.jit.si`)
+## Real-time shared notes
 
-- The page loads `https://meet.jit.si/external_api.js` only when someone clicks *Start
-  or join meeting*, then embeds the meeting with the IFrame API. It has its own mic,
-  camera, screen-share and leave controls, a device/permission check, and handling for
-  failed script loads and dropped connections. There's also an "open in new tab" fallback.
-- Each room gets its own meeting name: `Sorted` + 160 random bits (hex). It contains no
-  room, client or user data, and the meeting subject is the generic "Sorted meeting".
-  Only the user's display name is sent to Jitsi.
-- **Limitation, stated plainly in the UI:** Sorted room access does **not** control meeting
-  access. Anyone who obtains the meeting link can join. The public service can't be locked
-  to Sorted users from this app, and meetings are **not** end-to-end private by default.
-  The long random name only makes the meeting hard to guess. Hosts can *Reset meeting link*
-  if it leaks, or after removing a member.
-- Per Jitsi's 2023 change (reported by third-party sources; verify against Jitsi's own
-  announcement), the person who starts a `meet.jit.si` meeting must sign in to meet.jit.si
-  (Google/GitHub/etc.); guests can join without an account. The public service is free,
-  provided as-is with no SLA, and its terms limit no-cost use (check the current terms
-  before relying on it).
-- To restrict meetings to Sorted members later, use a deployment with JWT auth: either
-  8x8 JaaS (has a limited free tier; check current plan limits) or a self-hosted Jitsi
-  server. Then set `ROOM_MEETING_DOMAIN` and add server-side JWT minting. That isn't
-  implemented here because it needs an account or server you'd have to create.
+- **Channel auth:** the browser subscribes with `sorted-room:subscribe { roomId, token }`.
+  The server verifies the JWT, the account status and room membership before adding the
+  socket to the private channel `sroom:<roomId>`. Removed or departed members are evicted,
+  and the channel closes when the room ends. Unauthenticated sockets can't receive notes
+  or send typing events.
+- **Saving & merging:** each browser keeps the last server text it knows. About 350 ms after
+  the last keystroke it sends a `diff-match-patch` patch over the authenticated REST API.
+  The server applies the patch to the *current* text, so two people typing at once are merged
+  rather than overwritten. It saves with an atomic version check (retrying on races) and
+  pushes the merged text to the channel. Browsers merge it with any unsent typing and keep
+  the caret in place.
+- **Typing indicator:** "Name is typing…", throttled on both client and server.
+- **Unread badges (seen / not seen):**
+  - Edits are grouped into "updates": a new update starts when a different person edits,
+    or after a pause of `ROOM_NOTES_EDIT_GAP_SECONDS` (default 120).
+  - Each member stores the last update they've seen. The Shared Notes tab, the Rooms list
+    card and the browser tab title show the unseen count.
+  - Opening the notes tab marks updates as seen. The notes footer shows who has and hasn't
+    seen the latest update.
+- **Fallback:** if the socket is unavailable, the notes tab polls every 5 seconds while
+  visible, and saving still works.
 
 ## Configuration (backend `.env`; all optional, defaults shown)
 
@@ -115,11 +117,11 @@ ROOM_MAX_ACTIVE_PER_HOST=10
 ROOM_MIN_EXPIRY_MINUTES=15
 ROOM_MAX_EXPIRY_HOURS=168    # 7 days
 ROOM_NOTES_MAX_CHARS=20000
+ROOM_NOTES_EDIT_GAP_SECONDS=120
 ROOM_CLEANUP_INTERVAL_MINUTES=5
 ROOM_JOIN_MAX_FAILURES=8
 ROOM_JOIN_WINDOW_MINUTES=15
 ROOM_SIGNED_URL_SECONDS=120
-ROOM_MEETING_DOMAIN=meet.jit.si
 ```
 
 The frontend needs no new environment variables or secrets.
@@ -146,11 +148,12 @@ The frontend needs no new environment variables or secrets.
 - **AWS S3:** uses your existing AWS account. Storage, requests and data transfer are
   billed beyond whatever free-tier allowance or credits your account has. This is not
   unlimited free usage. The per-file, per-room and per-host limits above bound the worst case.
-- **meet.jit.si:** free public service with no SLA and usage terms. See above.
 
 ## Known limitations
 
 - Join rate limiting and the cleanup job's "running" guard are per process.
-- Shared notes use last-writer-wins with version checks. Conflicts are detected and shown
-  (load latest / keep mine), but this isn't character-level co-editing.
+- Notes merging is patch-based (good for normal team typing). Two people editing the exact
+  same words at the same moment can produce a mixed result, as in most simple co-editors.
+- Each notes save is one HTTP request, so busy typing adds traffic. The app's global
+  per-IP rate limit (50,000 requests per 15 minutes) is shared by everyone behind one office IP.
 - Room files aren't virus-scanned. Only allow-listed types with matching signatures are accepted.

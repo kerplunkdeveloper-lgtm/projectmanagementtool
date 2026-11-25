@@ -2,13 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
-import { FiArrowLeft, FiClock, FiLock, FiSettings, FiLogOut, FiFile, FiVideo, FiEdit3, FiAlertCircle, FiRefreshCw } from "react-icons/fi";
+import { FiArrowLeft, FiClock, FiLock, FiSettings, FiLogOut, FiFile, FiEdit3, FiAlertCircle, FiRefreshCw } from "react-icons/fi";
 import { LuDoorClosed } from "react-icons/lu";
-import { getRoom, leaveRoom, apiError } from "../../services/roomService";
+import { getRoom, leaveRoom, markNotesSeen, apiError } from "../../services/roomService";
 import { useSocketContext } from "../../context/SocketContext";
 import { CopyButton, ConfirmDialog } from "./components/RoomUI";
 import FilesTab from "./components/FilesTab";
-import MeetingTab from "./components/MeetingTab";
 import NotesTab from "./components/NotesTab";
 import MembersPanel from "./components/MembersPanel";
 import RoomSettingsModal from "./components/RoomSettingsModal";
@@ -17,7 +16,6 @@ import "./rooms.css";
 
 const TABS = [
   { id: "files", label: "Files", icon: FiFile },
-  { id: "meeting", label: "Meeting", icon: FiVideo },
   { id: "notes", label: "Shared Notes", icon: FiEdit3 },
 ];
 
@@ -59,7 +57,18 @@ const RoomDetail = () => {
     if (initial) setState("loading");
     try {
       const data = await getRoom(roomId);
-      setRoom(data);
+      // A slow background refresh must not roll back newer live notes / seen state
+      setRoom((prev) => {
+        if (!prev || prev._id !== data._id || (prev.notes?.version || 0) <= (data.notes?.version || 0)) return data;
+        const mine = prev.members.find((m) => m._id === currentUserId);
+        return {
+          ...data,
+          notes: prev.notes,
+          members: data.members.map((m) =>
+            m._id === currentUserId ? { ...m, notesSeenSeq: Math.max(m.notesSeenSeq || 0, mine?.notesSeenSeq || 0) } : m
+          ),
+        };
+      });
       setState("ready");
     } catch (err) {
       const code = err?.response?.status;
@@ -70,7 +79,7 @@ const RoomDetail = () => {
         setState("error");
       }
     }
-  }, [roomId]);
+  }, [roomId, currentUserId]);
 
   useEffect(() => {
     load(true);
@@ -86,6 +95,7 @@ const RoomDetail = () => {
         return;
       }
       if (kind === "files") setFilesRefresh((n) => n + 1);
+      if (kind === "notes") return; // content + counts arrive via the notes channel
       load(false);
     };
     socket.on("sorted-room:changed", onChange);
@@ -104,6 +114,68 @@ const RoomDetail = () => {
   const view = state === "ready" && room && remaining <= 0 ? "expired" : state;
 
   const onExpired = useCallback(() => setState("expired"), []);
+  const pollRoom = useCallback(() => load(false), [load]);
+
+  // Notes updates (from the live channel or our own saves): update counts without refetching
+  const onNotesMeta = useCallback(
+    (p) => {
+      setRoom((r) => {
+        if (!r || (p.version ?? 0) < (r.notes?.version ?? 0)) return r;
+        const notes = {
+          ...r.notes,
+          content: p.content ?? r.notes.content,
+          version: p.version ?? r.notes.version,
+          editSeq: p.editSeq ?? r.notes.editSeq,
+          updatedAt: p.updatedAt ?? r.notes.updatedAt,
+          updatedBy: p.updatedBy && typeof p.updatedBy === "object" ? p.updatedBy : r.notes.updatedBy,
+        };
+        const mine = p.mine || p.updatedBy?._id === currentUserId;
+        const members = mine
+          ? r.members.map((m) => (m._id === currentUserId ? { ...m, notesSeenSeq: notes.editSeq } : m))
+          : r.members;
+        return { ...r, notes, members };
+      });
+    },
+    [currentUserId]
+  );
+
+  // Unread notes updates for me (WhatsApp-style badge)
+  const myMember = room?.members?.find((m) => m._id === currentUserId);
+  const notesUnread = Math.max(0, (room?.notes?.editSeq || 0) - (myMember?.notesSeenSeq || 0));
+
+  const [pageVisible, setPageVisible] = useState(() => document.visibilityState === "visible");
+  useEffect(() => {
+    const onVis = () => setPageVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
+  // Viewing the notes tab marks updates as seen
+  const latestSeq = room?.notes?.editSeq || 0;
+  useEffect(() => {
+    if (tab !== "notes" || !pageVisible || notesUnread <= 0) return undefined;
+    const t = setTimeout(async () => {
+      try {
+        await markNotesSeen(roomId, latestSeq);
+        setRoom((r) =>
+          r ? { ...r, members: r.members.map((m) => (m._id === currentUserId ? { ...m, notesSeenSeq: Math.max(m.notesSeenSeq || 0, latestSeq) } : m)) } : r
+        );
+      } catch {
+        /* will retry on the next change */
+      }
+    }, 800);
+    return () => clearTimeout(t);
+  }, [tab, pageVisible, notesUnread, latestSeq, roomId, currentUserId]);
+
+  // Browser tab title shows unseen notes updates
+  useEffect(() => {
+    if (!room) return undefined;
+    const original = document.title;
+    if (notesUnread > 0) document.title = `(${notesUnread}) ${room.name} · Sorted Rooms`;
+    return () => {
+      document.title = original;
+    };
+  }, [notesUnread, room?.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onTabKey = (e, index) => {
     let next = null;
@@ -266,6 +338,14 @@ const RoomDetail = () => {
                   }`}
                 >
                   <Icon size={14} aria-hidden="true" /> {t.label}
+                  {t.id === "notes" && notesUnread > 0 && (
+                    <span
+                      className="ml-0.5 min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold leading-5 text-center"
+                      aria-label={`${notesUnread} unseen notes ${notesUnread === 1 ? "update" : "updates"}`}
+                    >
+                      {notesUnread > 99 ? "99+" : notesUnread}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -275,14 +355,14 @@ const RoomDetail = () => {
           <div role="tabpanel" id="room-panel-files" aria-labelledby="room-tab-files" hidden={tab !== "files"} tabIndex={0}>
             <FilesTab room={room} refreshKey={filesRefresh} onStorageChange={() => load(false)} onExpired={onExpired} />
           </div>
-          <div role="tabpanel" id="room-panel-meeting" aria-labelledby="room-tab-meeting" hidden={tab !== "meeting"} tabIndex={0}>
-            <MeetingTab room={room} user={user} active={tab === "meeting"} />
-          </div>
           <div role="tabpanel" id="room-panel-notes" aria-labelledby="room-tab-notes" hidden={tab !== "notes"} tabIndex={0}>
             <NotesTab
               room={room}
+              currentUserId={currentUserId}
+              active={tab === "notes"}
               onExpired={onExpired}
-              onSaved={(notes) => setRoom((r) => (r ? { ...r, notes: { ...r.notes, ...notes } } : r))}
+              onMeta={onNotesMeta}
+              onPoll={pollRoom}
             />
           </div>
         </div>

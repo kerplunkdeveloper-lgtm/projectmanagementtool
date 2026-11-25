@@ -28,7 +28,8 @@ const roomConfig = {
   // dedicated private bucket (recommended) with ROOMS_S3_BUCKET.
   bucket: process.env.ROOMS_S3_BUCKET || process.env.AWS_BUCKET_NAME,
   keyPrefix: "sorted-rooms",
-  meetingDomain: process.env.ROOM_MEETING_DOMAIN || "meet.jit.si",
+  // Group a user's consecutive note edits into one "update" for unread counts.
+  notesEditGapSeconds: int("ROOM_NOTES_EDIT_GAP_SECONDS", 120),
 };
 
 // Allowed file types. The server decides the stored Content-Type from this
@@ -76,7 +77,6 @@ const publicConfig = () => ({
   maxExpiryHours: roomConfig.maxExpiryHours,
   notesMaxChars: roomConfig.notesMaxChars,
   allowedExtensions: Object.keys(ALLOWED_TYPES),
-  meetingDomain: roomConfig.meetingDomain,
 });
 
 module.exports = { roomConfig, ALLOWED_TYPES, publicConfig };

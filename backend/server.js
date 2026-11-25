@@ -358,6 +358,9 @@ const { handlePresenceChange } = require('./utils/presenceService');
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // Sorted Rooms: JWT-authenticated real-time channel for shared notes
+  require('./utils/roomSocket').attachRoomSocket(io, socket);
+
   socket.on('join', async (data) => {
     let userId;
     let isImpersonating = false;

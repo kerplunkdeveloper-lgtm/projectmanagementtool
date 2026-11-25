@@ -6,11 +6,14 @@ const {
   generateRoomCode,
   normalizeRoomCode,
   formatRoomCode,
-  generateMeetingName,
 } = require("../utils/roomSecurity");
 const { validateUploadedFile, cleanDisplayName } = require("../utils/roomFileValidation");
 const { putRoomFile, getRoomFileUrl, deleteRoomObject } = require("../utils/roomStorage");
 const { purgeRoom } = require("../utils/roomCleanupScheduler");
+const { broadcastNotes, evictFromRoomChannel } = require("../utils/roomSocket");
+const DiffMatchPatch = require("diff-match-patch");
+
+const dmp = new DiffMatchPatch();
 
 // ---------- helpers ----------
 
@@ -54,7 +57,7 @@ const loadMemberRoom = async (req, res, { secrets = false } = {}) => {
     return null;
   }
   let query = SortedRoom.findById(id);
-  if (secrets) query = query.select("+code +meetingName");
+  if (secrets) query = query.select("+code");
   const room = await query;
   if (!room || !memberOf(room, uid(req))) {
     fail(res, 404, "Room not found");
@@ -73,6 +76,24 @@ const requireHost = (req, res, room) => {
     return false;
   }
   return true;
+};
+
+const notesPayload = (room) => {
+  const updatedBy = room.notes?.updatedBy;
+  const updatedById = updatedBy?._id?.toString?.() || updatedBy?.toString?.();
+  const editor = room.members.find((m) => (m.user?._id || m.user)?.toString() === updatedById);
+  return {
+    content: room.notes?.content || "",
+    version: room.notes?.version || 0,
+    editSeq: room.notes?.editSeq || 0,
+    updatedAt: room.notes?.updatedAt,
+    updatedBy: updatedById ? { _id: updatedById, name: editor?.user?.name } : null,
+  };
+};
+
+const notesUnreadFor = (room, userId) => {
+  const me = room.members.find((m) => (m.user?._id || m.user)?.toString() === userId);
+  return Math.max(0, (room.notes?.editSeq || 0) - (me?.notesSeenSeq || 0));
 };
 
 const serializeRoom = async (room, userId) => {
@@ -107,16 +128,10 @@ const serializeRoom = async (room, userId) => {
         profile: m.user.profile,
         role: m.role,
         joinedAt: m.joinedAt,
+        notesSeenSeq: m.notesSeenSeq || 0,
       })),
-    meeting: room.meetingName
-      ? { domain: roomConfig.meetingDomain, roomName: room.meetingName }
-      : undefined,
-    notes: {
-      content: room.notes?.content || "",
-      version: room.notes?.version || 0,
-      updatedAt: room.notes?.updatedAt,
-      updatedBy: room.notes?.updatedBy,
-    },
+    notes: notesPayload(room),
+    notesUnread: notesUnreadFor(room, userId),
     storage: { fileCount: stats[0]?.count || 0, bytesUsed: stats[0]?.bytes || 0 },
     limits: publicConfig(),
   };
@@ -170,6 +185,7 @@ exports.listRooms = async (req, res) => {
         host: r.host ? { _id: r.host._id, name: r.host.name } : null,
         isHost: r.host?._id?.toString() === me,
         memberCount: r.members.length,
+        notesUnread: notesUnreadFor(r, me),
         fileCount: countMap[r._id.toString()] || 0,
         locked: r.locked,
         expiresAt: r.expiresAt,
@@ -219,7 +235,6 @@ exports.createRoom = async (req, res) => {
           host: req.user._id,
           members: [{ user: req.user._id, role: "host" }],
           code: generateRoomCode(),
-          meetingName: generateMeetingName(),
           expiresAt: new Date(Date.now() + minutes * 60 * 1000),
         });
       } catch (e) {
@@ -228,7 +243,7 @@ exports.createRoom = async (req, res) => {
     }
     if (!room) return fail(res, 500, "Could not create room. Please try again.");
 
-    room = await SortedRoom.findById(room._id).select("+code +meetingName");
+    room = await SortedRoom.findById(room._id).select("+code");
     res.status(201).json({ success: true, data: await serializeRoom(room, uid(req)) });
   } catch (err) {
     console.error("[Rooms] create error:", err);
@@ -268,7 +283,17 @@ exports.joinRoom = async (req, res) => {
         "members.user": { $ne: req.user._id },
         [`members.${roomConfig.maxMembers - 1}`]: { $exists: false },
       },
-      { $push: { members: { user: req.user._id, role: "member", joinedAt: new Date() } } },
+      {
+        $push: {
+          members: {
+            user: req.user._id,
+            role: "member",
+            joinedAt: new Date(),
+            // New members start "caught up": earlier notes updates aren't shown as unread
+            notesSeenSeq: room.notes?.editSeq || 0,
+          },
+        },
+      },
       { new: true }
     );
     if (!updated) return fail(res, 409, "Could not join the room. Please try again.");
@@ -326,7 +351,7 @@ exports.updateRoom = async (req, res) => {
     }
     await room.save();
 
-    const full = await SortedRoom.findById(room._id).select("+code +meetingName");
+    const full = await SortedRoom.findById(room._id).select("+code");
     notifyRoom(req, room, "settings");
     res.json({ success: true, data: await serializeRoom(full, uid(req)) });
   } catch (err) {
@@ -351,28 +376,12 @@ exports.rotateCode = async (req, res) => {
         if (e.code !== 11000) throw e;
       }
     }
-    const full = await SortedRoom.findById(room._id).select("+code +meetingName");
+    const full = await SortedRoom.findById(room._id).select("+code");
     notifyRoom(req, room, "settings");
     res.json({ success: true, data: await serializeRoom(full, uid(req)) });
   } catch (err) {
     console.error("[Rooms] rotate code error:", err);
     fail(res, 500, "Could not change the room code");
-  }
-};
-
-// @route POST /api/rooms/:id/rotate-meeting  (host) — new external meeting name
-exports.rotateMeeting = async (req, res) => {
-  try {
-    const room = await loadMemberRoom(req, res);
-    if (!room || !requireHost(req, res, room)) return;
-    room.meetingName = generateMeetingName();
-    await room.save();
-    const full = await SortedRoom.findById(room._id).select("+code +meetingName");
-    notifyRoom(req, room, "meeting");
-    res.json({ success: true, data: await serializeRoom(full, uid(req)) });
-  } catch (err) {
-    console.error("[Rooms] rotate meeting error:", err);
-    fail(res, 500, "Could not reset the meeting link");
   }
 };
 
@@ -392,6 +401,7 @@ exports.removeMember = async (req, res) => {
       { $pull: { members: { user: memberId } }, $addToSet: { bannedUsers: memberId } }
     );
     notifyRoom(req, room, "members", [userId]);
+    evictFromRoomChannel(req.app.get("io"), room._id.toString(), userId);
     res.json({ success: true });
   } catch (err) {
     console.error("[Rooms] remove member error:", err);
@@ -409,6 +419,7 @@ exports.leaveRoom = async (req, res) => {
     }
     await SortedRoom.updateOne({ _id: room._id }, { $pull: { members: { user: req.user._id } } });
     notifyRoom(req, room, "members");
+    evictFromRoomChannel(req.app.get("io"), room._id.toString(), uid(req));
     res.json({ success: true });
   } catch (err) {
     console.error("[Rooms] leave error:", err);
@@ -439,38 +450,122 @@ exports.endRoom = async (req, res) => {
 
 // ---------- notes ----------
 
-// @route PUT /api/rooms/:id/notes  { content, version }  — optimistic concurrency
+// @route PUT /api/rooms/:id/notes
+// Real-time mode: { patch, clientId } — a diff-match-patch patch made from the
+// client's last known server text. The server applies it to the CURRENT text
+// (merging concurrent edits), saves with an atomic version check, then pushes
+// the merged text to every authenticated subscriber of the room channel.
 exports.updateNotes = async (req, res) => {
   try {
     const room = await loadMemberRoom(req, res);
     if (!room) return;
-    if (!isHost(room, uid(req)) && !room.permissions.membersCanEditNotes) {
+    const me = uid(req);
+    if (!isHost(room, me) && !room.permissions.membersCanEditNotes) {
       return fail(res, 403, "The host has made notes read-only.");
     }
-    const content = typeof req.body.content === "string" ? req.body.content : "";
-    if (content.length > roomConfig.notesMaxChars) {
-      return fail(res, 413, `Notes are limited to ${roomConfig.notesMaxChars.toLocaleString()} characters.`);
+
+    const { patch, content: fullContent } = req.body;
+    const clientId = typeof req.body.clientId === "string" ? req.body.clientId.slice(0, 64) : undefined;
+    let patches = null;
+    if (typeof patch === "string") {
+      if (patch.length > roomConfig.notesMaxChars * 3) return fail(res, 413, "Change is too large.");
+      try {
+        patches = dmp.patch_fromText(patch);
+      } catch {
+        return fail(res, 400, "Invalid notes change.");
+      }
+    } else if (typeof fullContent !== "string") {
+      return fail(res, 400, "Nothing to save.");
     }
-    const version = Number(req.body.version);
-    const updated = await SortedRoom.findOneAndUpdate(
-      { _id: room._id, "notes.version": Number.isFinite(version) ? version : -1 },
-      {
-        $set: { "notes.content": content, "notes.updatedBy": req.user._id, "notes.updatedAt": new Date() },
-        $inc: { "notes.version": 1 },
-      },
-      { new: true }
-    );
-    if (!updated) {
-      const current = await SortedRoom.findById(room._id).select("notes");
-      return fail(res, 409, "Someone else updated the notes. Review the latest version.", {
-        data: current?.notes,
-      });
+
+    const gapMs = roomConfig.notesEditGapSeconds * 1000;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const current = await SortedRoom.findById(room._id).select("notes status expiresAt");
+      if (!current || current.status !== "active" || current.expiresAt <= new Date()) {
+        return fail(res, 410, "This room has expired or was ended by the host.", { expired: true });
+      }
+      const curText = current.notes?.content || "";
+      const curVersion = current.notes?.version || 0;
+      const nextText = patches ? dmp.patch_apply(patches, curText)[0] : fullContent;
+      if (nextText.length > roomConfig.notesMaxChars) {
+        return fail(res, 413, `Notes are limited to ${roomConfig.notesMaxChars.toLocaleString()} characters.`, {
+          data: { content: curText, version: curVersion },
+        });
+      }
+      if (nextText === curText) {
+        return res.json({
+          success: true,
+          data: {
+            content: curText,
+            version: curVersion,
+            editSeq: current.notes?.editSeq || 0,
+            updatedAt: current.notes?.updatedAt,
+            clientId,
+            unchanged: true,
+          },
+        });
+      }
+
+      // A new "update" (unit for unread badges) starts when the editor changes or after a pause.
+      const lastBy = current.notes?.updatedBy?.toString();
+      const lastAt = current.notes?.updatedAt ? new Date(current.notes.updatedAt).getTime() : 0;
+      const newSession = lastBy !== me || Date.now() - lastAt > gapMs;
+      const editSeq = (current.notes?.editSeq || 0) + (newSession ? 1 : 0);
+      const now = new Date();
+
+      const updated = await SortedRoom.findOneAndUpdate(
+        { _id: room._id, "notes.version": curVersion },
+        {
+          $set: {
+            "notes.content": nextText,
+            "notes.version": curVersion + 1,
+            "notes.editSeq": editSeq,
+            "notes.updatedBy": req.user._id,
+            "notes.updatedAt": now,
+            "members.$[me].notesSeenSeq": editSeq, // the editor has seen their own update
+          },
+        },
+        { new: true, arrayFilters: [{ "me.user": req.user._id }] }
+      );
+      if (!updated) continue; // someone saved in between: re-apply on the newer text
+
+      const payload = {
+        content: nextText,
+        version: curVersion + 1,
+        editSeq,
+        updatedAt: now,
+        updatedBy: { _id: me, name: req.user.name },
+        clientId,
+      };
+      broadcastNotes(req.app.get("io"), room._id.toString(), payload);
+      if (newSession) notifyRoom(req, updated, "notes"); // content-free ping for Rooms list badges
+      return res.json({ success: true, data: payload });
     }
-    notifyRoom(req, updated, "notes");
-    res.json({ success: true, data: updated.notes });
+    return fail(res, 409, "The notes are very busy right now. Please try again.");
   } catch (err) {
     console.error("[Rooms] notes error:", err);
     fail(res, 500, "Could not save notes");
+  }
+};
+
+// @route POST /api/rooms/:id/notes/seen  { seq } — marks notes updates as seen
+exports.markNotesSeen = async (req, res) => {
+  try {
+    const room = await loadMemberRoom(req, res);
+    if (!room) return;
+    const latest = room.notes?.editSeq || 0;
+    const asked = Number(req.body.seq);
+    const seq = Math.min(Math.max(0, Number.isFinite(asked) ? asked : latest), latest);
+    await SortedRoom.updateOne(
+      { _id: room._id },
+      { $max: { "members.$[me].notesSeenSeq": seq } },
+      { arrayFilters: [{ "me.user": req.user._id }] }
+    );
+    notifyRoom(req, room, "notes-seen");
+    res.json({ success: true, data: { seq } });
+  } catch (err) {
+    console.error("[Rooms] notes seen error:", err);
+    fail(res, 500, "Could not update");
   }
 };
 

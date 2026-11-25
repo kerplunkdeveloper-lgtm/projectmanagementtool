@@ -12,11 +12,13 @@ export const updateRoom = async (id, payload) => (await axiosInstance.patch(`/ro
 export const endRoom = async (id) => (await axiosInstance.delete(`/rooms/${id}`)).data;
 export const leaveRoom = async (id) => (await axiosInstance.post(`/rooms/${id}/leave`)).data;
 export const rotateRoomCode = async (id) => (await axiosInstance.post(`/rooms/${id}/rotate-code`)).data.data;
-export const rotateMeeting = async (id) => (await axiosInstance.post(`/rooms/${id}/rotate-meeting`)).data.data;
 export const removeMember = async (id, userId) =>
   (await axiosInstance.delete(`/rooms/${id}/members/${userId}`)).data;
-export const saveNotes = async (id, content, version) =>
-  (await axiosInstance.put(`/rooms/${id}/notes`, { content, version })).data.data;
+/** Real-time notes: send a diff-match-patch patch; the server merges and returns the merged text. */
+export const saveNotesPatch = async (id, { patch, clientId }) =>
+  (await axiosInstance.put(`/rooms/${id}/notes`, { patch, clientId })).data.data;
+export const markNotesSeen = async (id, seq) =>
+  (await axiosInstance.post(`/rooms/${id}/notes/seen`, { seq })).data.data;
 
 export const listFiles = async (id) => (await axiosInstance.get(`/rooms/${id}/files`)).data.data;
 export const deleteFile = async (id, fileId) => (await axiosInstance.delete(`/rooms/${id}/files/${fileId}`)).data;

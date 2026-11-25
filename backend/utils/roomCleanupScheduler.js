@@ -35,6 +35,7 @@ const purgeRoom = async (room, io) => {
 
   await SortedRoom.deleteOne({ _id: room._id });
   notifyMembers(io, room, { roomId, kind: "ended" });
+  require("./roomSocket").closeRoomChannel(io, roomId);
 };
 
 const runRoomCleanup = async (io) => {

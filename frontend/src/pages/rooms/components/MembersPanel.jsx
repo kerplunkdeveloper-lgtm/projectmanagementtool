@@ -71,7 +71,7 @@ const MembersPanel = ({ room, currentUserId, onChanged }) => {
       <ConfirmDialog
         open={Boolean(target)}
         title={`Remove ${target?.name}?`}
-        message="They'll lose access to this room's files, notes and meeting link right away, and won't be able to rejoin, even with a new code. If they may already have the meeting link, also reset it in room settings."
+        message="They'll lose access to this room's files and notes right away, and won't be able to rejoin, even with a new code."
         confirmLabel="Remove member"
         danger
         busy={busy}

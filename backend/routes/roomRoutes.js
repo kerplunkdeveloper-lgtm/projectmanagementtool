@@ -12,7 +12,7 @@ const router = express.Router();
 // Every Sorted Rooms endpoint requires a signed-in Sorted user.
 router.use(protect);
 
-// Room payloads contain secrets (codes, meeting names, signed URLs): never cache.
+// Room payloads contain secrets (codes, signed URLs): never cache.
 router.use((req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
@@ -81,10 +81,10 @@ router.get("/:id", ctrl.getRoom);
 router.patch("/:id", ctrl.updateRoom);
 router.delete("/:id", ctrl.endRoom);
 router.post("/:id/rotate-code", ctrl.rotateCode);
-router.post("/:id/rotate-meeting", ctrl.rotateMeeting);
 router.post("/:id/leave", ctrl.leaveRoom);
 router.delete("/:id/members/:userId", ctrl.removeMember);
 router.put("/:id/notes", ctrl.updateNotes);
+router.post("/:id/notes/seen", ctrl.markNotesSeen);
 
 router.get("/:id/files", ctrl.listFiles);
 router.post("/:id/files", ctrl.preUpload, handleUpload, ctrl.uploadFile);

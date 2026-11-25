@@ -33,6 +33,11 @@ const RoomCard = ({ room, onOpen }) => {
         <div className="mt-3 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
           <span className="inline-flex items-center gap-1"><FiUsers size={12} aria-hidden="true" /> {room.memberCount}</span>
           <span className="inline-flex items-center gap-1"><FiFile size={12} aria-hidden="true" /> {room.fileCount} files</span>
+          {room.notesUnread > 0 && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold">
+              {room.notesUnread > 99 ? "99+" : room.notesUnread} new in notes
+            </span>
+          )}
           {room.locked && (
             <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400"><FiLock size={12} aria-hidden="true" /> Locked</span>
           )}
@@ -122,9 +127,16 @@ const Rooms = () => {
 
   useEffect(() => {
     if (!socket) return undefined;
-    const onChange = () => load(false);
+    let t;
+    const onChange = () => {
+      clearTimeout(t);
+      t = setTimeout(() => load(false), 1500); // coalesce bursts of updates
+    };
     socket.on("sorted-room:changed", onChange);
-    return () => socket.off("sorted-room:changed", onChange);
+    return () => {
+      clearTimeout(t);
+      socket.off("sorted-room:changed", onChange);
+    };
   }, [socket, load]);
 
   return (
@@ -136,7 +148,7 @@ const Rooms = () => {
           </div>
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">Sorted Rooms</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Temporary rooms for sharing files and meeting with your team.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Temporary rooms for sharing files and notes with your team.</p>
           </div>
         </div>
         <button type="button" className="room-btn-primary" onClick={() => setCreateOpen(true)}>

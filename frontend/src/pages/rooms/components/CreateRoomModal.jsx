@@ -75,7 +75,7 @@ const CreateRoomModal = ({ open, onClose, config, onCreated, onOpenRoom }) => {
   }
 
   return (
-    <Modal open={open} onClose={busy ? undefined : onClose} title="Create a room" description="A temporary space for files, a meeting and shared notes. Everything is deleted when it expires.">
+    <Modal open={open} onClose={busy ? undefined : onClose} title="Create a room" description="A temporary space for files and shared notes. Everything is deleted when it expires.">
       <form onSubmit={submit} noValidate>
         <div className="space-y-4">
           <div>

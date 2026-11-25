@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import { FiRefreshCw, FiVideo, FiTrash2 } from "react-icons/fi";
+import { FiRefreshCw, FiTrash2 } from "react-icons/fi";
 import { Modal, Toggle, ConfirmDialog } from "./RoomUI";
-import { updateRoom, rotateRoomCode, rotateMeeting, endRoom, apiError } from "../../../services/roomService";
+import { updateRoom, rotateRoomCode, endRoom, apiError } from "../../../services/roomService";
 import { availablePresets } from "../roomUtils";
 
 const RoomSettingsModal = ({ open, onClose, room, onUpdated, onEnded }) => {
@@ -10,7 +10,7 @@ const RoomSettingsModal = ({ open, onClose, room, onUpdated, onEnded }) => {
   const [clientLabel, setClientLabel] = useState(room.clientLabel || "");
   const [extend, setExtend] = useState("");
   const [busy, setBusy] = useState("");
-  const [confirm, setConfirm] = useState(null); // "code" | "meeting" | "end"
+  const [confirm, setConfirm] = useState(null); // "code" | "end"
   const presets = availablePresets(room.limits);
 
   const run = async (key, fn, success) => {
@@ -41,8 +41,6 @@ const RoomSettingsModal = ({ open, onClose, room, onUpdated, onEnded }) => {
   const onConfirm = async () => {
     if (confirm === "code") {
       await run("code", () => rotateRoomCode(room._id), "New room code created. The old code no longer works.");
-    } else if (confirm === "meeting") {
-      await run("meeting", () => rotateMeeting(room._id), "Meeting link reset");
     } else if (confirm === "end") {
       const ok = await run("end", () => endRoom(room._id), "Room ended. All files are being deleted.");
       if (ok) {
@@ -59,11 +57,6 @@ const RoomSettingsModal = ({ open, onClose, room, onUpdated, onEnded }) => {
       title: "Change the room code?",
       message: "The current code and invite link stop working immediately. Existing members stay in the room.",
       label: "Change code",
-    },
-    meeting: {
-      title: "Reset the meeting link?",
-      message: "Everyone currently in the call is disconnected from the old meeting and must rejoin from this room. Use this if the meeting link may have leaked.",
-      label: "Reset link",
     },
     end: {
       title: "End this room for everyone?",
@@ -119,10 +112,7 @@ const RoomSettingsModal = ({ open, onClose, room, onUpdated, onEnded }) => {
           <button type="button" className="room-btn-secondary" onClick={() => setConfirm("code")}>
             <FiRefreshCw size={14} aria-hidden="true" /> Change room code
           </button>
-          <button type="button" className="room-btn-secondary" onClick={() => setConfirm("meeting")}>
-            <FiVideo size={14} aria-hidden="true" /> Reset meeting link
-          </button>
-          <button type="button" className="room-btn-danger sm:col-span-2" onClick={() => setConfirm("end")}>
+          <button type="button" className="room-btn-danger" onClick={() => setConfirm("end")}>
             <FiTrash2 size={14} aria-hidden="true" /> End room & delete everything
           </button>
         </div>
