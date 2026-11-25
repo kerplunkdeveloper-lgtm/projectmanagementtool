@@ -2263,6 +2263,19 @@ const SmTasks = () => {
         </div>
       </div>
 
+      {/* Month Heading - Commitment tab only; follows the month filter */}
+      {activeTab === "commitment" && (
+        <h2 className="flex items-center gap-2 text-base sm:text-lg font-extrabold tracking-tight text-slate-800 dark:text-slate-100">
+          <FiCalendar size={16} className="text-emerald-600 dark:text-emerald-400 stroke-[2.5]" />
+          {selectedMonth === "all" || selectedYear === "all"
+            ? "All Months"
+            : new Date(selectedYear, selectedMonth - 1, 1).toLocaleString("en-US", {
+                month: "long",
+                year: "numeric",
+              })}
+        </h2>
+      )}
+
       {/* Tab Content Display */}
       {activeTab === "daily" ? (
         <DailyWorkScheduleTab user={user} users={users} />
