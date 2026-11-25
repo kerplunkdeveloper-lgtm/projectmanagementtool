@@ -314,6 +314,7 @@ app.use('/api/socialmedia-task-calendar', socialmediaTaskCalendorRoutes);
 app.use('/api/socialmedia-task-calendor', socialmediaTaskCalendorRoutes);
 app.use('/api/social-media-tasks', socialmediaTaskCalendorRoutes);
 app.use('/api/leads', require('./routes/leadRoutes'));
+app.use('/api/rooms', require('./routes/roomRoutes'));
 
 
 
@@ -623,6 +624,10 @@ startMomScheduler(app);
 // Start HR Task due soon scheduler
 const { startHrTaskScheduler } = require("./utils/hrTaskScheduler");
 startHrTaskScheduler(app);
+
+// Start Sorted Rooms cleanup (deletes expired/ended rooms and their stored files)
+const { startRoomCleanupScheduler } = require("./utils/roomCleanupScheduler");
+startRoomCleanupScheduler(app);
 
 // Global error handler
 app.use((err, req, res, next) => {

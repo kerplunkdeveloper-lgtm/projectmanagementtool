@@ -21,6 +21,7 @@ import {
   LuListChecks,
   LuTarget,
   LuContact,
+  LuDoorOpen,
 } from "react-icons/lu";
 import { TbPencilHeart } from "react-icons/tb";
 import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings, FiFileText, FiKey } from "react-icons/fi";
@@ -64,6 +65,7 @@ export const sidebarConfig = {
     },
     { name: "Workload", path: "/admin/workload", icon: LuActivity },
     { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
+    { name: "Rooms", path: "/admin/rooms", icon: LuDoorOpen },
     { name: "MOM / Client Calls", path: "/admin/mom-points", icon: LuStickyNote },
     { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "SM Credentials", path: "/admin/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
@@ -105,6 +107,7 @@ export const sidebarConfig = {
     },
     { name: "Workload", path: "/operationmanager/workload", icon: LuActivity },
     { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
+    { name: "Rooms", path: "/operationmanager/rooms", icon: LuDoorOpen },
     { name: "MOM / Client Calls", path: "/operationmanager/mom-points", icon: LuStickyNote },
     { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "SM Credentials", path: "/operationmanager/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
@@ -144,6 +147,7 @@ export const sidebarConfig = {
     },
     { name: "Workload", path: "/team/workload", icon: LuActivity },
     { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
+    { name: "Rooms", path: "/team/rooms", icon: LuDoorOpen },
     { name: "MOM / Client Calls", path: "/team/mom-points", icon: LuStickyNote },
     { name: "SM Credentials", path: "/team/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "My Reports", path: "/team/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
@@ -169,6 +173,7 @@ export const sidebarConfig = {
       ],
     },
     { name: "Chat", path: "/humanresource/chat", icon: LuMessagesSquare },
+    { name: "Rooms", path: "/humanresource/rooms", icon: LuDoorOpen },
     { name: "MOM / Client Calls", path: "/humanresource/mom-points", icon: LuStickyNote },
     // { name: "Workload", path: "/humanresource/workload", icon: LuActivity },
     { name: "SM Credentials", path: "/humanresource/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
@@ -205,6 +210,7 @@ export const sidebarConfig = {
       ],
     },
     { name: "Chat", path: "/socialmediamanager/chat", icon: LuMessagesSquare },
+    { name: "Rooms", path: "/socialmediamanager/rooms", icon: LuDoorOpen },
     { name: "MOM / Client Calls", path: "/socialmediamanager/mom-points", icon: LuStickyNote },
     { name: "SM Credentials", path: "/socialmediamanager/social-accounts", icon: FiKey, permissionKey: "manage_clients" },
     { name: "Reports", path: "/socialmediamanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },

@@ -63,6 +63,25 @@ const Login = () => {
       roleNorm === "socialmediamanager" ||
       roleNorm === "socialmediahead";
 
+    // Came from a Sorted Rooms invite link: continue to Rooms after login
+    let pendingRoomCode;
+    try {
+      pendingRoomCode = sessionStorage.getItem("sortedPendingRoomCode");
+    } catch {
+      pendingRoomCode = null;
+    }
+    if (pendingRoomCode) {
+      const rolePath =
+        roleNorm === "hr"
+          ? "humanresource"
+          : isSocialMediaHead
+            ? "socialmediamanager"
+            : roleNorm || "team";
+      toast.success("Login Successful");
+      navigate(`/${rolePath}/rooms`);
+      return;
+    }
+
     if (roleNorm === "admin") {
       toast.success("Admin Login");
       navigate("/admin");

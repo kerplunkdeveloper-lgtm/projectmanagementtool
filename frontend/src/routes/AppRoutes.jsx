@@ -68,6 +68,9 @@ const Notifications = lazyWithRetry(
 );
 const Task = lazyWithRetry(() => import("../pages/tasks/Task.jsx"));
 const ChatPage = lazyWithRetry(() => import("../pages/chat/ChatPage.jsx"));
+const Rooms = lazyWithRetry(() => import("../pages/rooms/Rooms.jsx"));
+const RoomDetail = lazyWithRetry(() => import("../pages/rooms/RoomDetail.jsx"));
+const JoinRoomRedirect = lazyWithRetry(() => import("../pages/rooms/JoinRoomRedirect.jsx"));
 const Portfolio = lazyWithRetry(
   () => import("../pages/admin/portfolio/Portfolio.jsx"),
 );
@@ -127,6 +130,7 @@ export const routePreloaders = {
   clientCalls: () => import("../pages/client-calls/ClientCalls.jsx"),
   momPoints: () => import("../pages/mom/MomPoints.jsx"),
   chat: () => import("../pages/chat/ChatPage.jsx"),
+  rooms: () => import("../pages/rooms/Rooms.jsx"),
   workload: () => import("../pages/workload/Workload.jsx"),
   calendar: () => import("../pages/calendar/AllCalendar.jsx"),
 
@@ -163,6 +167,7 @@ export const preloadRoute = (path) => {
   else if (p.endsWith("/client-calls")) routePreloaders.clientCalls?.();
   else if (p.endsWith("/mom-points")) routePreloaders.momPoints?.();
   else if (p.endsWith("/chat")) routePreloaders.chat?.();
+  else if (p.endsWith("/rooms")) routePreloaders.rooms?.();
   else if (p.endsWith("/workload")) routePreloaders.workload?.();
   else if (
     p.endsWith("/calendar") ||
@@ -206,6 +211,9 @@ const AppRoutes = () => {
       <Routes>
         {/* LOGIN */}
         <Route path="/" element={<Login />} />
+
+        {/* SORTED ROOMS INVITE LINK (code in URL fragment) */}
+        <Route path="/rooms/join" element={<JoinRoomRedirect />} />
 
 
 
@@ -408,6 +416,8 @@ const AppRoutes = () => {
           <Route path="event-calendar" element={<EventCalendar />} />
 
           <Route path="chat" element={<ChatPage />} />
+          <Route path="rooms" element={<Rooms />} />
+          <Route path="rooms/:roomId" element={<RoomDetail />} />
           <Route path="client-calls" element={<ClientCalls />} />
           <Route path="mom-points" element={<MomPoints />} />
         </Route>
@@ -559,6 +569,8 @@ const AppRoutes = () => {
           <Route path="notifications" element={<Notifications />} />
 
           <Route path="chat" element={<ChatPage />} />
+          <Route path="rooms" element={<Rooms />} />
+          <Route path="rooms/:roomId" element={<RoomDetail />} />
           <Route path="client-calls" element={<ClientCalls />} />
           <Route path="mom-points" element={<MomPoints />} />
         </Route>
@@ -716,6 +728,8 @@ const AppRoutes = () => {
           <Route path="notifications" element={<Notifications />} />
 
           <Route path="chat" element={<ChatPage />} />
+          <Route path="rooms" element={<Rooms />} />
+          <Route path="rooms/:roomId" element={<RoomDetail />} />
           <Route path="client-calls" element={<ClientCalls />} />
           <Route path="mom-points" element={<MomPoints />} />
 
@@ -875,6 +889,8 @@ const AppRoutes = () => {
           <Route path="notifications" element={<Notifications />} />
 
           <Route path="chat" element={<ChatPage />} />
+          <Route path="rooms" element={<Rooms />} />
+          <Route path="rooms/:roomId" element={<RoomDetail />} />
           <Route path="client-calls" element={<ClientCalls />} />
           <Route path="mom-points" element={<MomPoints />} />
 
@@ -1005,6 +1021,8 @@ const AppRoutes = () => {
           <Route path="notifications" element={<Notifications />} />
 
           <Route path="chat" element={<ChatPage />} />
+          <Route path="rooms" element={<Rooms />} />
+          <Route path="rooms/:roomId" element={<RoomDetail />} />
           <Route path="client-calls" element={<ClientCalls />} />
           <Route path="mom-points" element={<MomPoints />} />
         </Route>
