@@ -1027,7 +1027,7 @@ const Dashboardmain = () => {
   const [newGoalName, setNewGoalName] = useState("");
   const [newGoalStartDate, setNewGoalStartDate] = useState("");
   const [newGoalEndDate, setNewGoalEndDate] = useState("");
-  const [goalTab, setGoalTab] = useState("Upcoming");
+  const [goalTab, setGoalTab] = useState("Pending");
   const [editingGoalId, setEditingGoalId] = useState(null);
   const [editingGoalName, setEditingGoalName] = useState("");
   const [editingGoalStartDate, setEditingGoalStartDate] = useState("");
@@ -1058,48 +1058,24 @@ const Dashboardmain = () => {
   };
 
   const goalStats = React.useMemo(() => {
-    let upcoming = [];
-    let overdue = [];
+    let pending = [];
     let completed = [];
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     const sortedGoals = [...goals].sort((a, b) => {
       return getGoalCreatedTime(b) - getGoalCreatedTime(a);
     });
 
     sortedGoals.forEach((g) => {
-      if (g.completed) {
-        completed.push(g);
-        upcoming.push(g);
-      } else if (g.endDate) {
-        const goalEndDate = new Date(g.endDate);
-        const compareEndDate = new Date(
-          goalEndDate.getFullYear(),
-          goalEndDate.getMonth(),
-          goalEndDate.getDate(),
-        );
-        if (compareEndDate <= today) {
-          overdue.push(g);
-          if (compareEndDate.getTime() === today.getTime()) {
-            upcoming.push(g);
-          }
-        } else {
-          upcoming.push(g);
-        }
-      } else {
-        upcoming.push(g);
-      }
+      if (g.completed) completed.push(g);
+      else pending.push(g);
     });
 
-    return { upcoming, overdue, completed };
+    return { pending, completed };
   }, [goals]);
 
   const activeTabGoals = React.useMemo(() => {
     let list = [];
-    if (goalTab === "Upcoming") list = goalStats.upcoming;
-    else if (goalTab === "Overdue") list = goalStats.overdue;
+    if (goalTab === "Pending") list = goalStats.pending;
     else list = goalStats.completed;
 
     return [...list].sort((a, b) => {
@@ -2287,12 +2263,8 @@ const Dashboardmain = () => {
             <div className="flex items-center gap-4 sm:gap-6">
               {[
                 {
-                  id: "Upcoming",
-                  label: `Upcoming (${goalStats.upcoming.length})`,
-                },
-                {
-                  id: "Overdue",
-                  label: `Overdue (${goalStats.overdue.length})`,
+                  id: "Pending",
+                  label: `Pending (${goalStats.pending.length})`,
                 },
                 {
                   id: "Completed",
@@ -2325,8 +2297,8 @@ const Dashboardmain = () => {
               })}
             </div>
 
-            {/* + Create task button - only visible in Upcoming tab */}
-            {goalTab === "Upcoming" && (
+            {/* + Create task button - only visible in Pending tab */}
+            {goalTab === "Pending" && (
               <button
                 type="button"
                 onClick={() => handleCreateGoal(null, "")}
@@ -2339,7 +2311,7 @@ const Dashboardmain = () => {
           </div>
           <div className="flex-1 flex flex-col pt-0.5">
             {/* Tasks List with bottom border lines */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 mt-0.5 divide-y divide-slate-100 dark:divide-white/5">
+            <div className="flex-1 min-h-46.25 overflow-y-auto custom-scrollbar pr-1 mt-0.5 divide-y divide-slate-100 dark:divide-white/5">
               {goalsLoading || (goalsFetching && goals.length === 0) ? (
                 <div className="space-y-2 py-2">
                   {[1, 2, 3, 4].map((n) => (
@@ -2501,14 +2473,12 @@ const Dashboardmain = () => {
                     <div className="h-full flex flex-col items-center justify-center text-center py-8">
                       <FiCheck className="w-6 h-6 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 rounded-full p-1 mb-1" />
                       <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                        {goalTab === "Upcoming"
-                          ? "No upcoming goals yet"
-                          : goalTab === "Overdue"
-                          ? "No overdue goals — you're all caught up!"
+                        {goalTab === "Pending"
+                          ? "No pending goals — you're all caught up!"
                           : "No completed goals yet"}
                       </span>
                       <span className="text-[10px] text-slate-400 mt-0.5">
-                        {goalTab === "Upcoming"
+                        {goalTab === "Pending"
                           ? "Click '+ Create task' above to add your first goal"
                           : "Track your target & completed goals here"}
                       </span>
@@ -2518,9 +2488,14 @@ const Dashboardmain = () => {
               )}
             </div>
 
-            {/* Pagination Controls */}
-            {totalGoalPages > 1 && (
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 mt-auto bg-transparent px-0.5">
+            {/* Pagination Controls - always rendered (hidden when 1 page) so card height stays fixed */}
+            {(
+              <div
+                className={`flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 mt-auto bg-transparent px-0.5 ${
+                  totalGoalPages > 1 ? "" : "invisible"
+                }`}
+                aria-hidden={totalGoalPages > 1 ? undefined : true}
+              >
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-550 select-none">
                   Page {goalPage} of {totalGoalPages}
                 </span>
