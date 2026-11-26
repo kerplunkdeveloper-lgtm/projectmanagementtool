@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   FiX,
-  FiSearch,
   FiClock,
   FiCalendar,
   FiPlay,
@@ -142,7 +141,6 @@ const PendingCommitmentModal = ({
   };
 
   // Filter & Search states
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all"); // "all", "pending", "completed", "live"
   // "list" = compact horizontal rows (Client · SMM | Posts | Reels | Stories | Pending); "cards" = detailed cards
   const [viewMode, setViewMode] = useState("list");
@@ -278,19 +276,17 @@ const PendingCommitmentModal = ({
 
   // Check if any non-default filter is active
   const isFilterActive =
-    searchQuery.trim() !== "" ||
     selectedSmm !== "all" ||
     selectedClient !== "all" ||
     activeTab !== "all";
 
   const handleResetFilters = () => {
-    setSearchQuery("");
     setSelectedSmm("all");
     setSelectedClient("all");
     setActiveTab("all");
   };
 
-  // Base filtered summaries: filtered by SMM, Client dropdown, and search query
+  // Base filtered summaries: filtered by SMM and Client dropdowns
   const baseFilteredSummaries = useMemo(() => {
     return enrichedSummaries.filter((cs) => {
       // 1. Social Media Executive Filter
@@ -311,18 +307,9 @@ const PendingCommitmentModal = ({
         }
       }
 
-      // 3. Search (by Client name, industry, or SMM name)
-      if (searchQuery.trim()) {
-        const q = searchQuery.trim().toLowerCase();
-        const matchName = (cs.clientName || "").toLowerCase().includes(q);
-        const matchInd = (cs.industry || "").toLowerCase().includes(q);
-        const matchSmm = (cs.smmName || "").toLowerCase().includes(q);
-        if (!matchName && !matchInd && !matchSmm) return false;
-      }
-
       return true;
     });
-  }, [enrichedSummaries, selectedSmm, selectedClient, searchQuery]);
+  }, [enrichedSummaries, selectedSmm, selectedClient]);
 
   // Counts for status bar tabs (All, Pending, Completed, Live) dynamically matching SMM/Client/Search filters
   const tabCounts = useMemo(() => {
@@ -455,7 +442,7 @@ const PendingCommitmentModal = ({
       }}
     >
       <div
-        className="relative w-[96vw] max-w-6xl max-h-[90vh] my-auto bg-white dark:bg-[#0b101d] border border-slate-200/90 dark:border-[#1e2a40] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5 dark:ring-white/10"
+        className="relative w-[96vw] max-w-5xl max-h-[85vh] my-auto bg-white dark:bg-[#0b101d] border border-slate-200/90 dark:border-[#1e2a40] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5 dark:ring-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         
@@ -615,10 +602,10 @@ const PendingCommitmentModal = ({
         </div>
 
         {/* Toolbar: Status Tabs, SMM Dropdown, Client Dropdown & Search */}
-        <div className="px-6 py-3 border-b border-slate-100 dark:border-[#1e2a40] flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 bg-white dark:bg-[#0b101d]">
+        <div className="px-6 py-3 border-b border-slate-100 dark:border-[#1e2a40] flex flex-wrap items-center justify-between gap-2.5 bg-white dark:bg-[#0b101d]">
           
           {/* Primary Status Tabs: All Clients, Pending, Completed, Live */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 text-xs font-bold w-full xl:w-auto scrollbar-none shrink-0">
+          <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-bold scrollbar-none shrink-0 max-w-full">
             {/* All Clients */}
             <button
               type="button"
@@ -709,14 +696,14 @@ const PendingCommitmentModal = ({
           </div>
 
           {/* Filters: SMM Dropdown, Client Dropdown, Search Input */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full xl:w-auto">
+          <div className="flex items-center gap-2 flex-wrap justify-end ml-auto">
             
             {/* Social Media Executive Dropdown Filter */}
             <div className="relative shrink-0 flex-1 sm:flex-initial">
               <select
                 value={selectedSmm}
                 onChange={(e) => setSelectedSmm(e.target.value)}
-                className={`toolbar-filter-select w-full sm:w-auto min-w-[135px] max-w-[190px] !pl-7 !pr-7 !py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer truncate ${
+                className={`toolbar-filter-select w-auto min-w-[130px] max-w-[160px] !pl-7 !pr-7 !py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer truncate ${
                   selectedSmm !== "all" ? "is-active" : ""
                 }`}
                 title="Filter by Social Media Executive"
@@ -743,7 +730,7 @@ const PendingCommitmentModal = ({
               <select
                 value={selectedClient}
                 onChange={(e) => setSelectedClient(e.target.value)}
-                className={`toolbar-filter-select w-full sm:w-auto min-w-[145px] max-w-[200px] !pl-7 !pr-7 !py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer truncate ${
+                className={`toolbar-filter-select w-auto min-w-[130px] max-w-[170px] !pl-7 !pr-7 !py-1 text-xs font-bold rounded-xl border transition-all cursor-pointer truncate ${
                   selectedClient !== "all" ? "is-active" : ""
                 }`}
                 title="Filter by Client"
@@ -762,28 +749,6 @@ const PendingCommitmentModal = ({
                   selectedClient !== "all" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"
                 }`}
               />
-            </div>
-
-            {/* Search Input */}
-            <div className="relative w-full sm:w-56 shrink-0">
-              <input
-                type="text"
-                placeholder="Search client, SMM..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="toolbar-search-input w-full !pl-8 !pr-7 !py-1.5 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
-              />
-              
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
-                  title="Clear search"
-                >
-                  <FiX size={12} />
-                </button>
-              )}
             </div>
 
             {/* View toggle: List / Cards */}
@@ -835,7 +800,7 @@ const PendingCommitmentModal = ({
                 No clients match your filter
               </h4>
               <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
-                Try adjusting your search query, switching tabs, or resetting filters to view all commitments.
+                Try switching tabs, changing the SMM or client filter, or resetting filters to view all commitments.
               </p>
               {isFilterActive && (
                 <button
