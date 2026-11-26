@@ -97,13 +97,44 @@ const anyFieldInRange = (fields, from, to) => {
   return { $or: fields.map((f) => ({ [f]: range })) };
 };
 
+// What this user may see at all: own tasks for regular users, Chennai clients for the
+// Social Media Head, never inactive clients, and the Admin / Op Manager branch tab.
+const buildBaseClauses = async (req, q) => {
+  const { isPrivileged, isAdminOrOpManager } = getRoleFlags(req.user);
+  const needChennai = isSocialMediaHeadUser(req.user);
+  const [{ chennaiClients, inactiveClients }, branchCondition] = await Promise.all([
+    loadClientScopes({ needChennai, needInactive: true }),
+    isAdminOrOpManager && !needChennai ? buildBranchCondition(q.branch) : null,
+  ]);
+
+  const baseClauses = [];
+  if (!isPrivileged && req.user) {
+    // Regular users see only tasks they created (same rule the page applied client-side)
+    const me = ciExact(req.user.name || '');
+    baseClauses.push({
+      $or: [
+        { createdBy: req.user._id },
+        ...(req.user.name ? [{ createdByName: me }] : []),
+        ...(req.user.name
+          ? [{ createdBy: null, createdByName: { $in: [null, ''] }, assigneeName: me }]
+          : []),
+      ],
+    });
+  }
+  if (needChennai) baseClauses.push(buildChennaiCondition(chennaiClients));
+  const inactiveExclusion = buildInactiveExclusion(inactiveClients);
+  if (inactiveExclusion) baseClauses.push(inactiveExclusion);
+  if (branchCondition) baseClauses.push(branchCondition);
+  return baseClauses;
+};
+
 // @desc    Filtered, sorted and paginated SM tasks
 // @route   GET /api/socialmedia-task-calendar/paged
 // @access  Private
 exports.getSocialmediaTasksPaged = async (req, res) => {
   try {
     const q = req.query;
-    const { isPrivileged, isAdminOrOpManager } = getRoleFlags(req.user);
+    const { isPrivileged } = getRoleFlags(req.user);
     const exportAll = q.all === '1' || q.all === 'true';
     const limit = exportAll
       ? MAX_EXPORT
@@ -111,30 +142,7 @@ exports.getSocialmediaTasksPaged = async (req, res) => {
     const page = exportAll ? 1 : Math.max(1, parseInt(q.page, 10) || 1);
 
     // ── Base scope: what this user may see at all (also used for the "total" count) ──
-    const needChennai = isSocialMediaHeadUser(req.user);
-    const [{ chennaiClients, inactiveClients }, branchCondition] = await Promise.all([
-      loadClientScopes({ needChennai, needInactive: true }),
-      isAdminOrOpManager && !needChennai ? buildBranchCondition(q.branch) : null,
-    ]);
-
-    const baseClauses = [];
-    if (!isPrivileged && req.user) {
-      // Regular users see only tasks they created (same rule the page applied client-side)
-      const me = ciExact(req.user.name || '');
-      baseClauses.push({
-        $or: [
-          { createdBy: req.user._id },
-          ...(req.user.name ? [{ createdByName: me }] : []),
-          ...(req.user.name
-            ? [{ createdBy: null, createdByName: { $in: [null, ''] }, assigneeName: me }]
-            : []),
-        ],
-      });
-    }
-    if (needChennai) baseClauses.push(buildChennaiCondition(chennaiClients));
-    const inactiveExclusion = buildInactiveExclusion(inactiveClients);
-    if (inactiveExclusion) baseClauses.push(inactiveExclusion);
-    if (branchCondition) baseClauses.push(branchCondition);
+    const baseClauses = await buildBaseClauses(req, q);
 
     // ── Filters ──
     const filterClauses = [];
@@ -299,3 +307,4 @@ exports.getSocialmediaTasksPaged = async (req, res) => {
     res.status(500).json({ success: false, message: error.message || 'Server error' });
   }
 };
+

@@ -63,6 +63,7 @@ import {
   ListSkeleton,
   InlineTextSkeleton,
 } from "./ContentCalendarSkeletons";
+import CalendarLoaderModal from "./CalendarLoaderModal";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
@@ -144,7 +145,6 @@ const STATUSES = [
   "Completed and wait CLient Approval",
   "Published Live",
 ];
-const PRIORITIES = ["All", "High", "Medium", "Low"];
 const COMMITMENTS = ["All", "Yes", "No"];
 
 const ContentCalendar = () => {
@@ -348,7 +348,6 @@ const ContentCalendar = () => {
   const [selectedContentType, setSelectedContentType] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [selectedAssignee, setSelectedAssignee] = useState("All");
-  const [selectedPriority, setSelectedPriority] = useState("All");
   const [atRiskOnly, setAtRiskOnly] = useState(false);
   const [isContentTypeOpen, setIsContentTypeOpen] = useState(false);
   const contentTypeRef = useRef(null);
@@ -490,6 +489,15 @@ const ContentCalendar = () => {
   const tasksLoadFailed = !hasDataForMonth && !loading && Boolean(tasksError);
   const showSkeleton = !hasDataForMonth && !tasksLoadFailed;
   const isRefreshing = loading && hasDataForMonth;
+
+  // Full-page loader modal: only while the page is opening (first load). Later month
+  // switches just show the skeleton. If this month is already cached (e.g. coming back
+  // to the page) the data is there immediately and the modal never appears.
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  if (!initialLoadDone && (hasDataForMonth || tasksLoadFailed)) {
+    setInitialLoadDone(true);
+  }
+  const showLoaderModal = !initialLoadDone && showSkeleton;
   const isCalendarLoading = loading;
   const visibleTasks = hasDataForMonth ? tasks : EMPTY_ARRAY;
 
@@ -759,7 +767,6 @@ const ContentCalendar = () => {
 
         if (!matchesCreator && !matchesAssignee && !matchesResolved) return false;
       }
-      if (selectedPriority !== "All" && task.priority !== selectedPriority) return false;
 
 
       if (atRiskOnly && !isTaskAtRisk(task)) return false;
@@ -776,7 +783,6 @@ const ContentCalendar = () => {
     selectedContentType,
     selectedStatus,
     selectedAssignee,
-    selectedPriority,
     atRiskOnly,
     isSocialMediaHead,
     isTaskFromChennaiClient,
@@ -879,7 +885,6 @@ const ContentCalendar = () => {
     selectedContentType !== "All" ||
     selectedStatus !== "All" ||
     (isPrivileged && selectedAssignee !== "All") ||
-    selectedPriority !== "All" ||
     atRiskOnly
   );
 
@@ -1045,7 +1050,7 @@ const ContentCalendar = () => {
   // Reset selectedTaskIds on major filter change
   useEffect(() => {
     setSelectedTaskIds([]);
-  }, [currentMonth, currentYear, selectedClient, selectedCategory, selectedContentType, selectedStatus, selectedAssignee, selectedPriority]);
+  }, [currentMonth, currentYear, selectedClient, selectedCategory, selectedContentType, selectedStatus, selectedAssignee]);
 
   // Calendar month grid calculation (Sunday start matching Image 2)
   const calendarDays = useMemo(() => {
@@ -1523,6 +1528,13 @@ const ContentCalendar = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100  p-3 space-y-3.5 sm:space-y-6 relative">
+      {/* Page-open loader: modal on top while the calendar loads in the background */}
+      <AnimatePresence>
+        {showLoaderModal && (
+          <CalendarLoaderModal monthName={MONTH_NAMES[currentMonth]} year={currentYear} />
+        )}
+      </AnimatePresence>
+
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -1994,19 +2006,6 @@ const ContentCalendar = () => {
             />
           )}
 
-          {/* Priority */}
-          <select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className={`toolbar-filter-select ${selectedPriority !== "All" ? "is-active" : ""}`}
-          >
-            <option value="All">Priority</option>
-            {PRIORITIES.filter((p) => p !== "All").map((pr) => (
-              <option key={pr} value={pr}>
-                {pr}
-              </option>
-            ))}
-          </select>
 
 
           {/* At Risk Pill Button */}

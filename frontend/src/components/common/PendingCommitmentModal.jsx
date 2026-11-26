@@ -24,6 +24,7 @@ import {
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { computeAllClientsCommitments } from "../../utils/smCommitmentUtils";
+import CommitmentListView from "./CommitmentListView";
 import { getUsers } from "../../features/users/userSlice";
 
 const MONTH_NAMES = [
@@ -143,6 +144,8 @@ const PendingCommitmentModal = ({
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all"); // "all", "pending", "completed", "live"
+  // "list" = compact horizontal rows (Client · SMM | Posts | Reels | Stories | Pending); "cards" = detailed cards
+  const [viewMode, setViewMode] = useState("list");
   const [selectedSmm, setSelectedSmm] = useState("all");
   const [selectedClient, setSelectedClient] = useState("all");
 
@@ -783,6 +786,29 @@ const PendingCommitmentModal = ({
               )}
             </div>
 
+            {/* View toggle: List / Cards */}
+            <div className="inline-flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-[#151d2e] border border-slate-200 dark:border-[#22314d] shrink-0" role="tablist" aria-label="View">
+              {[
+                { id: "list", label: "List" },
+                { id: "cards", label: "Cards" },
+              ].map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === v.id}
+                  onClick={() => setViewMode(v.id)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                    viewMode === v.id
+                      ? "bg-white dark:bg-[#22314d] text-indigo-600 dark:text-indigo-300 shadow-xs"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+
             {/* Reset Filter Button */}
             {isFilterActive && (
               <button
@@ -821,6 +847,18 @@ const PendingCommitmentModal = ({
                 </button>
               )}
             </div>
+          ) : viewMode === "list" ? (
+            <CommitmentListView
+              rows={filteredSummaries}
+              onRowClick={
+                onSelectClient
+                  ? (cs) => {
+                      onClose();
+                      onSelectClient(cs.clientName);
+                    }
+                  : undefined
+              }
+            />
           ) : (
             filteredSummaries.map((item) => {
               const {
