@@ -3511,3 +3511,41 @@ td:first-child {
   color: #0f172a !important;
 }
 
+
+/* ─── Skeleton loading (shimmer) ─────────────────────────────────────────── */
+.skel {
+  position: relative;
+  overflow: hidden;
+  background-color: #e2e8f0;
+  border-radius: 0.5rem;
+}
+.dark .skel {
+  background-color: #1a2335;
+}
+.skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: skel-shimmer 1.4s ease-in-out infinite;
+}
+.dark .skel::after {
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.12), transparent);
+}
+.skel-soft {
+  background-color: #f1f5f9;
+}
+.dark .skel-soft {
+  background-color: #141c2b;
+}
+@keyframes skel-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel::after {
+    animation: none;
+  }
+}

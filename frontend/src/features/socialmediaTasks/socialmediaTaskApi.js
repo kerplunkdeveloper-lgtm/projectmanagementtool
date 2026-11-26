@@ -6,6 +6,12 @@ export const getSocialmediaTasksAPI = async (params = {}) => {
   return response.data;
 };
 
+// GET filtered + paginated tasks (SM Tasks page). Pass `all: 1` to get every match (export).
+export const getSocialmediaTasksPagedAPI = async (params = {}) => {
+  const response = await axiosInstance.get("/socialmedia-task-calendar/paged", { params });
+  return response.data;
+};
+
 // GET metadata (clients, users, categories)
 export const getSocialmediaMetadataAPI = async () => {
   const response = await axiosInstance.get("/socialmedia-task-calendar/meta");

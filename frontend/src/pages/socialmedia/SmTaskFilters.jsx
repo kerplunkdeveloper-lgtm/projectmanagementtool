@@ -15,6 +15,7 @@ import {
   FiGrid,
 } from "react-icons/fi";
 import SearchableDropdown from "../../components/common/SearchableDropdown";
+import CalendarFilterPicker from "../../components/common/CalendarFilterPicker";
 
 const DEFAULT_CATEGORIES = [
   "All",
@@ -61,7 +62,6 @@ const DEFAULT_STATUSES = [
   "Completed",
   "Live",
 ];
-const DEFAULT_PRIORITIES = ["All", "High", "Medium", "Low"];
 const DEFAULT_COMMITMENTS = ["All", "Yes", "No"];
 
 const SmTaskFilters = ({
@@ -88,15 +88,16 @@ const SmTaskFilters = ({
   selectedStatus = "All",
   setSelectedStatus,
   statuses = DEFAULT_STATUSES,
-  selectedPriority = "All",
-  setSelectedPriority,
-  priorities = DEFAULT_PRIORITIES,
   selectedCommitment = "All",
   setSelectedCommitment,
   commitments = DEFAULT_COMMITMENTS,
   dateFilterPreset = "All",
   setDateFilterPreset,
   dateFilterField = "any",
+  selectedMonth,
+  selectedYear,
+  selectedDay = null,
+  onMonthChange,
   setDateFieldType,
   customStartDate = "",
   setCustomStartDate,
@@ -605,7 +606,8 @@ const SmTaskFilters = ({
             if (setSelectedStatus) setSelectedStatus(e.target.value);
             if (setCurrentPage) setCurrentPage(1);
           }}
-          className={`h-8 pl-2.5 pr-6 rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
+          title={selectedStatus === "All" ? "All Status" : selectedStatus}
+          className={`h-8 w-40 max-w-[11rem] truncate rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
             selectedStatus !== "All"
               ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
               : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
@@ -615,6 +617,10 @@ const SmTaskFilters = ({
             backgroundRepeat: "no-repeat",
             backgroundPosition: "right 0.5rem center",
             backgroundSize: "0.65rem 0.65rem",
+            // Inline so it wins over the global `select { padding: .625rem .875rem }` rule in index.css,
+            // which squeezed the text inside the 32px-high box and clipped it.
+            padding: "0 1.5rem 0 0.625rem",
+            lineHeight: "2rem",
           }}
         >
           <option value="All">All Status</option>
@@ -627,36 +633,19 @@ const SmTaskFilters = ({
             ))}
         </select>
 
-        {/* Priority Filter */}
-        <select
-          value={selectedPriority}
-          onChange={(e) => {
-            if (setSelectedPriority) setSelectedPriority(e.target.value);
-            if (setCurrentPage) setCurrentPage(1);
-          }}
-          className={`h-8 pl-2.5 pr-6 rounded-lg text-xs font-semibold border cursor-pointer transition-all shadow-2xs appearance-none shrink-0 ${
-            selectedPriority !== "All"
-              ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 font-bold ring-1 ring-blue-500/20"
-              : "bg-slate-50 dark:bg-[#131d31] text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-[#182338]"
-          }`}
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "right 0.5rem center",
-            backgroundSize: "0.65rem 0.65rem",
-          }}
-        >
-          <option value="All">All Priority</option>
-          {priorities
-            .filter((c) => c !== "All")
-            .map((pr) => (
-              <option key={pr} value={pr}>
-                {pr}
-              </option>
-            ))}
-        </select>
-
-        {/* Date Filter Popover */}
+        {/* Commitment tab: date-wise calendar (filters by publish date: one day or whole month).
+            Other tabs: date presets popover */}
+        {activeTab === "commitment" ? (
+          <CalendarFilterPicker
+            year={selectedYear}
+            month={selectedMonth}
+            day={selectedDay}
+            onChange={(y, m, d) => {
+              if (onMonthChange) onMonthChange(y, m, d);
+              if (setCurrentPage) setCurrentPage(1);
+            }}
+          />
+        ) : (
         <div className={`relative shrink-0 ${isDateDropdownOpen ? "z-50" : "z-10"}`} ref={dateDropdownRef}>
           <button
             type="button"
@@ -785,6 +774,7 @@ const SmTaskFilters = ({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Right Controls: At Risk + Export + Reset */}

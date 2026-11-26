@@ -21,6 +21,8 @@ const {
   getExecutivesSummary,
 } = require('../controllers/smDailyScheduleController');
 
+const { getSocialmediaTasksPaged } = require('../controllers/socialmediaTaskPagedController');
+
 const { protect } = require('../middleware/auth');
 
 // Protect all routes with JWT auth
@@ -33,6 +35,8 @@ router.patch('/daily-schedule/toggle-subtask', toggleSubtaskCompletion);
 router.get('/daily-schedule/executives-summary', getExecutivesSummary);
 
 router.get('/meta', getSocialmediaMetadata);
+// Server-side filtered + paginated list for the SM Tasks page (must stay above /:id)
+router.get('/paged', getSocialmediaTasksPaged);
 router.post('/bulk-import', bulkImportSocialmediaTasks);
 router.post('/bulk-delete', bulkDeleteSocialmediaTasks);
 

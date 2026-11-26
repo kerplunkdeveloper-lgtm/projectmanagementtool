@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, useDeferredValue } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import {
@@ -13,7 +13,6 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiChevronDown,
-  FiSearch,
   FiPlus,
   FiFilter,
   FiGrid,
@@ -50,11 +49,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   getSocialmediaTasks,
   getSocialmediaStats,
+  prefetchSocialmediaTasks,
+  makeTasksKey,
   rescheduleSocialmediaTask,
   deleteSocialmediaTask,
   updateSocialmediaTask,
   bulkDeleteSocialmediaTasks,
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
+import {
+  MetricCardsSkeleton,
+  MonthGridSkeleton,
+  WeekSkeleton,
+  ListSkeleton,
+  InlineTextSkeleton,
+} from "./ContentCalendarSkeletons";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
@@ -72,7 +80,6 @@ import {
   isTaskAtRisk,
 } from "../../utils/smCommitmentUtils";
 import { formatLocalDateKey } from "../../utils/dateUtils";
-import calendarMascotImg from "../../../public/assets/calendorchar.png";
 
 const ALL_PLATFORMS_MAP = [
   { id: "Instagram", name: "Instagram", icon: FaInstagram, color: "#E1306C" },
@@ -140,108 +147,6 @@ const STATUSES = [
 const PRIORITIES = ["All", "High", "Medium", "Low"];
 const COMMITMENTS = ["All", "Yes", "No"];
 
-// Full Page Centered Loading Component with 3D Mascot Character Animation & Ambient Glow
-const FullPageCalendarLoader = ({ monthName = "", year = "" }) => {
-  return (
-    <motion.div
-      key="calendar-fullpage-loader"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.25 } }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-[#060a14]/90 backdrop-blur-md overflow-hidden select-none pointer-events-auto"
-    >
-      {/* Ambient Floating Glow Spheres */}
-      <div className="absolute top-1/4 left-1/4 w-80 sm:w-96 h-80 sm:h-96 bg-indigo-500/15 dark:bg-indigo-600/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 sm:w-96 h-80 sm:h-96 bg-purple-500/15 dark:bg-purple-600/20 rounded-full blur-3xl pointer-events-none animate-pulse [animation-delay:1s]" />
-
-      {/* Main Glassmorphic Centered Card */}
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0, y: 16 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.94, opacity: 0, y: -10 }}
-        transition={{ type: "spring", damping: 25, stiffness: 320 }}
-        className="relative z-10 w-full max-w-sm sm:max-w-md p-7 sm:p-9 rounded-3xl bg-white dark:bg-[#0c1220] border border-slate-200/90 dark:border-[#1e2a40] shadow-2xl shadow-indigo-500/20 backdrop-blur-xl flex flex-col items-center text-center overflow-hidden"
-      >
-        {/* Subtle decorative top neon bar */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
-
-        {/* 3D Mascot Character Hero with Floating Animation and Glowing Aura */}
-        <div className="relative mb-5 flex items-center justify-center">
-          {/* Ambient Outer Aura Glow */}
-          <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-indigo-500/30 via-purple-500/30 to-pink-500/20 blur-2xl animate-pulse pointer-events-none" />
-
-          {/* Mascot Image with Gentle Bobbing / Floating Motion */}
-          <motion.div
-            animate={{
-              y: [0, -7, 0],
-              rotate: [0, 1.2, -1.2, 0],
-            }}
-            transition={{
-              repeat: Infinity,
-              duration: 3,
-              ease: "easeInOut",
-            }}
-            className="relative z-10 w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden ring-4 ring-indigo-500/25 shadow-2xl shadow-indigo-500/30 bg-[#0f172a] flex items-center justify-center border border-indigo-500/30"
-          >
-            <img
-              src={calendarMascotImg}
-              alt="Content Calendar Mascot"
-              className="w-full h-full object-cover select-none pointer-events-none"
-            />
-          </motion.div>
-        </div>
-
-        {/* Title & Status Chip */}
-        <div className="space-y-1.5 mb-5">
-          <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center justify-center gap-1.5">
-            <span>Loading Calendar</span>
-            <span className="flex gap-0.5 ml-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:-0.3s]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:-0.15s]" />
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-bounce" />
-            </span>
-          </h3>
-
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 max-w-xs">
-            Organizing deliverables & publishing schedule for{" "}
-            <span className="font-bold text-slate-800 dark:text-slate-200">
-              {monthName} {year}
-            </span>
-          </p>
-        </div>
-
-        {/* Smooth Gradient Progress Bar */}
-        <div className="w-full max-w-xs h-2 bg-slate-200/80 dark:bg-[#162033] border border-slate-200/80 dark:border-[#23334d] rounded-full overflow-hidden relative mb-5 shadow-inner">
-          <motion.div
-            className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full"
-            initial={{ x: "-100%", width: "45%" }}
-            animate={{ x: "260%" }}
-            transition={{ repeat: Infinity, duration: 1.3, ease: "easeInOut" }}
-          />
-        </div>
-
-        {/* Status Micro-checklist Indicators */}
-        <div className="flex items-center justify-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-slate-600 dark:text-slate-300">Posts & Reels</span>
-          </div>
-          <span className="text-slate-300 dark:text-slate-600">•</span>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse [animation-delay:0.2s]" />
-            <span className="text-slate-600 dark:text-slate-300">Deliverables</span>
-          </div>
-          <span className="text-slate-300 dark:text-slate-600">•</span>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse [animation-delay:0.4s]" />
-            <span className="text-slate-600 dark:text-slate-300">QC Status</span>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
 const ContentCalendar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -279,7 +184,7 @@ const ContentCalendar = () => {
     userRoleClean === "operationmanager" ||
     isSocialMediaHead;
 
-  const { tasks, stats, loading } = useSelector((state) => state.socialmediaTasks);
+  const { tasks, stats, loading, tasksKey, error: tasksError } = useSelector((state) => state.socialmediaTasks);
   const clientsState = useSelector((state) => state.clients);
   const clients = clientsState?.clients || EMPTY_ARRAY;
 
@@ -474,10 +379,7 @@ const ContentCalendar = () => {
   // Drag and Drop
   const [draggedTaskId, setDraggedTaskId] = useState(null);
 
-  // Table View State
-  const [tableSearch, setTableSearch] = useState("");
-  const [tablePage, setTablePage] = useState(1);
-  const itemsPerPage = 15;
+
 
   // Multi-Select & Bulk Delete State
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
@@ -486,90 +388,6 @@ const ContentCalendar = () => {
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-
-  const formatPublishDateTime = (dateVal) => {
-    if (!dateVal) return "-";
-    try {
-      const d = new Date(dateVal);
-      if (isNaN(d.getTime())) return "-";
-      const day = d.getDate();
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const month = months[d.getMonth()];
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${day} ${month} ${hh}:${mm}`;
-    } catch {
-      return "-";
-    }
-  };
-
-  const renderDueDateBadge = (dueDate, status) => {
-    if (!dueDate) return <span className="text-slate-400 font-medium">-</span>;
-    const due = new Date(dueDate);
-    if (isNaN(due.getTime())) return <span className="text-slate-400 font-medium">-</span>;
-
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const dateStr = `${due.getDate()} ${months[due.getMonth()]}`;
-
-    const s = (status || "").trim().toLowerCase();
-    const isWaiting = s === "qc" || s === "in qc" || s.includes("client approval");
-    if (isWaiting) {
-      return (
-        <div className="flex flex-col items-start gap-1">
-          <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-            {dateStr}
-          </span>
-          <span
-            title={`Status: ${status} • Waiting`}
-            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9.5px] font-extrabold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/90 dark:border-amber-800/60 shadow-2xs whitespace-nowrap"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-            <span>Waiting</span>
-          </span>
-        </div>
-      );
-    }
-
-    const isLive = status === "Live" || status === "Completed" || status === "Published" || status === "Published Live";
-    if (isLive) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs whitespace-nowrap">
-          {dateStr}
-        </span>
-      );
-    }
-
-    const now = new Date();
-    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const startDue = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
-    const diffDays = Math.round((startDue - startToday) / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      const overdueDays = Math.abs(diffDays);
-      const dayLabel = overdueDays === 1 ? "1d overdue" : `${overdueDays}d overdue`;
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-          <span>{dateStr}</span>
-          <span className="font-extrabold text-[10px] uppercase tracking-wider opacity-90">• {dayLabel}</span>
-        </span>
-      );
-    }
-    if (diffDays === 0) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 shadow-2xs whitespace-nowrap">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-          <span>{dateStr}</span>
-          <span className="font-extrabold text-[10px] uppercase tracking-wider opacity-90">• Due today</span>
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
-        {dateStr}
-      </span>
-    );
-  };
 
   const handleTogglePlatformSubtask = async (task, platformId, e) => {
     if (e) e.stopPropagation();
@@ -611,50 +429,6 @@ const ContentCalendar = () => {
     }
   };
 
-  const handleQuickStatusChange = async (task, newStatus) => {
-    if (!task || !task._id || isReadOnly) return;
-
-    const s = (newStatus || "").trim().toLowerCase();
-    const isVerificationStatus =
-      s === "qc" ||
-      s === "in qc" ||
-      s.includes("client approval") ||
-      s === "published live" ||
-      s === "live" ||
-      s === "published";
-
-    if (isVerificationStatus) {
-      const assigned =
-        Array.isArray(task.platforms) && task.platforms.length > 0
-          ? task.platforms
-          : task.platform
-          ? [task.platform]
-          : [];
-      const completed = Array.isArray(task.completedPlatforms)
-        ? task.completedPlatforms
-        : [];
-      const unticked = assigned.filter(
-        (p) => !completed.some((cp) => cp.toLowerCase() === p.toLowerCase())
-      );
-      if (unticked.length > 0) {
-        setPlatformWarningModal({
-          isOpen: true,
-          task,
-          targetStatus: newStatus,
-        });
-        return;
-      }
-    }
-
-    try {
-      await dispatch(updateSocialmediaTask({ id: task._id, data: { status: newStatus } })).unwrap();
-      toast.success(`Status updated to "${newStatus}"`);
-      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
-    } catch (err) {
-      toast.error(err?.message || "Failed to update status");
-    }
-  };
-
   const handleConfirmPlatformWarning = async ({ task, targetStatus, completedPlatforms }) => {
     try {
       await dispatch(
@@ -679,8 +453,6 @@ const ContentCalendar = () => {
   const currentMonth = currentDate.getMonth(); // 0-indexed
   const realTodayStr = formatLocalDateKey(new Date());
 
-  const [initialLoading, setInitialLoading] = useState(true);
-
   // Pending Commitments & Calendar Date State
   const [isPendingCommitmentOpen, setIsPendingCommitmentOpen] = useState(false);
   const [platformWarningModal, setPlatformWarningModal] = useState({
@@ -695,21 +467,57 @@ const ContentCalendar = () => {
 
   // (commitmentOverview moved after calendarTasks for dynamic filter reactivity)
 
-  // Fetch dynamic tasks and stats
+  // Clients & users are month-independent: load them once, not on every month switch
   useEffect(() => {
-    dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }))
-      .finally(() => setInitialLoading(false));
-    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
     if (!clients || clients.length === 0) dispatch(getClients());
     if (!users || users.length === 0) dispatch(getUsers());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
+
+  // Fetch tasks and stats for the visible month. Cached months render instantly and are
+  // refreshed in the background (see socialmediaTaskSlice); stale responses are ignored.
+  useEffect(() => {
+    dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
+    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
   }, [dispatch, currentYear, currentMonth]);
 
-  const isCalendarLoading = loading || initialLoading;
+  // Loading states:
+  //  - showSkeleton: the list in the store isn't for this month yet (first load, or a month
+  //    that isn't cached) → render skeletons instead of the previous month's posts.
+  //  - isRefreshing: this month's data is on screen and a background refresh is running.
+  const currentTasksKey = makeTasksKey({ year: currentYear, month: currentMonth + 1 });
+  const hasDataForMonth = tasksKey === currentTasksKey;
+  const tasksLoadFailed = !hasDataForMonth && !loading && Boolean(tasksError);
+  const showSkeleton = !hasDataForMonth && !tasksLoadFailed;
+  const isRefreshing = loading && hasDataForMonth;
+  const isCalendarLoading = loading;
+  const visibleTasks = hasDataForMonth ? tasks : EMPTY_ARRAY;
+
+  const reloadCurrentMonth = useCallback(() => {
+    dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
+    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+  }, [dispatch, currentYear, currentMonth]);
+
+  // Warm the cache for the month the user is about to open (hover / focus on prev / next)
+  const prefetchMonthOffset = useCallback(
+    (offset) => {
+      if (viewMode === "Week") {
+        const d = new Date(currentDate);
+        d.setDate(d.getDate() + offset * 7);
+        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) return;
+        dispatch(prefetchSocialmediaTasks({ year: d.getFullYear(), month: d.getMonth() + 1 }));
+        return;
+      }
+      const d = new Date(currentYear, currentMonth + offset, 1);
+      dispatch(prefetchSocialmediaTasks({ year: d.getFullYear(), month: d.getMonth() + 1 }));
+    },
+    [dispatch, viewMode, currentDate, currentMonth, currentYear]
+  );
 
   // Ensure tasks are unique by document _id and filter out inactive client tasks
   const uniqueTasks = useMemo(() => {
     const seen = new Set();
-    return (tasks || []).filter((t) => {
+    return (visibleTasks || []).filter((t) => {
       if (isTaskFromInactiveClient(t)) return false;
       if (!isTaskInBranch(t)) return false;
       const key = t._id ? t._id.toString() : JSON.stringify(t);
@@ -717,7 +525,7 @@ const ContentCalendar = () => {
       seen.add(key);
       return true;
     });
-  }, [tasks, isTaskFromInactiveClient, isTaskInBranch]);
+  }, [visibleTasks, isTaskFromInactiveClient, isTaskInBranch]);
 
   // Precompute user info once per task. getUserInfo is called many times per task per render
   // (filters, KPI stats, search, every card/row). Redux task objects are immutable, so a WeakMap
@@ -852,6 +660,14 @@ const ContentCalendar = () => {
       if (!task.commitment) return false;
       if (!task.publishDate && !task.dueDate) return false;
 
+      // Only the displayed month's posts. The API also returns ±10 days around the month
+      // (needed by Week view when a week crosses months), which used to leak previous /
+      // next month posts into Month and List views and into the counts.
+      if (viewMode !== "Week") {
+        const d = new Date(task.publishDate || task.dueDate);
+        if (isNaN(d.getTime()) || d.getFullYear() !== currentYear || d.getMonth() !== currentMonth) return false;
+      }
+
       // Social Media Head: strictly restrict to Chennai branch clients
       if (isSocialMediaHead && !isTaskFromChennaiClient(task)) return false;
 
@@ -915,7 +731,10 @@ const ContentCalendar = () => {
         if (normSelected === "published live") {
           match = ["published live", "published", "live", "completed"].includes(normTaskStatus);
         } else if (normSelected === "qc" || normSelected === "in qc") {
-          match = ["qc", "in qc"].includes(normTaskStatus);
+          // "In QC" card / QC filter = everything awaiting approval: QC, In QC and
+          // "Completed and wait Client Approval" — same rule as the card's count
+          // (awaitingApprovalCount) and the SM Tasks QC filter.
+          match = ["qc", "in qc"].includes(normTaskStatus) || normTaskStatus.includes("client approval");
         } else if (normSelected === "inprogress" || normSelected === "in progress") {
           match = ["inprogress", "in progress"].includes(normTaskStatus);
         } else if (normSelected.includes("client approval") || normSelected === "completed and wait client approval") {
@@ -961,6 +780,9 @@ const ContentCalendar = () => {
     atRiskOnly,
     isSocialMediaHead,
     isTaskFromChennaiClient,
+    viewMode,
+    currentYear,
+    currentMonth,
   ]);
 
   const relevantClients = useMemo(() => {
@@ -1154,39 +976,8 @@ const ContentCalendar = () => {
     commitmentOverview,
   ]);
 
-  // Filtered tasks for Table View (with dedicated search)
-  // Deferred so typing in the search box stays responsive; the heavy table re-filter runs at lower priority
-  const deferredTableSearch = useDeferredValue(tableSearch);
-  const tableFilteredTasks = useMemo(() => {
-    let list = calendarTasks;
-    if (deferredTableSearch.trim()) {
-      const q = deferredTableSearch.toLowerCase().trim();
-      list = list.filter((t) => {
-        const creator = getCreatorInfo(t);
-        return (
-          t.taskTitle?.toLowerCase().includes(q) ||
-          t.clientName?.toLowerCase().includes(q) ||
-          t.category?.toLowerCase().includes(q) ||
-          t.contentType?.toLowerCase().includes(q) ||
-          t.status?.toLowerCase().includes(q) ||
-          creator?.name?.toLowerCase().includes(q)
-        );
-      });
-    }
-    return list;
-  }, [calendarTasks, deferredTableSearch, getCreatorInfo]);
-
-  const tableTotalPages = Math.ceil(tableFilteredTasks.length / itemsPerPage) || 1;
-  const tablePaginatedTasks = useMemo(() => {
-    const start = (tablePage - 1) * itemsPerPage;
-    return tableFilteredTasks.slice(start, start + itemsPerPage);
-  }, [tableFilteredTasks, tablePage]);
-
   // Selectable tasks based on active view mode
-  const selectableTasks = useMemo(() => {
-    if (viewMode === "Table") return tableFilteredTasks;
-    return calendarTasks;
-  }, [viewMode, tableFilteredTasks, calendarTasks]);
+  const selectableTasks = calendarTasks;
 
   const selectableIds = useMemo(() => {
     return (selectableTasks || []).map((t) => t._id).filter(Boolean);
@@ -1391,11 +1182,9 @@ const ContentCalendar = () => {
     if (today.getMonth() !== currentMonth || today.getFullYear() !== currentYear) {
       setCurrentDate(today);
     }
-    // Clear filters that would hide at-risk tasks. The current view (Month/Week/Table/List)
+    // Clear filters that would hide at-risk tasks. The current view (Month/Week/List)
     // is kept — the filter applies to whichever view the user is on.
     setSelectedStatus("All");
-    setTableSearch("");
-    setTablePage(1);
   };
 
   // Open modal to create a task on that day
@@ -1734,16 +1523,6 @@ const ContentCalendar = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-[#090d16] text-slate-900 dark:text-slate-100  p-3 space-y-3.5 sm:space-y-6 relative">
-      {/* Full Page Centered Loading Animation */}
-      <AnimatePresence>
-        {initialLoading && (!tasks || tasks.length === 0) && (
-          <FullPageCalendarLoader
-            monthName={MONTH_NAMES[currentMonth]}
-            year={currentYear}
-          />
-        )}
-      </AnimatePresence>
-
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -1773,9 +1552,11 @@ const ContentCalendar = () => {
         <div className="flex items-center justify-between w-full sm:w-auto gap-2 sm:gap-2.5 self-start sm:self-auto flex-wrap">
           {/* Month/Week selector navigation */}
           <div className="flex items-center bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-[#1e2a40] rounded-xl p-0.5 shadow-xs">
+            {/* Navigation stays enabled while loading: stale responses are ignored by the store */}
             <button
               onClick={handlePrev}
-              disabled={isCalendarLoading}
+              onMouseEnter={() => prefetchMonthOffset(-1)}
+              onFocus={() => prefetchMonthOffset(-1)}
               className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer disabled:opacity-40"
               title={viewMode === "Week" ? "Previous Week" : "Previous Month"}
             >
@@ -1783,7 +1564,6 @@ const ContentCalendar = () => {
             </button>
             <button
               onClick={handleToday}
-              disabled={isCalendarLoading}
               className="px-3 py-1 text-xs font-bold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#182338] rounded-lg transition-colors cursor-pointer disabled:opacity-40 whitespace-nowrap text-center"
               title="Click to return to Current Month"
             >
@@ -1791,7 +1571,8 @@ const ContentCalendar = () => {
             </button>
             <button
               onClick={handleNext}
-              disabled={isCalendarLoading}
+              onMouseEnter={() => prefetchMonthOffset(1)}
+              onFocus={() => prefetchMonthOffset(1)}
               className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer disabled:opacity-40"
               title={viewMode === "Week" ? "Next Week" : "Next Month"}
             >
@@ -1799,25 +1580,10 @@ const ContentCalendar = () => {
             </button>
           </div>
 
-          {(currentMonth !== new Date().getMonth() || currentYear !== new Date().getFullYear()) && (
-            <button
-              type="button"
-              onClick={handleToday}
-              disabled={isCalendarLoading}
-              className="px-2.5 py-1 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 rounded-xl transition-colors cursor-pointer shadow-2xs"
-              title="Return to Today"
-            >
-              Today
-            </button>
-          )}
-
           {/* Quick Refresh Button */}
           <button
             type="button"
-            onClick={() => {
-              dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
-              dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
-            }}
+            onClick={reloadCurrentMonth}
             disabled={isCalendarLoading}
             className="p-2 rounded-xl border border-slate-200 dark:border-[#1e2a40] bg-white dark:bg-[#0c1220] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#182338] transition-colors shadow-xs cursor-pointer disabled:opacity-50"
             title="Refresh Calendar"
@@ -1830,7 +1596,7 @@ const ContentCalendar = () => {
 
           {/* View Mode Switcher (Matching 2nd Reference Image) */}
           <div className="flex items-center bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-[#1e2a40] rounded-xl p-1 shadow-xs">
-            {["Month", "Week", "List", "Table"].map((mode) => (
+            {["Month", "Week", "List"].map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
@@ -1922,7 +1688,26 @@ const ContentCalendar = () => {
       </div>
 
       {/* 2nd Reference Image: Commitments Overview Section (Cards) */}
+      {tasksLoadFailed && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-xs font-semibold"
+        >
+          <span>Couldn't load posts for {MONTH_NAMES[currentMonth]} {currentYear}. {typeof tasksError === "string" ? tasksError : ""}</span>
+          <button
+            type="button"
+            onClick={reloadCurrentMonth}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold cursor-pointer shrink-0"
+          >
+            <FiRefreshCw size={12} /> Retry
+          </button>
+        </div>
+      )}
+
       <div className={showMetricsMobile ? "block" : "hidden sm:block"}>
+      {showSkeleton || (clientsState?.loading && clients.length === 0) ? (
+        <MetricCardsSkeleton />
+      ) : (
       <SmTaskCards
         selectedClient={selectedClient}
         selectedMonth={currentMonth + 1}
@@ -1934,8 +1719,8 @@ const ContentCalendar = () => {
         setAtRiskOnly={handleToggleAtRisk}
         selectedStatus={selectedStatus}
         setSelectedStatus={setSelectedStatus}
-        setCurrentPage={setTablePage}
       />
+      )}
       </div>
 
       {/* Bulk Selection Bar */}
@@ -2254,17 +2039,20 @@ const ContentCalendar = () => {
         </div>
 
         <div className="text-[11px] text-slate-500 dark:text-slate-400">
-          {isCalendarLoading ? (
-            <span className="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-bold">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
-              Loading calendar tasks...
+          {showSkeleton ? (
+            <span className="inline-flex items-center gap-2" aria-live="polite">
+              <span className="sr-only">Loading posts…</span>
+              <InlineTextSkeleton className="w-36" />
             </span>
           ) : (
-            <>
-              Showing <span className="font-bold text-slate-800 dark:text-slate-200">{calendarTasks.length}</span>{" "}
-              posts ·{" "}
+            <span className="inline-flex items-center gap-1.5">
+              Showing <span className="font-bold text-slate-800 dark:text-slate-200">{calendarTasks.length}</span>
+              posts ·
               <span className="font-bold text-slate-800 dark:text-slate-200">{new Set(calendarTasks.map((t) => t.clientName).filter(Boolean)).size}</span> clients
-            </>
+              {isRefreshing && (
+                <FiRefreshCw size={11} className="animate-spin text-indigo-500 ml-1" aria-label="Refreshing" />
+              )}
+            </span>
           )}
         </div>
       </div>
@@ -2275,7 +2063,7 @@ const ContentCalendar = () => {
         {viewMode === "Month" && (
           <div className="w-full bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-3xl shadow-sm overflow-hidden relative">
             {/* Shimmer loading progress bar */}
-            {isCalendarLoading && (
+            {isRefreshing && (
               <div className="absolute top-0 inset-x-0 h-1 bg-slate-100 dark:bg-slate-800 overflow-hidden z-20">
                 <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-pulse w-full" />
               </div>
@@ -2290,25 +2078,22 @@ const ContentCalendar = () => {
                 </div>
 
                 {/* Days Grid Cells */}
-                {isCalendarLoading && (!tasks || tasks.length === 0) ? (
-                  <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-[#1a2438] border-b border-slate-200 dark:border-[#1e2a40] animate-pulse">
-                    {Array.from({ length: 35 }).map((_, idx) => (
-                      <div key={`cal-skel-${idx}`} className="min-h-[175px] sm:min-h-[195px] p-2.5 flex flex-col justify-between bg-white dark:bg-[#0b101d]">
-                        <div className="flex items-center justify-between">
-                          <div className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800/80" />
-                          <div className="w-8 h-4 rounded bg-slate-100 dark:bg-slate-800/50" />
-                        </div>
-                        <div className="space-y-2 my-auto">
-                          <div className="h-6 rounded-xl bg-slate-100 dark:bg-slate-800/60 w-full" />
-                          <div className="h-6 rounded-xl bg-slate-100 dark:bg-slate-800/40 w-5/6" />
-                        </div>
-                        <div className="w-12 h-3 rounded bg-slate-100 dark:bg-slate-800/50 self-end" />
-                      </div>
-                    ))}
-                  </div>
+                {showSkeleton ? (
+                  <MonthGridSkeleton cells={calendarDays.length || 35} />
                 ) : (
                 <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 dark:divide-[#1a2438] border-b border-slate-200 dark:border-[#1e2a40]">
                   {calendarDays.map((dayItem, index) => {
+                    // Leading/trailing cells only keep the weekday columns aligned:
+                    // no date, no posts, not clickable — the grid shows this month only.
+                    if (!dayItem.isCurrentMonth) {
+                      return (
+                        <div
+                          key={index}
+                          aria-hidden="true"
+                          className="min-h-[175px] sm:min-h-[195px] bg-slate-50/60 dark:bg-[#060a12]"
+                        />
+                      );
+                    }
                     const dateKey = dayItem.dateKey;
                     const postsForDay = tasksByDate[dateKey] || [];
                     const isToday = dayItem.dateKey === realTodayStr;
@@ -2343,16 +2128,30 @@ const ContentCalendar = () => {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center gap-1.5">
+                            {/* Date chip: "NOV 1" — month + day in a bordered pill; today is filled */}
                             <span
-                              className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold transition-transform ${
+                              title={dayItem.date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                              className={`inline-flex items-center gap-1 h-6 pl-1.5 pr-2 rounded-lg border leading-none whitespace-nowrap transition-colors ${
                                 isToday
-                                  ? "bg-emerald-600 text-white shadow-xs font-black ring-2 ring-emerald-500/30"
-                                  : dayItem.isCurrentMonth
-                                  ? "text-slate-800 dark:text-slate-200 font-extrabold"
-                                  : "text-slate-400 font-medium"
+                                  ? "bg-emerald-600 border-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/25"
+                                  : postsForDay.length > 0
+                                  ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800/70 dark:text-indigo-300"
+                                  : "bg-white border-slate-200 text-slate-600 dark:bg-[#0f1626] dark:border-[#22314d] dark:text-slate-300"
                               }`}
                             >
-                              {dayItem.dayNumber}
+                              <span
+                                className={`text-[9px] font-black tracking-wider uppercase ${
+                                  isToday ? "text-emerald-100" : "opacity-70"
+                                }`}
+                              >
+                                {MONTH_NAMES[currentMonth].slice(0, 3)}
+                              </span>
+                              <span className="text-xs font-black">{dayItem.dayNumber}</span>
+                              {isToday && (
+                                <span className="ml-0.5 text-[8.5px] font-extrabold uppercase tracking-wider bg-white/20 rounded px-1 py-0.5">
+                                  Today
+                                </span>
+                              )}
                             </span>
 
                             {postsForDay.length > 0 && dayItem.isCurrentMonth && (
@@ -2612,367 +2411,6 @@ const ContentCalendar = () => {
         )}
 
       {/* 2. TABLE VIEW (All Data Easy to View & Manage) */}
-      {viewMode === "Table" && (
-        <div className="bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl shadow-sm p-4 space-y-3.5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#182338]">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="relative">
-                <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                <input
-                  type="text"
-                  value={tableSearch}
-                  onChange={(e) => {
-                    setTableSearch(e.target.value);
-                    setTablePage(1);
-                  }}
-                  placeholder="Search tasks, clients, SMM..."
-                  className="pl-8 pr-7 py-1.5 text-xs bg-slate-50 dark:bg-[#151d2e] border border-slate-200 dark:border-[#22314d] rounded-xl text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-56 sm:w-72"
-                />
-                {tableSearch && (
-                  <button
-                    onClick={() => setTableSearch("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <FiX size={12} />
-                  </button>
-                )}
-              </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Showing <strong className="text-slate-800 dark:text-slate-100">{tableFilteredTasks.length}</strong> posts for {MONTH_NAMES[currentMonth]} {currentYear}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {selectedTaskIds.length > 0 && !isReadOnly && (
-                <button
-                  type="button"
-                  onClick={() => setBulkDeleteModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs cursor-pointer"
-                >
-                  <FiTrash2 size={13} />
-                  <span>Delete Selected ({selectedTaskIds.length})</span>
-                </button>
-              )}
-              {!isReadOnly && (
-                <button
-                  type="button"
-                  onClick={() => handleAddPostOnDate(new Date())}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs cursor-pointer self-start sm:self-auto"
-                >
-                  <FiPlus size={14} />
-                  <span>Create Post</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-[#1e2a40]">
-            <table className="w-full text-left text-xs whitespace-nowrap">
-              <thead>
-                <tr className="border-b border-slate-200/80 dark:border-[#1e2a40] bg-slate-50 dark:bg-[#0c1220] text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  {!isReadOnly && (
-                    <th className="py-3 px-3 w-10 text-center">
-                      <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        ref={(el) => {
-                          if (el) el.indeterminate = isSomeSelected;
-                        }}
-                        onChange={handleSelectAll}
-                        className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
-                        title={isAllSelected ? "Deselect All" : `Select All (${selectableIds.length})`}
-                      />
-                    </th>
-                  )}
-                  <th className="py-3 px-4">Task</th>
-                  <th className="py-3 px-4">Client</th>
-                  <th className="py-3 px-3">Category</th>
-                  <th className="py-3 px-3">Content Type</th>
-                  <th className="py-3 px-4">SMM / Assignee</th>
-                  <th className="py-3 px-3">Due Date</th>
-                  <th className="py-3 px-4 bg-slate-100/50 dark:bg-[#101726] font-bold">Publish Date</th>
-                  <th className="py-3 px-3">Status</th>
-                  <th className="py-3 px-3">Priority</th>
-                  <th className="py-3 px-3">QC</th>
-                  <th className="py-3 px-3">Commitment</th>
-                  <th className="py-3 px-3 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-[#182338] font-medium">
-                {isCalendarLoading && tablePaginatedTasks.length === 0 ? (
-                  Array.from({ length: 6 }).map((_, idx) => (
-                    <tr key={`cal-table-skel-${idx}`} className="animate-pulse">
-                      {!isReadOnly && (
-                        <td className="py-3 px-3 text-center">
-                          <div className="w-4 h-4 bg-slate-200 dark:bg-slate-800 rounded mx-auto" />
-                        </td>
-                      )}
-                      <td className="py-3 px-4">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-36" />
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-24" />
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-16" />
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-14" />
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-16" />
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded-full w-20" />
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-12" />
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-10" />
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-10" />
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <div className="h-6 w-12 bg-slate-200 dark:bg-slate-800 rounded mx-auto" />
-                      </td>
-                    </tr>
-                  ))
-                ) : tablePaginatedTasks.length === 0 ? (
-                  <tr>
-                    <td colSpan={!isReadOnly ? 13 : 12} className="py-12 text-center text-slate-400 italic">
-                      No posts found matching the criteria.
-                    </td>
-                  </tr>
-                ) : (
-                  tablePaginatedTasks.map((t) => {
-                    const creator = getCreatorInfo(t);
-                    const typeStyle = getContentTypeStyle(t.contentType);
-
-                    return (
-                      <tr
-                        key={t._id}
-                        onClick={() => handleCardClick(t)}
-                        className={`hover:bg-slate-50/80 dark:hover:bg-[#101726] transition-colors cursor-pointer group ${
-                          selectedIdSet.has(t._id) ? "bg-indigo-50/70 dark:bg-indigo-950/40" : ""
-                        }`}
-                      >
-                        {!isReadOnly && (
-                          <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={selectedIdSet.has(t._id)}
-                              onChange={(e) => handleToggleSelect(t._id, e)}
-                              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
-                            />
-                          </td>
-                        )}
-                        {/* Task Title */}
-                        <td className="py-3 px-4 max-w-[200px]">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-1.5 h-6 rounded-full shrink-0"
-                              style={{ backgroundColor: t.clientColor || "#6366f1" }}
-                            />
-                            <div className="truncate font-bold text-slate-900 dark:text-slate-100 text-xs" title={t.taskTitle}>
-                              {t.taskTitle || "Untitled Post"}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Client */}
-                        <td className="py-3 px-4 font-semibold">
-                          <span
-                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold border truncate max-w-[140px]"
-                            style={{
-                              color: t.clientColor || "#6366f1",
-                              borderColor: `${t.clientColor || "#6366f1"}40`,
-                              backgroundColor: `${t.clientColor || "#6366f1"}12`,
-                            }}
-                            title={t.clientName}
-                          >
-                            {t.clientName || "Unknown"}
-                          </span>
-                        </td>
-
-                        {/* Category */}
-                        <td className="py-3 px-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-[#131d31] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-white/10">
-                            {t.category || "Content"}
-                          </span>
-                        </td>
-
-                        {/* Content Type */}
-                        <td className="py-3 px-3">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide border ${typeStyle.bg}`}>
-                            {typeStyle.label}
-                          </span>
-                        </td>
-
-                        {/* SMM / Assignee */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-600">
-                              {creator.avatarUrl ? (
-                                <img src={creator.avatarUrl} alt={creator.name} className="w-full h-full object-cover" />
-                              ) : (
-                                creator.initials
-                              )}
-                            </div>
-                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate max-w-[120px]">
-                              {creator.name}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Due Date */}
-                        <td className="py-3 px-3">
-                          {renderDueDateBadge(t.dueDate, t.status)}
-                        </td>
-
-                        {/* Publish Date */}
-                        <td className="py-3 px-4 bg-slate-50/60 dark:bg-[#0e1524] font-mono text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
-                          {formatPublishDateTime(t.publishDate)}
-                        </td>
-
-                        {/* Status Dropdown */}
-                        <td className="py-3 px-3" onClick={(e) => e.stopPropagation()}>
-                          <select
-                            value={
-                              ["Live", "Published", "Published Live", "Completed"].includes(t.status)
-                                ? "Published Live"
-                                : ["In QC", "QC"].includes(t.status)
-                                ? "QC"
-                                : (t.status || "").toLowerCase().includes("client approval")
-                                ? "Completed and wait CLient Approval"
-                                : ["In progress", "Inprogress"].includes(t.status)
-                                ? "Inprogress"
-                                : t.status || "Not started"
-                            }
-                            disabled={isReadOnly}
-                            onChange={(e) => handleQuickStatusChange(t, e.target.value)}
-                            className={`text-[11px] font-bold rounded-lg px-2 py-1 border transition-all cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500 shadow-2xs ${
-                              ["Live", "Published", "Published Live", "Completed"].includes(t.status)
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                                : ["In QC", "QC"].includes(t.status)
-                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                                : (t.status || "").toLowerCase().includes("client approval")
-                                ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
-                                : ["In progress", "Inprogress"].includes(t.status)
-                                ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                                : "bg-slate-100 text-slate-700 border-slate-200 dark:bg-[#131d31] dark:text-slate-300 dark:border-white/10"
-                            }`}
-                          >
-                            {STATUSES.filter((s) => s !== "All").map((st) => (
-                              <option key={st} value={st}>
-                                {st}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-
-                        {/* Priority */}
-                        <td className="py-3 px-3">
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${
-                              t.priority === "High"
-                                ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
-                                : t.priority === "Medium"
-                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                                : "bg-slate-100 text-slate-600 dark:bg-[#131d31] dark:text-slate-300"
-                            }`}
-                          >
-                            {t.priority || "Medium"}
-                          </span>
-                        </td>
-
-                        {/* QC */}
-                        <td className="py-3 px-3">
-                          <span className="font-semibold text-slate-500 dark:text-slate-400">
-                            {t.qc || "-"}
-                          </span>
-                        </td>
-
-                        {/* Commitment */}
-                        <td className="py-3 px-3">
-                          {t.commitment ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/40">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                              Yes
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-medium">No</span>
-                          )}
-                        </td>
-
-                        {/* Action */}
-                        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCardClick(t);
-                              }}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                              title="Edit post"
-                            >
-                              <FiEdit2 size={13} />
-                            </button>
-                            {!isReadOnly && (
-                              <button
-                                type="button"
-                                onClick={(e) => handleDeleteTask(t, e)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                                title="Delete post"
-                              >
-                                <FiTrash2 size={13} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Table Pagination */}
-          {tableTotalPages > 1 && (
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
-              <span>
-                Page {tablePage} of {tableTotalPages}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={tablePage === 1}
-                  onClick={() => setTablePage((p) => Math.max(1, p - 1))}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d31] font-bold hover:bg-slate-50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  Prev
-                </button>
-                <button
-                  disabled={tablePage === tableTotalPages}
-                  onClick={() => setTablePage((p) => Math.min(tableTotalPages, p + 1))}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#131d31] font-bold hover:bg-slate-50 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* 3. WEEK VIEW */}
       {viewMode === "Week" && (
         <div className="bg-white dark:bg-[#080d19] border border-slate-200/80 dark:border-[#1e2a40] rounded-2xl shadow-sm p-4 space-y-4">
@@ -2985,6 +2423,9 @@ const ContentCalendar = () => {
             </span>
           </div>
 
+          {showSkeleton ? (
+            <WeekSkeleton />
+          ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-7 gap-3">
             {currentWeekDays.map((dayItem, idx) => {
               const postsForDay = tasksByDate[dayItem.dateKey] || [];
@@ -3118,6 +2559,7 @@ const ContentCalendar = () => {
               );
             })}
           </div>
+          )}
         </div>
       )}
 
@@ -3162,7 +2604,9 @@ const ContentCalendar = () => {
           </div>
 
           <div className="space-y-2">
-            {calendarTasks.length === 0 ? (
+            {showSkeleton ? (
+              <ListSkeleton rows={6} showCheckbox={!isReadOnly} />
+            ) : calendarTasks.length === 0 ? (
               <div className="py-12 text-center text-slate-400 italic">
                 No scheduled posts found for this month.
               </div>

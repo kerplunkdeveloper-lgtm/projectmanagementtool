@@ -185,6 +185,8 @@ socialmediaTaskCalendorSchema.index({ commitment: 1 });
 socialmediaTaskCalendorSchema.index({ category: 1 });
 socialmediaTaskCalendorSchema.index({ clientName: 1 });
 socialmediaTaskCalendorSchema.index({ commitment: 1, publishDate: 1 });
+// Serves the calendar month query's `{ publishDate: null, dueDate: <range> }` branch
+socialmediaTaskCalendorSchema.index({ publishDate: 1, dueDate: 1 });
 socialmediaTaskCalendorSchema.index({ clientName: 1, commitment: 1, publishDate: 1 });
 socialmediaTaskCalendorSchema.index({ createdBy: 1, commitment: 1 });
 socialmediaTaskCalendorSchema.index({ assignee: 1, commitment: 1 });

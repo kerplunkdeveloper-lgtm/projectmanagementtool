@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useSearchParams, useLocation, useOutletContext } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,7 +38,6 @@ import {
   FiGrid,
   FiRotateCcw,
   FiCheck,
-  FiChevronDown,
   FiDownload,
   FiBarChart2,
   FiClock,
@@ -51,13 +50,22 @@ import ClientBadge from "../../components/common/ClientBadge";
 import PendingCommitmentModal from "../../components/common/PendingCommitmentModal";
 import BranchTabs from "../../components/common/BranchTabs";
 import { useBranchTab, useBranchFilter } from "../../hooks/useBranchFilter";
-import { computeAllClientsCommitments, isTaskAtRisk } from "../../utils/smCommitmentUtils";
+import { buildSmTasksFilterParams } from "../../utils/smTasksQuery";
+
+// Stable empty array so memo dependencies do not change on every render
+const EMPTY_ARRAY = [];
 import {
-  getSocialmediaTasks,
+  getSocialmediaTasksPage,
+  makePagedTasksKey,
+  makeTasksKey,
   getSocialmediaStats,
   updateSocialmediaTask,
   deleteSocialmediaTask,
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
+import {
+  getSocialmediaTasksPagedAPI,
+  getSocialmediaTaskByIdAPI,
+} from "../../features/socialmediaTasks/socialmediaTaskApi";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
@@ -117,7 +125,6 @@ const NON_COMMITMENT_STATUS_OPTIONS = [
 const NON_COMMITMENT_STATUSES = ["All", ...NON_COMMITMENT_STATUS_OPTIONS];
 
 const STATUSES = COMMITMENT_STATUSES;
-const PRIORITIES = ["All", "High", "Medium", "Low"];
 const COMMITMENTS = ["All", "Yes", "No"];
 
 const MONTH_NAMES = [
@@ -134,22 +141,6 @@ const formatDisplayDate = (dateVal) => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const month = months[d.getMonth()];
     return `${day} ${month}`;
-  } catch {
-    return "-";
-  }
-};
-
-const formatPublishDateTime = (dateVal) => {
-  if (!dateVal) return "-";
-  try {
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return "-";
-    const day = d.getDate();
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const month = months[d.getMonth()];
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    return `${day} ${month} ${hh}:${mm}`;
   } catch {
     return "-";
   }
@@ -603,17 +594,17 @@ const SmTasks = () => {
   const { theme, accentColor = "emerald" } = useTheme();
   const isLightAccent = ["neon-green", "lime"].includes(accentColor);
 
-  const { tasks, totalCount, commitmentsCount, loading } = useSelector(
+  const { tasks, loading, tasksKey, pageMeta, mutationVersion, error: tasksError } = useSelector(
     (state) => state.socialmediaTasks
   );
   const clientsState = useSelector((state) => state.clients);
-  const clients = clientsState?.clients || [];
+  const clients = clientsState?.clients || EMPTY_ARRAY;
 
   // Branch tabs (Pondicherry / Chennai) for Admin & Operation Manager
   const branchRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
   const canSwitchBranch = branchRoleClean === "admin" || branchRoleClean === "operationmanager";
   const [branchTab, setBranchTab] = useBranchTab();
-  const { isClientInBranch, isTaskInBranch } = useBranchFilter(clients, branchTab, canSwitchBranch);
+  const { isClientInBranch } = useBranchFilter(clients, branchTab, canSwitchBranch);
 
   // Active clients list (strictly exclude inactive clients, and filter by selected branch tab)
   const activeClients = useMemo(() => {
@@ -622,35 +613,9 @@ const SmTasks = () => {
     );
   }, [clients, isClientInBranch]);
 
-  // Set of inactive client identifiers (companyName lowercase, _id, id)
-  const inactiveClientIdentSet = useMemo(() => {
-    const set = new Set();
-    (clients || []).forEach((c) => {
-      if ((c.status || "Active").toLowerCase() === "inactive") {
-        if (c.companyName) set.add(c.companyName.trim().toLowerCase());
-        if (c._id) set.add(c._id.toString());
-        if (c.id) set.add(c.id.toString());
-      }
-    });
-    return set;
-  }, [clients]);
-
-  const isTaskFromInactiveClient = useCallback(
-    (t) => {
-      if (!t) return false;
-      if (t.client && typeof t.client === "object" && (t.client.status || "").toLowerCase() === "inactive") {
-        return true;
-      }
-      const cId = (t.client?._id || t.client)?.toString();
-      if (cId && inactiveClientIdentSet.has(cId)) return true;
-      const cName = (t.clientName || t.client?.companyName || "").trim().toLowerCase();
-      if (cName && inactiveClientIdentSet.has(cName)) return true;
-      return false;
-    },
-    [inactiveClientIdentSet]
-  );
+  // (Inactive-client and branch filtering of tasks now happens on the server — see /paged)
   const usersState = useSelector((state) => state.users);
-  const users = usersState?.users || [];
+  const users = usersState?.users || EMPTY_ARRAY;
 
   // Role check: Admin, Operation Manager, and Social Media Manager can see all users' tasks and filter by Created By
   const userRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
@@ -687,6 +652,8 @@ const SmTasks = () => {
   const currentNow = new Date();
   const [selectedMonth, setSelectedMonth] = useState(currentNow.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(currentNow.getFullYear());
+  // Commitment tab: a specific publish date within the month (null = whole month)
+  const [selectedDay, setSelectedDay] = useState(null);
   const [isPendingCommitmentOpen, setIsPendingCommitmentOpen] = useState(false);
 
   // Lookup map for users by ID and lowercase name for fast profile matching
@@ -811,7 +778,9 @@ const SmTasks = () => {
 
   // Comprehensive Date Filter States - Separate for Commitment and SME Tabs
   const [commitmentDatePreset, setCommitmentDatePreset] = useState("All");
-  const [commitmentDateField, setCommitmentDateField] = useState("any");
+  // Commitment tab date filters ("Today", "This Week"…) match the PUBLISH date by default —
+  // a commitment is "today" when it goes live today. Any Date / Due Date stay selectable.
+  const [commitmentDateField, setCommitmentDateField] = useState("publish");
   const [commitmentStartDate, setCommitmentStartDate] = useState("");
   const [commitmentEndDate, setCommitmentEndDate] = useState("");
 
@@ -850,6 +819,19 @@ const SmTasks = () => {
   });
   const [activePlatformMenuTaskId, setActivePlatformMenuTaskId] = useState(null);
 
+  // Open a task from a notification link. It may not be on the current page, so fetch it by id.
+  const openLinkedTask = (taskId) => {
+    if (!taskId) return;
+    getSocialmediaTaskByIdAPI(taskId)
+      .then((res) => {
+        if (res?.data) {
+          setSelectedTaskForEdit(res.data);
+          setIsModalOpen(true);
+        }
+      })
+      .catch(() => toast.error("Couldn't open the linked task"));
+  };
+
   // Automatically activate tab and open modal if taskId is passed via notification link
   useEffect(() => {
     const tabParam = (searchParams.get("tab") || location.state?.tab || "").toLowerCase();
@@ -866,14 +848,7 @@ const SmTasks = () => {
       setDateFilterPreset("Today");
       setCurrentPage(1);
 
-      const targetTaskId = searchParams.get("taskId") || searchParams.get("id");
-      if (targetTaskId && tasks && tasks.length > 0) {
-        const found = tasks.find((t) => t._id === targetTaskId);
-        if (found) {
-          setSelectedTaskForEdit(found);
-          setIsModalOpen(true);
-        }
-      }
+      openLinkedTask(searchParams.get("taskId") || searchParams.get("id"));
     } else if (tabParam === "sme" || tabParam === "sme-tasks" || tabParam === "smetasks") {
       setActiveTab("sme");
       setSelectedCommitment("No");
@@ -883,14 +858,7 @@ const SmTasks = () => {
       setAtRiskOnly(false);
       setCurrentPage(1);
 
-      const targetTaskId = searchParams.get("taskId") || searchParams.get("id");
-      if (targetTaskId && tasks && tasks.length > 0) {
-        const found = tasks.find((t) => t._id === targetTaskId);
-        if (found) {
-          setSelectedTaskForEdit(found);
-          setIsModalOpen(true);
-        }
-      }
+      openLinkedTask(searchParams.get("taskId") || searchParams.get("id"));
     } else if (tabParam === "commitment") {
       setActiveTab("commitment");
       setSelectedCommitment("Yes");
@@ -899,7 +867,8 @@ const SmTasks = () => {
       setDateFilterPreset("All");
       setCurrentPage(1);
     }
-  }, [searchParams, location.state, tasks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, location.state]);
 
   useEffect(() => {
     const handleOutside = () => setActivePlatformMenuTaskId(null);
@@ -909,48 +878,95 @@ const SmTasks = () => {
     return () => document.removeEventListener("click", handleOutside);
   }, [activePlatformMenuTaskId]);
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  // ─── Server-side filtering + pagination ───────────────────────────────────
+  // The table used to download EVERY task and filter/sort/paginate in the browser.
+  // Now the server does it and returns only the visible page.
+
+  // Debounce search so typing doesn't fire a request per keystroke
+  const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 350);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const filterParams = useMemo(
+    () =>
+      buildSmTasksFilterParams({
+        activeTab,
+        search: debouncedSearch,
+        selectedClient,
+        selectedCreatedBy,
+        canFilterByCreatedBy,
+        selectedCategory,
+        selectedContentType,
+        selectedStatus,
+        selectedPriority,
+        selectedCommitment,
+        atRiskOnly,
+        // Commitment tab filters by the month picker only (no date presets there);
+        // a preset left over from another tab must not override the month.
+        dateFilterPreset: activeTab === "commitment" ? "All" : dateFilterPreset,
+        dateFilterField: activeTab === "commitment" ? "publish" : dateFilterField,
+        customStartDate: activeTab === "commitment" ? "" : customStartDate,
+        customEndDate: activeTab === "commitment" ? "" : customEndDate,
+        selectedMonth,
+        selectedYear,
+        selectedDay,
+        branch: canSwitchBranch ? branchTab : undefined,
+      }),
+    [
+      activeTab, debouncedSearch, selectedClient, selectedCreatedBy, canFilterByCreatedBy,
+      selectedCategory, selectedContentType, selectedStatus, selectedPriority, selectedCommitment,
+      atRiskOnly, dateFilterPreset, dateFilterField, customStartDate, customEndDate,
+      selectedMonth, selectedYear, selectedDay, canSwitchBranch, branchTab,
+    ]
+  );
+  const filtersKey = makeTasksKey(filterParams);
+
+  // Pagination: the page number belongs to a filter combination, so changing any filter
+  // goes back to page 1 automatically (without an extra request for the old page).
+  const [pageState, setPageState] = useState({ key: filtersKey, page: 1 });
+  const currentPage = pageState.key === filtersKey ? pageState.page : 1;
+  const setCurrentPage = (next) => {
+    setPageState((prev) => {
+      const cur = prev.key === filtersKey ? prev.page : 1;
+      const value = typeof next === "function" ? next(cur) : next;
+      return { key: filtersKey, page: Math.max(1, Number(value) || 1) };
+    });
+  };
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Initial fetch of dynamic data
+  const pagedQuery = useMemo(
+    () => ({ ...filterParams, page: currentPage, limit: itemsPerPage }),
+    [filterParams, currentPage, itemsPerPage]
+  );
+  const currentListKey = makePagedTasksKey(pagedQuery);
+  const hasPageData = tasksKey === currentListKey;
+  const listLoadFailed = !hasPageData && !loading && Boolean(tasksError);
+  const showSkeleton = !hasPageData && !listLoadFailed;
+  const isRefreshing = loading && hasPageData;
+
+  // Fetch the visible page (and refetch after any create/update/delete)
   useEffect(() => {
-    dispatch(getSocialmediaTasks());
+    if (activeTab === "daily") return;
+    dispatch(getSocialmediaTasksPage(pagedQuery));
+  }, [dispatch, pagedQuery, activeTab, mutationVersion]);
+
+  // Clients & users (for dropdowns / avatars) are loaded once
+  useEffect(() => {
     if (!clients || clients.length === 0) dispatch(getClients());
     if (!users || users.length === 0) dispatch(getUsers());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
-  // Dynamic month options for top month dropdown selector
-  const monthOptions = useMemo(() => {
-    const map = new Map();
-    for (let offset = -12; offset <= 6; offset++) {
-      const d = new Date(currentNow.getFullYear(), currentNow.getMonth() + offset, 1);
-      const m = d.getMonth() + 1;
-      const y = d.getFullYear();
-      const key = `${y}-${m}`;
-      map.set(key, { year: y, month: m, label: `${MONTH_NAMES[m - 1]} ${y}` });
-    }
-    (tasks || []).forEach((t) => {
-      const primary = (dateFilterField === "publish" && t.publishDate)
-        ? t.publishDate
-        : (t.dueDate || t.publishDate || t.createdAt);
-      if (primary) {
-        const d = new Date(primary);
-        if (!isNaN(d.getTime())) {
-          const m = d.getMonth() + 1;
-          const y = d.getFullYear();
-          const key = `${y}-${m}`;
-          if (!map.has(key)) {
-            map.set(key, { year: y, month: m, label: `${MONTH_NAMES[m - 1]} ${y}` });
-          }
-        }
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    });
-  }, [tasks]);
+  const filteredTotal = hasPageData ? pageMeta?.total || 0 : 0;
+  const totalPages = Math.max(1, hasPageData ? pageMeta?.totalPages || 1 : 1);
+
+  // A delete can leave the current page empty — step back to the last existing page
+  if (hasPageData && pageMeta && pageMeta.total > 0 && currentPage > pageMeta.totalPages) {
+    setPageState({ key: filtersKey, page: pageMeta.totalPages });
+  }
+
 
   // Sync monthly stats when month changes
   useEffect(() => {
@@ -967,30 +983,22 @@ const SmTasks = () => {
     activeClients.forEach((c) => {
       if (c.companyName) set.add(c.companyName);
     });
-    tasks.forEach((t) => {
-      if (isTaskFromInactiveClient(t)) return;
-      if (!isTaskInBranch(t)) return;
-      if (t.clientName && !inactiveClientIdentSet.has(t.clientName.trim().toLowerCase())) {
-        set.add(t.clientName);
-      }
-    });
     set.add("Others");
     return ["All", ...Array.from(set)];
-  }, [activeClients, tasks, isTaskFromInactiveClient, isTaskInBranch, inactiveClientIdentSet]);
+  }, [activeClients]);
 
   // Deduplicate tasks by document _id (NOT by title — different tasks can share the same title)
   // and filter out inactive client tasks
   const uniqueTasks = useMemo(() => {
+    if (!hasPageData) return [];
     const seen = new Set();
-    return tasks.filter((t) => {
-      if (isTaskFromInactiveClient(t)) return false;
-      if (!isTaskInBranch(t)) return false;
+    return (tasks || []).filter((t) => {
       const key = t._id ? t._id.toString() : JSON.stringify(t);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [tasks, isTaskFromInactiveClient, isTaskInBranch]);
+  }, [tasks, hasPageData]);
 
   // Dynamic unique creators list for Admin & Operation Manager filter - ONLY Social Media Executives
   const createdByOptions = useMemo(() => {
@@ -1003,339 +1011,11 @@ const SmTasks = () => {
       }
     });
 
-    // 2. Also check uniqueTasks: if creator is matched to an SMM user
-    uniqueTasks.forEach((t) => {
-      const cId = (t.createdBy?._id || t.createdBy)?.toString();
-      const matched =
-        (cId && usersMap.get(cId)) ||
-        (t.createdBy?.name && usersMap.get(t.createdBy.name.trim().toLowerCase())) ||
-        (t.createdByName && usersMap.get(t.createdByName.trim().toLowerCase()));
-
-      if (matched && isSocialMediaManager(matched)) {
-        nameMap.set(matched.name.trim().toLowerCase(), matched.name.trim());
-      }
-    });
-
     return ["All", ...Array.from(nameMap.values()).sort((a, b) => a.localeCompare(b))];
-  }, [uniqueTasks, users, usersMap]);
+  }, [users]);
 
-  // Client-side filtering
-  const filteredTasks = useMemo(() => {
-    const list = uniqueTasks.filter((task) => {
-      // Top Month Filter: Strictly filter table tasks by selected month & year (Active only on Commitment tab)
-      if (activeTab === "commitment" && selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
-        if ((dateFilterPreset === "All" || dateFilterPreset === "All Time") && !customStartDate && !customEndDate) {
-          const primaryDate =
-            dateFilterField === "publish" && task.publishDate
-              ? task.publishDate
-              : (task.dueDate || task.publishDate || task.createdAt);
-
-          if (!primaryDate) return false;
-          const d = new Date(primaryDate);
-          if (isNaN(d.getTime())) return false;
-          if (d.getFullYear() !== selectedYear || (d.getMonth() + 1) !== selectedMonth) {
-            return false;
-          }
-        }
-      }
-      // Search
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matches =
-          task.taskTitle?.toLowerCase().includes(q) ||
-          task.clientName?.toLowerCase().includes(q) ||
-          task.createdBy?.name?.toLowerCase().includes(q) ||
-          task.createdByName?.toLowerCase().includes(q) ||
-          task.assigneeName?.toLowerCase().includes(q) ||
-          task.taskCode?.toLowerCase().includes(q);
-        if (!matches) return false;
-      }
-
-      // Client
-      if (selectedClient !== "All" && task.clientName !== selectedClient) {
-        return false;
-      }
-
-      // Created By Filter:
-      // Regular users only see tasks created by themselves.
-      // Admin and Operation Manager can see all users' tasks and optionally filter.
-      if (!canFilterByCreatedBy) {
-        const currentUserId = user?._id || user?.id;
-        const currentUserNameLower = (user?.name || "").trim().toLowerCase();
-
-        const taskCreatorId =
-          typeof task.createdBy === "object"
-            ? task.createdBy?._id?.toString()
-            : task.createdBy?.toString();
-        const taskCreatedByNameLower = (task.createdByName || "").trim().toLowerCase();
-
-        const creator = getCreatorInfo(task);
-        const resolvedCreatorNameLower = (creator?.name || "").trim().toLowerCase();
-
-        const isMine =
-          (currentUserId && taskCreatorId === currentUserId.toString()) ||
-          (currentUserNameLower && taskCreatedByNameLower === currentUserNameLower) ||
-          (currentUserNameLower && resolvedCreatorNameLower === currentUserNameLower);
-
-        if (!isMine) return false;
-      } else if (selectedCreatedBy !== "All") {
-        const creator = getCreatorInfo(task);
-        const creatorNameLower = (creator?.name || "").trim().toLowerCase();
-        const targetLower = selectedCreatedBy.trim().toLowerCase();
-        const taskCreatedByNameLower = (task.createdByName || "").trim().toLowerCase();
-        const taskAssigneeLower = (task.assigneeName || "").trim().toLowerCase();
-
-        const matchesCreator =
-          creatorNameLower === targetLower ||
-          taskCreatedByNameLower === targetLower ||
-          taskAssigneeLower === targetLower;
-
-        if (!matchesCreator) return false;
-      }
-
-      // Category
-      if (selectedCategory !== "All") {
-        const catLower = (task.category || "").trim().toLowerCase();
-        const selCatLower = selectedCategory.trim().toLowerCase();
-        if (selCatLower === "content calendar" || selCatLower === "content calendor") {
-          const isCal =
-            catLower === "content calendar" ||
-            catLower === "content calendor" ||
-            catLower === "content" ||
-            Boolean(task.commitment);
-          if (!isCal) return false;
-        } else if (catLower !== selCatLower) {
-          return false;
-        }
-      }
-
-      // Content Type
-      if (selectedContentType !== "All") {
-        const ctLower = (task.contentType || "").trim().toLowerCase();
-        const selCtLower = selectedContentType.trim().toLowerCase();
-        if (selCtLower === "reels" || selCtLower === "reel") {
-          if (ctLower !== "reels" && ctLower !== "reel") return false;
-        } else if (selCtLower === "stories" || selCtLower === "story") {
-          if (ctLower !== "stories" && ctLower !== "story") return false;
-        } else if (selCtLower === "post") {
-          if (ctLower !== "post") return false;
-        } else if (selCtLower === "others task" || selCtLower === "other" || selCtLower === "others") {
-          if (ctLower && ctLower !== "others task" && ctLower !== "other" && ctLower !== "others") {
-            return false;
-          }
-        } else if (ctLower !== selCtLower) {
-          return false;
-        }
-      }
-
-      // Status
-      if (selectedStatus !== "All") {
-        const normSelected = selectedStatus.toLowerCase().trim();
-        const normTaskStatus = (task.status || "Not started").toLowerCase().trim();
-
-        let match = false;
-        if (normSelected === "published live") {
-          match = ["published live", "published", "live"].includes(normTaskStatus);
-        } else if (normSelected === "qc" || normSelected === "in qc") {
-          match = ["qc", "in qc"].includes(normTaskStatus) || normTaskStatus.includes("client approval");
-        } else if (normSelected === "inprogress") {
-          match = ["inprogress", "in progress"].includes(normTaskStatus);
-        } else if (normSelected.includes("client approval")) {
-          match = normTaskStatus.includes("client approval");
-        } else if (normSelected === "waiting for response") {
-          match = ["waiting for response", "waiting for responce"].includes(normTaskStatus);
-        } else if (normSelected === "completed") {
-          match = normTaskStatus === "completed";
-        } else {
-          match = normTaskStatus === normSelected;
-        }
-
-        if (!match) return false;
-      }
-
-      // Priority
-      if (selectedPriority !== "All" && task.priority !== selectedPriority) {
-        return false;
-      }
-
-      // Commitment
-      if (selectedCommitment !== "All") {
-        const isYes = selectedCommitment === "Yes";
-        if (Boolean(task.commitment) !== isYes) return false;
-      }
-
-      // At risk toggle
-      if (atRiskOnly && !isTaskAtRisk(task)) return false;
-
-      // Comprehensive Date filter
-      if ((dateFilterPreset !== "All" && dateFilterPreset !== "All Time") || customStartDate || customEndDate) {
-        const getDatesToTest = (t) => {
-          if (activeTab === "sme") return [t.dueDate, t.createdAt].filter(Boolean);
-          if (dateFilterField === "publish") return [t.publishDate].filter(Boolean);
-          if (dateFilterField === "due") return [t.dueDate].filter(Boolean);
-          return [t.publishDate, t.dueDate, t.createdAt].filter(Boolean);
-        };
-
-        const targetDates = getDatesToTest(task);
-        if (targetDates.length === 0) return false;
-
-        const getLocalDate = (d) => {
-          if (!d) return "";
-          const date = new Date(d);
-          if (isNaN(date.getTime())) return "";
-          const y = date.getFullYear();
-          const m = String(date.getMonth() + 1).padStart(2, "0");
-          const day = String(date.getDate()).padStart(2, "0");
-          return `${y}-${m}-${day}`;
-        };
-
-        const now = new Date();
-        const todayStr = getLocalDate(now);
-
-        if (dateFilterPreset === "Today") {
-          const matches = targetDates.some((d) => getLocalDate(d) === todayStr);
-          if (!matches) return false;
-        } else if (dateFilterPreset === "Yesterday") {
-          const yest = new Date(now);
-          yest.setDate(now.getDate() - 1);
-          const yestStr = getLocalDate(yest);
-          const matches = targetDates.some((d) => getLocalDate(d) === yestStr);
-          if (!matches) return false;
-        } else if (dateFilterPreset === "Tomorrow") {
-          const tom = new Date(now);
-          tom.setDate(tom.getDate() + 1);
-          const tomStr = getLocalDate(tom);
-          const matches = targetDates.some((d) => getLocalDate(d) === tomStr);
-          if (!matches) return false;
-        } else if (dateFilterPreset === "This Week") {
-          const dayOfWeek = now.getDay();
-          const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-          const mon = new Date(now);
-          mon.setDate(now.getDate() + diffToMon);
-          mon.setHours(0, 0, 0, 0);
-
-          const sun = new Date(mon);
-          sun.setDate(mon.getDate() + 6);
-          sun.setHours(23, 59, 59, 999);
-
-          const matches = targetDates.some((d) => {
-            const time = new Date(d).getTime();
-            return time >= mon.getTime() && time <= sun.getTime();
-          });
-          if (!matches) return false;
-        } else if (dateFilterPreset === "This Month") {
-          const startMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-          const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-          const matches = targetDates.some((d) => {
-            const time = new Date(d).getTime();
-            return time >= startMonth.getTime() && time <= endMonth.getTime();
-          });
-          if (!matches) return false;
-        } else if (dateFilterPreset === "Overdue") {
-          if (["Completed", "Live", "Published"].includes(task.status)) return false;
-          const hasOverdue = targetDates.some((d) => new Date(d).getTime() < now.getTime());
-          if (!hasOverdue) return false;
-        } else if (dateFilterPreset === "Custom" || customStartDate || customEndDate) {
-          const matches = targetDates.some((d) => {
-            const dateStr = getLocalDate(d);
-            if (customStartDate && customEndDate) {
-              return dateStr >= customStartDate && dateStr <= customEndDate;
-            }
-            if (customStartDate) {
-              return dateStr === customStartDate;
-            }
-            if (customEndDate) {
-              return dateStr <= customEndDate;
-            }
-            return true;
-          });
-          if (!matches) return false;
-        }
-      }
-
-      return true;
-    });
-
-    if (selectedCommitment === "No") {
-      return [...list].sort((a, b) => {
-        const timeA = a.createdAt
-          ? new Date(a.createdAt).getTime()
-          : (a._id && typeof a._id === "string" && a._id.length >= 8
-            ? parseInt(a._id.substring(0, 8), 16) * 1000
-            : 0);
-        const timeB = b.createdAt
-          ? new Date(b.createdAt).getTime()
-          : (b._id && typeof b._id === "string" && b._id.length >= 8
-            ? parseInt(b._id.substring(0, 8), 16) * 1000
-            : 0);
-        if (timeB !== timeA) return timeB - timeA;
-        return String(b._id || "").localeCompare(String(a._id || ""));
-      });
-    }
-
-    // Commitment table: Sort date-wise from first date to last date (ascending date order)
-    return [...list].sort((a, b) => {
-      const getPrimaryTime = (t) => {
-        const dateVal =
-          dateFilterField === "due"
-            ? (t.dueDate || t.publishDate || t.createdAt)
-            : (t.publishDate || t.dueDate || t.createdAt);
-        if (dateVal) {
-          const ms = new Date(dateVal).getTime();
-          if (!isNaN(ms) && ms > 0) return ms;
-        }
-        if (t._id && typeof t._id === "string" && t._id.length >= 8) {
-          const ms = parseInt(t._id.substring(0, 8), 16) * 1000;
-          if (!isNaN(ms) && ms > 0) return ms;
-        }
-        return 0;
-      };
-
-      const timeA = getPrimaryTime(a);
-      const timeB = getPrimaryTime(b);
-
-      if (timeA === 0 && timeB !== 0) return 1;
-      if (timeB === 0 && timeA !== 0) return -1;
-      if (timeA !== timeB) return timeA - timeB; // Ascending: first date of month to last date
-
-      const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      if (createdA !== createdB) return createdA - createdB;
-
-      return String(a._id || "").localeCompare(String(b._id || ""));
-    });
-  }, [
-    uniqueTasks,
-    searchQuery,
-    selectedClient,
-    selectedCreatedBy,
-    canFilterByCreatedBy,
-    selectedCategory,
-    selectedContentType,
-    selectedStatus,
-    selectedPriority,
-    selectedCommitment,
-    atRiskOnly,
-    dateFilterPreset,
-    dateFilterField,
-    customStartDate,
-    customEndDate,
-    usersMap,
-    selectedMonth,
-    selectedYear,
-    activeTab,
-  ]);
-
-  // Paginated tasks
-  const paginatedTasks = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredTasks.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredTasks, currentPage, itemsPerPage]);
-
-
-
-  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / itemsPerPage));
+  // Rows for the visible page come straight from the server (already filtered + sorted)
+  const paginatedTasks = uniqueTasks;
 
   // Dynamic Page numbers with ellipsis for pagination
   const pageNumbers = useMemo(() => {
@@ -1353,108 +1033,7 @@ const SmTasks = () => {
     return pages;
   }, [currentPage, totalPages]);
 
-  // Filtered clients matching current selection (client, category, creator) - strictly active clients
-  const relevantClients = useMemo(() => {
-    let list = activeClients || [];
-
-    if (selectedClient !== "All") {
-      if (inactiveClientIdentSet.has(selectedClient.trim().toLowerCase())) {
-        return [];
-      }
-      const match = list.filter(
-        (c) => c.companyName?.trim().toLowerCase() === selectedClient.trim().toLowerCase()
-      );
-      if (match.length > 0) return match;
-
-      // Fallback: build from task info if client not in clients array
-      const foundTask = uniqueTasks.find(
-        (t) => (t.clientName || "").trim().toLowerCase() === selectedClient.trim().toLowerCase()
-      );
-      if (!foundTask || isTaskFromInactiveClient(foundTask)) {
-        return [];
-      }
-      return [
-        {
-          _id: foundTask?.client?._id || foundTask?.client || selectedClient,
-          companyName: selectedClient,
-          color: foundTask?.clientColor || "#6366f1",
-          industry: foundTask?.category || "General",
-          posts: 0,
-          reels: 0,
-          story: 0,
-        },
-      ];
-    }
-
-    if (selectedCategory !== "All") {
-      const catLower = selectedCategory.trim().toLowerCase();
-      const clientsWithCategory = new Set(
-        uniqueTasks
-          .filter((t) => (t.category || "").trim().toLowerCase() === catLower && t.clientName)
-          .map((t) => t.clientName.trim().toLowerCase())
-      );
-      const filtered = list.filter(
-        (c) =>
-          (c.industry && c.industry.trim().toLowerCase() === catLower) ||
-          clientsWithCategory.has((c.companyName || "").trim().toLowerCase())
-      );
-      if (filtered.length > 0) list = filtered;
-    }
-
-    if (!canFilterByCreatedBy) {
-      const myClientNames = new Set(
-        filteredTasks.map((t) => (t.clientName || "").trim().toLowerCase()).filter(Boolean)
-      );
-      if (myClientNames.size > 0) {
-        list = list.filter((c) => myClientNames.has((c.companyName || "").trim().toLowerCase()));
-      }
-    } else if (selectedCreatedBy !== "All") {
-      const creatorClientNames = new Set(
-        filteredTasks.map((t) => (t.clientName || "").trim().toLowerCase()).filter(Boolean)
-      );
-      if (creatorClientNames.size > 0) {
-        list = list.filter((c) => creatorClientNames.has((c.companyName || "").trim().toLowerCase()));
-      }
-    }
-
-    return list;
-  }, [
-    activeClients,
-    inactiveClientIdentSet,
-    isTaskFromInactiveClient,
-    uniqueTasks,
-    filteredTasks,
-    selectedClient,
-    selectedCategory,
-    selectedCreatedBy,
-    canFilterByCreatedBy,
-  ]);
-
-  // Dynamically compute commitment overview based on current active filters
-  const isRestrictedToClients = selectedClient !== "All";
-  const commitmentOverview = useMemo(() => {
-    return computeAllClientsCommitments(
-      relevantClients,
-      filteredTasks,
-      selectedMonth,
-      selectedYear,
-      isRestrictedToClients
-    );
-  }, [relevantClients, filteredTasks, selectedMonth, selectedYear, isRestrictedToClients]);
-
-  const currentCommitmentsCount = useMemo(() => {
-    return filteredTasks.filter((t) => t.commitment).length;
-  }, [filteredTasks]);
-
-  const totalCommitmentsCount = useMemo(() => {
-    return uniqueTasks.filter((t) => Boolean(t.commitment)).length;
-  }, [uniqueTasks]);
-
-  const totalNonCommitmentsCount = useMemo(() => {
-    return uniqueTasks.filter((t) => !t.commitment).length;
-  }, [uniqueTasks]);
-
-
+  const currentCommitmentsCount = hasPageData ? pageMeta?.filteredCommitments || 0 : 0;
 
   const hasActiveFilters = useMemo(() => {
     const isCategoryFiltered =
@@ -1467,10 +1046,15 @@ const SmTasks = () => {
         ? false
         : selectedContentType !== "All";
 
+    // Commitment tab has no date presets (month picker only), so they never count there
     const isDateFiltered =
-      activeTab === "daily"
-        ? dateFilterPreset !== "Today"
-        : (dateFilterPreset !== "All" && dateFilterPreset !== "All Time");
+      activeTab === "commitment"
+        ? false
+        : activeTab === "daily"
+          ? dateFilterPreset !== "Today"
+          : (dateFilterPreset !== "All" && dateFilterPreset !== "All Time") ||
+            Boolean(customStartDate) ||
+            Boolean(customEndDate);
 
     return (
       selectedClient !== "All" ||
@@ -1480,8 +1064,6 @@ const SmTasks = () => {
       selectedStatus !== "All" ||
       selectedPriority !== "All" ||
       isDateFiltered ||
-      Boolean(customStartDate) ||
-      Boolean(customEndDate) ||
       (activeTab !== "sme" && atRiskOnly) ||
       searchQuery.trim().length > 0
     );
@@ -1509,7 +1091,7 @@ const SmTasks = () => {
     if (selectedStatus !== "All") count++;
     if (selectedPriority !== "All") count++;
     if (selectedCommitment !== "All") count++;
-    if ((dateFilterPreset !== "All" && dateFilterPreset !== "All Time") || customStartDate || customEndDate) count++;
+    if (activeTab !== "commitment" && ((dateFilterPreset !== "All" && dateFilterPreset !== "All Time") || customStartDate || customEndDate)) count++;
     if (activeTab !== "sme" && atRiskOnly) count++;
     return count;
   }, [
@@ -1535,7 +1117,8 @@ const SmTasks = () => {
       setSelectedContentType("All");
       setSelectedCommitment("Yes");
       setCommitmentDatePreset("All");
-      setCommitmentDateField("any");
+      setCommitmentDateField("publish");
+      setSelectedDay(null);
       setCommitmentStartDate("");
       setCommitmentEndDate("");
     } else if (activeTab === "sme") {
@@ -1553,7 +1136,6 @@ const SmTasks = () => {
     }
     setSelectedStatus("All");
     setSelectedPriority("All");
-    setDateFieldType("any");
     setCustomStartDate("");
     setCustomEndDate("");
     setAtRiskOnly(false);
@@ -1561,8 +1143,18 @@ const SmTasks = () => {
     setCurrentPage(1);
   };
 
-  const handleExportExcel = () => {
-    if (!filteredTasks || filteredTasks.length === 0) {
+  const handleExportExcel = async () => {
+    let filteredTasks;
+    const toastId = toast.loading("Preparing export…");
+    try {
+      const res = await getSocialmediaTasksPagedAPI({ ...filterParams, all: 1 });
+      filteredTasks = res?.data || [];
+      toast.dismiss(toastId);
+    } catch {
+      toast.error("Export failed — please try again", { id: toastId });
+      return;
+    }
+    if (filteredTasks.length === 0) {
       toast.error("No tasks to export");
       return;
     }
@@ -2167,42 +1759,6 @@ const SmTasks = () => {
 
         {/* Right Actions: Month Filter, Create Task, and Open Calendar */}
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-          {/* Month Selector Dropdown - Show only for Commitment tab */}
-          {activeTab === "commitment" && (
-            <div className="relative inline-flex items-center">
-              <FiCalendar
-                size={13}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
-              />
-              <select
-                value={selectedMonth === "all" ? "all" : `${selectedYear}-${selectedMonth}`}
-                onChange={(e) => {
-                  if (e.target.value === "all") {
-                    setSelectedYear("all");
-                    setSelectedMonth("all");
-                  } else {
-                    const [y, m] = e.target.value.split("-").map(Number);
-                    setSelectedYear(y);
-                    setSelectedMonth(m);
-                  }
-                  setCurrentPage(1);
-                }}
-                style={{ paddingLeft: "2.1rem" }}
-                className="appearance-none bg-white dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10 rounded-xl pr-7 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-              >
-                <option value="all">All Months</option>
-                {monthOptions.map((opt) => (
-                  <option key={`${opt.year}-${opt.month}`} value={`${opt.year}-${opt.month}`}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown
-                size={13}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10"
-              />
-            </div>
-          )}
 
           {/* Branch Tabs (Admin / Operation Manager only) */}
           {canSwitchBranch && activeTab !== "daily" && (
@@ -2312,22 +1868,27 @@ const SmTasks = () => {
             selectedStatus={selectedStatus}
             setSelectedStatus={setSelectedStatus}
             statuses={activeTab === "sme" ? NON_COMMITMENT_STATUSES : COMMITMENT_STATUSES}
-            selectedPriority={selectedPriority}
-            setSelectedPriority={setSelectedPriority}
-            priorities={PRIORITIES}
             selectedCommitment={selectedCommitment}
             setSelectedCommitment={setSelectedCommitment}
             commitments={COMMITMENTS}
             dateFilterPreset={dateFilterPreset}
             setDateFilterPreset={setDateFilterPreset}
             dateFilterField={dateFilterField}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
+            selectedDay={selectedDay}
+            onMonthChange={(y, m, d) => {
+              setSelectedYear(y);
+              setSelectedMonth(m);
+              setSelectedDay(d ?? null);
+            }}
             setDateFieldType={setDateFieldType}
             customStartDate={customStartDate}
             setCustomStartDate={setCustomStartDate}
             customEndDate={customEndDate}
             setCustomEndDate={setCustomEndDate}
-            filteredCount={filteredTasks.length}
-            totalCount={uniqueTasks.length}
+            filteredCount={filteredTotal}
+            totalCount={hasPageData ? pageMeta?.totalAll || 0 : 0}
             currentCommitmentsCount={currentCommitmentsCount}
             hasActiveFilters={hasActiveFilters}
             onResetFilters={handleResetFilters}
@@ -2337,7 +1898,7 @@ const SmTasks = () => {
           {/* Main Table Container */}
           <div className="bg-white dark:bg-[#0c1220] rounded-2xl shadow-sm border border-slate-200/80 dark:border-white/10 overflow-hidden relative">
             {/* Shimmer loading bar when refetching */}
-            {loading && tasks.length > 0 && (
+            {isRefreshing && (
               <div className="absolute top-0 inset-x-0 h-1 bg-slate-100 dark:bg-slate-800 overflow-hidden z-20">
                 <div className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 animate-pulse w-full" />
               </div>
@@ -2370,14 +1931,20 @@ const SmTasks = () => {
                       <th className="py-2.5 px-2.5 font-bold whitespace-nowrap">Platforms</th>
                     )}
                     <th className="py-2.5 px-3 whitespace-nowrap">Created by</th>
-                    <th className="py-2.5 px-2.5 whitespace-nowrap">Due Date</th>
+                    {selectedCommitment === "No" && (
+                      <th className="py-2.5 px-2.5 whitespace-nowrap">Due Date</th>
+                    )}
+                    {selectedCommitment !== "No" && (
+                      <th className="py-2.5 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
+                    )}
                     <th className="py-2.5 px-2 text-center whitespace-nowrap w-[90px]">Status</th>
                     {selectedCommitment === "No" && (
                       <th className="py-2.5 px-2 text-center whitespace-nowrap">Priority</th>
                     )}
                     <th className="py-2.5 px-3 min-w-[160px] max-w-[240px] whitespace-nowrap">Notes &amp; Brief</th>
+                    {/* Commitment tab: Due Date sits at the end, plain (Publish Date is the main date) */}
                     {selectedCommitment !== "No" && (
-                      <th className="py-2.5 px-3 bg-slate-100/60 dark:bg-[#182338] text-slate-700 dark:text-slate-200 font-bold whitespace-nowrap">Publish Date</th>
+                      <th className="py-2.5 px-2.5 whitespace-nowrap">Due Date</th>
                     )}
                     {!hideCommitmentAction && (
                       <th className="py-2.5 px-2 text-center whitespace-nowrap">Action</th>
@@ -2385,7 +1952,7 @@ const SmTasks = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                  {loading && tasks.length === 0 ? (
+                  {showSkeleton ? (
                     Array.from({ length: 6 }).map((_, idx) => (
                       <tr
                         key={`sm-task-skeleton-${idx}`}
@@ -2449,10 +2016,19 @@ const SmTasks = () => {
                           </div>
                         </td>
 
-                        {/* Due Date */}
-                        <td className="py-2 px-2.5">
-                          <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-14" />
-                        </td>
+                        {/* Due Date (SME tab position) */}
+                        {selectedCommitment === "No" && (
+                          <td className="py-2 px-2.5">
+                            <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-14" />
+                          </td>
+                        )}
+
+                        {/* Publish Date */}
+                        {selectedCommitment !== "No" && (
+                          <td className="py-2 px-3 bg-slate-100/30 dark:bg-[#182338]/30">
+                            <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-14" />
+                          </td>
+                        )}
 
                         {/* Status */}
                         <td className="py-2 px-2.5">
@@ -2471,9 +2047,9 @@ const SmTasks = () => {
                           <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-28" />
                         </td>
 
-                        {/* Publish Date */}
+                        {/* Due Date (Commitment tab position: last) */}
                         {selectedCommitment !== "No" && (
-                          <td className="py-2 px-3 bg-slate-100/30 dark:bg-[#182338]/30">
+                          <td className="py-2 px-2.5">
                             <div className="h-3 bg-slate-200 dark:bg-slate-700/60 rounded w-14" />
                           </td>
                         )}
@@ -2681,10 +2257,20 @@ const SmTasks = () => {
                             })()}
                           </td>
 
-                          {/* DUE DATE */}
-                          <td className="py-2 px-2.5">
-                            {renderDueDateBadge(task.dueDate, task.status, selectedCommitment !== "No")}
-                          </td>
+                          {/* DUE DATE — SME tab: coloured badge (it is the main deadline there) */}
+                          {selectedCommitment === "No" && (
+                            <td className="py-2 px-2.5">
+                              {renderDueDateBadge(task.dueDate, task.status)}
+                            </td>
+                          )}
+
+                          {/* Columns visible only in Commitment: Publish Date */}
+                          {selectedCommitment !== "No" && (
+                            <td className="py-2 px-2.5">
+                              {/* Same colour rules as Due Date (green done, red overdue/today), date only */}
+                              {renderDueDateBadge(task.publishDate, task.status, true)}
+                            </td>
+                          )}
 
                           {/* STATUS - Interactive quick-change dropdown or Compact Read-only badge */}
                           <td className="py-2 px-2 text-center" onClick={(e) => e.stopPropagation()}>
@@ -2777,10 +2363,10 @@ const SmTasks = () => {
                             </td>
                           )}
 
-                          {/* Columns visible only in Commitment: Publish Date */}
+                          {/* DUE DATE — Commitment tab: last column, plain text (no colour) */}
                           {selectedCommitment !== "No" && (
-                            <td className="py-2 px-3 bg-slate-50/60 dark:bg-[#131d31]/50 font-mono text-[10px] text-slate-700 dark:text-slate-200 font-semibold whitespace-nowrap">
-                              {formatPublishDateTime(task.publishDate)}
+                            <td className="py-2 px-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                              {formatDisplayDate(task.dueDate)}
                             </td>
                           )}
 
@@ -2830,15 +2416,15 @@ const SmTasks = () => {
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                   Showing{" "}
                   <span className="font-bold text-slate-900 dark:text-white">
-                    {filteredTasks.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+                    {filteredTotal > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
                   </span>{" "}
                   to{" "}
                   <span className="font-bold text-slate-900 dark:text-white">
-                    {Math.min(currentPage * itemsPerPage, filteredTasks.length)}
+                    {Math.min(currentPage * itemsPerPage, filteredTotal)}
                   </span>{" "}
                   of{" "}
                   <span className="font-bold text-slate-900 dark:text-white">
-                    {filteredTasks.length}
+                    {filteredTotal}
                   </span>{" "}
                   tasks
                 </span>

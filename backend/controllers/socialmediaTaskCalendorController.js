@@ -32,6 +32,8 @@ const isSocialMediaExecutiveUser = (user) => {
   );
 };
 
+const { escapeRegex, loadClientScopes, buildChennaiCondition } = require('../utils/smTaskQuery');
+
 // Helper to determine if a task is a Commitment task
 const isCommitmentTask = (bodyOrDoc) => {
   if (!bodyOrDoc) return false;
@@ -167,8 +169,8 @@ exports.getSocialmediaTasks = async (req, res) => {
       } else {
         userCreatorCondition = {
           $or: [
-            { createdByName: new RegExp(`^${creatorVal}$`, 'i') },
-            { assigneeName: new RegExp(`^${creatorVal}$`, 'i') },
+            { createdByName: new RegExp(`^${escapeRegex(creatorVal)}$`, 'i') },
+            { assigneeName: new RegExp(`^${escapeRegex(creatorVal)}$`, 'i') },
           ],
         };
       }
@@ -177,7 +179,7 @@ exports.getSocialmediaTasks = async (req, res) => {
     // Search term
     let searchCondition = null;
     if (search && search.trim()) {
-      const regex = new RegExp(search.trim(), 'i');
+      const regex = new RegExp(escapeRegex(search.trim()), 'i');
       searchCondition = {
         $or: [
           { taskTitle: regex },
@@ -263,25 +265,17 @@ exports.getSocialmediaTasks = async (req, res) => {
       };
     }
 
+    // Client scopes (Chennai branch for Social Media Head, inactive clients to exclude) — fetched in parallel
+    const needChennai = isSocialMediaHeadUser(req.user);
+    const needInactive = !client && (!clientName || clientName === 'All' || clientName === 'All clients');
+    const { chennaiClients, inactiveClients } = await loadClientScopes({ needChennai, needInactive });
+
     // Restrict strictly to Chennai branch clients for Social Media Head
-    let chennaiBranchCondition = null;
-    if (isSocialMediaHeadUser(req.user)) {
-      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i'), status: { $nin: ['Inactive', 'inactive'] } }).select('_id companyName').lean();
-      const chennaiClientIds = chennaiClients.map((c) => c._id);
-      const chennaiClientNames = chennaiClients.map((c) => c.companyName).filter(Boolean);
-      chennaiBranchCondition = {
-        $or: [
-          { client: { $in: chennaiClientIds } },
-          { clientName: { $in: chennaiClientNames.map((n) => new RegExp(`^${n}$`, 'i')) } },
-        ],
-      };
-    }
+    const chennaiBranchCondition = needChennai ? buildChennaiCondition(chennaiClients) : null;
 
     // Exclude tasks belonging to Inactive clients unless specifically queried
     let excludeInactiveCondition = null;
-    let inactiveClients = [];
-    if (!client && (!clientName || clientName === 'All' || clientName === 'All clients')) {
-      inactiveClients = await Client.find({ status: { $regex: /^inactive$/i } }).select('_id companyName').lean();
+    if (needInactive) {
       if (inactiveClients.length > 0) {
         const inactiveClientIds = inactiveClients.map((c) => c._id);
         const inactiveNamesSet = new Set();
@@ -315,11 +309,10 @@ exports.getSocialmediaTasks = async (req, res) => {
       query.$and = andClauses;
     }
 
-    const baseCountFilter = {
-      ...(userCreatorCondition || {}),
-      ...(chennaiBranchCondition || {}),
-      ...(excludeInactiveCondition || {}),
-    };
+    // $and (not object spread): userCreatorCondition and chennaiBranchCondition both use $or,
+    // and spreading them made the second silently overwrite the first in the counts.
+    const countClauses = [userCreatorCondition, chennaiBranchCondition, excludeInactiveCondition].filter(Boolean);
+    const baseCountFilter = countClauses.length ? { $and: countClauses } : {};
 
     const [rawTasks, totalCount, commitmentsCount] = await Promise.all([
       SocialmediaTaskCalendor.find(query)
@@ -337,10 +330,7 @@ exports.getSocialmediaTasks = async (req, res) => {
       .sort({ publishDate: 1, dueDate: 1, createdAt: -1 })
       .lean(),
       SocialmediaTaskCalendor.countDocuments(baseCountFilter),
-      SocialmediaTaskCalendor.countDocuments({
-        ...baseCountFilter,
-        commitment: true,
-      }),
+      SocialmediaTaskCalendor.countDocuments({ $and: [...countClauses, { commitment: true }] }),
     ]);
 
     const now = new Date();
@@ -432,16 +422,11 @@ exports.getSocialmediaStats = async (req, res) => {
       ];
     }
 
-    if (isSocialMediaHeadUser(req.user)) {
-      const chennaiClients = await Client.find({ branch: new RegExp('^chennai$', 'i'), status: { $nin: ['Inactive', 'inactive'] } }).select('_id companyName').lean();
-      const chennaiClientIds = chennaiClients.map((c) => c._id);
-      const chennaiClientNames = chennaiClients.map((c) => c.companyName).filter(Boolean);
-      const chennaiCondition = {
-        $or: [
-          { client: { $in: chennaiClientIds } },
-          { clientName: { $in: chennaiClientNames.map((n) => new RegExp(`^${n}$`, 'i')) } },
-        ],
-      };
+    const needChennai = isSocialMediaHeadUser(req.user);
+    const { chennaiClients, inactiveClients } = await loadClientScopes({ needChennai, needInactive: true });
+
+    if (needChennai) {
+      const chennaiCondition = buildChennaiCondition(chennaiClients);
       if (commitmentsQuery.$or) {
         commitmentsQuery.$and = [{ $or: commitmentsQuery.$or }, chennaiCondition];
         delete commitmentsQuery.$or;
@@ -451,7 +436,6 @@ exports.getSocialmediaStats = async (req, res) => {
     }
 
     // Exclude inactive clients from stats calculation
-    const inactiveClients = await Client.find({ status: { $regex: /^inactive$/i } }).select('_id companyName').lean();
     if (inactiveClients.length > 0) {
       const inactiveClientIds = inactiveClients.map((c) => c._id);
       const inactiveNamesSet = new Set();

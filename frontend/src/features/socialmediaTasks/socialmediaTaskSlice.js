@@ -1,8 +1,9 @@
-import { createSlice, createAsyncThunk, current } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, current, original, isDraft } from "@reduxjs/toolkit";
 import toast from "react-hot-toast";
 import { isTaskAtRisk } from "../../utils/smCommitmentUtils";
 import {
   getSocialmediaTasksAPI,
+  getSocialmediaTasksPagedAPI,
   getSocialmediaStatsAPI,
   createSocialmediaTaskAPI,
   updateSocialmediaTaskAPI,
@@ -12,6 +13,117 @@ import {
   getSocialmediaMetadataAPI,
   bulkImportSocialmediaTasksAPI,
 } from "./socialmediaTaskApi";
+
+// ─── Task list cache (stale-while-revalidate) ───────────────────────────────
+// Every task-list response is cached per query (e.g. one entry per calendar month).
+// Revisiting a month renders the cached list instantly while a background request
+// refreshes it, and responses from superseded requests never overwrite newer data.
+const MAX_CACHED_QUERIES = 12;
+const PREFETCH_TTL_MS = 60 * 1000;
+
+// Stable key for a query: same params in any order → same key.
+export const makeTasksKey = (params) => {
+  const src = params || {};
+  const clean = {};
+  Object.keys(src)
+    .sort()
+    .forEach((k) => {
+      const v = src[k];
+      if (v !== undefined && v !== null && v !== "") clean[k] = String(v);
+    });
+  return JSON.stringify(clean);
+};
+
+const writeCache = (state, key, entry) => {
+  if (!state.tasksCache) state.tasksCache = {};
+  state.tasksCache[key] = entry;
+  const keys = Object.keys(state.tasksCache);
+  if (keys.length > MAX_CACHED_QUERIES) {
+    keys
+      .sort((a, b) => (state.tasksCache[a].fetchedAt || 0) - (state.tasksCache[b].fetchedAt || 0))
+      .slice(0, keys.length - MAX_CACHED_QUERIES)
+      .forEach((k) => delete state.tasksCache[k]);
+  }
+};
+
+// After a local mutation (create/update/delete…) the on-screen list is the source of
+// truth: keep it as the cache entry for its query and drop the others, because the
+// changed task may also appear in (or have moved to) another month.
+// It also bumps `mutationVersion`, which server-paginated views watch to refetch their page
+// (a changed task may now belong on a different page or no longer match the filters).
+const syncCacheAfterMutation = (state) => {
+  state.mutationVersion = (state.mutationVersion || 0) + 1;
+  if (!state.tasksKey) {
+    state.tasksCache = {};
+    return;
+  }
+  state.tasksCache = {
+    [state.tasksKey]: {
+      data: state.tasks,
+      totalCount: state.totalCount,
+      commitmentsCount: state.commitmentsCount,
+      meta: state.pageMeta,
+      fetchedAt: Date.now(),
+    },
+  };
+};
+
+const applyEntry = (state, key, entry) => {
+  state.tasks = entry.data;
+  state.totalCount = entry.totalCount;
+  state.commitmentsCount = entry.commitmentsCount;
+  state.pageMeta = entry.meta || null;
+  state.tasksKey = key;
+};
+
+// Shared list reducers (calendar month list + paged SM Tasks list)
+const listPending = (state, action, key) => {
+  state.tasksRequestId = action.meta.requestId;
+  state.requestedTasksKey = key;
+  state.loading = true;
+  state.error = null;
+  // Stale-while-revalidate: show the cached list for this query immediately
+  if (state.tasksKey !== key) {
+    const cached = readCache(state, key);
+    if (cached) applyEntry(state, key, cached);
+  }
+};
+
+const listFulfilled = (state, action, key) => {
+  const data = action.payload.data || [];
+  const entry = {
+    data,
+    totalCount: action.payload.totalCount || data.length || 0,
+    commitmentsCount: action.payload.commitmentsCount || 0,
+    meta: action.payload.meta || null,
+    fetchedAt: Date.now(),
+  };
+  if (action.meta.requestId !== state.tasksRequestId) {
+    // Superseded (user already moved on): keep it for later, don't render it
+    if (key !== state.tasksKey) writeCache(state, key, entry);
+    return;
+  }
+  writeCache(state, key, entry);
+  state.loading = false;
+  applyEntry(state, key, entry);
+};
+
+const listRejected = (state, action) => {
+  if (action.meta.requestId !== state.tasksRequestId) return;
+  state.loading = false;
+  state.error = action.payload;
+};
+
+// Paged queries get their own key space so they never collide with calendar month keys
+export const makePagedTasksKey = (params) => makeTasksKey({ ...(params || {}), __view: "paged" });
+
+// Read a cache entry as a plain (non-draft) object so it can be placed into `tasks`.
+const readCache = (state, key) => {
+  const cache = state.tasksCache;
+  if (!cache) return null;
+  const base = isDraft(cache) ? original(cache) : cache;
+  return (base && base[key]) || null;
+};
 
 // GET ALL TASKS
 export const getSocialmediaTasks = createAsyncThunk(
@@ -24,6 +136,58 @@ export const getSocialmediaTasks = createAsyncThunk(
         error.response?.data?.message || "Failed to fetch social media tasks"
       );
     }
+  }
+);
+
+// GET ONE PAGE OF TASKS (SM Tasks table) — filtering, sorting and pagination run on the server
+export const getSocialmediaTasksPage = createAsyncThunk(
+  "socialmediaTasks/getSocialmediaTasksPage",
+  async (params, thunkAPI) => {
+    try {
+      const res = await getSocialmediaTasksPagedAPI(params);
+      return {
+        data: res.data || [],
+        totalCount: res.totalAll || 0,
+        commitmentsCount: 0,
+        meta: {
+          page: res.page || 1,
+          limit: res.limit || 10,
+          total: res.total || 0,
+          totalPages: res.totalPages || 1,
+          filteredCommitments: res.filteredCommitments || 0,
+          totalAll: res.totalAll || 0,
+        },
+      };
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Failed to fetch social media tasks"
+      );
+    }
+  }
+);
+
+// PREFETCH TASKS — fills the cache only; never touches the on-screen list or loading flags.
+// Used when hovering the prev/next buttons so the next month opens instantly.
+export const prefetchSocialmediaTasks = createAsyncThunk(
+  "socialmediaTasks/prefetchSocialmediaTasks",
+  async (params, thunkAPI) => {
+    try {
+      return await getSocialmediaTasksAPI(params);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Prefetch failed");
+    }
+  },
+  {
+    condition: (params, { getState }) => {
+      const s = getState().socialmediaTasks;
+      const key = makeTasksKey(params);
+      if (s.tasksKey === key) return false;
+      if (s.prefetching?.[key]) return false;
+      if (s.loading && s.requestedTasksKey === key) return false;
+      const cached = s.tasksCache?.[key];
+      if (cached && Date.now() - cached.fetchedAt < PREFETCH_TTL_MS) return false;
+      return true;
+    },
   }
 );
 
@@ -175,6 +339,20 @@ const initialState = {
   },
   loading: false,
   statsLoading: false,
+  // Query key of the list currently in `tasks` (null = nothing loaded yet)
+  tasksKey: null,
+  // Key / requestId of the most recent list request — older responses are ignored
+  requestedTasksKey: null,
+  tasksRequestId: null,
+  statsRequestId: null,
+  // queryKey → { data, totalCount, commitmentsCount, meta, fetchedAt }
+  tasksCache: {},
+  // Paged list info for the SM Tasks table: { page, limit, total, totalPages, filteredCommitments, totalAll }
+  pageMeta: null,
+  // Incremented after every successful create/update/delete — paged views refetch on change
+  mutationVersion: 0,
+  // queryKey → true while a prefetch is in flight
+  prefetching: {},
   error: null,
   // requestId → { id, prevFields } for rolling back optimistic updates on failure
   optimisticUpdates: {},
@@ -221,33 +399,51 @@ const socialmediaTaskSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // GET TASKS
-      .addCase(getSocialmediaTasks.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      // GET TASKS (calendar) and GET TASKS PAGE (SM Tasks table) share the same
+      // cache / stale-response handling; only the cache key differs.
+      .addCase(getSocialmediaTasks.pending, (state, action) => listPending(state, action, makeTasksKey(action.meta.arg)))
+      .addCase(getSocialmediaTasks.fulfilled, (state, action) => listFulfilled(state, action, makeTasksKey(action.meta.arg)))
+      .addCase(getSocialmediaTasks.rejected, listRejected)
+      .addCase(getSocialmediaTasksPage.pending, (state, action) => listPending(state, action, makePagedTasksKey(action.meta.arg)))
+      .addCase(getSocialmediaTasksPage.fulfilled, (state, action) => listFulfilled(state, action, makePagedTasksKey(action.meta.arg)))
+      .addCase(getSocialmediaTasksPage.rejected, listRejected)
+
+      // PREFETCH TASKS
+      .addCase(prefetchSocialmediaTasks.pending, (state, action) => {
+        if (!state.prefetching) state.prefetching = {};
+        state.prefetching[makeTasksKey(action.meta.arg)] = true;
       })
-      .addCase(getSocialmediaTasks.fulfilled, (state, action) => {
-        state.loading = false;
-        state.tasks = action.payload.data || [];
-        state.totalCount = action.payload.totalCount || action.payload.data?.length || 0;
-        state.commitmentsCount = action.payload.commitmentsCount || 0;
+      .addCase(prefetchSocialmediaTasks.fulfilled, (state, action) => {
+        const key = makeTasksKey(action.meta.arg);
+        if (state.prefetching) delete state.prefetching[key];
+        // Never overwrite the list on screen (it may hold newer local edits)
+        if (key === state.tasksKey) return;
+        const data = action.payload.data || [];
+        writeCache(state, key, {
+          data,
+          totalCount: action.payload.totalCount || data.length || 0,
+          commitmentsCount: action.payload.commitmentsCount || 0,
+          fetchedAt: Date.now(),
+        });
       })
-      .addCase(getSocialmediaTasks.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+      .addCase(prefetchSocialmediaTasks.rejected, (state, action) => {
+        if (state.prefetching) delete state.prefetching[makeTasksKey(action.meta.arg)];
       })
 
-      // GET STATS
-      .addCase(getSocialmediaStats.pending, (state) => {
+      // GET STATS (ignore responses from superseded requests, e.g. fast month switching)
+      .addCase(getSocialmediaStats.pending, (state, action) => {
+        state.statsRequestId = action.meta.requestId;
         state.statsLoading = true;
       })
       .addCase(getSocialmediaStats.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.statsRequestId) return;
         state.statsLoading = false;
         if (action.payload.stats) {
           state.stats = action.payload.stats;
         }
       })
-      .addCase(getSocialmediaStats.rejected, (state) => {
+      .addCase(getSocialmediaStats.rejected, (state, action) => {
+        if (action.meta.requestId !== state.statsRequestId) return;
         state.statsLoading = false;
       })
 
@@ -260,6 +456,7 @@ const socialmediaTaskSlice = createSlice({
             state.commitmentsCount += 1;
           }
           recalcStats(state);
+          syncCacheAfterMutation(state);
         }
       })
 
@@ -272,6 +469,7 @@ const socialmediaTaskSlice = createSlice({
           state.tasks = [...toAdd, ...state.tasks];
           state.totalCount += toAdd.length;
           recalcStats(state);
+          syncCacheAfterMutation(state);
         }
       })
 
@@ -309,6 +507,7 @@ const socialmediaTaskSlice = createSlice({
           }
         }
         recalcStats(state);
+        syncCacheAfterMutation(state);
       })
       .addCase(updateSocialmediaTask.rejected, (state, action) => {
         const { requestId, arg } = action.meta;
@@ -332,6 +531,7 @@ const socialmediaTaskSlice = createSlice({
             state.tasks[index] = action.payload.data;
           }
           recalcStats(state);
+          syncCacheAfterMutation(state);
         }
       })
 
@@ -340,6 +540,7 @@ const socialmediaTaskSlice = createSlice({
         state.tasks = state.tasks.filter((t) => t._id !== action.payload);
         state.totalCount = Math.max(0, state.totalCount - 1);
         recalcStats(state);
+        syncCacheAfterMutation(state);
       })
 
       // BULK DELETE TASKS
@@ -348,6 +549,7 @@ const socialmediaTaskSlice = createSlice({
         state.tasks = state.tasks.filter((t) => !idsSet.has(t._id));
         state.totalCount = Math.max(0, state.totalCount - action.payload.length);
         recalcStats(state);
+        syncCacheAfterMutation(state);
       })
 
       // GET METADATA
