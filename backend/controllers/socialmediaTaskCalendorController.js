@@ -1181,8 +1181,11 @@ exports.bulkImportSocialmediaTasks = async (req, res) => {
       });
     }
 
-    // Dynamic Client and User caches for fast mapping (exclude inactive clients)
-    const allClients = await Client.find({ status: { $nin: ['Inactive', 'inactive'] } }).select('_id companyName color');
+    // Dynamic Client and User caches for fast mapping.
+    // Only active clients that have at least one deliverable (posts / reels / story) can receive imports.
+    const allClients = (
+      await Client.find({ status: { $nin: ['Inactive', 'inactive'] } }).select('_id companyName color posts reels story')
+    ).filter((c) => (Number(c.posts) || 0) + (Number(c.reels) || 0) + (Number(c.story) || 0) > 0);
     const allUsers = await User.find({ accountStatus: { $ne: 'inactive' } }).select('_id name email');
 
     const clientMap = new Map();
@@ -1226,9 +1229,17 @@ exports.bulkImportSocialmediaTasks = async (req, res) => {
         clientDoc = clientMap.get(rawClientName.toLowerCase());
       }
 
-      const clientName = clientDoc ? clientDoc.companyName : rawClientName;
-      const clientColor = clientDoc ? (clientDoc.color || '#6366f1') : (row.clientColor || '#6366f1');
-      const clientId = clientDoc ? clientDoc._id : null;
+      // Strict: never auto-create / store an unknown client name
+      if (!clientDoc) {
+        errors.push(
+          'Row ' + rowIndex + ': Client "' + rawClientName + '" is not a registered active client with Posts / Reels / Stories.'
+        );
+        continue;
+      }
+
+      const clientName = clientDoc.companyName;
+      const clientColor = clientDoc.color || '#6366f1';
+      const clientId = clientDoc._id;
 
       // Resolve assignee
       let assigneeDoc = null;
@@ -1351,10 +1362,14 @@ exports.bulkImportSocialmediaTasks = async (req, res) => {
       validTasksToCreate.push(taskDoc);
     }
 
-    if (validTasksToCreate.length === 0) {
+    // All-or-nothing: if any row is invalid, nothing is imported
+    if (errors.length > 0 || validTasksToCreate.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'No valid tasks could be processed from the imported data.',
+        message:
+          errors.length > 0
+            ? 'Import blocked: ' + errors.length + ' row(s) have errors. Fix them and try again.'
+            : 'No valid tasks could be processed from the imported data.',
         errors,
       });
     }

@@ -69,6 +69,7 @@ import { getUsers } from "../../features/users/userSlice";
 import SmTaskModal from "./SmTaskModal";
 import SmTaskCards from "./SmTaskCards";
 import SmPlatformWarningModal from "./SmPlatformWarningModal";
+import ContentCalendarGuide from "./ContentCalendarGuide";
 import SmImportExcelModal from "./SmImportExcelModal";
 import SearchableDropdown from "../../components/common/SearchableDropdown";
 import PendingCommitmentModal from "../../components/common/PendingCommitmentModal";
@@ -584,6 +585,8 @@ const ContentCalendar = () => {
   );
 
   // Dynamic client options (alphabetically sorted, filtered to Chennai branch for Social Media Head, excluding inactive clients)
+  // Only real, registered clients are listed — names that exist only on tasks (typos from imports,
+  // e.g. "Valli Vilas") are never shown, and clients with no Posts, Reels or Stories are hidden.
   const clientOptions = useMemo(() => {
     const set = new Set();
     (activeClients || []).forEach((c) => {
@@ -591,18 +594,13 @@ const ContentCalendar = () => {
         const b = (c.branch || "").trim().toLowerCase();
         if (b && b !== "chennai") return;
       }
+      const deliverables = (Number(c.posts) || 0) + (Number(c.reels) || 0) + (Number(c.story) || 0);
+      if (deliverables <= 0) return;
       if (c.companyName) set.add(c.companyName.trim());
-    });
-    uniqueTasks.forEach((t) => {
-      if (isSocialMediaHead && !isTaskFromChennaiClient(t)) return;
-      if (isTaskFromInactiveClient(t)) return;
-      if (t.clientName && !inactiveClientIdentSet.has(t.clientName.trim().toLowerCase())) {
-        set.add(t.clientName.trim());
-      }
     });
     const sorted = Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
     return ["All", ...sorted];
-  }, [activeClients, uniqueTasks, isSocialMediaHead, isTaskFromChennaiClient, isTaskFromInactiveClient, inactiveClientIdentSet]);
+  }, [activeClients, isSocialMediaHead]);
 
   // Helper to identify Social Media Executives
   const isSocialMediaManager = useCallback((u) => {
@@ -3001,6 +2999,9 @@ const ContentCalendar = () => {
         targetStatus={platformWarningModal.targetStatus}
         onConfirm={handleConfirmPlatformWarning}
       />
+
+      {/* Floating user guide (bottom-right) */}
+      <ContentCalendarGuide isReadOnly={isReadOnly} />
 
       {/* Excel / CSV Commitment Import Modal */}
       <SmImportExcelModal

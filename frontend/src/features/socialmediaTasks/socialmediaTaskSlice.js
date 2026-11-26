@@ -313,8 +313,10 @@ export const bulkImportSocialmediaTasks = createAsyncThunk(
       return response;
     } catch (error) {
       const msg = error.response?.data?.message || "Failed to import tasks";
-      toast.error(msg);
-      return thunkAPI.rejectWithValue(msg);
+      const errors = error.response?.data?.errors || [];
+      // When the server returns row-level errors, the import modal shows them in its own popup
+      if (errors.length === 0) toast.error(msg);
+      return thunkAPI.rejectWithValue({ message: msg, errors });
     }
   }
 );

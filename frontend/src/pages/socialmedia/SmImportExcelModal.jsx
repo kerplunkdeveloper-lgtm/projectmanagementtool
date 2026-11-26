@@ -11,6 +11,10 @@ import {
   FiTrash2,
   FiCheck,
   FiLayers,
+  FiAlertOctagon,
+  FiArrowRight,
+  FiEdit3,
+  FiRefreshCw,
 } from "react-icons/fi";
 import {
   FaInstagram,
@@ -220,6 +224,52 @@ const parseCSV = (text) => {
   return parsedData;
 };
 
+// ─── Client validation helpers ──────────────────────────────────────────────
+const normName = (s) => (s || "").toString().trim().toLowerCase();
+const compactName = (s) => normName(s).replace(/[^a-z0-9]/g, "");
+
+// A client can receive imports only if it is active and has at least one deliverable
+const isImportableClient = (c) =>
+  !!c &&
+  !!(c.companyName || "").trim() &&
+  normName(c.status || "Active") !== "inactive" &&
+  (Number(c.posts) || 0) + (Number(c.reels) || 0) + (Number(c.story) || 0) > 0;
+
+const levenshtein = (a, b) => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+};
+
+// Closest registered client for a mistyped name (e.g. "Valli Vilas" → "Valli Villas")
+const suggestClient = (raw, clientList) => {
+  const target = compactName(raw);
+  if (!target) return null;
+  let best = null;
+  let bestScore = 0;
+  clientList.forEach((c) => {
+    const name = compactName(c.companyName);
+    if (!name) return;
+    const dist = levenshtein(target, name);
+    let score = 1 - dist / Math.max(target.length, name.length);
+    if (name.includes(target) || target.includes(name)) score = Math.max(score, 0.8);
+    if (score > bestScore) {
+      bestScore = score;
+      best = c;
+    }
+  });
+  return bestScore >= 0.6 ? best : null;
+};
+
 export default function SmImportExcelModal({
   isOpen,
   onClose,
@@ -234,19 +284,106 @@ export default function SmImportExcelModal({
   const [file, setFile] = useState(null);
   const [parsedRows, setParsedRows] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showIssues, setShowIssues] = useState(false);
+  const [serverErrors, setServerErrors] = useState([]);
+  // Per unknown-name replacement picks in the issues popup: { "valli vilas": "Valli Villas" }
+  const [fixChoices, setFixChoices] = useState({});
+
+  // Only active clients with Posts / Reels / Stories can receive imports
+  const importableClients = useMemo(
+    () =>
+      clients
+        .filter(isImportableClient)
+        .slice()
+        .sort((a, b) => a.companyName.localeCompare(b.companyName)),
+    [clients]
+  );
 
   // Fast client map for instant lookup
   const clientsMap = useMemo(() => {
     const map = new Map();
-    clients.forEach((c) => {
-      if (c.companyName) {
-        map.set(c.companyName.trim().toLowerCase(), c);
-      }
-    });
+    importableClients.forEach((c) => map.set(normName(c.companyName), c));
     return map;
-  }, [clients]);
+  }, [importableClients]);
+
+  // Row-level validation
+  const rowIssues = useMemo(
+    () =>
+      parsedRows.map((row) => {
+        const issues = [];
+        if (!row.clientName) issues.push("missingClient");
+        else if (!clientsMap.has(normName(row.clientName))) issues.push("unknownClient");
+        if (!row.taskTitle) issues.push("missingTitle");
+        return issues;
+      }),
+    [parsedRows, clientsMap]
+  );
+
+  // Grouped issue summary for the popup
+  const issueSummary = useMemo(() => {
+    const unknown = new Map(); // normName -> { raw, rows[] , suggestion }
+    const missingClientRows = [];
+    const missingTitleRows = [];
+    parsedRows.forEach((row, i) => {
+      const issues = rowIssues[i] || [];
+      const rowNo = row._rowNo || i + 2;
+      if (issues.includes("unknownClient")) {
+        const key = normName(row.clientName);
+        if (!unknown.has(key)) {
+          unknown.set(key, { key, raw: row.clientName, rows: [], suggestion: suggestClient(row.clientName, importableClients) });
+        }
+        unknown.get(key).rows.push(rowNo);
+      }
+      if (issues.includes("missingClient")) missingClientRows.push(rowNo);
+      if (issues.includes("missingTitle")) missingTitleRows.push(rowNo);
+    });
+    const invalidRowCount = rowIssues.filter((r) => r.length > 0).length;
+    return {
+      unknown: Array.from(unknown.values()),
+      missingClientRows,
+      missingTitleRows,
+      invalidRowCount,
+      validRowCount: parsedRows.length - invalidRowCount,
+    };
+  }, [parsedRows, rowIssues, importableClients]);
 
   if (!isOpen) return null;
+
+  const formatRows = (rows) =>
+    rows.length > 6 ? `${rows.slice(0, 6).join(", ")} +${rows.length - 6} more` : rows.join(", ");
+
+  const openIssues = () => {
+    // Pre-fill each unknown name with its best suggestion
+    const next = {};
+    issueSummary.unknown.forEach((u) => {
+      next[u.key] = fixChoices[u.key] ?? (u.suggestion?.companyName || "");
+    });
+    setFixChoices(next);
+    setShowIssues(true);
+  };
+
+  // Replace unknown client names with the chosen registered clients
+  const applyClientFixes = () => {
+    let fixed = 0;
+    const nextRows = parsedRows.map((r) => {
+      const choice = fixChoices[normName(r.clientName)];
+      if (r.clientName && choice && !clientsMap.has(normName(r.clientName))) {
+        fixed++;
+        return { ...r, clientName: choice };
+      }
+      return r;
+    });
+    setParsedRows(nextRows);
+    setServerErrors([]);
+    if (fixed > 0) toast.success(`Corrected client name on ${fixed} row(s)`);
+  };
+
+  const removeInvalidRows = () => {
+    const count = issueSummary.invalidRowCount;
+    setParsedRows((rows) => rows.filter((_, i) => (rowIssues[i] || []).length === 0));
+    setServerErrors([]);
+    toast.success(`Removed ${count} invalid row(s)`);
+  };
 
   // Generate and download template with UTF-8 BOM
   const handleDownloadTemplate = () => {
@@ -354,8 +491,12 @@ export default function SmImportExcelModal({
           toast.error("No valid data rows found in the file. Please check template format.");
           return;
         }
+        // _rowNo = spreadsheet row number (row 1 is the header) so users can find mistakes in their file
+        const numbered = rows.map((r, i) => ({ ...r, _rowNo: i + 2 }));
         setFile(uploadedFile);
-        setParsedRows(rows);
+        setParsedRows(numbered);
+        setFixChoices({});
+        setServerErrors([]);
         toast.success(`Loaded ${rows.length} commitment rows ready to preview!`);
       } catch (err) {
         console.error(err);
@@ -387,6 +528,9 @@ export default function SmImportExcelModal({
   const handleClear = () => {
     setFile(null);
     setParsedRows([]);
+    setFixChoices({});
+    setServerErrors([]);
+    setShowIssues(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -396,15 +540,29 @@ export default function SmImportExcelModal({
       return;
     }
 
-    const validRows = parsedRows.filter((r) => r.taskTitle && r.clientName);
-    if (validRows.length === 0) {
-      toast.error("None of the rows have valid Task Title and Client Name.");
+    // Restrict: any mistake blocks the import and opens the issues popup
+    if (issueSummary.invalidRowCount > 0) {
+      openIssues();
       return;
     }
+
+    // Send the exact registered client name and drop UI-only fields
+    // eslint-disable-next-line no-unused-vars
+    const validRows = parsedRows.map(({ _rowNo, ...r }) => ({
+      ...r,
+      clientName: clientsMap.get(normName(r.clientName))?.companyName || r.clientName,
+    }));
 
     setIsSubmitting(true);
     try {
       const resultAction = await dispatch(bulkImportSocialmediaTasks(validRows));
+      if (bulkImportSocialmediaTasks.rejected.match(resultAction)) {
+        const errs = resultAction.payload?.errors || [];
+        if (errs.length > 0) {
+          setServerErrors(errs);
+          setShowIssues(true);
+        }
+      }
       if (bulkImportSocialmediaTasks.fulfilled.match(resultAction)) {
         const targetMonth = validRows[0]?.targetMonth;
         const targetYear = validRows[0]?.targetYear;
@@ -558,6 +716,38 @@ export default function SmImportExcelModal({
                 </div>
               </div>
 
+              {/* Validation banner */}
+              {issueSummary.invalidRowCount > 0 ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/70 dark:bg-rose-950/30">
+                  <div className="flex items-start gap-2.5">
+                    <FiAlertOctagon className="text-rose-500 mt-0.5 shrink-0" size={16} />
+                    <div>
+                      <p className="text-xs font-bold text-rose-700 dark:text-rose-300">
+                        {issueSummary.invalidRowCount} row(s) need fixing before import
+                      </p>
+                      <p className="text-[11px] text-rose-600/90 dark:text-rose-300/80 mt-0.5">
+                        {issueSummary.unknown.length > 0 && `${issueSummary.unknown.length} unknown client name(s)`}
+                        {issueSummary.unknown.length > 0 && (issueSummary.missingClientRows.length > 0 || issueSummary.missingTitleRows.length > 0) && " · "}
+                        {issueSummary.missingClientRows.length > 0 && `${issueSummary.missingClientRows.length} missing client`}
+                        {issueSummary.missingClientRows.length > 0 && issueSummary.missingTitleRows.length > 0 && " · "}
+                        {issueSummary.missingTitleRows.length > 0 && `${issueSummary.missingTitleRows.length} missing title`}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openIssues}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer shrink-0 self-start sm:self-center"
+                  >
+                    <FiEdit3 size={12} /> Review & fix
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-3 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/70 dark:bg-emerald-950/30 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                  <FiCheckCircle size={15} /> All {parsedRows.length} rows are valid and ready to import
+                </div>
+              )}
+
               <div className="border border-slate-200 dark:border-[#1e2a40] rounded-xl overflow-hidden max-h-72 overflow-y-auto">
                 <table className="w-full text-left text-[11px]">
                   <thead className="bg-slate-100/90 dark:bg-[#152033] text-slate-600 dark:text-slate-300 font-bold sticky top-0 z-10 border-b border-slate-200 dark:border-[#1e2a40]">
@@ -576,9 +766,17 @@ export default function SmImportExcelModal({
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-[#0c1220]">
                     {parsedRows.map((row, idx) => {
-                      const matchedClient = clientsMap.get(row.clientName?.toLowerCase());
-                      const clientColor = matchedClient?.color || "#6366f1";
-                      const isValid = Boolean(row.taskTitle && row.clientName);
+                      const matchedClient = clientsMap.get(normName(row.clientName));
+                      const issues = rowIssues[idx] || [];
+                      const isValid = issues.length === 0;
+                      const clientColor = matchedClient ? matchedClient.color || "#6366f1" : "#e11d48";
+                      const issueText = [
+                        issues.includes("missingClient") && "Client name missing",
+                        issues.includes("unknownClient") && `"${row.clientName}" is not a registered client`,
+                        issues.includes("missingTitle") && "Task title missing",
+                      ]
+                        .filter(Boolean)
+                        .join(" · ");
 
                       return (
                         <tr
@@ -588,7 +786,7 @@ export default function SmImportExcelModal({
                           }`}
                         >
                           <td className="py-2 px-3 text-slate-400 font-mono text-[10px]">
-                            {idx + 1}
+                            {row._rowNo || idx + 1}
                           </td>
                           <td className="py-2 px-3">
                             <span
@@ -603,8 +801,8 @@ export default function SmImportExcelModal({
                               {row.clientName || "Missing Client"}
                             </span>
                             {!matchedClient && row.clientName && (
-                              <span className="block text-[9px] text-amber-500 font-medium">
-                                (New client)
+                              <span className="block mt-0.5 text-[9px] text-rose-500 font-bold">
+                                Not a client
                               </span>
                             )}
                           </td>
@@ -655,7 +853,7 @@ export default function SmImportExcelModal({
                                 <FiCheckCircle size={14} />
                               </span>
                             ) : (
-                              <span className="inline-flex text-rose-500" title="Missing Title or Client">
+                              <span className="inline-flex text-rose-500" title={issueText}>
                                 <FiAlertTriangle size={14} />
                               </span>
                             )}
@@ -675,7 +873,10 @@ export default function SmImportExcelModal({
           <div className="text-xs text-slate-500 dark:text-slate-400">
             {parsedRows.length > 0 ? (
               <span>
-                <strong className="text-slate-900 dark:text-white">{parsedRows.length}</strong> tasks ready to import
+                <strong className="text-slate-900 dark:text-white">{issueSummary.validRowCount}</strong> of {parsedRows.length} rows valid
+                {issueSummary.invalidRowCount > 0 && (
+                  <span className="ml-2 font-bold text-rose-500">• {issueSummary.invalidRowCount} need fixing</span>
+                )}
               </span>
             ) : (
               <span>Download template or upload your CSV file to get started</span>
@@ -694,10 +895,17 @@ export default function SmImportExcelModal({
               type="button"
               onClick={handleImportSubmit}
               disabled={parsedRows.length === 0 || isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`inline-flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-xl text-white transition-colors shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                issueSummary.invalidRowCount > 0 ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
             >
               {isSubmitting ? (
                 <span>Importing...</span>
+              ) : issueSummary.invalidRowCount > 0 ? (
+                <>
+                  <FiAlertTriangle size={14} />
+                  <span>Fix {issueSummary.invalidRowCount} issue(s) to import</span>
+                </>
               ) : (
                 <>
                   <FiCheck size={14} />
@@ -708,6 +916,214 @@ export default function SmImportExcelModal({
           </div>
         </div>
       </div>
+
+      {/* ================= IMPORT ISSUES POPUP (blocks import until fixed) ================= */}
+      {showIssues && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setShowIssues(false)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="import-issues-title"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-[#1e2a40] shadow-2xl animate-in zoom-in-95 duration-200"
+          >
+            {issueSummary.invalidRowCount === 0 && serverErrors.length === 0 ? (
+              /* ---------- All fixed ---------- */
+              <div className="p-8 flex flex-col items-center text-center">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-4">
+                  <FiCheckCircle size={28} />
+                </div>
+                <h3 id="import-issues-title" className="text-base font-bold text-slate-900 dark:text-white">
+                  All issues fixed
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {parsedRows.length} row(s) are valid and ready to import.
+                </p>
+                <div className="flex items-center gap-2 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowIssues(false)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#1e2a40] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer"
+                  >
+                    Back to preview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowIssues(false);
+                      handleImportSubmit();
+                    }}
+                    disabled={parsedRows.length === 0 || isSubmitting}
+                    className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <FiCheck size={14} /> Import {parsedRows.length} Posts
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* ---------- Header ---------- */}
+                <div className="flex items-start gap-3 px-6 pt-6 pb-4 border-b border-slate-100 dark:border-[#1e2a40]">
+                  <div className="w-11 h-11 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/20">
+                    <FiAlertOctagon size={22} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 id="import-issues-title" className="text-base font-bold text-slate-900 dark:text-white">
+                      Import blocked — fix these mistakes
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Nothing is imported until every row has a registered client and a task title.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                        {issueSummary.validRowCount} valid
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                        {issueSummary.invalidRowCount} need fixing
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowIssues(false)}
+                    aria-label="Close"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <FiX size={18} />
+                  </button>
+                </div>
+
+                {/* ---------- Body ---------- */}
+                <div className="px-6 py-5 overflow-y-auto space-y-5">
+                  {/* Unknown client names */}
+                  {issueSummary.unknown.length > 0 && (
+                    <section>
+                      <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                        Unknown client names ({issueSummary.unknown.length})
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
+                        These names don't match any active client with Posts / Reels / Stories. Pick the correct client to replace them.
+                      </p>
+                      <ul className="space-y-2.5">
+                        {issueSummary.unknown.map((u) => (
+                          <li
+                            key={u.key}
+                            className="p-3 rounded-xl border border-slate-200 dark:border-[#1e2a40] bg-slate-50/60 dark:bg-[#0f172a]"
+                          >
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/20 line-through decoration-rose-400/60">
+                                {u.raw}
+                              </span>
+                              <FiArrowRight className="text-slate-400" size={12} />
+                              <select
+                                value={fixChoices[u.key] || ""}
+                                onChange={(e) => setFixChoices((prev) => ({ ...prev, [u.key]: e.target.value }))}
+                                className="flex-1 min-w-[160px] px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-slate-200 dark:border-[#1e2a40] bg-white dark:bg-[#131d31] text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 cursor-pointer"
+                              >
+                                <option value="">— Select correct client —</option>
+                                {importableClients.map((c) => (
+                                  <option key={c._id || c.companyName} value={c.companyName}>
+                                    {c.companyName}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 mt-2 text-[10px]">
+                              <span className="text-slate-500 dark:text-slate-400">
+                                Row {formatRows(u.rows)} · {u.rows.length} post(s)
+                              </span>
+                              {u.suggestion && (
+                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                  Did you mean “{u.suggestion.companyName}”?
+                                </span>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={applyClientFixes}
+                        disabled={!issueSummary.unknown.some((u) => fixChoices[u.key])}
+                        className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <FiRefreshCw size={12} /> Apply client corrections
+                      </button>
+                    </section>
+                  )}
+
+                  {/* Missing data */}
+                  {(issueSummary.missingClientRows.length > 0 || issueSummary.missingTitleRows.length > 0) && (
+                    <section>
+                      <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                        Missing data
+                      </h4>
+                      <ul className="space-y-2">
+                        {issueSummary.missingClientRows.length > 0 && (
+                          <li className="flex items-start gap-2 p-3 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/20 text-[11px]">
+                            <FiAlertTriangle className="text-amber-500 mt-0.5 shrink-0" size={13} />
+                            <span className="text-slate-700 dark:text-slate-200">
+                              <strong>Client Name is empty</strong> in row {formatRows(issueSummary.missingClientRows)}
+                            </span>
+                          </li>
+                        )}
+                        {issueSummary.missingTitleRows.length > 0 && (
+                          <li className="flex items-start gap-2 p-3 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/20 text-[11px]">
+                            <FiAlertTriangle className="text-amber-500 mt-0.5 shrink-0" size={13} />
+                            <span className="text-slate-700 dark:text-slate-200">
+                              <strong>Task Title is empty</strong> in row {formatRows(issueSummary.missingTitleRows)}
+                            </span>
+                          </li>
+                        )}
+                      </ul>
+                    </section>
+                  )}
+
+                  {/* Errors returned by the server */}
+                  {serverErrors.length > 0 && (
+                    <section>
+                      <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                        Server validation
+                      </h4>
+                      <ul className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {serverErrors.map((err, i) => (
+                          <li key={i} className="text-[11px] text-rose-600 dark:text-rose-300 flex items-start gap-1.5">
+                            <span className="mt-1 w-1 h-1 rounded-full bg-rose-500 shrink-0" />
+                            {err}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </div>
+
+                {/* ---------- Footer ---------- */}
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 px-6 py-4 border-t border-slate-100 dark:border-[#1e2a40] bg-slate-50/70 dark:bg-[#0f172a]">
+                  <button
+                    type="button"
+                    onClick={() => setShowIssues(false)}
+                    className="px-4 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-[#1e2a40] text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#182338] transition-colors cursor-pointer"
+                  >
+                    I'll fix my file
+                  </button>
+                  {issueSummary.invalidRowCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={removeInvalidRows}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                    >
+                      <FiTrash2 size={13} /> Remove {issueSummary.invalidRowCount} invalid row(s)
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
