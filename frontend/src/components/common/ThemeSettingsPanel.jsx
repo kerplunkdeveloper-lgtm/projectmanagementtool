@@ -1,9 +1,13 @@
 import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiSettings, FiX, FiMoon, FiSun, FiMonitor, FiLayout, FiSidebar } from "react-icons/fi";
 import { useTheme } from "../../context/ThemeContext";
 
 const ThemeSettingsPanel = () => {
+  const location = useLocation();
+  const { user } = useSelector((s) => s.auth);
   const [isOpen, setIsOpen] = useState(false);
   const {
     theme,
@@ -15,6 +19,11 @@ const ThemeSettingsPanel = () => {
     sidebarLayout,
     setSidebarLayout,
   } = useTheme();
+
+  // Hide theme builder / light & dark mode option on login page or when not logged in
+  if (location.pathname === "/" || location.pathname === "/login" || !user) {
+    return null;
+  }
 
   const colors = [
     { id: "default", hex: "#3b82f6", name: "Ocean Blue" },
