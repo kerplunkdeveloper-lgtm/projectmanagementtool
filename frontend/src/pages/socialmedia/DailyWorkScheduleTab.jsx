@@ -9,13 +9,9 @@ import {
   FiUser,
   FiChevronLeft,
   FiChevronRight,
-  FiAlertCircle,
-  FiAlertTriangle,
   FiRefreshCw,
   FiTrendingUp,
-  FiSquare,
   FiInfo,
-  FiShield,
   FiSearch,
   FiTarget,
   FiZap,
@@ -312,16 +308,88 @@ const DEFAULT_SCHEDULE_SLOTS = [
   },
 ];
 
-// Helper to format date as YYYY-MM-DD
-const formatDateToISO = (date) => {
-  const d = new Date(date);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+const TOTAL_SLOTS = DEFAULT_SCHEDULE_SLOTS.length;
+
+// Slot times are IST wall-clock times. Must match SCHEDULE_TZ_OFFSET_MINUTES on the backend,
+// so the schedule behaves the same whatever timezone the viewer's device is set to.
+const SCHEDULE_TZ_OFFSET_MINUTES = 330;
+const SCHEDULE_TIME_ZONE = "Asia/Kolkata";
+const GRACE_PERIOD_MS = 15 * 60 * 1000;
+const CLOCK_TICK_MS = 30 * 1000;
+const currentTimeMs = () => Date.now();
+
+// "Today" (YYYY-MM-DD) in the schedule timezone
+const getTodayStr = (nowMs = Date.now()) =>
+  new Date(nowMs + SCHEDULE_TZ_OFFSET_MINUTES * 60 * 1000).toISOString().slice(0, 10);
+
+// Add/subtract whole days from a YYYY-MM-DD string (timezone independent)
+const shiftDateStr = (dateStr, days) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 };
 
-// Helper to format time (e.g. 09:12:30 AM)
+// Absolute timestamp (ms) of a "HH:mm" slot time on a YYYY-MM-DD date in the schedule timezone
+const toScheduleTimestamp = (dateStr, timeStr) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [h, min] = (timeStr || "00:00").split(":").map(Number);
+  return Date.UTC(y, m - 1, d, h, min) - SCHEDULE_TZ_OFFSET_MINUTES * 60 * 1000;
+};
+
+// Same rules as the backend: on-time = after slot start and within slot end + 15 min grace
+const computeTimingStatus = (dateStr, slot, completedAtMs) => {
+  const start = toScheduleTimestamp(dateStr, slot.startTime);
+  const graceEnd = toScheduleTimestamp(dateStr, slot.endTime) + GRACE_PERIOD_MS;
+  if (completedAtMs < start) return { isOnTime: false, timingStatus: "early" };
+  if (completedAtMs <= graceEnd) return { isOnTime: true, timingStatus: "on-time" };
+  return { isOnTime: false, timingStatus: "delayed" };
+};
+
+const isSlotUpcoming = (dateStr, slot, nowMs) => nowMs < toScheduleTimestamp(dateStr, slot.startTime);
+
+const formatSlotStart = (slot) => slot.timeRange?.split("–")[0]?.trim() || slot.startTime;
+
+const getCompletionBlockReason = (dateStr, slot, nowMs) => {
+  if (dateStr > getTodayStr(nowMs)) return "You cannot complete slots for a future date";
+  if (isSlotUpcoming(dateStr, slot, nowMs)) {
+    return `"${slot.title}" starts at ${formatSlotStart(slot)}. You can mark it once the slot begins.`;
+  }
+  return null;
+};
+
+const computeScheduleStats = (slots) => {
+  const total = slots.length || TOTAL_SLOTS;
+  const completed = slots.filter((s) => s.completed);
+  const onTime = completed.filter((s) => s.timingStatus === "on-time").length;
+  return {
+    completedSlotsCount: completed.length,
+    totalSlotsCount: total,
+    completionPercentage: Math.round((completed.length / total) * 100),
+    onTimeSlotsCount: onTime,
+    delayedSlotsCount: completed.length - onTime,
+  };
+};
+
+const markSlotDone = (slot, dateStr, userName, nowMs) => ({
+  ...slot,
+  completed: true,
+  completedAt: new Date(nowMs).toISOString(),
+  completedByName: userName || "",
+  ...computeTimingStatus(dateStr, slot, nowMs),
+});
+
+const markSlotPending = (slot) => ({
+  ...slot,
+  completed: false,
+  completedAt: null,
+  completedBy: null,
+  completedByName: "",
+  isOnTime: false,
+  timingStatus: "pending",
+});
+
+const sameId = (a, b) => a != null && b != null && String(a) === String(b);
+
+// Helper to format time in the schedule timezone (e.g. 9:12:30 AM)
 const formatExactTime = (dateStr) => {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -331,6 +399,7 @@ const formatExactTime = (dateStr) => {
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
+    timeZone: SCHEDULE_TIME_ZONE,
   });
 };
 
@@ -342,6 +411,7 @@ const formatShortTime = (dateStr) => {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: SCHEDULE_TIME_ZONE,
   });
 };
 
@@ -488,7 +558,7 @@ const buildInitialScheduleState = (dateStr) => ({
     })),
   })),
   completedSlotsCount: 0,
-  totalSlotsCount: 15,
+  totalSlotsCount: TOTAL_SLOTS,
   completionPercentage: 0,
   onTimeSlotsCount: 0,
   delayedSlotsCount: 0,
@@ -604,9 +674,6 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
   const authState = useSelector((state) => state.auth);
   const currentUser = propUser || authState?.user;
 
-  // In-memory cache to prevent redundant fetches and make tab/date/executive switching 0ms instantaneous
-  const scheduleCacheRef = useRef(new Map());
-
   // Carousel ref for smooth left/right horizontal scrolling
   const carouselRef = useRef(null);
   const scrollCarousel = (offset) => {
@@ -691,8 +758,15 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     );
   }, [currentUser]);
 
+  // Live clock: keeps "Today", "Active Now" and slot locks correct while the tab stays open
+  const [nowMs, setNowMs] = useState(currentTimeMs);
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(currentTimeMs()), CLOCK_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+
   // Date State (Defaults to Today)
-  const todayStr = useMemo(() => formatDateToISO(new Date()), []);
+  const todayStr = getTodayStr(nowMs);
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   // Pre-extract Social Media Executives from propUsers (Redux) immediately for instant executive picker
@@ -731,9 +805,9 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
   const activeExecutiveUser = useMemo(() => {
     if (!isLeadership) return currentUser;
     if (selectedExecutiveId) {
-      const execObj = executivesSummary.find((e) => e.user?._id === selectedExecutiveId);
+      const execObj = executivesSummary.find((e) => sameId(e.user?._id, selectedExecutiveId));
       if (execObj?.user) return execObj.user;
-      const foundInProps = smExecutivesFromProps.find((u) => u._id === selectedExecutiveId);
+      const foundInProps = smExecutivesFromProps.find((u) => sameId(u._id, selectedExecutiveId));
       if (foundInProps) return foundInProps;
     }
     return currentUser;
@@ -748,23 +822,141 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     return buildInitialScheduleState(todayStr);
   });
   const [isFetchingSchedule, setIsFetchingSchedule] = useState(false);
-  const [isUpdatingSlot, setIsUpdatingSlot] = useState(null);
+  const [updatingSlotIds, setUpdatingSlotIds] = useState(() => new Set());
 
   // Filter & Search inside the schedule
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 1. Fetch executives summary (only runs when selectedDate or isLeadership changes - no infinite loop!)
+  // Manual refresh trigger (re-runs both fetch effects)
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Which schedule is on screen right now. Async responses check this so a late response
+  // for another executive/date never replaces what the user is currently looking at.
+  const viewRef = useRef({ userId: effectiveUserId, date: selectedDate });
+  useEffect(() => {
+    viewRef.current = { userId: effectiveUserId, date: selectedDate };
+  }, [effectiveUserId, selectedDate]);
+
+  // Per-schedule mutation queue: requests for the same executive/date run one after another,
+  // and only the response of the last queued request is applied (it reflects every change).
+  const mutationQueueRef = useRef(new Map());
+  const hasPendingMutations = (cacheKey) => (mutationQueueRef.current.get(cacheKey)?.pending || 0) > 0;
+
+  const isViewing = (targetUserId, date) =>
+    sameId(viewRef.current.userId, targetUserId) && viewRef.current.date === date;
+
+  // Patch one executive's pill in the leadership summary (state + module cache)
+  const patchExecutiveSummary = useCallback(
+    (targetUserId, date, stats) => {
+      if (!isLeadership) return;
+      const patch = (list) =>
+        list.map((e) =>
+          sameId(e.user?._id, targetUserId)
+            ? {
+                ...e,
+                completedSlotsCount: stats.completedSlotsCount,
+                completionPercentage: stats.completionPercentage,
+                onTimeSlotsCount: stats.onTimeSlotsCount,
+                delayedSlotsCount: stats.delayedSlotsCount,
+                hasStarted: stats.completedSlotsCount > 0,
+                isAllDone: stats.completedSlotsCount >= (stats.totalSlotsCount || TOTAL_SLOTS),
+              }
+            : e
+        );
+      if (GLOBAL_EXECUTIVES_SUMMARY_CACHE.has(date)) {
+        GLOBAL_EXECUTIVES_SUMMARY_CACHE.set(date, patch(GLOBAL_EXECUTIVES_SUMMARY_CACHE.get(date)));
+      }
+      if (viewRef.current.date === date) setExecutivesSummary((prev) => patch(prev));
+    },
+    [isLeadership]
+  );
+
+  // Store a schedule for a user/date and show it only if that user/date is still on screen
+  const commitSchedule = useCallback(
+    (targetUserId, date, schedule) => {
+      GLOBAL_SCHEDULE_CACHE.set(`${targetUserId}_${date}`, schedule);
+      if (isViewing(targetUserId, date)) setScheduleData(schedule);
+      patchExecutiveSummary(targetUserId, date, schedule);
+    },
+    [patchExecutiveSummary]
+  );
+
+  const fetchSchedule = useCallback(
+    (targetUserId, date) =>
+      axiosInstance.get(`/socialmedia-task-calendar/daily-schedule?date=${date}&userId=${targetUserId}`),
+    []
+  );
+
+  // Re-sync from the server after a failed update (drops the failed optimistic change)
+  const resyncSchedule = useCallback(
+    async (targetUserId, date) => {
+      const cacheKey = `${targetUserId}_${date}`;
+      try {
+        const res = await fetchSchedule(targetUserId, date);
+        if (res.data?.success && res.data.schedule && !hasPendingMutations(cacheKey)) {
+          commitSchedule(targetUserId, date, res.data.schedule);
+        }
+      } catch (err) {
+        console.error("Failed to re-sync daily schedule:", err);
+      }
+    },
+    [commitSchedule, fetchSchedule]
+  );
+
+  const runScheduleMutation = useCallback(
+    ({ targetUserId, date, request, onSuccess, onSettled }) => {
+      const cacheKey = `${targetUserId}_${date}`;
+      const queue = mutationQueueRef.current;
+      let entry = queue.get(cacheKey);
+      if (!entry) {
+        entry = { chain: Promise.resolve(), pending: 0 };
+        queue.set(cacheKey, entry);
+      }
+      entry.pending += 1;
+
+      const finish = () => {
+        entry.pending -= 1;
+        const isLast = entry.pending === 0;
+        if (isLast && queue.get(cacheKey) === entry) queue.delete(cacheKey);
+        return isLast;
+      };
+
+      entry.chain = entry.chain.then(async () => {
+        try {
+          const res = await request();
+          const isLast = finish();
+          if (res.data?.success && res.data.schedule) {
+            if (isLast) commitSchedule(targetUserId, date, res.data.schedule);
+            onSuccess?.(res);
+          } else if (isLast) {
+            resyncSchedule(targetUserId, date);
+          }
+        } catch (err) {
+          const isLast = finish();
+          console.error("Failed to update daily schedule:", err);
+          toast.error(err?.response?.data?.message || "Failed to update schedule");
+          // A later queued request returns the authoritative state; otherwise re-sync now
+          if (isLast) resyncSchedule(targetUserId, date);
+        } finally {
+          onSettled?.();
+        }
+      });
+    },
+    [commitSchedule, resyncSchedule]
+  );
+
+  // 1. Fetch executives summary (when date, leadership or manual refresh changes)
   useEffect(() => {
     if (!isLeadership) return;
     let isCancelled = false;
 
-    // A. 0ms instant render from module cache if available
+    // A. Instant render from module cache if available
     if (GLOBAL_EXECUTIVES_SUMMARY_CACHE.has(selectedDate)) {
       setExecutivesSummary(GLOBAL_EXECUTIVES_SUMMARY_CACHE.get(selectedDate));
     }
 
-    // B. Revalidate silently in background
+    // B. Revalidate in background
     const loadExecutivesSummary = async () => {
       try {
         setIsLoadingSummary(true);
@@ -795,19 +987,18 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     return () => {
       isCancelled = true;
     };
-  }, [isLeadership, selectedDate]);
+  }, [isLeadership, selectedDate, refreshKey]);
 
-  // 2. Fetch specific schedule with SWR Cache (Instant render + silent background revalidation)
+  // 2. Fetch specific schedule (instant cached render + background revalidation)
   useEffect(() => {
     if (!effectiveUserId) return;
     let isCancelled = false;
     const cacheKey = `${effectiveUserId}_${selectedDate}`;
 
-    // A. Check in-memory module cache first for INSTANT 0ms load
+    // A. Instant render from module cache, else a clean baseline (never stale user/date data)
     if (GLOBAL_SCHEDULE_CACHE.has(cacheKey)) {
       setScheduleData(GLOBAL_SCHEDULE_CACHE.get(cacheKey));
     } else {
-      // Immediate clean baseline for target date (avoids showing stale previous date/user)
       setScheduleData(buildInitialScheduleState(selectedDate));
     }
 
@@ -815,20 +1006,16 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     const loadSchedule = async () => {
       try {
         setIsFetchingSchedule(true);
-        const res = await axiosInstance.get(
-          `/socialmedia-task-calendar/daily-schedule?date=${selectedDate}&userId=${effectiveUserId}`
-        );
-        if (!isCancelled && res.data?.success && res.data.schedule) {
-          const freshData = res.data.schedule;
-          GLOBAL_SCHEDULE_CACHE.set(cacheKey, freshData);
-          setScheduleData(freshData);
+        const res = await fetchSchedule(effectiveUserId, selectedDate);
+        // Skip while updates are in flight: their response is newer than this fetch
+        if (!isCancelled && res.data?.success && res.data.schedule && !hasPendingMutations(cacheKey)) {
+          GLOBAL_SCHEDULE_CACHE.set(cacheKey, res.data.schedule);
+          setScheduleData(res.data.schedule);
         }
       } catch (err) {
         if (!isCancelled) {
           console.error("Failed to load daily schedule:", err);
-          if (!GLOBAL_SCHEDULE_CACHE.has(cacheKey)) {
-            setScheduleData(buildInitialScheduleState(selectedDate));
-          }
+          toast.error(err?.response?.data?.message || "Failed to load daily schedule");
         }
       } finally {
         if (!isCancelled) setIsFetchingSchedule(false);
@@ -839,197 +1026,129 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
     return () => {
       isCancelled = true;
     };
-  }, [effectiveUserId, selectedDate]);
+  }, [effectiveUserId, selectedDate, refreshKey, fetchSchedule]);
 
-  // Date Navigation Handlers
-  const handlePrevDay = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() - 1);
-    setSelectedDate(formatDateToISO(d));
-  };
+  // Both fetch effects always revalidate from the server; keeping the cache avoids an empty flash
+  const handleRefresh = () => setRefreshKey((k) => k + 1);
 
-  const handleNextDay = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + 1);
-    setSelectedDate(formatDateToISO(d));
-  };
+  // Date Navigation Handlers (pure string math, so no timezone day-skips)
+  const handlePrevDay = () => setSelectedDate((d) => shiftDateStr(d, -1));
+  const handleNextDay = () => setSelectedDate((d) => shiftDateStr(d, 1));
+  const handleSetToday = () => setSelectedDate(getTodayStr());
 
-  const handleSetToday = () => {
-    setSelectedDate(todayStr);
-  };
+  // Latest known state of a schedule (cache is updated synchronously by optimistic updates)
+  const getCurrentSchedule = (cacheKey) => GLOBAL_SCHEDULE_CACHE.get(cacheKey) || scheduleData;
 
-  // Toggle Slot Completion (Optimistic 0ms UI update)
-  const handleToggleSlot = async (slot) => {
-    if (!scheduleData) return;
+  // Toggle Slot Completion (optimistic UI update)
+  const handleToggleSlot = (slot) => {
     const targetUserId = effectiveUserId;
-    const slotId = slot.slotId;
-    const nextCompleted = !slot.completed;
-    const cacheKey = `${targetUserId}_${selectedDate}`;
+    const date = selectedDate;
+    if (!targetUserId || !scheduleData) return;
+    const cacheKey = `${targetUserId}_${date}`;
+    const current = getCurrentSchedule(cacheKey);
+    const currentSlot = (current.slots || []).find((s) => s.slotId === slot.slotId);
+    if (!currentSlot) return;
 
-    // Optimistic UI update
-    const previousSchedule = { ...scheduleData };
-    const nowISO = new Date().toISOString();
-
-    const updatedSlots = (scheduleData.slots || []).map((s) => {
-      if (s.slotId === slotId) {
-        return {
-          ...s,
-          completed: nextCompleted,
-          completedAt: nextCompleted ? nowISO : null,
-          completedByName: nextCompleted ? currentUser?.name : "",
-          timingStatus: nextCompleted ? "on-time" : "pending",
-          isOnTime: nextCompleted,
-          subtasks: (s.subtasks || []).map((st) => ({
-            ...st,
-            completed: nextCompleted,
-            completedAt: nextCompleted ? nowISO : null,
-          })),
-        };
+    const nextCompleted = !currentSlot.completed;
+    const now = currentTimeMs();
+    if (nextCompleted) {
+      const reason = getCompletionBlockReason(date, currentSlot, now);
+      if (reason) {
+        toast.error(reason);
+        return;
       }
-      return s;
+    }
+
+    const nowISO = new Date(now).toISOString();
+    const updatedSlots = (current.slots || []).map((s) => {
+      if (s.slotId !== slot.slotId) return s;
+      const base = nextCompleted ? markSlotDone(s, date, currentUser?.name, now) : markSlotPending(s);
+      return {
+        ...base,
+        subtasks: (s.subtasks || []).map((st) => ({
+          ...st,
+          completed: nextCompleted,
+          completedAt: nextCompleted ? (st.completed ? st.completedAt : nowISO) : null,
+        })),
+      };
     });
 
-    const newCompletedCount = updatedSlots.filter((s) => s.completed).length;
-    const optimisticSchedule = {
-      ...scheduleData,
-      slots: updatedSlots,
-      completedSlotsCount: newCompletedCount,
-      completionPercentage: Math.round((newCompletedCount / 15) * 100),
-    };
+    commitSchedule(targetUserId, date, { ...current, slots: updatedSlots, ...computeScheduleStats(updatedSlots) });
+    setUpdatingSlotIds((prev) => new Set(prev).add(slot.slotId));
 
-    setScheduleData(optimisticSchedule);
-    GLOBAL_SCHEDULE_CACHE.set(cacheKey, optimisticSchedule);
-    setIsUpdatingSlot(slotId);
-
-    // Optimistically update executive selector badge in 0ms!
-    if (isLeadership) {
-      setExecutivesSummary((prev) =>
-        prev.map((e) => {
-          if (e.user?._id === targetUserId) {
-            return {
-              ...e,
-              completedSlotsCount: newCompletedCount,
-              completionPercentage: Math.round((newCompletedCount / 15) * 100),
-              isAllDone: newCompletedCount >= 15,
-            };
-          }
-          return e;
-        })
-      );
-    }
-
-    try {
-      const res = await axiosInstance.patch(
-        "/socialmedia-task-calendar/daily-schedule/toggle-slot",
-        {
-          date: selectedDate,
-          slotId,
+    runScheduleMutation({
+      targetUserId,
+      date,
+      request: () =>
+        axiosInstance.patch("/socialmedia-task-calendar/daily-schedule/toggle-slot", {
+          date,
+          slotId: slot.slotId,
           completed: nextCompleted,
           userId: targetUserId,
-        }
-      );
-
-      if (res.data?.success) {
-        const serverSchedule = res.data.schedule;
-        setScheduleData(serverSchedule);
-        GLOBAL_SCHEDULE_CACHE.set(cacheKey, serverSchedule);
-
-        if (nextCompleted) {
-          toast.success(`✓ "${slot.title}" completed!`);
-        } else {
-          toast(`Unchecked "${slot.title}"`, { icon: "↩️" });
-        }
-
-        // Reconcile leadership executive pill with server calculations
-        if (isLeadership) {
-          setExecutivesSummary((prev) =>
-            prev.map((e) => {
-              if (e.user?._id === targetUserId) {
-                return {
-                  ...e,
-                  completedSlotsCount: serverSchedule.completedSlotsCount,
-                  completionPercentage: serverSchedule.completionPercentage,
-                  onTimeSlotsCount: serverSchedule.onTimeSlotsCount,
-                  delayedSlotsCount: serverSchedule.delayedSlotsCount,
-                  isAllDone: serverSchedule.completedSlotsCount >= 15,
-                };
-              }
-              return e;
-            })
-          );
-        }
-      }
-    } catch (err) {
-      console.error("Failed to update slot:", err);
-      toast.error(err?.response?.data?.message || "Failed to update slot status");
-      // Rollback
-      setScheduleData(previousSchedule);
-      GLOBAL_SCHEDULE_CACHE.set(cacheKey, previousSchedule);
-    } finally {
-      setIsUpdatingSlot(null);
-    }
+        }),
+      onSuccess: () => {
+        if (nextCompleted) toast.success(`✓ "${slot.title}" completed!`);
+        else toast(`Unchecked "${slot.title}"`, { icon: "↩️" });
+      },
+      onSettled: () =>
+        setUpdatingSlotIds((prev) => {
+          const next = new Set(prev);
+          next.delete(slot.slotId);
+          return next;
+        }),
+    });
   };
 
-  // Toggle Subtask Completion (Optimistic 0ms UI update)
-  const handleToggleSubtask = async (slot, subtask, e) => {
+  // Toggle Subtask Completion (optimistic UI update, keeps parent slot and counts in sync)
+  const handleToggleSubtask = (slot, subtask, e) => {
     if (e) e.stopPropagation();
-    if (!scheduleData) return;
     const targetUserId = effectiveUserId;
-    const slotId = slot.slotId;
-    const subtaskId = subtask.id;
-    const nextCompleted = !subtask.completed;
-    const cacheKey = `${targetUserId}_${selectedDate}`;
+    const date = selectedDate;
+    if (!targetUserId || !scheduleData) return;
+    const cacheKey = `${targetUserId}_${date}`;
+    const current = getCurrentSchedule(cacheKey);
+    const currentSlot = (current.slots || []).find((s) => s.slotId === slot.slotId);
+    const currentSubtask = currentSlot?.subtasks?.find((st) => st.id === subtask.id);
+    if (!currentSlot || !currentSubtask) return;
 
-    // 0ms Optimistic Subtask UI update
-    const previousSchedule = { ...scheduleData };
-    const nowISO = new Date().toISOString();
-
-    const updatedSlots = (scheduleData.slots || []).map((s) => {
-      if (s.slotId === slotId) {
-        return {
-          ...s,
-          subtasks: (s.subtasks || []).map((st) => {
-            if (st.id === subtaskId) {
-              return {
-                ...st,
-                completed: nextCompleted,
-                completedAt: nextCompleted ? nowISO : null,
-              };
-            }
-            return st;
-          }),
-        };
+    const nextCompleted = !currentSubtask.completed;
+    const now = currentTimeMs();
+    if (nextCompleted) {
+      const reason = getCompletionBlockReason(date, currentSlot, now);
+      if (reason) {
+        toast.error(reason);
+        return;
       }
-      return s;
+    }
+
+    const updatedSlots = (current.slots || []).map((s) => {
+      if (s.slotId !== slot.slotId) return s;
+      const subtasks = (s.subtasks || []).map((st) =>
+        st.id === subtask.id
+          ? { ...st, completed: nextCompleted, completedAt: nextCompleted ? new Date(now).toISOString() : null }
+          : st
+      );
+      const allDone = subtasks.length > 0 && subtasks.every((st) => st.completed);
+      let next = { ...s, subtasks };
+      if (allDone && !s.completed) next = markSlotDone(next, date, currentUser?.name, now);
+      else if (!allDone && s.completed) next = markSlotPending(next);
+      return next;
     });
 
-    const optimisticSchedule = { ...scheduleData, slots: updatedSlots };
-    setScheduleData(optimisticSchedule);
-    GLOBAL_SCHEDULE_CACHE.set(cacheKey, optimisticSchedule);
+    commitSchedule(targetUserId, date, { ...current, slots: updatedSlots, ...computeScheduleStats(updatedSlots) });
 
-    try {
-      const res = await axiosInstance.patch(
-        "/socialmedia-task-calendar/daily-schedule/toggle-subtask",
-        {
-          date: selectedDate,
-          slotId,
-          subtaskId,
+    runScheduleMutation({
+      targetUserId,
+      date,
+      request: () =>
+        axiosInstance.patch("/socialmedia-task-calendar/daily-schedule/toggle-subtask", {
+          date,
+          slotId: slot.slotId,
+          subtaskId: subtask.id,
           completed: nextCompleted,
           userId: targetUserId,
-        }
-      );
-
-      if (res.data?.success) {
-        const serverSchedule = res.data.schedule;
-        setScheduleData(serverSchedule);
-        GLOBAL_SCHEDULE_CACHE.set(cacheKey, serverSchedule);
-      }
-    } catch (err) {
-      console.error("Failed to update subtask:", err);
-      toast.error("Failed to update subtask");
-      setScheduleData(previousSchedule);
-      GLOBAL_SCHEDULE_CACHE.set(cacheKey, previousSchedule);
-    }
+        }),
+    });
   };
 
   // Formatted date string for header
@@ -1048,17 +1167,14 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
   // Current active slot check based on now
   const activeSlotIdNow = useMemo(() => {
     if (selectedDate !== todayStr) return null;
-    const now = new Date();
-    const currentTotalMin = now.getHours() * 60 + now.getMinutes();
-
-    const found = (scheduleData?.slots || []).find((s) => {
-      const [sh, sm] = (s.startTime || "00:00").split(":").map(Number);
-      const [eh, em] = (s.endTime || "23:59").split(":").map(Number);
-      return currentTotalMin >= sh * 60 + sm && currentTotalMin <= eh * 60 + em;
-    });
-
+    // Slot ranges are [start, end) so a boundary minute (e.g. 9:15) belongs to the next slot only
+    const found = (scheduleData?.slots || []).find(
+      (s) =>
+        nowMs >= toScheduleTimestamp(selectedDate, s.startTime || "00:00") &&
+        nowMs < toScheduleTimestamp(selectedDate, s.endTime || "23:59")
+    );
     return found?.slotId || null;
-  }, [selectedDate, todayStr, scheduleData]);
+  }, [selectedDate, todayStr, scheduleData, nowMs]);
 
   // Filtered Slots for Display
   const displayedSlots = useMemo(() => {
@@ -1074,23 +1190,12 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
 
       if (statusFilter === "completed" && !slot.completed) return false;
       if (statusFilter === "pending" && slot.completed) return false;
-      if (statusFilter === "ontime" && (!slot.completed || slot.timingStatus === "delayed")) return false;
-      if (statusFilter === "delayed" && (!slot.completed || slot.timingStatus !== "delayed")) return false;
+      if (statusFilter === "ontime" && (!slot.completed || slot.timingStatus !== "on-time")) return false;
+      if (statusFilter === "delayed" && (!slot.completed || slot.timingStatus === "on-time")) return false;
 
       return true;
     });
   }, [scheduleData, statusFilter, searchQuery]);
-
-  // Resolved user being inspected
-  const currentlyViewedUser = useMemo(() => {
-    if (isLeadership && selectedExecutiveId) {
-      const execObj = executivesSummary.find((e) => e.user?._id === selectedExecutiveId);
-      if (execObj?.user) return execObj.user;
-      const propFound = smExecutivesFromProps.find((u) => u._id === selectedExecutiveId);
-      if (propFound) return propFound;
-    }
-    return currentUser;
-  }, [isLeadership, selectedExecutiveId, executivesSummary, smExecutivesFromProps, currentUser]);
 
   return (
     <div className="space-y-3.5 sm:space-y-4">
@@ -1163,7 +1268,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-                className="pl-6 pr-2 py-0.5 rounded-lg bg-white dark:bg-[#0c1220] border border-slate-200/70 dark:border-white/10 text-[11px] font-semibold text-slate-800 dark:text-slate-100 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-1.5 focus:ring-indigo-500 cursor-pointer"
+                className="px-2 py-0.5 rounded-lg bg-white dark:bg-[#0c1220] border border-slate-200/70 dark:border-white/10 text-[11px] font-semibold text-slate-800 dark:text-slate-100 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-1.5 focus:ring-indigo-500 cursor-pointer"
               />
             </div>
 
@@ -1194,20 +1299,8 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
           {/* Refresh Button */}
           <button
             type="button"
-            onClick={() => {
-              GLOBAL_SCHEDULE_CACHE.clear();
-              GLOBAL_EXECUTIVES_SUMMARY_CACHE.clear();
-              toast.success("Schedule refreshed");
-              const targetUserId = effectiveUserId;
-              axiosInstance
-                .get(`/socialmedia-task-calendar/daily-schedule?date=${selectedDate}&userId=${targetUserId}`)
-                .then((res) => {
-                  if (res.data?.success) {
-                    GLOBAL_SCHEDULE_CACHE.set(`${targetUserId}_${selectedDate}`, res.data.schedule);
-                    setScheduleData(res.data.schedule);
-                  }
-                });
-            }}
+            onClick={handleRefresh}
+            disabled={isFetchingSchedule}
             className="p-1.5 rounded-lg border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#131d31] text-slate-500 hover:text-indigo-600 hover:bg-slate-50 dark:hover:bg-[#182338] transition-colors cursor-pointer shadow-2xs"
             title="Refresh Schedule"
           >
@@ -1278,8 +1371,9 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
               delayedSlotsCount: 0,
             }))).map((exec) => {
               const execUser = exec.user || exec;
-              const isSelected = selectedExecutiveId === execUser?._id;
-              const isAllDone = exec.completedSlotsCount >= 15;
+              const isSelected = sameId(selectedExecutiveId, execUser?._id);
+              const execTotal = exec.totalSlotsCount || TOTAL_SLOTS;
+              const isAllDone = exec.completedSlotsCount >= execTotal;
               const hasStarted = exec.completedSlotsCount > 0;
               const avatarUrl = getExecutiveAvatarUrl(execUser);
 
@@ -1317,7 +1411,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                             : "bg-slate-200/80 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
                         }`}
                       >
-                        {exec.completedSlotsCount || 0} / 15 ({exec.completionPercentage || 0}%)
+                        {exec.completedSlotsCount || 0} / {execTotal} ({exec.completionPercentage || 0}%)
                       </span>
                       {exec.onTimeSlotsCount > 0 && (
                         <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[8.5px]">
@@ -1342,9 +1436,13 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-white dark:bg-[#0c1220] p-2.5 rounded-xl border border-slate-200/80 dark:border-white/10 shadow-xs">
         <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {[
-            { id: "all", label: "All Slots", count: 15 },
+            { id: "all", label: "All Slots", count: scheduleData?.slots?.length || TOTAL_SLOTS },
             { id: "completed", label: "Completed", count: scheduleData?.completedSlotsCount || 0 },
-            { id: "pending", label: "Pending", count: 15 - (scheduleData?.completedSlotsCount || 0) },
+            {
+              id: "pending",
+              label: "Pending",
+              count: (scheduleData?.slots?.length || TOTAL_SLOTS) - (scheduleData?.completedSlotsCount || 0),
+            },
             { id: "ontime", label: "On-Time", count: scheduleData?.onTimeSlotsCount || 0 },
             { id: "delayed", label: "Late", count: scheduleData?.delayedSlotsCount || 0 },
           ].map((tab) => (
@@ -1382,7 +1480,7 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
             placeholder="Search routine or slot..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 rounded-lg text-[11px] font-medium bg-slate-50 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1.5 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+            className="w-full px-3 py-1.5 rounded-lg text-[11px] font-medium bg-slate-50 dark:bg-[#131d31] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1.5 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
           />
         </div>
       </div>
@@ -1416,8 +1514,11 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
             displayedSlots.map((slot, index) => {
               const isCompleted = Boolean(slot.completed);
               const isCurrentSlot = activeSlotIdNow === slot.slotId;
-              const isUpdating = isUpdatingSlot === slot.slotId;
-              const isOnTime = slot.timingStatus === "on-time" || slot.timingStatus === "early";
+              const isUpdating = updatingSlotIds.has(slot.slotId);
+              const isOnTime = slot.timingStatus === "on-time";
+              const isEarly = slot.timingStatus === "early";
+              // Slot hasn't started yet (or is on a future date): completion is locked
+              const isUpcoming = !isCompleted && isSlotUpcoming(selectedDate, slot, nowMs);
               const config = getSlotTimelineConfig(slot.slotId);
               const nextSlot = displayedSlots[index + 1];
               const nextConfig = nextSlot ? getSlotTimelineConfig(nextSlot.slotId) : null;
@@ -1482,6 +1583,8 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                           : "bg-amber-50/80 dark:bg-amber-950/25 border-amber-300 dark:border-amber-800/60 shadow-2xs hover:border-amber-400"
                         : isCurrentSlot
                         ? "bg-red-50/65 dark:bg-red-950/20 border-red-300 dark:border-red-800/60 ring-2 ring-red-400/40 shadow-sm"
+                        : isUpcoming
+                        ? "bg-white dark:bg-[#0c1220] border-slate-200/80 dark:border-white/10 shadow-2xs"
                         : "bg-red-50/50 dark:bg-red-950/15 border-red-200/80 dark:border-red-900/40 shadow-2xs hover:border-red-300 dark:hover:border-red-800/50 hover:shadow-xs"
                     }`}
                   >
@@ -1510,6 +1613,14 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 <span>✓ On-Time ({formatShortTime(slot.completedAt)})</span>
                               </span>
+                            ) : isEarly ? (
+                              <span
+                                title={`Checked at ${formatExactTime(slot.completedAt)}, before the slot started`}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                <span>⚠ Early ({formatShortTime(slot.completedAt)})</span>
+                              </span>
                             ) : (
                               <span
                                 title={`Checked at ${formatExactTime(slot.completedAt)} (Delayed update)`}
@@ -1523,6 +1634,11 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-300 dark:border-blue-700 animate-pulse">
                               <FiZap size={9} className="text-blue-600 dark:text-blue-400" />
                               <span>Active Now</span>
+                            </span>
+                          ) : isUpcoming ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/10">
+                              <FiClock size={9} />
+                              <span>Upcoming</span>
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-semibold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800/50">
@@ -1575,7 +1691,10 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                                       whileTap={{ scale: 0.98 }}
                                       key={st.id}
                                       onClick={(e) => handleToggleSubtask(slot, st, e)}
-                                      className={`group/sub flex items-start gap-2 text-[11px] sm:text-[11.5px] rounded-lg p-1 -ml-1 transition-colors cursor-pointer select-none ${
+                                      title={isUpcoming ? `Starts at ${formatSlotStart(slot)}` : undefined}
+                                      className={`group/sub flex items-start gap-2 text-[11px] sm:text-[11.5px] rounded-lg p-1 -ml-1 transition-colors select-none ${
+                                        isUpcoming ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                                      } ${
                                         isSubDone
                                           ? "text-slate-500 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5"
                                           : "text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5"
@@ -1631,9 +1750,10 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.95 }}
                           type="button"
-                          disabled={isUpdating}
+                          disabled={isUpdating || isUpcoming}
+                          title={isUpcoming ? `Starts at ${formatSlotStart(slot)}` : undefined}
                           onClick={() => handleToggleSlot(slot)}
-                          className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-[11px] transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 ${
+                          className={`group relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold text-[11px] transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                             isCompleted
                               ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
                               : "bg-white hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-300/80 dark:bg-[#131d31] dark:text-slate-200 dark:border-white/10 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
@@ -1645,6 +1765,11 @@ const DailyWorkScheduleTab = ({ user: propUser, users: propUsers = [] }) => {
                             <>
                               <FiCheckCircle size={13} className="stroke-[2.5]" />
                               <span>Done</span>
+                            </>
+                          ) : isUpcoming ? (
+                            <>
+                              <FiClock size={12} className="text-slate-400" />
+                              <span>Starts {formatSlotStart(slot)}</span>
                             </>
                           ) : (
                             <>

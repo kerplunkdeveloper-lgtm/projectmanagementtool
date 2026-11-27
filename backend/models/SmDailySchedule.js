@@ -57,7 +57,12 @@ const smDailyScheduleSchema = new mongoose.Schema(
     onTimeSlotsCount: { type: Number, default: 0 },
     delayedSlotsCount: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    // Concurrent toggles on the same day must not overwrite each other's changes or counts:
+    // a save based on stale data throws VersionError and the controller retries on fresh data.
+    optimisticConcurrency: true,
+  }
 );
 
 smDailyScheduleSchema.index({ user: 1, date: 1 }, { unique: true });
