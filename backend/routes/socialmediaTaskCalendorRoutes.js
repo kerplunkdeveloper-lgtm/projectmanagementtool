@@ -19,6 +19,8 @@ const {
   toggleSlotCompletion,
   toggleSubtaskCompletion,
   getExecutivesSummary,
+  submitDailySchedule,
+  reopenDailySchedule,
 } = require('../controllers/smDailyScheduleController');
 
 const { getSocialmediaTasksPaged } = require('../controllers/socialmediaTaskPagedController');
@@ -33,6 +35,8 @@ router.get('/daily-schedule', getDailySchedule);
 router.patch('/daily-schedule/toggle-slot', toggleSlotCompletion);
 router.patch('/daily-schedule/toggle-subtask', toggleSubtaskCompletion);
 router.get('/daily-schedule/executives-summary', getExecutivesSummary);
+router.post('/daily-schedule/submit', submitDailySchedule);
+router.post('/daily-schedule/reopen', reopenDailySchedule);
 
 router.get('/meta', getSocialmediaMetadata);
 // Server-side filtered + paginated list for the SM Tasks page (must stay above /:id)

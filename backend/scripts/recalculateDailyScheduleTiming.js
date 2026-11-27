@@ -21,12 +21,12 @@ async function run() {
   const cursor = SmDailySchedule.find({}).cursor();
   for await (const doc of cursor) {
     scanned++;
-    const before = JSON.stringify([doc.onTimeSlotsCount, doc.delayedSlotsCount, doc.slots.map((s) => s.timingStatus)]);
+    const before = JSON.stringify([doc.onTimeSlotsCount, doc.earlySlotsCount, doc.delayedSlotsCount, doc.slots.map((s) => s.timingStatus)]);
     _internal.recalculateScheduleStats(doc);
-    const after = JSON.stringify([doc.onTimeSlotsCount, doc.delayedSlotsCount, doc.slots.map((s) => s.timingStatus)]);
+    const after = JSON.stringify([doc.onTimeSlotsCount, doc.earlySlotsCount, doc.delayedSlotsCount, doc.slots.map((s) => s.timingStatus)]);
     if (before !== after) {
       changed++;
-      console.log(`${doc.date} ${doc.userName || doc.user}: on-time ${doc.onTimeSlotsCount}, late ${doc.delayedSlotsCount}`);
+      console.log(`${doc.date} ${doc.userName || doc.user}: on-time ${doc.onTimeSlotsCount}, early ${doc.earlySlotsCount}, late ${doc.delayedSlotsCount}`);
       if (!dryRun) await doc.save();
     }
   }

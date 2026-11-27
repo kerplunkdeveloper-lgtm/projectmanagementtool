@@ -285,7 +285,8 @@ const TOTAL_SLOTS = DEFAULT_SCHEDULE_SLOTS.length;
 const rawOffset = (process.env.SCHEDULE_TZ_OFFSET_MINUTES || '').trim();
 const SCHEDULE_TZ_OFFSET_MINUTES =
   rawOffset !== '' && Number.isFinite(Number(rawOffset)) ? Number(rawOffset) : 330; // IST = UTC+5:30
-const GRACE_PERIOD_MS = 15 * 60 * 1000;
+const GRACE_PERIOD_MS = 15 * 60 * 1000; // late grace after slot end
+const EARLY_GRACE_MS = 10 * 60 * 1000; // up to 10 min before slot start still counts as on-time
 const MAX_SAVE_ATTEMPTS = 5;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -315,7 +316,6 @@ const parseBoolean = (value) => {
   return Boolean(value);
 };
 
-const formatSlotStart = (slot) => slot.timeRange?.split('–')[0]?.trim() || slot.startTime;
 
 // Helper to determine role permissions
 const isLeadershipUser = (user) => {
@@ -349,19 +349,21 @@ const resolveTargetUserId = (req, requestedUserId) => {
   return { isLead, targetUserId: req.user._id };
 };
 
-// On-time = completed after the slot started and no later than slot end + 15 min grace
+// Timing rules:
+//   on-time = from 10 min before slot start up to slot end + 15 min grace
+//   early   = more than 10 min before slot start (allowed, but not counted as on-time)
+//   delayed = after slot end + 15 min grace
 const calculateTimingStatus = (dateStr, startTimeStr, endTimeStr, completedAt) => {
   if (!completedAt) return { isOnTime: false, timingStatus: 'pending' };
 
-  const slotStart = toScheduleTimestamp(dateStr, startTimeStr);
+  const earlyLimit = toScheduleTimestamp(dateStr, startTimeStr) - EARLY_GRACE_MS;
   const graceEnd = toScheduleTimestamp(dateStr, endTimeStr) + GRACE_PERIOD_MS;
   const checkTime = new Date(completedAt).getTime();
 
-  if (!Number.isFinite(slotStart) || !Number.isFinite(graceEnd) || !Number.isFinite(checkTime)) {
+  if (!Number.isFinite(earlyLimit) || !Number.isFinite(graceEnd) || !Number.isFinite(checkTime)) {
     return { isOnTime: false, timingStatus: 'delayed' };
   }
-  if (checkTime < slotStart) {
-    // Completion before the slot is blocked by the API; legacy data is still flagged as early
+  if (checkTime < earlyLimit) {
     return { isOnTime: false, timingStatus: 'early' };
   }
   if (checkTime <= graceEnd) {
@@ -370,13 +372,10 @@ const calculateTimingStatus = (dateStr, startTimeStr, endTimeStr, completedAt) =
   return { isOnTime: false, timingStatus: 'delayed' };
 };
 
-// A slot cannot be completed before it starts (and never on a future date)
-const getCompletionBlockReason = (dateStr, slot) => {
+// Slots can be completed any time on today or past dates, never on a future date
+const getCompletionBlockReason = (dateStr) => {
   if (dateStr > getTodayStr()) {
     return 'You cannot complete slots for a future date';
-  }
-  if (Date.now() < toScheduleTimestamp(dateStr, slot.startTime)) {
-    return `"${slot.title}" starts at ${formatSlotStart(slot)}. You can mark it once the slot begins.`;
   }
   return null;
 };
@@ -386,6 +385,7 @@ const markSlotCompleted = (slot, dateStr, user, now) => {
   slot.completedAt = now;
   slot.completedBy = user._id;
   slot.completedByName = user.name || '';
+  slot.pendingReason = '';
   const { isOnTime, timingStatus } = calculateTimingStatus(dateStr, slot.startTime, slot.endTime, now);
   slot.isOnTime = isOnTime;
   slot.timingStatus = timingStatus;
@@ -405,6 +405,7 @@ const markSlotPending = (slot) => {
 const recalculateScheduleStats = (doc) => {
   let completed = 0;
   let onTime = 0;
+  let early = 0;
   let delayed = 0;
 
   (doc.slots || []).forEach((s) => {
@@ -415,13 +416,12 @@ const recalculateScheduleStats = (doc) => {
     }
     if (s.completed) {
       completed++;
-      if (s.timingStatus === 'on-time') {
-        onTime++;
-      } else {
-        delayed++;
-      }
+      if (s.timingStatus === 'on-time') onTime++;
+      else if (s.timingStatus === 'early') early++;
+      else delayed++;
     }
   });
+  doc.earlySlotsCount = early;
 
   doc.completedSlotsCount = completed;
   doc.totalSlotsCount = doc.slots?.length || TOTAL_SLOTS;
@@ -443,6 +443,7 @@ const buildDefaultSlots = () =>
     isOnTime: false,
     timingStatus: 'pending',
     notes: '',
+    pendingReason: '',
     subtasks: slot.subtasks.map((st) => ({
       ...st,
       completed: false,
@@ -450,11 +451,27 @@ const buildDefaultSlots = () =>
     })),
   }));
 
+const buildEmptySubmission = () => ({
+  isSubmitted: false,
+  submittedAt: null,
+  submittedBy: null,
+  submittedByName: '',
+  submissionNote: '',
+  reopenedAt: null,
+  reopenedByName: '',
+});
+
+const SUBMITTED_ERROR = {
+  status: 409,
+  message: 'This day is already submitted and is read-only. Ask your manager to reopen it to make changes.',
+};
+
 const buildEmptyStats = () => ({
   completedSlotsCount: 0,
   totalSlotsCount: TOTAL_SLOTS,
   completionPercentage: 0,
   onTimeSlotsCount: 0,
+  earlySlotsCount: 0,
   delayedSlotsCount: 0,
 });
 
@@ -537,6 +554,7 @@ exports.getDailySchedule = async (req, res) => {
         date: targetDate,
         slots: buildDefaultSlots(),
         ...buildEmptyStats(),
+        ...buildEmptySubmission(),
       };
     }
 
@@ -577,13 +595,14 @@ exports.toggleSlotCompletion = async (req, res) => {
     const requestedCompleted = parseBoolean(req.body.completed);
 
     const result = await mutateSchedule(targetUserId, date, (schedule) => {
+      if (schedule.isSubmitted) return { error: SUBMITTED_ERROR };
       const slot = schedule.slots.find((s) => s.slotId === slotId);
       if (!slot) return { error: { status: 404, message: 'Slot not found' } };
 
       const newCompleted = requestedCompleted !== undefined ? requestedCompleted : !slot.completed;
 
       if (newCompleted && !slot.completed) {
-        const blockReason = getCompletionBlockReason(date, slot);
+        const blockReason = getCompletionBlockReason(date);
         if (blockReason) return { error: { status: 400, message: blockReason } };
       }
 
@@ -646,6 +665,7 @@ exports.toggleSubtaskCompletion = async (req, res) => {
     const requestedCompleted = parseBoolean(req.body.completed);
 
     const result = await mutateSchedule(targetUserId, date, (schedule) => {
+      if (schedule.isSubmitted) return { error: SUBMITTED_ERROR };
       const slot = schedule.slots.find((s) => s.slotId === slotId);
       if (!slot) return { error: { status: 404, message: 'Slot not found' } };
 
@@ -655,7 +675,7 @@ exports.toggleSubtaskCompletion = async (req, res) => {
       const newCompleted = requestedCompleted !== undefined ? requestedCompleted : !subtask.completed;
 
       if (newCompleted && !subtask.completed) {
-        const blockReason = getCompletionBlockReason(date, slot);
+        const blockReason = getCompletionBlockReason(date);
         if (blockReason) return { error: { status: 400, message: blockReason } };
       }
 
@@ -731,7 +751,7 @@ exports.getExecutivesSummary = async (req, res) => {
       date: targetDate,
       user: { $in: execIds },
     })
-      .select('user completedSlotsCount totalSlotsCount completionPercentage onTimeSlotsCount delayedSlotsCount slots.completedAt')
+      .select('user completedSlotsCount totalSlotsCount completionPercentage onTimeSlotsCount earlySlotsCount delayedSlotsCount isSubmitted submittedAt slots.completedAt')
       .lean();
 
     const scheduleMap = new Map();
@@ -756,6 +776,9 @@ exports.getExecutivesSummary = async (req, res) => {
         totalSlotsCount: totalSlots,
         completionPercentage: sched ? sched.completionPercentage : 0,
         onTimeSlotsCount: sched ? sched.onTimeSlotsCount : 0,
+        earlySlotsCount: sched?.earlySlotsCount || 0,
+        isSubmitted: Boolean(sched?.isSubmitted),
+        submittedAt: sched?.submittedAt || null,
         delayedSlotsCount: sched ? sched.delayedSlotsCount : 0,
         isAllDone: Boolean(sched && sched.completedSlotsCount >= totalSlots),
         lastCompletedAt: sched?.slots?.reduce((latest, s) => {
@@ -776,6 +799,128 @@ exports.getExecutivesSummary = async (req, res) => {
   } catch (error) {
     console.error('Error fetching executives summary:', error);
     return res.status(500).json({ success: false, message: 'Server error while fetching summary' });
+  }
+};
+
+const MAX_REASON_LENGTH = 500;
+const MIN_REASON_LENGTH = 3;
+const MAX_SUBMISSION_NOTE_LENGTH = 1000;
+
+/**
+ * @desc Submit the day: every slot left incomplete must have a reason. The day becomes read-only.
+ * @route POST /api/socialmedia-task-calendar/daily-schedule/submit
+ * @body { date, userId?, pendingReasons: { [slotId]: string }, note? }
+ */
+exports.submitDailySchedule = async (req, res) => {
+  try {
+    const { date } = req.body;
+    const pendingReasons = req.body.pendingReasons || {};
+    const note = req.body.note ?? '';
+
+    if (!isValidDateStr(date)) {
+      return res.status(400).json({ success: false, message: 'date must be in YYYY-MM-DD format' });
+    }
+    if (date > getTodayStr()) {
+      return res.status(400).json({ success: false, message: 'You cannot submit a future date' });
+    }
+    if (typeof pendingReasons !== 'object' || Array.isArray(pendingReasons)) {
+      return res.status(400).json({ success: false, message: 'pendingReasons must be an object of slotId to reason' });
+    }
+    if (typeof note !== 'string' || note.length > MAX_SUBMISSION_NOTE_LENGTH) {
+      return res.status(400).json({ success: false, message: 'note must be text up to ' + MAX_SUBMISSION_NOTE_LENGTH + ' characters' });
+    }
+
+    const { targetUserId, error } = resolveTargetUserId(req, req.body.userId);
+    if (error) return res.status(error.status).json({ success: false, message: error.message });
+
+    const result = await mutateSchedule(targetUserId, date, (schedule) => {
+      if (schedule.isSubmitted) return { error: { status: 409, message: 'This day has already been submitted' } };
+
+      const missingSlotIds = [];
+      schedule.slots.forEach((slot) => {
+        if (slot.completed) {
+          slot.pendingReason = '';
+          return;
+        }
+        const provided = pendingReasons[slot.slotId];
+        const reason = (typeof provided === 'string' ? provided : slot.pendingReason || '').trim();
+        if (reason.length < MIN_REASON_LENGTH) {
+          missingSlotIds.push(slot.slotId);
+          return;
+        }
+        slot.pendingReason = reason.slice(0, MAX_REASON_LENGTH);
+      });
+
+      if (missingSlotIds.length > 0) {
+        const n = missingSlotIds.length;
+        return {
+          error: {
+            status: 400,
+            message: 'Add a reason for ' + n + ' pending slot' + (n > 1 ? 's' : '') + ' before submitting',
+            missingSlotIds,
+          },
+        };
+      }
+
+      schedule.isSubmitted = true;
+      schedule.submittedAt = new Date();
+      schedule.submittedBy = req.user._id;
+      schedule.submittedByName = req.user.name || '';
+      schedule.submissionNote = note.trim();
+      return {};
+    });
+
+    if (result.error) {
+      return res.status(result.error.status).json({
+        success: false,
+        message: result.error.message,
+        missingSlotIds: result.error.missingSlotIds,
+      });
+    }
+
+    return res.status(200).json({ success: true, message: 'Day submitted successfully', schedule: result.schedule });
+  } catch (error) {
+    console.error('Error submitting daily schedule:', error);
+    return res.status(500).json({ success: false, message: 'Server error while submitting the day' });
+  }
+};
+
+/**
+ * @desc Reopen a submitted day so it can be edited again (leadership only)
+ * @route POST /api/socialmedia-task-calendar/daily-schedule/reopen
+ * @body { date, userId }
+ */
+exports.reopenDailySchedule = async (req, res) => {
+  try {
+    if (!isLeadershipUser(req.user)) {
+      return res.status(403).json({ success: false, message: 'Only leadership can reopen a submitted day' });
+    }
+    const { date, userId } = req.body;
+    if (!isValidDateStr(date)) {
+      return res.status(400).json({ success: false, message: 'date must be in YYYY-MM-DD format' });
+    }
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid userId' });
+    }
+
+    const existing = await SmDailySchedule.exists({ user: userId, date });
+    if (!existing) return res.status(404).json({ success: false, message: 'No schedule found for this day' });
+
+    const result = await mutateSchedule(userId, date, (schedule) => {
+      if (!schedule.isSubmitted) return { error: { status: 400, message: 'This day is not submitted' } };
+      schedule.isSubmitted = false;
+      schedule.reopenedAt = new Date();
+      schedule.reopenedByName = req.user.name || '';
+      return {};
+    });
+
+    if (result.error) {
+      return res.status(result.error.status).json({ success: false, message: result.error.message });
+    }
+    return res.status(200).json({ success: true, message: 'Day reopened for editing', schedule: result.schedule });
+  } catch (error) {
+    console.error('Error reopening daily schedule:', error);
+    return res.status(500).json({ success: false, message: 'Server error while reopening the day' });
   }
 };
 

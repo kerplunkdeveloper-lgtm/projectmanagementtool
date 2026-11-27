@@ -1095,6 +1095,74 @@ input.toolbar-search-input:focus {
   border-color: #475569 !important;
 }
 
+/* Daily Work Schedule fields (opt out of the global borderless input style) */
+input.dws-field,
+textarea.dws-field {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04) !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+input.dws-field::placeholder,
+textarea.dws-field::placeholder {
+  color: #94a3b8 !important;
+}
+
+input.dws-field:hover,
+textarea.dws-field:hover {
+  border-color: #94a3b8 !important;
+}
+
+input.dws-field:focus,
+textarea.dws-field:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18) !important;
+  outline: none !important;
+  background-color: #ffffff !important;
+}
+
+textarea.dws-field.dws-field-error {
+  border-color: #f43f5e !important;
+  background-color: #fff1f2 !important;
+}
+
+textarea.dws-field.dws-field-error:focus {
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.18) !important;
+}
+
+.dark input.dws-field,
+.dark textarea.dws-field,
+.dark input.dws-field:focus,
+.dark textarea.dws-field:focus {
+  background-color: #131d31 !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+.dark input.dws-field:focus,
+.dark textarea.dws-field:focus {
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2) !important;
+}
+
+.dark textarea.dws-field.dws-field-error {
+  border-color: #fb7185 !important;
+  background-color: rgba(244, 63, 94, 0.08) !important;
+}
+
+input.dws-field.dws-search {
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}
+
+input.dws-field.dws-date {
+  padding: 0.25rem 0.5rem !important;
+  border-radius: 0.5rem !important;
+}
+
 /* Date input toolbar styling */
 input.toolbar-filter-date {
   background-color: #ffffff !important;

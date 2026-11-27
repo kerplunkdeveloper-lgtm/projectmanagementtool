@@ -30,6 +30,8 @@ const scheduleSlotSchema = new mongoose.Schema(
       default: 'pending',
     },
     notes: { type: String, default: '' },
+    // Why the slot was left incomplete; required for every pending slot when the day is submitted
+    pendingReason: { type: String, default: '', maxlength: 500 },
     subtasks: [subtaskItemSchema],
   },
   { _id: false }
@@ -55,7 +57,17 @@ const smDailyScheduleSchema = new mongoose.Schema(
     totalSlotsCount: { type: Number, default: 15 },
     completionPercentage: { type: Number, default: 0 },
     onTimeSlotsCount: { type: Number, default: 0 },
+    earlySlotsCount: { type: Number, default: 0 },
     delayedSlotsCount: { type: Number, default: 0 },
+
+    // End-of-day submission. A submitted day is read-only until leadership reopens it.
+    isSubmitted: { type: Boolean, default: false },
+    submittedAt: { type: Date, default: null },
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    submittedByName: { type: String, default: '' },
+    submissionNote: { type: String, default: '', maxlength: 1000 },
+    reopenedAt: { type: Date, default: null },
+    reopenedByName: { type: String, default: '' },
   },
   {
     timestamps: true,
