@@ -294,7 +294,7 @@ const SmTaskModal = ({
       initialDateStr: currentInitialDateStr,
     };
 
-    if (task) {
+    if (task && task._id) {
       let pDate = "";
       let pTime = "18:00";
       if (task.publishDate) {
@@ -382,15 +382,20 @@ const SmTaskModal = ({
         ? formatLocalDateKey(initialDate)
         : formatLocalDateKey(new Date());
 
-      const defaultClient = activeClients.find(
+      const prefillClient = task
+        ? activeClients.find(
+            (c) => c._id === (task.client?._id || task.client) || c.companyName === task.clientName
+          )
+        : null;
+      const defaultClient = prefillClient || activeClients.find(
         (c) => !defaultIsCommitment || (c.companyName || "").trim().toLowerCase() !== "others"
       ) || activeClients[0] || null;
 
       setFormData({
         taskTitle: "",
-        clientId: defaultClient?._id || "",
-        clientName: defaultClient?.companyName || "",
-        clientColor: defaultClient?.color || "#6366f1",
+        clientId: defaultClient?._id || task?.client?._id || task?.client || "",
+        clientName: defaultClient?.companyName || task?.clientName || "",
+        clientColor: defaultClient?.color || task?.clientColor || "#6366f1",
         category: defaultIsCommitment ? "Content Calendar" : "Content Creation",
         contentType: defaultIsCommitment ? "Post" : "Others Task",
         platform: defaultIsCommitment ? "Instagram" : "",
@@ -656,10 +661,8 @@ const SmTaskModal = ({
 
       if (task?._id) {
         await dispatch(updateSocialmediaTask({ id: task._id, data: payload })).unwrap();
-        toast.success("Task updated successfully");
       } else {
         await dispatch(createSocialmediaTask(payload)).unwrap();
-        toast.success("Task created successfully");
       }
       onClose();
     } catch (err) {

@@ -201,7 +201,7 @@ exports.getSocialmediaTasksPaged = async (req, res) => {
     const dateFields = parseDateFields(q.dateFields);
     if (dateFields.length) {
       if (q.overdue === 'true' || q.overdue === '1') {
-        filterClauses.push({ status: { $nin: ['Completed', 'Live', 'Published'] } });
+        filterClauses.push({ status: { $not: ciOneOf(AT_RISK_DONE) } });
         filterClauses.push(anyFieldInRange(dateFields, null, new Date(now.getTime() - 1)));
       } else {
         const from = parseDate(q.dateFrom);

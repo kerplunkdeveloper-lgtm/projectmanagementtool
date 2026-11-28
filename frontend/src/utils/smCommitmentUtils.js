@@ -318,6 +318,18 @@ export const computeAllClientsCommitments = (
 
   // Total At Risk and Awaiting approval from active tasks
   (tasks || []).forEach((t) => {
+    if (t.commitment === false) return;
+
+    if (month !== null && year !== null) {
+      const taskDate = t.publishDate || t.dueDate || t.createdAt;
+      if (taskDate) {
+        const d = new Date(taskDate);
+        if (!isNaN(d.getTime()) && (d.getMonth() + 1 !== month || d.getFullYear() !== year)) {
+          return;
+        }
+      }
+    }
+
     const s = (t.status || "").trim().toLowerCase();
     const isApprovalPending = s === "qc" || s === "in qc" || s.includes("client approval");
 

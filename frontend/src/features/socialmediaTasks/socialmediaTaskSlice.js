@@ -362,18 +362,55 @@ const initialState = {
   latestUpdateReq: {},
 };
 
+const RECALC_DONE_STATUSES = new Set([
+  "completed",
+  "live",
+  "published",
+  "published live",
+  "completed and wait client approval",
+]);
+
+const RECALC_PENDING_STATUSES = new Set([
+  "in qc",
+  "qc",
+  "completed and wait client approval",
+  "scheduled",
+  "in progress",
+  "inprogress",
+  "not started",
+]);
+
 const recalcStats = (state) => {
+  // Never overwrite monthly stats from a paginated SM Tasks page (which only holds 10 rows)
+  if (state.tasksKey && state.tasksKey.includes('"__view":"paged"')) return;
+
   const now = new Date();
-  const commitments = state.tasks.filter((t) => t.commitment && t.publishDate);
+  const targetMonth = state.stats?.month ? Number(state.stats.month) : null;
+  const targetYear = state.stats?.year ? Number(state.stats.year) : null;
+
+  const commitments = state.tasks.filter((t) => {
+    if (!t.commitment || !t.publishDate) return false;
+    if (targetMonth && targetYear) {
+      const p = new Date(t.publishDate);
+      if (isNaN(p.getTime()) || p.getMonth() + 1 !== targetMonth || p.getFullYear() !== targetYear) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   const total = commitments.length;
-  const completed = commitments.filter((t) => ['Completed', 'Live'].includes(t.status)).length;
+  const completed = commitments.filter((t) =>
+    RECALC_DONE_STATUSES.has((t.status || "").trim().toLowerCase())
+  ).length;
   const overdue = commitments.filter((t) => {
-    if (['Completed', 'Live'].includes(t.status)) return false;
-    return new Date(t.publishDate) < now || t.status === 'Overdue';
+    if (RECALC_DONE_STATUSES.has((t.status || "").trim().toLowerCase())) return false;
+    return new Date(t.publishDate) < now || t.status === "Overdue";
   }).length;
-  const pending = commitments.filter((t) =>
-    ['In QC', 'Scheduled', 'In progress', 'Not started'].includes(t.status) &&
-    new Date(t.publishDate) >= now
+  const pending = commitments.filter(
+    (t) =>
+      RECALC_PENDING_STATUSES.has((t.status || "").trim().toLowerCase()) &&
+      new Date(t.publishDate) >= now
   ).length;
   const atRisk = commitments.filter((t) => isTaskAtRisk(t, now.getTime())).length;
   const achievement = total > 0 ? parseFloat(((completed / total) * 100).toFixed(1)) : 0;

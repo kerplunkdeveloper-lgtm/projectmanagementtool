@@ -63,6 +63,7 @@ import {
   deleteSocialmediaTask,
 } from "../../features/socialmediaTasks/socialmediaTaskSlice";
 import {
+  getSocialmediaTasksAPI,
   getSocialmediaTasksPagedAPI,
   getSocialmediaTaskByIdAPI,
 } from "../../features/socialmediaTasks/socialmediaTaskApi";
@@ -604,7 +605,7 @@ const SmTasks = () => {
   const branchRoleClean = (user?.role || role || "").toLowerCase().replace(/[\s_]/g, "");
   const canSwitchBranch = branchRoleClean === "admin" || branchRoleClean === "operationmanager";
   const [branchTab, setBranchTab] = useBranchTab();
-  const { isClientInBranch } = useBranchFilter(clients, branchTab, canSwitchBranch);
+  const { isClientInBranch, isTaskInBranch } = useBranchFilter(clients, branchTab, canSwitchBranch);
 
   // Active clients list (strictly exclude inactive clients, and filter by selected branch tab)
   const activeClients = useMemo(() => {
@@ -655,6 +656,31 @@ const SmTasks = () => {
   // Commitment tab: a specific publish date within the month (null = whole month)
   const [selectedDay, setSelectedDay] = useState(null);
   const [isPendingCommitmentOpen, setIsPendingCommitmentOpen] = useState(false);
+  const [pendingModalTasks, setPendingModalTasks] = useState([]);
+
+  // Fetch all commitment tasks for the selected month when PendingCommitmentModal opens
+  // (uniqueTasks only holds the 10 paginated rows for the current table page).
+  useEffect(() => {
+    if (!isPendingCommitmentOpen) return;
+    let cancelled = false;
+    const params = { commitment: "true" };
+    if (selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
+      params.month = selectedMonth;
+      params.year = selectedYear;
+    }
+    getSocialmediaTasksAPI(params)
+      .then((res) => {
+        if (cancelled) return;
+        const list = (res?.data || []).filter((t) => isTaskInBranch(t));
+        setPendingModalTasks(list);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingModalTasks([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPendingCommitmentOpen, selectedMonth, selectedYear, isTaskInBranch, mutationVersion]);
 
   // Lookup map for users by ID and lowercase name for fast profile matching
   const usersMap = useMemo(() => {
@@ -968,14 +994,15 @@ const SmTasks = () => {
   }
 
 
-  // Sync monthly stats when month changes
+  // Sync monthly stats when month or branch changes
   useEffect(() => {
+    const branchParam = canSwitchBranch ? { branch: branchTab } : {};
     if (selectedMonth && selectedYear && selectedMonth !== "all" && selectedYear !== "all") {
-      dispatch(getSocialmediaStats({ year: selectedYear, month: selectedMonth }));
+      dispatch(getSocialmediaStats({ year: selectedYear, month: selectedMonth, ...branchParam }));
     } else {
-      dispatch(getSocialmediaStats());
+      dispatch(getSocialmediaStats(branchParam));
     }
-  }, [dispatch, selectedMonth, selectedYear]);
+  }, [dispatch, selectedMonth, selectedYear, canSwitchBranch, branchTab]);
 
   // Dynamic unique client list from real DB clients & tasks (strictly excluding inactive clients)
   const clientOptions = useMemo(() => {
@@ -2532,11 +2559,12 @@ const SmTasks = () => {
       />
 
       {/* Pending Commitment Modal (Detailed Client Breakdown) */}
+      {isPendingCommitmentOpen && (
       <PendingCommitmentModal
         isOpen={isPendingCommitmentOpen}
         onClose={() => setIsPendingCommitmentOpen(false)}
         clients={activeClients}
-        tasks={uniqueTasks}
+        tasks={pendingModalTasks}
         currentMonth={selectedMonth}
         currentYear={selectedYear}
         onSelectClient={(clientName) => {
@@ -2552,6 +2580,7 @@ const SmTasks = () => {
           setIsModalOpen(true);
         }}
       />
+      )}
 
       {/* Platform Verification Warning Modal */}
       <SmPlatformWarningModal

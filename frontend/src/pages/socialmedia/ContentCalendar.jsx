@@ -441,7 +441,7 @@ const ContentCalendar = () => {
         })
       ).unwrap();
       toast.success(`✓ Status updated to "${targetStatus}"`);
-      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
     } catch (err) {
       toast.error(err?.message || "Failed to update status");
     } finally {
@@ -478,8 +478,8 @@ const ContentCalendar = () => {
   // refreshed in the background (see socialmediaTaskSlice); stale responses are ignored.
   useEffect(() => {
     dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
-    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
-  }, [dispatch, currentYear, currentMonth]);
+    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
+  }, [dispatch, currentYear, currentMonth, canSwitchBranch, branchTab]);
 
   // Loading states:
   //  - showSkeleton: the list in the store isn't for this month yet (first load, or a month
@@ -504,8 +504,8 @@ const ContentCalendar = () => {
 
   const reloadCurrentMonth = useCallback(() => {
     dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
-    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
-  }, [dispatch, currentYear, currentMonth]);
+    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
+  }, [dispatch, currentYear, currentMonth, canSwitchBranch, branchTab]);
 
   // Warm the cache for the month the user is about to open (hover / focus on prev / next)
   const prefetchMonthOffset = useCallback(
@@ -927,18 +927,35 @@ const ContentCalendar = () => {
 
       const totalCommitments = userMonthlyCommitments.length;
 
+      const doneStatusSet = new Set([
+        "completed",
+        "live",
+        "published",
+        "published live",
+        "completed and wait client approval",
+      ]);
+      const pendingStatusSet = new Set([
+        "in qc",
+        "qc",
+        "scheduled",
+        "in progress",
+        "inprogress",
+        "not started",
+        "completed and wait client approval",
+      ]);
+
       const completedCount = userMonthlyCommitments.filter((t) =>
-        ["Completed", "Live", "Published", "Published Live"].includes(t.status)
+        doneStatusSet.has((t.status || "").trim().toLowerCase())
       ).length;
 
       const overdueCount = userMonthlyCommitments.filter((t) => {
-        if (["Completed", "Live", "Published", "Published Live"].includes(t.status)) return false;
+        if (doneStatusSet.has((t.status || "").trim().toLowerCase())) return false;
         const pub = new Date(t.publishDate);
         return pub.getTime() < nowTime || t.status === "Overdue";
       }).length;
 
       const pendingCount = userMonthlyCommitments.filter((t) => {
-        if (!["In QC", "QC", "Scheduled", "In progress", "Inprogress", "Not started", "Completed and wait CLient Approval"].includes(t.status)) return false;
+        if (!pendingStatusSet.has((t.status || "").trim().toLowerCase())) return false;
         const pub = new Date(t.publishDate);
         return pub.getTime() >= nowTime;
       }).length;
@@ -1037,7 +1054,7 @@ const ContentCalendar = () => {
       setBulkDeleteModalOpen(false);
       setIsSelectMode(false);
       dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
-      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
     } catch (err) {
       console.error("Bulk delete failed:", err);
     } finally {
@@ -1209,7 +1226,7 @@ const ContentCalendar = () => {
     if (isReadOnly) return;
     if (window.confirm(`Delete "${task.taskTitle}"?`)) {
       dispatch(deleteSocialmediaTask(task._id)).then(() => {
-        dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+        dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
       });
     }
   };
@@ -1245,14 +1262,14 @@ const ContentCalendar = () => {
         },
       })
     ).then(() => {
-      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+      dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
     });
     setDraggedTaskId(null);
   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
-    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+    dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
   };
 
   const handleExportExcel = () => {
@@ -3015,10 +3032,10 @@ const ContentCalendar = () => {
             const nextMonth = meta.targetMonth;
             setCurrentDate(new Date(nextYear, nextMonth, 1));
             dispatch(getSocialmediaTasks({ year: nextYear, month: nextMonth + 1 }));
-            dispatch(getSocialmediaStats({ year: nextYear, month: nextMonth + 1 }));
+            dispatch(getSocialmediaStats({ year: nextYear, month: nextMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
           } else {
             dispatch(getSocialmediaTasks({ year: currentYear, month: currentMonth + 1 }));
-            dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1 }));
+            dispatch(getSocialmediaStats({ year: currentYear, month: currentMonth + 1, ...(canSwitchBranch ? { branch: branchTab } : {}) }));
           }
           // Reset filters so newly imported posts immediately show up
           setSelectedClient("All");

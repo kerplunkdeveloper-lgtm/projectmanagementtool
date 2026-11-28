@@ -32,7 +32,7 @@ const isSocialMediaExecutiveUser = (user) => {
   );
 };
 
-const { escapeRegex, loadClientScopes, buildChennaiCondition } = require('../utils/smTaskQuery');
+const { escapeRegex, loadClientScopes, buildChennaiCondition, buildBranchCondition } = require('../utils/smTaskQuery');
 
 // Helper to determine if a task is a Commitment task
 const isCommitmentTask = (bodyOrDoc) => {
@@ -423,16 +423,24 @@ exports.getSocialmediaStats = async (req, res) => {
     }
 
     const needChennai = isSocialMediaHeadUser(req.user);
-    const { chennaiClients, inactiveClients } = await loadClientScopes({ needChennai, needInactive: true });
+    const isAdminOrOpManager = userRole === 'admin' || userRole === 'operationmanager';
+    const [{ chennaiClients, inactiveClients }, branchCondition] = await Promise.all([
+      loadClientScopes({ needChennai, needInactive: true }),
+      isAdminOrOpManager && !needChennai && req.query.branch ? buildBranchCondition(req.query.branch) : null,
+    ]);
+
+    const extraConditions = [];
+    if (commitmentsQuery.$or) {
+      extraConditions.push({ $or: commitmentsQuery.$or });
+      delete commitmentsQuery.$or;
+    }
 
     if (needChennai) {
-      const chennaiCondition = buildChennaiCondition(chennaiClients);
-      if (commitmentsQuery.$or) {
-        commitmentsQuery.$and = [{ $or: commitmentsQuery.$or }, chennaiCondition];
-        delete commitmentsQuery.$or;
-      } else {
-        commitmentsQuery.$or = chennaiCondition.$or;
-      }
+      extraConditions.push(buildChennaiCondition(chennaiClients));
+    }
+
+    if (branchCondition) {
+      extraConditions.push(branchCondition);
     }
 
     // Exclude inactive clients from stats calculation
@@ -448,18 +456,14 @@ exports.getSocialmediaStats = async (req, res) => {
         }
       });
       const inactiveClientNames = Array.from(inactiveNamesSet);
-      const excludeInactiveCondition = {
+      extraConditions.push({
         client: { $nin: inactiveClientIds },
         clientName: { $nin: inactiveClientNames },
-      };
-      if (commitmentsQuery.$or) {
-        commitmentsQuery.$and = [{ $or: commitmentsQuery.$or }, excludeInactiveCondition];
-        delete commitmentsQuery.$or;
-      } else if (commitmentsQuery.$and) {
-        commitmentsQuery.$and.push(excludeInactiveCondition);
-      } else {
-        commitmentsQuery.$and = [excludeInactiveCondition];
-      }
+      });
+    }
+
+    if (extraConditions.length > 0) {
+      commitmentsQuery.$and = extraConditions;
     }
 
     // Dynamic Commitments planned this month from DB (lean + projection for maximum speed)
